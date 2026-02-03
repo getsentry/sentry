@@ -1,11 +1,15 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {
+  ActorAvatar,
+  OrganizationAvatar,
+  ProjectAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
+
 import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -52,7 +56,13 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper className={className} style={{gap: space(wrapperGap)}} onClick={onClick}>
+      <Flex
+        align="center"
+        flexShrink={0}
+        className={className}
+        style={{gap: space(wrapperGap)}}
+        onClick={onClick}
+      >
         {!hideAvatar && (
           <EntityAvatarType
             team={team}
@@ -72,7 +82,7 @@ export const BaseBadge = memo(
             {!!description && <Description>{description}</Description>}
           </DisplayNameAndDescription>
         )}
-      </Wrapper>
+      </Flex>
     );
   }
 );
@@ -111,12 +121,6 @@ function EntityAvatarType({
   return null;
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-`;
-
 const DisplayNameAndDescription = styled('div')`
   display: flex;
   flex-direction: column;
@@ -133,7 +137,11 @@ const DisplayName = styled('span')`
 const Description = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 14px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

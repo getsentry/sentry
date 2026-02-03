@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
@@ -50,7 +51,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
           query: {...location.query, seerDrawer: true},
         }}
       >
-        <IconSeer size="sm" />
+        <IconSeer size="xs" />
         {seerFixable && <p>{t('Quick Fix')}</p>}
       </SeerLink>
     </Tooltip>
@@ -62,7 +63,7 @@ const SeerLink = styled(Link)`
   gap: ${space(0.5)};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   position: relative;
 `;
 

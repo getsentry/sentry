@@ -3,25 +3,25 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
-import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +35,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -45,6 +44,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
+  type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
@@ -53,6 +53,7 @@ import type {
 import IssueAlertOptions, {
   getRequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -82,7 +83,7 @@ function getMissingValues({
   isOrgMemberWithNoAccess: boolean;
   notificationProps: {
     actions?: string[];
-    channel?: string;
+    channel?: IntegrationChannel;
   };
   projectName: string;
   team: string | undefined;
@@ -130,23 +131,18 @@ function getSubmitTooltipText({
   if (isMissingPlatform) {
     return t('Please select a platform');
   }
+
   return t('Please select a team');
 }
 
-const keyToErrorText: Record<string, string> = {
-  actions: t('Notify via integration'),
-  conditions: t('Alert conditions'),
-  name: t('Alert name'),
-  detail: t('Project details'),
-};
-
 export function CreateProject() {
-  const api = useApi();
+  const globalModal = useGlobalModal();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
+
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const referrer = decodeScalar(location.query.referrer);
@@ -168,6 +164,12 @@ export function CreateProject() {
   const {createNotificationAction, notificationProps} = useCreateNotificationAction(
     createNotificationActionParam
   );
+
+  const validateChannel = useValidateChannel({
+    channel: notificationProps.channel,
+    integrationId: notificationProps.integration?.id,
+    enabled: false,
+  });
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -210,18 +212,26 @@ export function CreateProject() {
     platform: formData.platform,
   });
 
+  const isNotifyingViaIntegration =
+    alertRuleConfig.shouldCreateRule &&
+    notificationProps.actions?.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const formErrorCount = [
     missingValues.isMissingPlatform,
     missingValues.isMissingTeam,
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
+    isNotifyingViaIntegration && validateChannel.error,
   ].filter(value => value).length;
 
-  const submitTooltipText = getSubmitTooltipText({
-    ...missingValues,
-    formErrorCount,
-  });
+  const submitTooltipText =
+    isNotifyingViaIntegration && validateChannel.error
+      ? validateChannel.error
+      : getSubmitTooltipText({
+          ...missingValues,
+          formErrorCount,
+        });
 
   const updateFormData = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -256,8 +266,6 @@ export function CreateProject() {
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
 
-      let projectToRollback: Project | undefined;
-
       try {
         const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
@@ -267,7 +275,6 @@ export function CreateProject() {
             alertRuleConfig,
             createNotificationAction,
           });
-        projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -279,6 +286,7 @@ export function CreateProject() {
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          notification_rule_created: !!notificationRule,
         });
 
         addSuccessMessage(
@@ -333,34 +341,12 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
-
-        if (projectToRollback) {
-          Sentry.logger.error('Rolling back project', {
-            projectToRollback,
-          });
-          try {
-            // Rolling back the project also deletes its associated alert rules
-            // due to the cascading delete constraint.
-            await removeProject({
-              api,
-              orgSlug: organization.slug,
-              projectSlug: projectToRollback.slug,
-              origin: 'getting_started',
-            });
-          } catch (err) {
-            Sentry.withScope(scope => {
-              scope.setExtra('error', err);
-              Sentry.captureMessage('Failed to rollback project');
-            });
-          }
-        }
       }
     },
     [
       organization,
       setCreatedProject,
       navigate,
-      api,
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
@@ -563,16 +549,25 @@ export function CreateProject() {
               <Tooltip
                 title={
                   canUserCreateProject
-                    ? submitTooltipText
+                    ? isNotifyingViaIntegration && validateChannel.isFetching
+                      ? t('Validating integration channel\u2026')
+                      : submitTooltipText
                     : t('You do not have permission to create projects')
                 }
-                disabled={formErrorCount === 0 && canUserCreateProject}
+                disabled={
+                  formErrorCount === 0 &&
+                  canUserCreateProject &&
+                  !(isNotifyingViaIntegration && validateChannel.isFetching)
+                }
               >
                 <Button
                   data-test-id="create-project"
                   priority="primary"
                   disabled={!(canUserCreateProject && formErrorCount === 0)}
-                  busy={createProjectAndRules.isPending}
+                  busy={
+                    createProjectAndRules.isPending ||
+                    (isNotifyingViaIntegration && validateChannel.isFetching)
+                  }
                   onClick={() => debounceHandleProjectCreation(formData)}
                 >
                   {t('Create Project')}
@@ -580,17 +575,8 @@ export function CreateProject() {
               </Tooltip>
             </div>
           </FormFieldGroup>
-          {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
-            <Alert.Container>
-              <Alert type="error" showIcon={false}>
-                {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
-                  <div key={key}>
-                    <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}
-                    {(createProjectAndRules.error.responseJSON as any)[key]}
-                  </div>
-                ))}
-              </Alert>
-            </Alert.Container>
+          {!globalModal.visible && (
+            <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
         </List>
       </div>
@@ -600,7 +586,7 @@ export function CreateProject() {
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const FormFieldGroup = styled('div')`
@@ -609,11 +595,11 @@ const FormFieldGroup = styled('div')`
   gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
 `;
 
@@ -622,13 +608,13 @@ const ProjectNameInputWrap = styled('div')`
 `;
 
 const ProjectNameInput = styled(Input)`
-  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
   top: 50%;
-  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
 `;
 
@@ -640,6 +626,6 @@ const TeamSelectInput = styled('div')`
 `;
 
 const HelpText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   max-width: 760px;
 `;

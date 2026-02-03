@@ -48,6 +48,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"][0] == group.id
 
         full_issues = seer_response["issues_full"][0]
@@ -159,6 +160,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
+        assert "error" not in seer_response
         assert {group_1.id, group_2.id} == set(seer_response["issues"])
         assert group_3.id not in seer_response["issues"]
         assert group_3.id not in [int(issue["id"]) for issue in seer_response["issues_full"]]
@@ -208,6 +210,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [group.id]
         assert seer_response["issues_full"][0]["id"] == str(group.id)
         assert seer_response["issues_full"][0]["title"] == "KeyError: This a bad error"
@@ -283,6 +286,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [group_1.id]
         assert len(seer_response["issues_full"]) == 1
         assert seer_response["issues_full"][0]["id"] == str(group_1.id)
@@ -295,6 +299,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [group_2.id]
         assert len(seer_response["issues_full"]) == 1
         assert seer_response["issues_full"][0]["id"] == str(group_2.id)
@@ -409,6 +414,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type=search_exception_type,
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [expected_group.id]
         assert len(seer_response["issues_full"]) == 1
 
@@ -507,6 +513,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="valueerror",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [group1.id]
         assert len(seer_response["issues_full"]) == 1
 
@@ -517,6 +524,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="type error",
         )
+        assert "error" not in seer_response
         assert seer_response["issues"] == [group2.id]
         assert len(seer_response["issues_full"]) == 1
 

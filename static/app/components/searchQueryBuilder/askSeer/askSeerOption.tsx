@@ -1,9 +1,11 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {
   AskSeerLabel,
   AskSeerListItem,
@@ -18,22 +20,30 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
+  const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
+
   const organization = useOrganization();
-  const {setDisplayAskSeer} = useSearchQueryBuilder();
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'gen-ai-consent-flow-removal'
+  );
+
+  const [optionDisableOverride, setOptionDisableOverride] = useState(false);
 
   const {optionProps, labelProps, isFocused, isPressed} = useOption(
     {
       key: ASK_SEER_ITEM_KEY,
-      'aria-label': 'Ask Seer to build your query',
+      'aria-label': 'Ask AI to build your query',
       shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
-      isDisabled: false,
+      isDisabled: optionDisableOverride,
     },
     state,
     ref
   );
 
   const handleClick = () => {
+    if (optionDisableOverride) return;
+
     trackAnalytics('trace.explorer.ai_query_interface', {
       organization,
       action: 'opened',
@@ -46,7 +56,17 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
       <AskSeerLabel {...labelProps}>
-        {t('Ask Seer to build your query')} <FeatureBadge type="beta" />
+        <AiPrivacyTooltip
+          linkProps={{
+            onMouseOver: () => setOptionDisableOverride(true),
+            onMouseOut: () => setOptionDisableOverride(false),
+          }}
+          showUnderline={hasAskSeerConsentFlowChanges}
+          disabled={!hasAskSeerConsentFlowChanges}
+        >
+          {t('Ask AI to build your query')}
+        </AiPrivacyTooltip>
+        <FeatureBadge type={aiSearchBadgeType} />
       </AskSeerLabel>
     </AskSeerListItem>
   );

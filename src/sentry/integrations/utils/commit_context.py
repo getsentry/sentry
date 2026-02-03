@@ -28,8 +28,6 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.releases.commits import create_commit, update_commit
-from sentry.releases.models import Commit as NewCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -140,9 +138,7 @@ def get_or_create_commit_from_blame(
             key=blame.commit.commitId,
         )
         if commit.message == "":
-            new_commit = NewCommit.objects.get(id=commit.id)
-            update_commit(commit, new_commit, message=blame.commit.commitMessage)
-
+            commit.update(message=blame.commit.commitMessage)
         return commit
     except Commit.DoesNotExist:
         logger.info(
@@ -162,9 +158,9 @@ def get_or_create_commit_from_blame(
             email=blame.commit.commitAuthorEmail,
             defaults={"name": blame.commit.commitAuthorName},
         )
-        commit, _ = create_commit(
-            organization=Organization.objects.get(id=organization_id),
-            repo_id=blame.repo.id,
+        commit = Commit.objects.create(
+            organization_id=organization_id,
+            repository_id=blame.repo.id,
             key=blame.commit.commitId,
             date_added=blame.commit.committedDate,
             author=commit_author,
@@ -319,19 +315,19 @@ def _get_blames_from_all_integrations(
                     )
                 else:
                     if e.code == 429:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.rate_limit",
                             extra={**log_info, "error_message": e.text},
                         )
                     else:
-                        logger.exception(
+                        logger.warning(
                             "process_commit_context_all_frames.get_commit_context_all_frames.api_error",
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
                     raise
             except Exception:
-                logger.exception(
+                logger.warning(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
                     extra=log_info,
                 )

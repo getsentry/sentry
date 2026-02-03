@@ -2,6 +2,7 @@ import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 
 import {CheckInStatus} from './types';
 
@@ -12,7 +13,9 @@ export function makeMonitorListQueryKey(
   const {query, project, environment, owner, cursor, sort, asc} = params;
 
   return [
-    `/organizations/${organization.slug}/monitors/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/monitors/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         cursor,
@@ -36,7 +39,16 @@ export function makeMonitorDetailsQueryKey(
   query?: Record<string, any>
 ) {
   return [
-    `/projects/${organization.slug}/${projectId}/monitors/${monitorSlug}/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          monitorIdOrSlug: monitorSlug,
+        },
+      }
+    ),
     {query},
   ] as const;
 }
@@ -62,30 +74,30 @@ export const statusToText: Record<CheckInStatus, string> = {
 
 export const tickStyle: TickStyle<CheckInStatus> = theme => ({
   [CheckInStatus.ERROR]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [CheckInStatus.TIMEOUT]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
   },
   [CheckInStatus.OK]: {
-    labelColor: theme.green400,
-    tickColor: theme.green300,
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
   },
   [CheckInStatus.MISSED]: {
-    labelColor: theme.yellow400,
-    tickColor: theme.yellow300,
+    labelColor: theme.colors.yellow500,
+    tickColor: theme.colors.yellow400,
   },
   [CheckInStatus.IN_PROGRESS]: {
-    labelColor: theme.disabled,
-    tickColor: theme.disabled,
+    labelColor: theme.tokens.content.disabled,
+    tickColor: theme.tokens.content.disabled,
   },
   [CheckInStatus.UNKNOWN]: {
-    labelColor: theme.gray400,
-    tickColor: theme.gray300,
-    hatchTick: theme.gray200,
+    labelColor: theme.colors.gray500,
+    tickColor: theme.colors.gray400,
+    hatchTick: theme.colors.gray200,
   },
 });
 

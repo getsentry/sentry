@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from rest_framework.request import Request
@@ -6,10 +8,9 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminGetInfoEvent
-from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -19,8 +20,8 @@ from sentry.preprod.models import (
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
-class PreprodArtifactAdminInfoEndpoint(PreprodArtifactEndpoint):
+@internal_region_silo_endpoint
+class PreprodArtifactAdminInfoEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)
     publish_status = {
@@ -59,6 +60,7 @@ class PreprodArtifactAdminInfoEndpoint(PreprodArtifactEndpoint):
                 "project__organization",
                 "commit_comparison",
                 "build_configuration",
+                "mobile_app_info",
             ).get(id=head_artifact_id_int)
         except PreprodArtifact.DoesNotExist:
             return Response(
@@ -81,6 +83,8 @@ class PreprodArtifactAdminInfoEndpoint(PreprodArtifactEndpoint):
         installable_artifacts = list(
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
+
+        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
 
         artifact_info = {
             "id": preprod_artifact.id,
@@ -105,9 +109,9 @@ class PreprodArtifactAdminInfoEndpoint(PreprodArtifactEndpoint):
             # App information
             "app_info": {
                 "app_id": preprod_artifact.app_id,
-                "app_name": preprod_artifact.app_name,
-                "build_version": preprod_artifact.build_version,
-                "build_number": preprod_artifact.build_number,
+                "app_name": mobile_app_info.app_name if mobile_app_info else None,
+                "build_version": mobile_app_info.build_version if mobile_app_info else None,
+                "build_number": mobile_app_info.build_number if mobile_app_info else None,
                 "main_binary_identifier": preprod_artifact.main_binary_identifier,
             },
             # File information

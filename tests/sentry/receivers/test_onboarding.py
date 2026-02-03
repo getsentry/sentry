@@ -23,6 +23,7 @@ from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.onboarding_complete import OnboardingCompleteEvent
 from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
@@ -54,12 +55,14 @@ from sentry.testutils.helpers.analytics import (
     get_event_count,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.samples import load_data
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = [requires_snuba]
 
@@ -161,22 +164,15 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created__default_rule(self) -> None:
-        project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=None)
-
-        assert Rule.objects.filter(project=project).exists()
-        assert not Workflow.objects.filter(organization=project.organization).exists()
-
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_project_created__default_workflow(self) -> None:
-        project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=None)
+        project = self.create_project(fire_project_created=True)
 
         assert Rule.objects.filter(project=project).exists()
-        assert Workflow.objects.filter(
-            organization=project.organization, name=DEFAULT_RULE_LABEL
-        ).exists()
+        workflow = Workflow.objects.get(organization=project.organization, name=DEFAULT_RULE_LABEL)
+
+        assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
+        assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
+        assert DetectorWorkflow.objects.filter(workflow=workflow).count() == 2
 
     @patch("sentry.analytics.record", wraps=record)
     def test_project_created_with_origin(self, record_analytics: MagicMock) -> None:

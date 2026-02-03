@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,6 +30,8 @@ interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
   op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
+  shouldClipHeight?: boolean;
+  showBorder?: boolean;
 }
 
 const formatter = new SQLishFormatter();
@@ -36,6 +39,8 @@ const formatter = new SQLishFormatter();
 export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
+  showBorder = true,
+  shouldClipHeight = true,
 }: Omit<Props, 'op'>) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,17 +135,21 @@ export function DatabaseSpanDescription({
   }, [preliminaryDescription, indexedSpan, system]);
 
   return (
-    <Frame>
+    <Frame showBorder={showBorder}>
       {areIndexedSpansLoading ? (
-        <WithPadding>
+        <Flex padding="md xl">
           <LoadingIndicator mini />
-        </WithPadding>
+        </Flex>
       ) : (
-        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
+        <QueryWrapper
+          clipHeight={500}
+          isExpanded={isExpanded}
+          shouldClipHeight={shouldClipHeight}
+        >
           <CodeBlock language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
           </CodeBlock>
-        </QueryClippedBox>
+        </QueryWrapper>
       )}
 
       {!areIndexedSpansLoading && (
@@ -164,25 +173,26 @@ export function DatabaseSpanDescription({
   );
 }
 
-function QueryClippedBox(props: any) {
-  const {isExpanded, children} = props;
+function QueryWrapper(props: any) {
+  const {isExpanded, children, shouldClipHeight} = props;
+
+  if (!shouldClipHeight) {
+    return <StyledFullBox>{children}</StyledFullBox>;
+  }
 
   if (isExpanded) {
     return children;
   }
-
   return <StyledClippedBox {...props} />;
 }
 
-const Frame = styled('div')`
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
-`;
-
-const WithPadding = styled('div')`
+const Frame = styled('div')<{showBorder: boolean}>`
   display: flex;
-  padding: ${space(1)} ${space(2)};
+  flex-direction: column;
+  height: 100%;
+  border: ${p => (p.showBorder ? `solid 1px ${p.theme.tokens.border.primary}` : 'none')};
+  border-radius: ${p => (p.showBorder ? p.theme.radius.md : '0')};
+  overflow: hidden;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`
@@ -191,4 +201,10 @@ const StyledClippedBox = styled(ClippedBox)`
   > div > div {
     z-index: 1;
   }
+`;
+
+const StyledFullBox = styled('div')`
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
 `;

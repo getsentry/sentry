@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -13,6 +12,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -66,9 +66,12 @@ describe('GroupActivity', () => {
     GroupStore.add([group]);
     // XXX: Explicitly using legacy UI since this component is not used in the new one
     const organization = OrganizationFixture({streamlineOnly: false});
-    const router = RouterFixture({
-      params: {orgId: organization.slug, groupId: group.id},
-    });
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/activity/`,
+      },
+      route: `/organizations/:orgId/issues/:groupId/activity/`,
+    };
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
@@ -78,9 +81,8 @@ describe('GroupActivity', () => {
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     render(<GroupActivity />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
   }
 

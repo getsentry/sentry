@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
@@ -16,18 +18,17 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
-import {getPotentialProductTrial} from 'getsentry/utils/billing';
-import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
 type AiSetupDataConsentProps = {
   groupId?: string;
@@ -54,10 +55,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     : orgSetup.setupAcknowledgement.orgHasAcknowledged;
   const refetch = isGroupMode ? groupSetup.refetch : orgSetup.refetch;
 
-  const trial = getPotentialProductTrial(
-    subscription?.productTrials ?? null,
-    DataCategory.SEER_AUTOFIX
-  );
+  // Get the appropriate Seer category (SEER_USER for seat-based, SEER_AUTOFIX for legacy)
+  const seerCategory = getSeerTrialCategory(subscription?.productTrials ?? null);
+  const trial = seerCategory
+    ? getPotentialProductTrial(subscription?.productTrials ?? null, seerCategory)
+    : null;
 
   const shouldShowBilling =
     organization.features.includes('seer-billing') && !hasAutofixQuota;
@@ -83,7 +85,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
   function handlePurchaseSeer() {
-    navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
+    navigate('/checkout/?referrer=ai_setup_data_consent');
   }
 
   function handleAddBudget() {
@@ -92,7 +94,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     }
     if (isPerCategoryOnDemand) {
       // Seer does not support per category on demand budgets, so we need to redirect to the checkout page to prompt the user to switch
-      navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent#step3`);
+      navigate('/checkout/?referrer=ai_setup_data_consent#step2');
       return;
     }
     openOnDemandBudgetEditModal({
@@ -102,7 +104,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   }
 
   return (
-    <ConsentItemsContainer>
+    <Stack gap="xl">
       <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
@@ -112,7 +114,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <SingleCard>
         <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
-          <IconSeer variant="waiting" color="subText" size="lg" />
+          <IconSeer animation="waiting" variant="muted" size="lg" />
         </Flex>
         <Paragraph>
           {t(
@@ -145,14 +147,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </TouchCustomerMessage>
           ) : (
             <Fragment>
-              <ButtonWrapper>
+              <Flex align="center" gap="md">
                 {canStartTrial ? (
                   <StartTrialButton
                     organization={organization}
                     source="ai-setup-consent"
                     requestData={{
                       productTrial: {
-                        category: DataCategory.SEER_AUTOFIX,
+                        category: trial?.category,
                         reasonCode: trial?.reasonCode,
                       },
                     }}
@@ -218,7 +220,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         size="md"
                         priority="default"
                         aria-label={t('Refresh')}
-                        borderless
                       />
                     </Flex>
                   </Flex>
@@ -244,7 +245,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 {autofixAcknowledgeMutation.isError && (
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
-              </ButtonWrapper>
+              </Flex>
               {canStartTrial && (
                 <LegalText>
                   {t(
@@ -256,7 +257,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )
         ) : (
           <Fragment>
-            <ButtonWrapper>
+            <Flex align="center" gap="md">
               <Button
                 priority="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
@@ -279,40 +280,25 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               {autofixAcknowledgeMutation.isError && (
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
-            </ButtonWrapper>
+            </Flex>
           </Fragment>
         )}
-        {!orgHasAcknowledged && (
-          <LegalText>
-            {tct(
-              'Seer models are powered by generative AI. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
-              {
-                dataLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
-                ),
-              }
-            )}
-          </LegalText>
-        )}
+        <LegalText>
+          <AiPrivacyNotice />
+        </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}
         </Alert>
       )}
-    </ConsentItemsContainer>
+    </Stack>
   );
 }
 
 export default AiSetupDataConsent;
-
-const ConsentItemsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const SayHelloHeader = styled('h3')`
   margin: 0;
@@ -322,18 +308,18 @@ const SingleCard = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: ${space(2)} ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   margin-top: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BulletList = styled('ul')`
@@ -345,21 +331,15 @@ const Paragraph = styled('p')`
 `;
 
 const TouchCustomerMessage = styled('p')`
-  color: ${p => p.theme.pink400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.promotion};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -369,7 +349,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorText = styled('div')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const AddBudgetButton = styled(Button)`

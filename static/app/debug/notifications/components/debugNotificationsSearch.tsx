@@ -6,9 +6,10 @@ import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {Badge} from 'sentry/components/core/badge';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Badge} from '@sentry/scraps/badge';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
@@ -115,7 +116,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
         </InputGroup.LeadingItems>
         <InputGroup.Input ref={inputRef} nativeSize={nativeSize} {...nativeProps} />
         <InputGroup.TrailingItems>
-          <Badge type="internal">/</Badge>
+          <Badge variant="internal">/</Badge>
         </InputGroup.TrailingItems>
       </InputGroup>
       {state.isOpen && (
@@ -124,7 +125,6 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
             listState={state}
             hasSearch={!!state.inputValue}
             hiddenOptions={new Set([])}
-            keyDownHandler={() => false}
             overlayIsOpen={state.isOpen}
             size="sm"
             {...listBoxProps}

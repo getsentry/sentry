@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
@@ -63,7 +65,7 @@ export default function FeedbackListHeader({
         )}
       </HeaderPanelItem>
       {hasNewItems ? (
-        <RefreshContainer>
+        <Flex justify="center" align="center" flexGrow={1} padding="xs">
           <Button
             priority="primary"
             size="xs"
@@ -78,7 +80,7 @@ export default function FeedbackListHeader({
           >
             {t('Load new feedback')}
           </Button>
-        </RefreshContainer>
+        </Flex>
       ) : null}
     </HeaderPanel>
   );
@@ -94,13 +96,5 @@ const HeaderPanelItem = styled('div')`
   gap: ${space(1)};
   align-items: center;
   border: 1px solid transparent;
-  border-bottom-color: ${p => p.theme.innerBorder};
-`;
-
-const RefreshContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  padding: ${space(0.5)};
+  border-bottom-color: ${p => p.theme.tokens.border.secondary};
 `;

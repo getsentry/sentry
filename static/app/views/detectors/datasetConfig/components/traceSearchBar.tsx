@@ -17,6 +17,7 @@ export function TraceSearchBar({
   onClose,
   projectIds,
   dataset,
+  disabled,
 }: DetectorSearchBarProps) {
   const isLogs = dataset === DiscoverDatasets.OURLOGS;
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
@@ -63,6 +64,7 @@ export function TraceSearchBar({
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
+      disabled={disabled}
     />
   );
 }

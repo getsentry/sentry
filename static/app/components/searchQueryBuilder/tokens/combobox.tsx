@@ -16,18 +16,15 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
 import {
   getDisabledOptions,
   getHiddenOptions,
-} from 'sentry/components/core/compactSelect/utils';
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+  ListBox,
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -41,6 +38,8 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -181,6 +180,10 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
+  const organization = useOrganization();
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'gen-ai-consent-flow-removal'
+  );
   const {gaveSeerConsent} = useSearchQueryBuilder();
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     const options = getHiddenOptions(
@@ -190,7 +193,8 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
     );
 
     if (showAskSeerOption) {
-      if (gaveSeerConsent) {
+      // always show if feature is enabled
+      if (gaveSeerConsent || hasAskSeerConsentFlowChanges) {
         options.add(ASK_SEER_ITEM_KEY);
       } else {
         options.add(ASK_SEER_CONSENT_ITEM_KEY);
@@ -201,6 +205,7 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   }, [
     filterValue,
     gaveSeerConsent,
+    hasAskSeerConsentFlowChanges,
     items,
     maxOptions,
     shouldFilterResults,
@@ -318,15 +323,10 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           listState={state}
           hasSearch={!!filterValue}
           hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
           overlayIsOpen={isOpen}
           size="sm"
         />
-        {enableAISearch ? (
-          <Feature features="organizations:gen-ai-explore-traces">
-            <AskSeer state={state} />
-          </Feature>
-        ) : null}
+        {enableAISearch ? <AskSeer state={state} /> : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -413,6 +413,8 @@ export function SearchQueryBuilderCombobox<
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the custom menu
     shouldCloseOnBlur: false,
+    // We handle opening and closing ourselves to prevent the combobox from opening unexpectedly
+    menuTrigger: 'manual',
     ...comboBoxProps,
   });
 
@@ -439,20 +441,31 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyDown: e => {
         onKeyDown?.(e, {state});
-        switch (e.key) {
-          case 'Escape':
-            state.close();
-            onExit?.();
+
+        if (e.key === 'Escape') {
+          state.close();
+          onExit?.();
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          if (isOpen && state.selectionManager.focusedKey) {
             return;
-          case 'Enter':
-            if (isOpen && state.selectionManager.focusedKey) {
-              return;
-            }
-            state.close();
-            onCustomValueCommitted(inputValue);
-            return;
-          default:
-            return;
+          }
+          state.close();
+          onCustomValueCommitted(inputValue);
+          return;
+        }
+
+        if (
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          /^\w$/i.test(e.key) ||
+          e.key === ','
+        ) {
+          if (isOpen || isCtrlKeyPressed(e)) return;
+          state.open();
+          return;
         }
       },
       onKeyUp,
@@ -567,8 +580,9 @@ export function SearchQueryBuilderCombobox<
   }, [inputRef, popoverRef, isOpen, customMenu]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
+
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -612,17 +626,9 @@ export function SearchQueryBuilderCombobox<
         overlayProps={overlayProps}
         portalTarget={portalTarget}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -39,7 +41,7 @@ function Headers({
             {t('Age')}
           </FirstSeenLabel>
           <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
-            <GraphLabelContents>
+            <Flex flex="1" justify="between">
               {t('Trend')}
               <GraphToggles>
                 {selection.datetime.period !== '24h' && (
@@ -57,7 +59,7 @@ function Headers({
                   {selection.datetime.period || t('Custom')}
                 </GraphToggle>
               </GraphToggles>
-            </GraphLabelContents>
+            </Flex>
           </GraphLabel>
           <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
             {t('Events')}
@@ -87,14 +89,8 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
   padding: 0;
 `;
 
-const GraphLabelContents = styled('div')`
-  display: flex;
-  flex: 1;
-  justify-content: space-between;
-`;
-
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-right: ${space(2)};
 `;
 
@@ -106,7 +102,8 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
+    color: ${p =>
+      p.active ? p.theme.tokens.content.primary : p.theme.tokens.content.disabled};
   }
 `;
 
@@ -133,7 +130,10 @@ const AssigneeLabel = styled(IssueStreamHeaderLabel)`
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -143,7 +143,10 @@ const StartedColumn = styled(ToolbarHeader)`
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

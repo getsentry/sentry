@@ -4,9 +4,11 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {getItemsWithKeys} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ItemType,
@@ -103,7 +105,10 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
+export function prepareInputValueForSaving(
+  valueType: FieldValueType,
+  inputValue: string
+) {
   const parsed = parseMultiSelectFilterValue(inputValue);
 
   if (!parsed) {
@@ -126,7 +131,7 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
     : (uniqueValues[0] ?? '""');
 }
 
-function getSelectedValuesFromText(
+export function getSelectedValuesFromText(
   text: string,
   {escaped = true}: {escaped?: boolean} = {}
 ) {
@@ -181,7 +186,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
   return undefined;
 }
 
-function getPredefinedValues({
+export function getPredefinedValues({
   fieldDefinition,
   key,
   filterValue,
@@ -247,7 +252,7 @@ function getPredefinedValues({
   ];
 }
 
-function tokenSupportsMultipleValues(
+export function tokenSupportsMultipleValues(
   token: TokenResult<Token.FILTER>,
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
@@ -358,25 +363,25 @@ function useFilterSuggestions({
   const queryParams = useMemo(
     () =>
       [
-        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        key
+          ? {key: key.key, name: key.name, kind: key.kind}
+          : {key: keyName, name: keyName, kind: undefined},
         filterValue,
       ] as const,
     [filterValue, key, keyName]
   );
 
   const baseQueryKey = useMemo(
-    () => ['search-query-builder-tag-values', queryParams],
+    () => ['search-query-builder-tag-values', queryParams] as const,
     [queryParams]
   );
   const queryKey = useDebouncedValue(baseQueryKey);
   const isDebouncing = baseQueryKey !== queryKey;
 
   // TODO(malwilley): Display error states
-  const {data, isFetching} = useQuery<string[]>({
-    // disable exhaustive deps because we want to debounce the query key above
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const {data, isFetching} = useQuery({
     queryKey,
-    queryFn: () => getTagValues(...queryParams),
+    queryFn: ctx => getTagValues(...ctx.queryKey[1]),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
@@ -525,7 +530,7 @@ function ItemCheckbox({
   );
 }
 
-function getInitialInputValue(
+export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
   canSelectMultipleValues: boolean
 ) {
@@ -919,7 +924,13 @@ export function SearchQueryBuilderValueCombobox({
           });
 
   return (
-    <ValueEditing ref={ref} data-test-id="filter-value-editing">
+    <Flex
+      align="center"
+      maxWidth="400px"
+      height="100%"
+      ref={ref}
+      data-test-id="filter-value-editing"
+    >
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -952,16 +963,9 @@ export function SearchQueryBuilderValueCombobox({
           </Section>
         ))}
       </SearchQueryBuilderCombobox>
-    </ValueEditing>
+    </Flex>
   );
 }
-
-const ValueEditing = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  max-width: 400px;
-`;
 
 const TrailingWrap = styled('div')`
   display: grid;

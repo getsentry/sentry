@@ -4,7 +4,6 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssue
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -88,11 +87,10 @@ class DetectorTest(BaseWorkflowTest):
             assert conditions
 
     def test_get_error_detector_for_project__success(self) -> None:
-        """Test successful retrieval of error detector for project"""
+        """Test successful retrieval of error detector for project, created by default on project creation"""
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
-        )
-
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
+        )  # this creates / fetches the single default error detector for the project
         result = Detector.get_error_detector_for_project(self.project.id)
 
         assert result == error_detector
@@ -100,22 +98,15 @@ class DetectorTest(BaseWorkflowTest):
         assert result.project_id == self.project.id
 
     def test_get_error_detector_for_project__not_found(self) -> None:
-        with pytest.raises(Detector.DoesNotExist):
-            Detector.get_error_detector_for_project(self.project.id)
-
-    def test_get_error_detector_for_project__wrong_type(self) -> None:
         self.create_detector(
-            project_id=self.project.id,
-            type=MetricIssue.slug,  # Use a different registered type
-            name="Other Detector",
-        )
-
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
+        ).delete()  # delete the single default error detector for the project
         with pytest.raises(Detector.DoesNotExist):
             Detector.get_error_detector_for_project(self.project.id)
 
     def test_get_error_detector_for_project__caching(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # First call - cache miss
@@ -140,7 +131,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__cache_hit(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # Mock cache hit
@@ -156,6 +147,19 @@ class DetectorTest(BaseWorkflowTest):
                 self.project.id, ErrorGroupType.slug
             )
             mock_cache_get.assert_called_once_with(expected_cache_key)
+
+    def test_settings(self) -> None:
+        detector = self.create_detector()
+        assert detector.settings
+
+    def test_settings__no_settings__invaild_settings(self) -> None:
+        # This is an issue type w/o a detector association
+        detector = self.create_detector(
+            type="profile_json_decode_main_thread", name="Invalid Detector"
+        )
+
+        with pytest.raises(ValueError, match="Registered grouptype has no detector settings"):
+            assert detector.settings
 
 
 def test_get_detector_project_type_cache_key() -> None:

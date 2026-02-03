@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {usePageFilterDates as useCronsPageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import type {Group} from 'sentry/types/group';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -21,6 +22,7 @@ export function useIssueTimeWindowConfig({
   const location = useLocation();
   const {since: pageFilterSince, until: pageFilterUntil} = useCronsPageFilterDates();
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
+  const timezone = useTimezone();
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
@@ -38,7 +40,7 @@ export function useIssueTimeWindowConfig({
   }
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth),
-    [since, until, timelineWidth]
+    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
+    [since, until, timelineWidth, timezone]
   );
 }

@@ -3,8 +3,12 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -16,7 +20,9 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -38,11 +44,9 @@ import {
   MobileOverviewTable,
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
 import {
   DEFAULT_SORT,
-  MOBILE_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
@@ -62,7 +66,11 @@ import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-function EAPMobileOverviewPage() {
+interface EAPMobileOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
   const organization = useOrganization();
@@ -216,16 +224,15 @@ function EAPMobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <InsightsEnvironmentSelector />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -268,10 +275,18 @@ function EAPMobileOverviewPage() {
 }
 
 function MobileOverviewPageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   const useEap = useInsightsEap();
   return (
-    <DomainOverviewPageProviders>
-      {useEap ? <EAPMobileOverviewPage /> : <Am1MobileOverviewPage />}
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
+      {useEap ? (
+        <EAPMobileOverviewPage datePageFilterProps={datePageFilterProps} />
+      ) : (
+        <Am1MobileOverviewPage datePageFilterProps={datePageFilterProps} />
+      )}
     </DomainOverviewPageProviders>
   );
 }

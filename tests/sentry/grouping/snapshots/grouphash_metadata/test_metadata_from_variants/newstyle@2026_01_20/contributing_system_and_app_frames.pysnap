@@ -1,0 +1,64 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "9c580bff7b008113595f9f1e0ef1962f"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "FailedToFetchError"
+          stacktrace*
+            frame* (marked in-app by custom stack trace rule (function:playFetch +app))
+              filename*
+                "dogpark.js"
+              function*
+                "playFetch"
+              context_line*
+                "raise FailedToFetchError('Charlie didn't bring the ball back!');"
+  system*
+    hash: "27e4433059022647e4d83d344cbf738c"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "FailedToFetchError"
+          stacktrace*
+            frame*
+              filename*
+                "router.js"
+              function*
+                "handleRequest"
+              context_line*
+                "return handler(request);"
+            frame*
+              filename*
+                "dogpark.js"
+              function*
+                "playFetch"
+              context_line*
+                "raise FailedToFetchError('Charlie didn't bring the ball back!');"

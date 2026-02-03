@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase
 
 
 class BulkDeleteQueryTest(TestCase):
@@ -42,7 +42,7 @@ class BulkDeleteQueryTest(TestCase):
         assert Group.objects.filter(id=group1_3.id).exists()
 
 
-class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
+class BulkDeleteQueryIteratorTestCase(TestCase):
     def test_iteration(self) -> None:
         target_project = self.project
         expected_group_ids = {self.create_group().id for i in range(2)}
@@ -85,4 +85,30 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
         for chunk in iterator:
             results.update(chunk)
 
+        assert results == expected_group_ids
+
+    def test_iteration_with_duplicate_timestamps(self) -> None:
+        """Test that groups with identical last_seen timestamps are all returned."""
+        target_project = self.project
+        same_timestamp = timezone.now() - timedelta(days=1)
+
+        # Create multiple groups with the exact same last_seen timestamp
+        group1 = self.create_group(project=target_project, last_seen=same_timestamp)
+        group2 = self.create_group(project=target_project, last_seen=same_timestamp)
+        group3 = self.create_group(project=target_project, last_seen=same_timestamp)
+        expected_group_ids = {group1.id, group2.id, group3.id}
+
+        iterator = BulkDeleteQuery(
+            model=Group,
+            project_id=target_project.id,
+            dtfield="last_seen",
+            order_by="last_seen",
+            days=0,
+        ).iterator(chunk_size=1)
+
+        results: set[int] = set()
+        for chunk in iterator:
+            results.update(chunk)
+
+        # All groups should be returned, even with identical timestamps
         assert results == expected_group_ids

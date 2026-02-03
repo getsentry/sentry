@@ -2,11 +2,12 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
@@ -29,10 +30,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import withSubscription from 'getsentry/components/withSubscription';
 import {ANNUAL} from 'getsentry/constants';
 import subscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {PromotionData, Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import withPromotions from 'getsentry/utils/withPromotions';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
@@ -152,7 +152,7 @@ function CancelSubscriptionForm() {
   if (!canCancelPlan) {
     return (
       <Alert.Container>
-        <Alert type="error">{t('Your plan is not eligible to be cancelled.')}</Alert>
+        <Alert variant="danger">{t('Your plan is not eligible to be cancelled.')}</Alert>
       </Alert.Container>
     );
   }
@@ -161,7 +161,7 @@ function CancelSubscriptionForm() {
     return (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">
+          <Alert variant="danger">
             {tct(
               `Upon cancellation your account will be downgraded to a free plan which is limited to a single user.
             Your account currently has [count] [teamMembers: other team member(s)] using Sentry that would lose
@@ -190,7 +190,7 @@ function CancelSubscriptionForm() {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           {tct(
             `Your organization is currently subscribed to the [planName] plan on a [interval] contract.
              Cancelling your subscription will downgrade your account to a free plan at the end
@@ -296,17 +296,13 @@ const ButtonList = styled('div')`
 
 interface CancelSubscriptionWrapperProps {
   subscription: Subscription;
-  promotionData?: PromotionData;
 }
 
-function CancelSubscriptionWrapper({
-  promotionData,
-  subscription,
-}: CancelSubscriptionWrapperProps) {
+function CancelSubscriptionWrapper({subscription}: CancelSubscriptionWrapperProps) {
   const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {refetch} = usePromotionTriggerCheck(organization);
+  const {refetch, data: promotionData} = usePromotionTriggerCheck(organization);
   const switchToBillingOverview = useCallback(() => {
     navigate(
       normalizeUrl({
@@ -319,7 +315,7 @@ function CancelSubscriptionWrapper({
     if (promotionData) {
       checkForPromptBasedPromotion({
         organization,
-        refetch,
+        onRefetch: refetch,
         promptFeature: 'cancel_subscription',
         subscription,
         promotionData,
@@ -330,11 +326,7 @@ function CancelSubscriptionWrapper({
 
   const title = t('Cancel Subscription');
   return (
-    <SubscriptionPageContainer
-      background="secondary"
-      organization={organization}
-      dataTestId="cancel-subscription"
-    >
+    <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />
@@ -369,6 +361,6 @@ const ExtraContainer = styled('div')`
   padding: ${space(1)} 0;
 `;
 
-export default withSubscription(withPromotions(CancelSubscriptionWrapper), {
+export default withSubscription(CancelSubscriptionWrapper, {
   noLoader: true,
 });

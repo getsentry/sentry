@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
@@ -128,7 +128,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             />
           </Tooltip>
           {renderFingerprint(id, label)}
-          {fingerprint.mergedBySeer && ' (merged by Seer)'}
+          {fingerprint.mergedBySeer && ' (merged by Sentry)'}
         </FingerprintLabel>
 
         <Button
@@ -136,7 +136,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
           }
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
           onClick={handleToggleEvents}
         />
@@ -148,18 +148,18 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
             <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
-                icon={<IconLink color="linkColor" />}
+                icon={<IconLink variant="accent" />}
                 title={t('View latest event')}
                 aria-label={t('View latest event')}
-                borderless
+                priority="transparent"
                 size="xs"
                 style={{marginLeft: space(1)}}
               />
-              <EventDetails>
+              <Flex justify="between" padding="md">
                 <Text size="md" data-issue-title-primary>
                   {latestEvent.title}
                 </Text>
-              </EventDetails>
+              </Flex>
             </Flex>
           ) : null}
         </MergedEventList>
@@ -175,19 +175,17 @@ const MergedGroup = styled('div')<{busy: boolean}>`
 const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
-  background-color: ${p => p.theme.backgroundSecondary};
-  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
   padding: ${space(0.5)} ${space(1)};
 
   ${MergedGroup}:not(:first-child) & {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   ${MergedGroup}:last-child & {
     ${p => !p.expanded && `border-bottom: none`};
-    ${p =>
-      !p.expanded &&
-      `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius}`};
+    ${p => !p.expanded && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
   }
 `;
 
@@ -195,22 +193,16 @@ const FingerprintLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   line-height: 1;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 
 const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
-  background-color: ${p => p.theme.background};
-`;
-
-const EventDetails = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 export default MergedItem;

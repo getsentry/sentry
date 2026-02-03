@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
@@ -39,13 +41,15 @@ export function WhatsNewItem({
 
   return (
     <SidebarPanelItemRoot>
-      <TextBlock>
-        {category && <CategoryTag>{BROADCAST_CATEGORIES[category]}</CategoryTag>}
+      <Stack align="start" marginBottom="lg">
+        {category && (
+          <CategoryTag variant="muted">{BROADCAST_CATEGORIES[category]}</CategoryTag>
+        )}
         <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
           {title}
         </Title>
         <Message>{message}</Message>
-      </TextBlock>
+      </Stack>
       {mediaUrl && <Media src={mediaUrl} alt={title} />}
     </SidebarPanelItemRoot>
   );
@@ -57,33 +61,26 @@ const SidebarPanelItemRoot = styled('div')`
   padding: ${space(2)} 0;
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.blue400};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold}`};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.accent};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.font.weight.sans.medium}`};
   &:focus-visible {
     box-shadow: none;
   }
 `;
 
 const Message = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const TextBlock = styled('div')`
-  margin-bottom: ${space(1.5)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Media = styled('img')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.translucentGray200};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.colors.gray200};
   max-width: 100%;
 `;
 

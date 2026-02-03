@@ -53,7 +53,7 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
       ...options,
       grid: performanceChartDefaults.grid,
       visualMap: options.options?.visualMap,
-      backgroundColor: theme.background,
+      backgroundColor: theme.tokens.background.primary,
     };
   }
 

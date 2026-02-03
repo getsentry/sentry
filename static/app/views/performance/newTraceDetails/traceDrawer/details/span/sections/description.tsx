@@ -2,10 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Image} from '@sentry/scraps/image';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -42,7 +44,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 const formatter = new SQLishFormatter();
@@ -55,7 +57,7 @@ export function SpanDescription({
   hideNodeActions,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
@@ -142,7 +144,7 @@ export function SpanDescription({
 
   const value =
     resolvedModule === ModuleName.DB ? (
-      <CodeSnippetWrapper>
+      <Stack flex="1">
         <StyledCodeSnippet
           language={system === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
@@ -162,7 +164,7 @@ export function SpanDescription({
         ) : (
           <MissingFrame />
         )}
-      </CodeSnippetWrapper>
+      </Stack>
     ) : hasNewSpansUIFlag &&
       resolvedModule === ModuleName.RESOURCE &&
       span.op === 'resource.img' ? (
@@ -176,10 +178,11 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </span>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
+              aria-label={t('Copy formatted description to clipboard')}
             />
           </Fragment>
         ) : (
@@ -191,15 +194,19 @@ export function SpanDescription({
   return (
     <TraceDrawerComponents.Highlights
       node={node}
-      transaction={undefined}
       project={project}
       avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
+      footerContent={
+        event ? <TraceDrawerComponents.HighLightsOpsBreakdown event={event} /> : null
+      }
+      comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
-        attributes: span.data,
         op: span.op,
+        attributes: span.data,
+        spanId: span.span_id,
       })}
     />
   );
@@ -226,7 +233,7 @@ function ResourceImageDescription({
   node,
 }: {
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
 }) {
   const projectID = node.event?.projectID ? Number(node.event?.projectID) : undefined;
   const span = node.value;
@@ -270,18 +277,19 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
 
   return (
-    <ImageContainer>
-      <FilenameContainer>
+    <Stack align="center" gap="xs" width="100%">
+      <Flex justify="between" align="baseline" gap="md" width="100%">
         <span>
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
-      </FilenameContainer>
+      </Flex>
       {showImage && !hasError ? (
         <ImageWrapper>
           <Image
@@ -298,36 +306,14 @@ function ResourceImage(props: {
       ) : (
         <MissingImage />
       )}
-    </ImageContainer>
+    </Stack>
   );
 }
-
-const FilenameContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
 
 const ImageWrapper = styled('div')`
   width: 200px;
   height: 180px;
   margin: auto;
-`;
-
-const ImageContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
@@ -345,7 +331,7 @@ const StyledCodeSnippet = styled(CodeBlock)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

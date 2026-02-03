@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -86,7 +88,7 @@ function AccountAuthorizations() {
             <div>
               {data.map(authorization => (
                 <PanelItemCenter key={authorization.id}>
-                  <ApplicationDetails>
+                  <Stack flex="1">
                     <ApplicationName>{authorization.application.name}</ApplicationName>
                     {authorization.homepageUrl && (
                       <Url>
@@ -102,7 +104,7 @@ function AccountAuthorizations() {
                         {authorization.organization.slug}
                       </DetailRow>
                     )}
-                  </ApplicationDetails>
+                  </Stack>
                   <Button
                     size="sm"
                     onClick={() => handleRevoke(authorization)}
@@ -123,7 +125,7 @@ function AccountAuthorizations() {
 export default AccountAuthorizations;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${space(4)};
 `;
 
@@ -131,14 +133,8 @@ const PanelItemCenter = styled(PanelItem)`
   align-items: center;
 `;
 
-const ApplicationDetails = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-`;
-
 const ApplicationName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(0.5)};
 `;
 
@@ -148,10 +144,10 @@ const ApplicationName = styled('div')`
  */
 const Url = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const DetailRow = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;

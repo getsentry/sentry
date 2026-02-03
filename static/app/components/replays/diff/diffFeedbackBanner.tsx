@@ -1,10 +1,11 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 
 export default function DiffFeedbackBanner() {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       {tct(
         `The diff tools are based on a best-effort implementation to highlight the DOM state before and after a hydration event is thrown.
         React itself does not provide any details about what caused the problem; therefore, it's not 100% reliable, as sometimes no diff is found.

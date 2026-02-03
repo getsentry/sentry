@@ -14,6 +14,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry.web.frontend.base import control_silo_view
 from social_auth.decorators import dsa_view
 from social_auth.exceptions import AuthException
 from social_auth.utils import backend_setting, clean_partial_pipeline, setting
@@ -23,6 +24,7 @@ ASSOCIATE_ERROR_URL = setting("SOCIAL_AUTH_ASSOCIATE_ERROR_URL")
 PIPELINE_KEY = setting("SOCIAL_AUTH_PARTIAL_PIPELINE_KEY", "partial_pipeline")
 
 
+@control_silo_view
 @dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete_auth_sso"))
 def auth(request, backend):
     """Authenticate using social backend"""
@@ -53,6 +55,7 @@ def auth(request, backend):
         return HttpResponse(backend.auth_html(), content_type="text/html;charset=UTF-8")
 
 
+@control_silo_view
 @csrf_exempt
 @login_required
 @dsa_view()
@@ -90,6 +93,7 @@ def complete(request, backend, *args, **kwargs):
     return HttpResponseRedirect(url)
 
 
+@control_silo_view
 def auth_complete(request, backend, user, *args, **kwargs):
     """Complete auth process. Return authenticated user or None."""
     if request.session.get(PIPELINE_KEY):

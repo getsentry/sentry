@@ -2,12 +2,12 @@ import {useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import Placeholder from 'sentry/components/placeholder';
@@ -191,11 +191,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   }
 
   if ((isPending && isQueryEnabled) || !match) {
-    return (
-      <StacktraceLinkWrapper>
-        <Placeholder height="14px" width={coverageEnabled ? '40px' : '14px'} />
-      </StacktraceLinkWrapper>
-    );
+    return null;
   }
 
   // Match found - display link to source
@@ -370,7 +366,7 @@ function CodecovLink({
     return (
       <Flex align="center" gap="sm">
         <Text variant="danger">{t('Code Coverage not found')}</Text>
-        <IconWarning size={DEFAULT_ICON_SIZE} color="errorText" />
+        <IconWarning size={DEFAULT_ICON_SIZE} variant="danger" />
       </Flex>
     );
   }
@@ -411,15 +407,18 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
       ? `${frame.filename}:${frame.lineNo}`
       : frame.filename || '';
 
-  const {onClick: handleCopyPath} = useCopyToClipboard({
-    text: filePath,
-    successMessage: t('File path copied to clipboard'),
-    errorMessage: t('Failed to copy file path'),
-  });
+  const {copy} = useCopyToClipboard();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleCopyPath();
+
+    // Strip away relative path segments to make it easier for editors to actually find the file (like VSCode cmd+p)
+    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '');
+
+    copy(cleanedFilepath, {
+      successMessage: t('File path copied to clipboard'),
+      errorMessage: t('Failed to copy file path'),
+    });
   };
 
   // Don't render if there's no valid file path to copy

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.models import InstallablePreprodArtifact
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 
@@ -23,6 +23,8 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
 
     def _create_ios_artifact(self, **kwargs):
         """Helper to create an iOS artifact with default valid extras"""
+        from sentry.preprod.models import PreprodArtifact
+
         defaults = {
             "project": self.project,
             "file_id": self.file.id,
@@ -37,10 +39,12 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
             },
         }
         defaults.update(kwargs)
-        return PreprodArtifact.objects.create(**defaults)
+        return self.create_preprod_artifact(**defaults)
 
     def _create_android_artifact(self, **kwargs):
         """Helper to create an Android artifact with default valid extras"""
+        from sentry.preprod.models import PreprodArtifact
+
         defaults = {
             "project": self.project,
             "file_id": self.file.id,
@@ -50,7 +54,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
             "build_version": "1.2.3",
         }
         defaults.update(kwargs)
-        return PreprodArtifact.objects.create(**defaults)
+        return self.create_preprod_artifact(**defaults)
 
     @patch("sentry.analytics.record")
     def test_ios_artifact_success(self, mock_analytics: MagicMock) -> None:
@@ -184,3 +188,32 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
 
         # Should be denied access since user doesn't have access to the project
         assert response.status_code == 403
+
+    def test_install_groups_returned(self) -> None:
+        """Test that install_groups is returned from extras"""
+        self.preprod_artifact = self._create_ios_artifact(
+            extras={
+                "is_code_signature_valid": True,
+                "profile_name": "Test Profile",
+                "codesigning_type": "development",
+                "install_groups": ["beta", "qa"],
+            }
+        )
+
+        url = self._get_url()
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["install_groups"] == ["beta", "qa"]
+
+    def test_install_groups_null_when_not_set(self) -> None:
+        """Test that install_groups is null when not set in extras"""
+        self.preprod_artifact = self._create_ios_artifact()
+
+        url = self._get_url()
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["install_groups"] is None

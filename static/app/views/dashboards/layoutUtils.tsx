@@ -52,7 +52,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     x: 0,
     y: index * 2,
     w: 2,
-    h: widget.displayType === DisplayType.BIG_NUMBER ? 1 : 2,
+    h: getDefaultWidgetHeight(widget.displayType),
   }));
 
   return mobileLayout;
@@ -80,7 +80,10 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
 }
 
 export function getDefaultWidgetHeight(displayType: DisplayType): number {
-  return displayType === DisplayType.BIG_NUMBER ? 1 : 2;
+  if (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.DETAILS) {
+    return 1;
+  }
+  return 2;
 }
 
 export function getInitialColumnDepths() {

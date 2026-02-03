@@ -19,6 +19,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {DataCategory} from 'sentry/types/core';
 
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 
 describe('provisionSubscriptionAction', () => {
@@ -281,22 +282,22 @@ describe('provisionSubscriptionAction', () => {
     );
 
     expect(
-      within(container).getByLabelText('On-Demand Max Spend Setting')
+      within(container).getByLabelText('Pay-as-you-go Max Spend Setting')
     ).toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Errors')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Errors')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Performance Units')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Performance Units')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Replays')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Replays')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Attachments')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Attachments')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Cron Monitors')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Cron Monitors')
     ).not.toBeInTheDocument();
   });
 
@@ -325,19 +326,19 @@ describe('provisionSubscriptionAction', () => {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     expect(
-      (await within(container).findAllByLabelText(/On-Demand Cost-Per-Event/)).length
+      (await within(container).findAllByLabelText(/Pay-as-you-go Cost-Per-Event/)).length
     ).toBeGreaterThan(0);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     expect(
-      within(container).queryByLabelText(/On-Demand Cost-Per-Event/)
+      within(container).queryByLabelText(/Pay-as-you-go Cost-Per-Event/)
     ).not.toBeInTheDocument();
   });
 
@@ -363,7 +364,7 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     const disabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -389,7 +390,7 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -637,11 +638,13 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 400000,
           customPriceAttachments: 0,
           customPriceErrors: 300000,
+          customPriceInstallableBuilds: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 0,
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceTransactions: 100000,
           customPriceUptime: 0,
           managed: true,
@@ -650,28 +653,34 @@ describe('provisionSubscriptionAction', () => {
           reservedAttachments: 1,
           reservedBudgets: [],
           reservedErrors: 5000,
+          reservedInstallableBuilds: 0,
           reservedMonitorSeats: 1,
           reservedReplays: 50,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedTransactions: 200000,
           reservedUptime: 1,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: 'ON_DEMAND',
+          softCapTypeInstallableBuilds: null,
           softCapTypeMonitorSeats: null,
           softCapTypeReplays: 'TRUE_FORWARD',
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeTransactions: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             replays: true,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             transactions: false,
             uptime: false,
           },
@@ -748,6 +757,7 @@ describe('provisionSubscriptionAction', () => {
             customPrice: 0,
             customPriceAttachments: 0,
             customPriceErrors: 0,
+            customPriceInstallableBuilds: 0,
             customPriceLogBytes: 0,
             customPriceMonitorSeats: 0,
             customPricePcss: 0,
@@ -756,12 +766,14 @@ describe('provisionSubscriptionAction', () => {
             customPriceReplays: 0,
             customPriceSeerAutofix: 0,
             customPriceSeerScanner: 0,
+            customPriceSizeAnalyses: 0,
             customPriceTransactions: 0,
             customPriceUptime: 0,
             managed: true,
             onDemandInvoicedManual: 'SHARED',
             paygCpeAttachments: 10000000,
             paygCpeErrors: 10000000,
+            paygCpeInstallableBuilds: 10000000,
             paygCpeLogBytes: 10000000,
             paygCpeMonitorSeats: 10000000,
             paygCpeProfileDuration: 10000000,
@@ -769,12 +781,14 @@ describe('provisionSubscriptionAction', () => {
             paygCpeReplays: 10000000,
             paygCpeSeerAutofix: 10000000,
             paygCpeSeerScanner: 10000000,
+            paygCpeSizeAnalyses: 10000000,
             paygCpeTransactions: 10000000,
             paygCpeUptime: 10000000,
             plan: 'am2_business_ent',
             reservedAttachments: 1,
             reservedBudgets: [],
             reservedErrors: 5000,
+            reservedInstallableBuilds: 0,
             reservedLogBytes: 5,
             reservedMonitorSeats: 1,
             reservedProfileDuration: 0,
@@ -782,11 +796,13 @@ describe('provisionSubscriptionAction', () => {
             reservedReplays: 50,
             reservedSeerAutofix: 0,
             reservedSeerScanner: 0,
+            reservedSizeAnalyses: 100,
             reservedTransactions: 10000,
             reservedUptime: 1,
             retainOnDemandBudget: true,
             softCapTypeAttachments: null,
             softCapTypeErrors: null,
+            softCapTypeInstallableBuilds: null,
             softCapTypeLogBytes: null,
             softCapTypeMonitorSeats: null,
             softCapTypeProfileDuration: null,
@@ -794,17 +810,20 @@ describe('provisionSubscriptionAction', () => {
             softCapTypeReplays: null,
             softCapTypeSeerAutofix: null,
             softCapTypeSeerScanner: null,
+            softCapTypeSizeAnalyses: null,
             softCapTypeTransactions: null,
             softCapTypeUptime: null,
             trueForward: {
               attachments: false,
               errors: false,
+              installableBuilds: false,
               monitorSeats: false,
               profileDuration: false,
               profileDurationUI: false,
               replays: false,
               seerAutofix: false,
               seerScanner: false,
+              sizeAnalyses: false,
               transactions: false,
               uptime: false,
               logBytes: false,
@@ -845,21 +864,21 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
 
     expect(
-      within(container).getByLabelText('Retain On-Demand Budget')
+      within(container).getByLabelText('Retain Pay-as-you-go Budget')
     ).toBeInTheDocument();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Per Category'
     );
 
     expect(
-      within(container).queryByLabelText('Retain On-Demand Budget')
+      within(container).queryByLabelText('Retain Pay-as-you-go Budget')
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
@@ -899,6 +918,7 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 0,
           customPriceAttachments: 0,
           customPriceErrors: 0,
+          customPriceInstallableBuilds: 0,
           customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 0,
@@ -907,12 +927,14 @@ describe('provisionSubscriptionAction', () => {
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceTransactions: 0,
           customPriceUptime: 0,
           managed: true,
           onDemandInvoicedManual: 'PER_CATEGORY',
           paygCpeAttachments: 10000000,
           paygCpeErrors: 10000000,
+          paygCpeInstallableBuilds: 10000000,
           paygCpeLogBytes: 10000000,
           paygCpeMonitorSeats: 10000000,
           paygCpeProfileDuration: 10000000,
@@ -920,12 +942,14 @@ describe('provisionSubscriptionAction', () => {
           paygCpeReplays: 10000000,
           paygCpeSeerAutofix: 10000000,
           paygCpeSeerScanner: 10000000,
+          paygCpeSizeAnalyses: 10000000,
           paygCpeTransactions: 10000000,
           paygCpeUptime: 10000000,
           plan: 'am2_business_ent',
           reservedAttachments: 1,
           reservedBudgets: [],
           reservedErrors: 5000,
+          reservedInstallableBuilds: 0,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
@@ -933,11 +957,13 @@ describe('provisionSubscriptionAction', () => {
           reservedReplays: 50,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedTransactions: 10000,
           reservedUptime: 1,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeInstallableBuilds: null,
           softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: null,
           softCapTypeProfileDuration: null,
@@ -945,17 +971,20 @@ describe('provisionSubscriptionAction', () => {
           softCapTypeReplays: null,
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeTransactions: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             profileDuration: false,
             profileDurationUI: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             transactions: false,
             uptime: false,
             logBytes: false,
@@ -1036,6 +1065,7 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 400000,
           customPriceAttachments: 0,
           customPriceErrors: 300000,
+          customPriceInstallableBuilds: 0,
           customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 0,
@@ -1044,6 +1074,7 @@ describe('provisionSubscriptionAction', () => {
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceTransactions: 0,
           customPriceUptime: 100000,
           managed: true,
@@ -1052,6 +1083,7 @@ describe('provisionSubscriptionAction', () => {
           reservedAttachments: 1,
           reservedBudgets: [],
           reservedErrors: 5000,
+          reservedInstallableBuilds: 0,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
@@ -1059,11 +1091,13 @@ describe('provisionSubscriptionAction', () => {
           reservedReplays: 50,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedTransactions: 600000,
           reservedUptime: 1,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: 'TRUE_FORWARD',
+          softCapTypeInstallableBuilds: null,
           softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: 'ON_DEMAND',
           softCapTypeProfileDuration: null,
@@ -1071,17 +1105,20 @@ describe('provisionSubscriptionAction', () => {
           softCapTypeReplays: 'ON_DEMAND',
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeTransactions: null,
           softCapTypeUptime: 'TRUE_FORWARD',
           trueForward: {
             attachments: false,
             errors: true,
+            installableBuilds: false,
             monitorSeats: false,
             profileDuration: false,
             profileDurationUI: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             transactions: false,
             uptime: true,
             logBytes: false,
@@ -1167,6 +1204,7 @@ describe('provisionSubscriptionAction', () => {
             customPrice: 600000,
             customPriceAttachments: 0,
             customPriceErrors: 0,
+            customPriceInstallableBuilds: 0,
             customPriceLogBytes: 0,
             customPriceMonitorSeats: 0,
             customPricePcss: 0,
@@ -1175,6 +1213,7 @@ describe('provisionSubscriptionAction', () => {
             customPriceReplays: 400000,
             customPriceSeerAutofix: 0,
             customPriceSeerScanner: 0,
+            customPriceSizeAnalyses: 0,
             customPriceSpans: 200000,
             customPriceUptime: 0,
             managed: true,
@@ -1183,6 +1222,7 @@ describe('provisionSubscriptionAction', () => {
             reservedAttachments: 10,
             reservedBudgets: [],
             reservedErrors: 500000,
+            reservedInstallableBuilds: 0,
             reservedLogBytes: 5,
             reservedMonitorSeats: 1,
             reservedProfileDuration: 0,
@@ -1190,11 +1230,13 @@ describe('provisionSubscriptionAction', () => {
             reservedReplays: 50,
             reservedSeerAutofix: 0,
             reservedSeerScanner: 0,
+            reservedSizeAnalyses: 100,
             reservedSpans: 10000000,
             reservedUptime: 1,
             retainOnDemandBudget: false,
             softCapTypeAttachments: null,
             softCapTypeErrors: 'ON_DEMAND',
+            softCapTypeInstallableBuilds: null,
             softCapTypeLogBytes: null,
             softCapTypeMonitorSeats: null,
             softCapTypeProfileDuration: null,
@@ -1202,17 +1244,20 @@ describe('provisionSubscriptionAction', () => {
             softCapTypeReplays: 'TRUE_FORWARD',
             softCapTypeSeerAutofix: null,
             softCapTypeSeerScanner: null,
+            softCapTypeSizeAnalyses: null,
             softCapTypeSpans: 'ON_DEMAND',
             softCapTypeUptime: 'TRUE_FORWARD',
             trueForward: {
               attachments: false,
               errors: false,
+              installableBuilds: false,
               monitorSeats: false,
               profileDuration: false,
               profileDurationUI: false,
               replays: true,
               seerAutofix: false,
               seerScanner: false,
+              sizeAnalyses: false,
               spans: false,
               uptime: true,
               logBytes: false,
@@ -1251,7 +1296,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1291,6 +1336,7 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 1250000,
           customPriceAttachments: 0,
           customPriceErrors: 0,
+          customPriceInstallableBuilds: 0,
           customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 50000,
@@ -1299,6 +1345,7 @@ describe('provisionSubscriptionAction', () => {
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceSpans: 1200000,
           customPriceSpansIndexed: 0,
           customPriceUptime: 0,
@@ -1310,6 +1357,7 @@ describe('provisionSubscriptionAction', () => {
           reservedCpeSpans: 100000000,
           reservedCpeSpansIndexed: 200000000,
           reservedErrors: 50000,
+          reservedInstallableBuilds: 0,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
@@ -1317,12 +1365,14 @@ describe('provisionSubscriptionAction', () => {
           reservedReplays: 75000,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedSpans: -2,
           reservedSpansIndexed: -2,
           reservedUptime: 250,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeInstallableBuilds: null,
           softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: null,
           softCapTypeProfileDuration: null,
@@ -1330,18 +1380,21 @@ describe('provisionSubscriptionAction', () => {
           softCapTypeReplays: null,
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeSpans: 'TRUE_FORWARD',
           softCapTypeSpansIndexed: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             profileDuration: false,
             profileDurationUI: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             spans: true,
             spansIndexed: false,
             uptime: false,
@@ -1380,7 +1433,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1413,6 +1466,7 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 1250000,
           customPriceAttachments: 0,
           customPriceErrors: 0,
+          customPriceInstallableBuilds: 0,
           customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 50000,
@@ -1421,6 +1475,7 @@ describe('provisionSubscriptionAction', () => {
           customPriceReplays: 0,
           customPriceSeerAutofix: 1200000,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceSpans: 0,
           customPriceUptime: 0,
           managed: true,
@@ -1433,6 +1488,7 @@ describe('provisionSubscriptionAction', () => {
           reservedCpeSeerAutofix: 100000000,
           reservedCpeSeerScanner: 50000000,
           reservedErrors: 50000,
+          reservedInstallableBuilds: 0,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
@@ -1440,11 +1496,13 @@ describe('provisionSubscriptionAction', () => {
           reservedReplays: 75000,
           reservedSeerAutofix: -2,
           reservedSeerScanner: -2,
+          reservedSizeAnalyses: 100,
           reservedSpans: 10000000,
           reservedUptime: 250,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeInstallableBuilds: null,
           softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: null,
           softCapTypeProfileDuration: null,
@@ -1452,17 +1510,20 @@ describe('provisionSubscriptionAction', () => {
           softCapTypeReplays: null,
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeSpans: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             profileDuration: false,
             profileDurationUI: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             spans: false,
             uptime: false,
             logBytes: false,
@@ -1500,7 +1561,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1533,6 +1594,7 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 50000,
           customPriceAttachments: 0,
           customPriceErrors: 0,
+          customPriceInstallableBuilds: 0,
           customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 50000,
@@ -1541,30 +1603,32 @@ describe('provisionSubscriptionAction', () => {
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceSpans: 0,
           customPriceUptime: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent',
           reservedAttachments: 1,
-          reservedBudgets: [
-            {budget: 2400000, categories: ['seerAutofix', 'seerScanner']},
-          ],
-          reservedCpeSeerAutofix: 0,
-          reservedCpeSeerScanner: 0,
+          // CPE value of 0 does not create a reserved budget
+          reservedBudgets: [],
           reservedErrors: 50000,
+          reservedInstallableBuilds: 0,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           reservedReplays: 75000,
-          reservedSeerAutofix: -2,
-          reservedSeerScanner: -2,
+          // CPE value of 0 does not modify the reserved field from its initial value
+          reservedSeerAutofix: 0,
+          reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedSpans: 10000000,
           reservedUptime: 250,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeInstallableBuilds: null,
           softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: null,
           softCapTypeProfileDuration: null,
@@ -1572,17 +1636,20 @@ describe('provisionSubscriptionAction', () => {
           softCapTypeReplays: null,
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeSpans: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             profileDuration: false,
             profileDurationUI: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             spans: false,
             uptime: false,
             logBytes: false,
@@ -1652,6 +1719,7 @@ describe('provisionSubscriptionAction', () => {
             customPrice: 0,
             customPriceAttachments: 0,
             customPriceErrors: 0,
+            customPriceInstallableBuilds: 0,
             customPriceLogBytes: 0,
             customPriceMonitorSeats: 0,
             customPricePcss: 0,
@@ -1660,12 +1728,14 @@ describe('provisionSubscriptionAction', () => {
             customPriceReplays: 0,
             customPriceSeerAutofix: 0,
             customPriceSeerScanner: 0,
+            customPriceSizeAnalyses: 0,
             customPriceTransactions: 0,
             customPriceUptime: 0,
             managed: true,
             onDemandInvoicedManual: 'SHARED',
             paygCpeAttachments: 10000,
             paygCpeErrors: 50000000,
+            paygCpeInstallableBuilds: 10000,
             paygCpeLogBytes: 10000,
             paygCpeMonitorSeats: 10000,
             paygCpeProfileDuration: 10000,
@@ -1673,12 +1743,14 @@ describe('provisionSubscriptionAction', () => {
             paygCpeReplays: 100000000,
             paygCpeSeerAutofix: 10000,
             paygCpeSeerScanner: 10000,
+            paygCpeSizeAnalyses: 10000,
             paygCpeTransactions: 1110000,
             paygCpeUptime: 10000,
             plan: 'am2_business_ent',
             reservedAttachments: 1,
             reservedBudgets: [],
             reservedErrors: 5000,
+            reservedInstallableBuilds: 0,
             reservedLogBytes: 5,
             reservedMonitorSeats: 1,
             reservedProfileDuration: 0,
@@ -1686,11 +1758,13 @@ describe('provisionSubscriptionAction', () => {
             reservedReplays: 50,
             reservedSeerAutofix: 0,
             reservedSeerScanner: 0,
+            reservedSizeAnalyses: 100,
             reservedTransactions: 10000,
             reservedUptime: 1,
             retainOnDemandBudget: false,
             softCapTypeAttachments: null,
             softCapTypeErrors: null,
+            softCapTypeInstallableBuilds: null,
             softCapTypeLogBytes: null,
             softCapTypeMonitorSeats: null,
             softCapTypeProfileDuration: null,
@@ -1698,11 +1772,13 @@ describe('provisionSubscriptionAction', () => {
             softCapTypeReplays: null,
             softCapTypeSeerAutofix: null,
             softCapTypeSeerScanner: null,
+            softCapTypeSizeAnalyses: null,
             softCapTypeTransactions: null,
             softCapTypeUptime: null,
             trueForward: {
               attachments: false,
               errors: false,
+              installableBuilds: false,
               logBytes: false,
               monitorSeats: false,
               profileDuration: false,
@@ -1710,6 +1786,7 @@ describe('provisionSubscriptionAction', () => {
               replays: false,
               seerAutofix: false,
               seerScanner: false,
+              sizeAnalyses: false,
               transactions: false,
               uptime: false,
             },
@@ -1821,6 +1898,8 @@ describe('provisionSubscriptionAction', () => {
     typeNumForField('Price for Issue Fixes', '0');
     typeNumForField('Price for Issue Scans', '0');
     typeNumForField('Price for PCSS', '500');
+    typeNumForField('Price for Size Analysis Builds', '0');
+    typeNumForField('Price for Build Distribution Installs', '0');
     typeNumForField('Annual Contract Value', '5050');
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
@@ -1874,6 +1953,8 @@ describe('provisionSubscriptionAction', () => {
     typeNumForField('Price for Issue Fixes', '0');
     typeNumForField('Price for Issue Scans', '0');
     typeNumForField('Price for PCSS', '500');
+    typeNumForField('Price for Size Analysis Builds', '0');
+    typeNumForField('Price for Build Distribution Installs', '0');
     typeNumForField('Annual Contract Value', '4950');
 
     MockApiClient.clearMockResponses();
@@ -1899,11 +1980,13 @@ describe('provisionSubscriptionAction', () => {
           customPrice: 495000,
           customPriceAttachments: 5000,
           customPriceErrors: 300000,
+          customPriceInstallableBuilds: 0,
           customPriceMonitorSeats: 40000,
           customPricePcss: 50000,
           customPriceReplays: 0,
           customPriceSeerAutofix: 0,
           customPriceSeerScanner: 0,
+          customPriceSizeAnalyses: 0,
           customPriceTransactions: 100000,
           customPriceUptime: 0,
           effectiveAt: '2020-10-25',
@@ -1912,28 +1995,34 @@ describe('provisionSubscriptionAction', () => {
           reservedAttachments: 50,
           reservedBudgets: [],
           reservedErrors: 2000000,
+          reservedInstallableBuilds: 0,
           reservedMonitorSeats: 250,
           reservedReplays: 500,
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
+          reservedSizeAnalyses: 100,
           reservedTransactions: 1000000,
           reservedUptime: 250,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeInstallableBuilds: null,
           softCapTypeMonitorSeats: null,
           softCapTypeReplays: null,
           softCapTypeSeerAutofix: null,
           softCapTypeSeerScanner: null,
+          softCapTypeSizeAnalyses: null,
           softCapTypeTransactions: null,
           softCapTypeUptime: null,
           trueForward: {
             attachments: false,
             errors: false,
+            installableBuilds: false,
             monitorSeats: false,
             replays: false,
             seerAutofix: false,
             seerScanner: false,
+            sizeAnalyses: false,
             transactions: false,
             uptime: false,
           },
@@ -1985,5 +2074,189 @@ describe('provisionSubscriptionAction', () => {
     expect(
       screen.getByRole('spinbutton', {name: 'Reserved Transactions'})
     ).toBeInTheDocument();
+  });
+
+  describe('Reserved CPE field validation', () => {
+    it('should set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) with Dynamic Sampling (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+        'Disable'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      // Set valid CPE values
+      typeNumForField('Reserved Cost-Per-Event Accepted Spans', '0.00005');
+      typeNumForField('Reserved Cost-Per-Event Stored Spans', '0.00003');
+
+      // Fill in other required fields
+      typeNumForField('Reserved Replays', '75000');
+      typeNumForField('Reserved Uptime Monitors', '250');
+      typeNumForField('Reserved Issue Fixes', '0');
+      typeNumForField('Reserved Issue Scans', '0');
+      typeNumForMatchingFields('Price for', '0', false);
+      typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '10000');
+      typeNumForField('Dynamic Sampling Budget', '10000');
+      typeNumForField('Price for PCSS', '500');
+      typeNumForField('Annual Contract Value', '10500');
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/provision-subscription/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
+
+      // Verify reserved is set to RESERVED_BUDGET_QUOTA when CPE has a valid value
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${mockOrg.slug}/provision-subscription/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              reservedSpans: RESERVED_BUDGET_QUOTA,
+              reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
+            }),
+          })
+        );
+      });
+    }, 15_000);
+
+    it('should not modify reserved when CPE is zero', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      // Set CPE to zero
+      typeNumForField('Reserved Cost-Per-Event Issue Fixes', '0');
+      typeNumForField('Reserved Cost-Per-Event Issue Scans', '0');
+
+      // Fill in other required fields
+      typeNumForField('Reserved Replays', '75000');
+      typeNumForField('Reserved Uptime Monitors', '250');
+      typeNumForMatchingFields('Price for', '0', false);
+      typeNumForField('Price for PCSS', '500');
+      typeNumForField('Annual Contract Value', '500');
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/provision-subscription/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
+
+      // Verify reserved stays at initial value when CPE is 0
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${mockOrg.slug}/provision-subscription/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              reservedSeerAutofix: 0,
+              reservedSeerScanner: 0,
+              reservedBudgets: [],
+            }),
+          })
+        );
+      });
+    }, 15_000);
+
+    it('should clear reserved when CPE is removed after setting valid value', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) with Dynamic Sampling (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      const cpeField = screen.getByLabelText('Reserved Cost-Per-Event Accepted Spans');
+      const reservedField = screen.getByLabelText('Reserved Accepted Spans');
+
+      // Set a valid CPE value
+      fireEvent.change(cpeField, {target: {value: '0.00005'}});
+
+      // Reserved field should be set to RESERVED_BUDGET_QUOTA
+      await waitFor(() => {
+        expect(reservedField).toHaveValue(RESERVED_BUDGET_QUOTA);
+      });
+      expect(reservedField).toBeDisabled();
+
+      // Clear the CPE field
+      fireEvent.change(cpeField, {target: {value: ''}});
+
+      // Reserved field should be cleared from RESERVED_BUDGET_QUOTA
+      await waitFor(() => {
+        expect(reservedField).not.toHaveValue(RESERVED_BUDGET_QUOTA);
+      });
+      expect(reservedField).toBeEnabled();
+    }, 15_000);
   });
 });

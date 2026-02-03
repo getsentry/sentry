@@ -11,6 +11,7 @@ export enum TraceLayoutTabKeys {
   WATERFALL = 'waterfall',
   PROFILES = 'profiles',
   LOGS = 'logs',
+  METRICS = 'metrics',
   SUMMARY = 'summary',
   AI_SPANS = 'ai-spans',
 }
@@ -36,6 +37,10 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
     label: t('Profiles'),
   },
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
+  [TraceLayoutTabKeys.METRICS]: {
+    slug: TraceLayoutTabKeys.METRICS,
+    label: t('Metrics'),
+  },
   [TraceLayoutTabKeys.SUMMARY]: {slug: TraceLayoutTabKeys.SUMMARY, label: t('Summary')},
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,
@@ -62,6 +67,10 @@ function getTabOptions({
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
   }
 
+  if (sections.hasMetrics) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
+  }
+
   if (sections.hasSummary) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.SUMMARY]);
   }
@@ -75,17 +84,20 @@ function getTabOptions({
 
 interface UseTraceLayoutTabsProps {
   logs: OurLogsResponseItem[] | undefined;
+  metrics: {count: number} | undefined;
   tree: TraceTree;
 }
 
 export function useTraceLayoutTabs({
   tree,
   logs,
+  metrics,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const sections = useTraceContextSections({
     tree,
     logs,
+    metrics,
   });
   const tabOptions = getTabOptions({sections: {...sections}});
 

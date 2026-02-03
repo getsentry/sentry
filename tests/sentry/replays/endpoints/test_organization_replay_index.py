@@ -9,6 +9,7 @@ from sentry.replays.testutils import (
     mock_expected_response,
     mock_replay,
     mock_replay_click,
+    mock_replay_tap,
     mock_replay_viewed,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
@@ -483,6 +484,30 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
+
+    def test_get_replays_duration_sorted_tiebreaker(self) -> None:
+        """Test that replays with identical durations have deterministic order when ordering by duration."""
+        project = self.create_project(teams=[self.team])
+        replay_ids = [uuid.uuid4().hex for _ in range(5)]
+
+        timestamp_start = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        timestamp_end = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        for replay_id in replay_ids:
+            self.store_replays(mock_replay(timestamp_start, project.id, replay_id, segment_id=0))
+            self.store_replays(mock_replay(timestamp_end, project.id, replay_id, segment_id=1))
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?orderBy=duration")
+            assert response.status_code == 200, response
+            asc_order = [r["id"] for r in response.json()["data"]]
+
+            response = self.client.get(self.url + "?orderBy=-duration")
+            assert response.status_code == 200, response
+            desc_order = [r["id"] for r in response.json()["data"]]
+
+            assert desc_order == list(reversed(asc_order))
+            assert set(asc_order) == set(replay_ids)
 
     def test_get_replays_pagination(self) -> None:
         """Test replays can be paginated."""
@@ -1299,6 +1324,64 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[title=1]",
             ]
             for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
+
+    def test_get_replays_filter_taps(self) -> None:
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        self.store_replays(
+            mock_replay_tap(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                message="TappedSignIn",
+                view_class="UIButton",
+                view_id="btn_signin",
+            )
+        )
+        self.store_replays(
+            mock_replay_tap(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                message="TappedCancel",
+                view_class="UIButtonSecondary",
+                view_id="btn_cancel",
+            )
+        )
+
+        with self.feature(self.features):
+            queries = [
+                "tap.message:TappedSignIn",
+                "tap.message:TappedCancel",
+                "tap.view_class:UIButton",
+                "tap.view_class:UIButtonSecondary",
+                "tap.view_id:btn_signin",
+                "tap.view_id:btn_cancel",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            negation_queries = [
+                "!tap.message:TappedSignIn",
+                "!tap.view_class:UIButton",
+                "!tap.view_id:btn_signin",
+            ]
+
+            for query in negation_queries:
                 response = self.client.get(self.url + f"?query={query}")
                 assert response.status_code == 200, query
                 response_data = response.json()

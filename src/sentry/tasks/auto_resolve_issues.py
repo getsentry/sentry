@@ -67,6 +67,11 @@ def schedule_auto_resolution():
     silo_mode=SiloMode.REGION,
 )
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
+    from sentry.incidents.grouptype import MetricIssue
+    from sentry.workflow_engine.models.incident_groupopenperiod import (
+        update_incident_based_on_open_period_status_change,
+    )
+
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -123,6 +128,8 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 resolution_time=resolution_time,
                 resolution_activity=activity,
             )
+            if group.issue_type == MetricIssue:
+                update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
 
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}

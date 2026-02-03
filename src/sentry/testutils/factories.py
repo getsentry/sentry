@@ -5,11 +5,12 @@ import copy
 import io
 import os
 import random
+import uuid
 import zipfile
 from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
@@ -19,6 +20,7 @@ from uuid import uuid4
 
 import orjson
 import petname
+import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
@@ -26,12 +28,16 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.text import slugify
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -80,6 +86,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
@@ -114,6 +121,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
+from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
@@ -127,7 +135,14 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    InstallablePreprodArtifact,
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -140,7 +155,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.services.eventstore.models import Event
@@ -169,6 +184,7 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -188,6 +204,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
 
@@ -539,8 +556,14 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_project(
-        organization=None, teams=None, fire_project_created=False, **kwargs
+        organization=None,
+        teams=None,
+        fire_project_created=False,
+        create_default_detectors=True,
+        **kwargs,
     ) -> Project:
+        from sentry.receivers.project_detectors import disable_default_detector_creation
+
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -548,15 +571,21 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic(router.db_for_write(Project)):
-            project = Project.objects.create(organization=organization, **kwargs)
-            if teams:
-                for team in teams:
-                    project.add_team(team)
-            if fire_project_created:
-                project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                )
+        with (
+            disable_default_detector_creation()
+            if not create_default_detectors
+            else contextlib.nullcontext()
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                project = Project.objects.create(organization=organization, **kwargs)
+                if teams:
+                    for team in teams:
+                        project.add_team(team)
+                if fire_project_created:
+                    project_created.send(
+                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    )
+
         return project
 
     @staticmethod
@@ -591,6 +620,8 @@ class Factories:
         action_match="all",
         filter_match="all",
         frequency=30,
+        include_legacy_rule_id=True,
+        include_workflow_id=True,
         **kwargs,
     ):
         actions = None
@@ -626,12 +657,22 @@ class Factories:
         if actions:
             data["actions"] = actions
 
-        return Rule.objects.create(
+        rule = Rule.objects.create(
             label=name,
             project=project,
             data=data,
             **kwargs,
         )
+        # dual write the rule to the workflow engine
+        workflow = IssueAlertMigrator(rule).run()
+
+        # annotate the rule with legacy_rule_id and workflow_id
+        if include_legacy_rule_id:
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        if include_workflow_id:
+            rule.data["actions"][0]["workflow_id"] = workflow.id
+
+        return rule
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -880,6 +921,26 @@ class Factories:
             external_id=external_id,
         )
         return repo
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_repository_settings(
+        repository: Repository,
+        enabled_code_review: bool = False,
+        code_review_triggers: list[str] | None = None,
+    ) -> RepositorySettings:
+        settings, created = RepositorySettings.objects.get_or_create(
+            repository=repository,
+            defaults={
+                "enabled_code_review": enabled_code_review,
+                "code_review_triggers": code_review_triggers or [],
+            },
+        )
+        if not created:
+            settings.enabled_code_review = enabled_code_review
+            settings.code_review_triggers = code_review_triggers or []
+            settings.save(update_fields=["enabled_code_review", "code_review_triggers"])
+        return settings
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1155,7 +1216,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
-        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
         from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
@@ -1173,7 +1234,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period:
+        if create_open_period and should_create_open_periods(group.type):
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,
@@ -1201,6 +1262,15 @@ class Factories:
     def create_data_forwarder(organization, provider, config, **kwargs):
         return DataForwarder.objects.create(
             organization=organization, provider=provider, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder_project(data_forwarder, project, **kwargs):
+        from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+        return DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder, project=project, **kwargs
         )
 
     @staticmethod
@@ -1515,6 +1585,15 @@ class Factories:
             url=url,
         ).id
         return ServiceHook.objects.get(id=hook_id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_service_hook_project_for_installation(
+        project_id: int,
+        installation_id: int,
+    ) -> ServiceHookProject:
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1956,13 +2035,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1974,7 +2049,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
@@ -2101,6 +2175,7 @@ class Factories:
         body,
         date_updated: datetime,
         trace_sampling: bool = False,
+        assertion: Any | None = None,
     ):
         if url is None:
             url = petname.generate().title()
@@ -2122,6 +2197,7 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
 
     @staticmethod
@@ -2269,6 +2345,14 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = default_detector_config_data.get(kwargs["type"], {})
+        if kwargs.get("type") in (ErrorGroupType.slug, IssueStreamGroupType.slug):
+            detector, _ = Detector.objects.get_or_create(
+                type=kwargs["type"],
+                project=kwargs["project"],
+                defaults={"config": {}, "name": name},
+            )
+            detector.update(config=config, name=name, **kwargs)
+            return detector
 
         return Detector.objects.create(
             name=name,
@@ -2448,6 +2532,9 @@ class Factories:
         max_download_size=1024 * 1024,  # 1 MB
         min_install_size=2 * 1024 * 1024,  # 2 MB
         max_install_size=2 * 1024 * 1024,  # 2 MB
+        error_code=None,
+        error_message=None,
+        analysis_file_id=None,
     ):
         if metrics_type is None:
             metrics_type = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
@@ -2479,4 +2566,254 @@ class Factories:
                 if state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                 else None
             ),
+            error_code=error_code,
+            error_message=error_message,
+            analysis_file_id=analysis_file_id,
         )
+
+    @staticmethod
+    def store_preprod_size_metric(
+        project_id: int,
+        organization_id: int,
+        timestamp: datetime,
+        preprod_artifact_id: int = 1,
+        size_metric_id: int = 1,
+        app_id: str = "com.example.app",
+        artifact_type: PreprodArtifact.ArtifactType = PreprodArtifact.ArtifactType.XCARCHIVE,
+        metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType = PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        max_install_size: int = 100000,
+        max_download_size: int = 80000,
+        min_install_size: int = 95000,
+        min_download_size: int = 75000,
+        git_head_ref: str | None = None,
+        build_configuration_name: str | None = None,
+    ) -> None:
+        """Write a preprod size metric to EAP/Snuba for testing."""
+        from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
+        from sentry.search.eap.rpc_utils import anyvalue
+        from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
+
+        proto_timestamp = Timestamp()
+        proto_timestamp.FromDatetime(timestamp)
+
+        trace_id = get_preprod_trace_id(preprod_artifact_id)
+        item_id_str = f"size_metric_{size_metric_id}"
+        item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
+
+        attributes = {
+            "preprod_artifact_id": anyvalue(preprod_artifact_id),
+            "size_metric_id": anyvalue(size_metric_id),
+            "sub_item_type": anyvalue("size_metric"),
+            "metrics_artifact_type": anyvalue(metrics_artifact_type),
+            "identifier": anyvalue(""),
+            "min_install_size": anyvalue(min_install_size),
+            "max_install_size": anyvalue(max_install_size),
+            "min_download_size": anyvalue(min_download_size),
+            "max_download_size": anyvalue(max_download_size),
+            "artifact_type": anyvalue(artifact_type),
+            "app_id": anyvalue(app_id),
+        }
+
+        if git_head_ref:
+            attributes["git_head_ref"] = anyvalue(git_head_ref)
+        if build_configuration_name:
+            attributes["build_configuration_name"] = anyvalue(build_configuration_name)
+
+        trace_item = TraceItem(
+            organization_id=organization_id,
+            project_id=project_id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+            timestamp=proto_timestamp,
+            trace_id=trace_id,
+            item_id=item_id,
+            received=proto_timestamp,
+            retention_days=90,
+            attributes=attributes,
+        )
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+            files={"item_0": trace_item.SerializeToString()},
+        )
+        assert response.status_code == 200
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_commit_comparison(
+        organization: Organization,
+        head_sha: str | None = None,
+        base_sha: str | None = None,
+        provider: str = "github",
+        head_repo_name: str = "owner/repo",
+        base_repo_name: str | None = None,
+        head_ref: str = "feature/test",
+        base_ref: str = "main",
+        pr_number: int | None = None,
+    ) -> CommitComparison:
+        if head_sha is None:
+            head_sha = uuid4().hex + "00000000"  # 40 chars
+        if base_sha is None:
+            base_sha = uuid4().hex + "11111111"  # 40 chars
+        if base_repo_name is None:
+            base_repo_name = head_repo_name
+
+        return CommitComparison.objects.create(
+            organization_id=organization.id,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            provider=provider,
+            head_repo_name=head_repo_name,
+            base_repo_name=base_repo_name,
+            head_ref=head_ref,
+            base_ref=base_ref,
+            pr_number=pr_number,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact(
+        project: Project,
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        artifact_type: int | None = PreprodArtifact.ArtifactType.APK,
+        app_id: str = "com.example.app",
+        commit_comparison: CommitComparison | None = None,
+        file_id: int | None = None,
+        installable_app_file_id: int | None = None,
+        date_added: datetime | None = None,
+        build_configuration: PreprodBuildConfiguration | None = None,
+        extras: dict | None = None,
+        create_mobile_app_info: bool = True,
+        **kwargs,
+    ) -> PreprodArtifact:
+        # Extract deprecated fields that were moved to PreprodArtifactMobileAppInfo
+        # Remove them from kwargs before passing to PreprodArtifact.objects.create()
+        build_version = kwargs.pop("build_version", None)
+        build_number = kwargs.pop("build_number", None)
+        app_name = kwargs.pop("app_name", None)
+        app_icon_id = kwargs.pop("app_icon_id", None)
+
+        artifact = PreprodArtifact.objects.create(
+            project=project,
+            state=state,
+            artifact_type=artifact_type,
+            app_id=app_id,
+            commit_comparison=commit_comparison,
+            file_id=file_id,
+            installable_app_file_id=installable_app_file_id,
+            build_configuration=build_configuration,
+            extras=extras,
+            **kwargs,
+        )
+        if date_added is not None:
+            artifact.update(date_added=date_added)
+
+        if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
+            Factories.create_preprod_artifact_mobile_app_info(
+                preprod_artifact=artifact,
+                build_version=build_version,
+                build_number=build_number,
+                app_name=app_name,
+                app_icon_id=app_icon_id,
+            )
+
+        return artifact
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_mobile_app_info(
+        preprod_artifact: PreprodArtifact,
+        build_version: str | None = None,
+        build_number: int | None = None,
+        app_name: str | None = None,
+        app_icon_id: str | None = None,
+        **kwargs,
+    ) -> PreprodArtifactMobileAppInfo:
+        obj, _ = PreprodArtifactMobileAppInfo.objects.update_or_create(
+            preprod_artifact=preprod_artifact,
+            defaults={
+                "build_version": build_version,
+                "build_number": build_number,
+                "app_name": app_name,
+                "app_icon_id": app_icon_id,
+                **kwargs,
+            },
+        )
+        return obj
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_build_configuration(
+        project: Project,
+        name: str = "release",
+    ) -> PreprodBuildConfiguration:
+        return PreprodBuildConfiguration.objects.create(
+            project=project,
+            name=name,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_preprod_artifact_size_comparison(
+        organization: Organization,
+        head_size_analysis: PreprodArtifactSizeMetrics,
+        base_size_analysis: PreprodArtifactSizeMetrics,
+        state: int = PreprodArtifactSizeComparison.State.PENDING,
+        file_id: int | None = None,
+        error_code: int | None = None,
+        error_message: str | None = None,
+    ) -> PreprodArtifactSizeComparison:
+        return PreprodArtifactSizeComparison.objects.create(
+            organization_id=organization.id,
+            head_size_analysis=head_size_analysis,
+            base_size_analysis=base_size_analysis,
+            state=state,
+            file_id=file_id,
+            error_code=error_code,
+            error_message=error_message,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_installable_preprod_artifact(
+        preprod_artifact,
+        url_path: str | None = None,
+        expiration_date=None,
+        download_count: int = 0,
+    ):
+        if url_path is None:
+            url_path = str(uuid4())
+
+        if expiration_date is None:
+            expiration_date = timezone.now() + timedelta(hours=24)
+
+        return InstallablePreprodArtifact.objects.create(
+            preprod_artifact=preprod_artifact,
+            url_path=url_path,
+            expiration_date=expiration_date,
+            download_count=download_count,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_identity(
+        user: User | None = None, idp: IdentityProvider | None = None, **kwargs: Any
+    ) -> Identity:
+        if idp is None:
+            idp = Factories.create_github_provider()
+        if user is None:
+            user = Factories.create_user()
+        if "external_id" not in kwargs:
+            kwargs["external_id"] = f"github-user-{user.id}"
+        if "status" not in kwargs:
+            kwargs["status"] = IdentityStatus.VALID
+
+        identity, _ = Identity.objects.update_or_create(user=user, idp=idp, defaults=kwargs)
+        return identity
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_github_provider(**kwargs) -> IdentityProvider:
+        identity_provider, _ = IdentityProvider.objects.update_or_create(
+            type="github", external_id="github-app", defaults=kwargs
+        )
+        return identity_provider

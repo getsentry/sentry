@@ -1,13 +1,13 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {AlertLink} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -73,7 +73,7 @@ function AccountEmails() {
         <AlertLink
           to="/settings/account/notifications"
           trailingItems={<IconStack />}
-          type="info"
+          variant="info"
         >
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
@@ -197,8 +197,8 @@ function EmailRow({
     <EmailItem>
       <EmailTags>
         {email}
-        {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
-        {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
+        {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
+        {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
       </EmailTags>
       <ButtonBar>
         {!isPrimary && isVerified && (

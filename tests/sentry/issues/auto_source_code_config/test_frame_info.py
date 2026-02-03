@@ -21,14 +21,6 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
-    "O$t",
-    "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
-    # Top level files
-    "README",  # top level file
-    "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
-    "ssl.py",
-    "initialization.dart",
-    "backburner.js",
 ]
 
 # Files with "http" substring that should be ACCEPTED
@@ -42,14 +34,18 @@ LEGITIMATE_HTTP_FILENAMES = [
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
-    "/foo/bar/baz",  # no extension
+    "/foo/bar/baz",
+    "README",
+    "O$t",
 ]
 
 
 class TestFrameInfo:
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert create_frame_info({"filename": path}).__repr__() == f"FrameInfo: {path}"
+        frame_info = create_frame_info({"filename": path})
+        expected = f"FrameInfo: {path} stack_root: {frame_info.stack_root}"
+        assert frame_info.__repr__() == expected
 
     @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
     def test_raises_unsupported(self, filepath: str) -> None:
@@ -114,6 +110,12 @@ class TestFrameInfo:
                 "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
+            ),
+            pytest.param(
+                {"module": "foo.Baz", "abs_path": "foo"},
+                "foo/",  # Single-depth stack root
+                "foo/Baz",
+                id="granularity_1",
             ),
         ],
     )

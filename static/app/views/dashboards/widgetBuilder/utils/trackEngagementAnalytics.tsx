@@ -5,7 +5,8 @@ import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 export function trackEngagementAnalytics(
   widgets: Widget[],
   organization: Organization,
-  dashboardTitle: string
+  dashboardTitle: string,
+  globalFilterCount: number
 ) {
   // Handle edge-case of dashboard with no widgets.
   if (!widgets.length) return;
@@ -40,6 +41,7 @@ export function trackEngagementAnalytics(
     tracingRatio: tracingWidgetCount / widgets.length,
     issuesRatio: issuesWidgetCount / widgets.length,
     logRatio: logWidgetCount / widgets.length,
+    globalFilterCount,
   };
   trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
 }

@@ -1,24 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
-const mockProject = ProjectFixture();
-const {organization} = initializeOrg({
-  organization: {},
-  projects: [mockProject],
-  router: {
-    routes: [],
-    location: {
-      pathname: '/organizations/org-slug/issues/1/',
-      query: {},
-    },
-  },
-});
-
 describe('Tag Facets', () => {
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   project.platform = 'android';
   const tags = ['os', 'device', 'release'];

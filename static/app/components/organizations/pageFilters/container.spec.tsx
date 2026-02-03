@@ -1,6 +1,8 @@
+import moment from 'moment-timezone';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
@@ -11,45 +13,13 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 
-const changeQuery = (router: any, query: any) => ({
-  ...router,
-  location: {
-    ...router.location,
-    query,
-  },
-});
-
-function renderComponent(component: any, router: any, organization: any) {
-  return render(component, {
-    router,
-    organization,
-    deprecatedRouterMocks: true,
-  });
-}
-
 describe('PageFiltersContainer', () => {
-  const {organization, projects, router} = initializeOrg({
-    organization: {},
-    projects: [
-      {
-        id: '1',
-        slug: 'project-1',
-      },
-      {
-        id: '2',
-        slug: 'project-2',
-      },
-      {
-        id: '3',
-        slug: 'project-3',
-        environments: ['prod', 'staging'],
-      },
-    ],
-    router: {
-      location: {pathname: '/test', query: {}},
-      params: {orgId: 'org-slug'},
-    },
-  });
+  const organization = OrganizationFixture();
+  const projects = [
+    ProjectFixture({id: '1', slug: 'project-1'}),
+    ProjectFixture({id: '2', slug: 'project-2'}),
+    ProjectFixture({id: '3', slug: 'project-3', environments: ['prod', 'staging']}),
+  ];
 
   beforeAll(() => {
     jest.spyOn(globalActions, 'updateDateTime');
@@ -77,30 +47,47 @@ describe('PageFiltersContainer', () => {
   });
 
   it('does not update router if org in URL params is different than org in context/props', () => {
-    renderComponent(
-      <PageFiltersContainer />,
-      {
-        router: {...router, params: {orgId: 'diff-org'}},
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/diff-org/test/', query: {}},
+        route: '/organizations/:orgId/test/',
       },
-      organization
-    );
-    expect(router.push).not.toHaveBeenCalled();
+    });
+
+    // Router location should remain unchanged
+    expect(router.location.pathname).toBe('/organizations/diff-org/test/');
+    expect(router.location.query).toEqual({});
   });
 
   it('does not replace URL with values from store when mounted with no query params', () => {
-    renderComponent(<PageFiltersContainer />, router, organization);
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/test/', query: {}},
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
-    expect(router.replace).not.toHaveBeenCalled();
+    // Router location should remain unchanged
+    expect(router.location.pathname).toBe('/organizations/org-slug/test/');
+    expect(router.location.query).toEqual({});
   });
 
   it('only updates GlobalSelection store when mounted with query params', async () => {
-    renderComponent(
-      <PageFiltersContainer />,
-      changeQuery(router, {statsPeriod: '7d'}),
-      organization
-    );
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {statsPeriod: '7d'},
+        },
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
-    expect(router.push).not.toHaveBeenCalled();
+    // Router location should remain unchanged (no push)
+    expect(router.location.pathname).toBe('/organizations/org-slug/test/');
 
     await waitFor(() =>
       expect(PageFiltersStore.getState().selection).toEqual({
@@ -117,13 +104,16 @@ describe('PageFiltersContainer', () => {
   });
 
   it('updates GlobalSelection store with default period', async () => {
-    renderComponent(
-      <PageFiltersContainer />,
-      changeQuery(router, {
-        environment: 'prod',
-      }),
-      organization
-    );
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {environment: 'prod'},
+        },
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
@@ -144,18 +134,18 @@ describe('PageFiltersContainer', () => {
       })
     );
 
-    // Not called because of the default date
-    expect(router.replace).not.toHaveBeenCalled();
+    // Not called because of the default date - location unchanged
+    expect(router.location.query).toEqual({environment: 'prod'});
   });
 
   it('updates GlobalSelection store with empty dates in URL', async () => {
-    renderComponent(
-      <PageFiltersContainer />,
-      changeQuery(router, {
-        statsPeriod: null,
-      }),
-      organization
-    );
+    render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/test/', query: {}},
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
@@ -178,14 +168,19 @@ describe('PageFiltersContainer', () => {
   });
 
   it('resets start&end if showAbsolute prop is false', async () => {
-    renderComponent(
-      <PageFiltersContainer showAbsolute={false} />,
-      changeQuery(router, {
-        start: '2020-05-05T07:26:53.000',
-        end: '2020-05-05T09:19:12.000',
-      }),
-      organization
-    );
+    render(<PageFiltersContainer showAbsolute={false} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {
+            start: '2020-05-05T07:26:53.000',
+            end: '2020-05-05T09:19:12.000',
+          },
+        },
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
@@ -211,11 +206,16 @@ describe('PageFiltersContainer', () => {
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async () => {
-    const {rerender} = renderComponent(
-      <PageFiltersContainer />,
-      changeQuery(router, {statsPeriod: '7d'}),
-      organization
-    );
+    const {rerender} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {statsPeriod: '7d'},
+        },
+        route: '/organizations/:orgId/test/',
+      },
+    });
 
     jest.mocked(globalActions.updateDateTime).mockClear();
     jest.mocked(globalActions.updateProjects).mockClear();
@@ -247,7 +247,7 @@ describe('PageFiltersContainer', () => {
     });
   });
 
-  it('loads from local storage when no URL parameters and filters are pinned', () => {
+  it('loads from local storage when no URL parameters and filters are pinned', async () => {
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [3],
@@ -255,33 +255,26 @@ describe('PageFiltersContainer', () => {
         pinnedFilters: ['projects', 'environments'],
       })
     );
-    const initializationObj = initializeOrg({
-      organization: {},
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
+
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/test/', query: {}},
+        route: '/organizations/:orgId/test/',
       },
     });
 
-    renderComponent(
-      <PageFiltersContainer />,
-      initializationObj.router,
-      initializationObj.organization
-    );
+    await waitFor(() => {
+      expect(PageFiltersStore.getState().selection.projects).toEqual([3]);
+    });
 
-    expect(PageFiltersStore.getState().selection.projects).toEqual([3]);
-
-    // Since these are coming from URL, there should be no changes and
-    // router does not need to be called
-    expect(initializationObj.router.replace).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: {
-          environment: ['staging'],
-          project: ['3'],
-        },
-      })
-    );
+    // Since these are coming from local storage, router should be updated
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: 'staging',
+        project: '3',
+      });
+    });
   });
 
   it('does not load from local storage when there are URL params', () => {
@@ -291,73 +284,54 @@ describe('PageFiltersContainer', () => {
         JSON.stringify({projects: [3], environments: ['staging']})
       );
 
-    const initializationObj = initializeOrg({
-      organization: {},
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {project: ['1', '2']}},
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {project: ['1', '2']},
+        },
+        route: '/organizations/:orgId/test/',
       },
     });
-
-    renderComponent(
-      <PageFiltersContainer />,
-      initializationObj.router,
-      initializationObj.organization
-    );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
-    expect(initializationObj.router.replace).not.toHaveBeenCalled();
+    expect(router.location.query).toEqual({project: ['1', '2']});
   });
 
   it('updates store when there are query params in URL', () => {
-    const initializationObj = initializeOrg({
-      organization: {},
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {project: ['1', '2']}},
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {project: ['1', '2']},
+        },
+        route: '/organizations/:orgId/test/',
       },
     });
-
-    renderComponent(
-      <PageFiltersContainer />,
-      initializationObj.router,
-      initializationObj.organization
-    );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
-    expect(initializationObj.router.replace).not.toHaveBeenCalled();
+    expect(router.location.query).toEqual({project: ['1', '2']});
   });
 
   it('updates store with default values when there are no query params in URL', () => {
-    const initializationObj = initializeOrg({
-      organization: {},
-      projects: [ProjectFixture({id: '1'}), ProjectFixture({id: '2'})],
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {}},
+    const {router} = render(<PageFiltersContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/test/', query: {}},
+        route: '/organizations/:orgId/test/',
       },
     });
 
-    renderComponent(
-      <PageFiltersContainer />,
-      initializationObj.router,
-      initializationObj.organization
-    );
-
     // Router does not update because params have not changed
-    expect(initializationObj.router.replace).not.toHaveBeenCalled();
+    expect(router.location.query).toEqual({});
   });
 
   it('updates store with desynced values when url params do not match local storage', async () => {
@@ -368,25 +342,19 @@ describe('PageFiltersContainer', () => {
       })
     );
 
-    const initializationObj = initializeOrg({
-      organization: {},
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
+    const testOrg = OrganizationFixture();
+    OrganizationStore.onUpdate(testOrg);
+
+    render(<PageFiltersContainer />, {
+      organization: testOrg,
+      initialRouterConfig: {
         location: {
+          pathname: '/organizations/org-slug/test/',
           query: {project: ['2']},
         },
+        route: '/organizations/:orgId/test/',
       },
     });
-
-    OrganizationStore.onUpdate(initializationObj.organization);
-
-    renderComponent(
-      <PageFiltersContainer />,
-      initializationObj.router,
-      initializationObj.organization
-    );
 
     // reflux tick
     expect(PageFiltersStore.getState().selection.projects).toEqual([2]);
@@ -398,26 +366,22 @@ describe('PageFiltersContainer', () => {
   });
 
   it('does not update local storage when disablePersistence is true', async () => {
-    const initializationObj = initializeOrg({
-      organization: {},
-      router: {
-        // we need this to be set to make sure org in context is same as
-        // current org in URL
-        params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {project: []}},
+    const spy = jest.spyOn(Storage.prototype, 'setItem');
+
+    const mockRouter = RouterFixture({
+      location: {pathname: '/organizations/org-slug/test/', query: {project: []}},
+    });
+
+    render(<PageFiltersContainer disablePersistence />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/test/', query: {project: []}},
+        route: '/organizations/:orgId/test/',
       },
     });
 
-    const spy = jest.spyOn(Storage.prototype, 'setItem');
-
-    renderComponent(
-      <PageFiltersContainer disablePersistence />,
-      initializationObj.router,
-      initializationObj.organization
-    );
-
     await act(async () => {
-      globalActions.updateProjects([1], initializationObj.router, {save: true});
+      globalActions.updateProjects([1], mockRouter, {save: true});
 
       // page filter values are asynchronously persisted to local storage after a tick,
       // so we need to wait before checking for commits to local storage
@@ -432,16 +396,10 @@ describe('PageFiltersContainer', () => {
   });
 
   describe('forceProject selection mode', () => {
-    const initialData = initializeOrg({
-      organization: {},
-      projects: [
-        {id: '1', slug: 'staging-project', environments: ['staging']},
-        {id: '2', slug: 'prod-project', environments: ['prod']},
-      ],
-      router: {
-        location: {pathname: '/test', query: {}},
-      },
-    });
+    const forceProjectProjects = [
+      ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
+      ProjectFixture({id: '2', slug: 'prod-project', environments: ['prod']}),
+    ];
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -449,36 +407,42 @@ describe('PageFiltersContainer', () => {
         body: [],
       });
 
-      ProjectsStore.loadInitialData(initialData.projects);
+      ProjectsStore.loadInitialData(forceProjectProjects);
     });
 
-    it('replaces URL with project', () => {
-      renderComponent(
+    it('replaces URL with project', async () => {
+      const {router} = render(
         <PageFiltersContainer
           shouldForceProject
-          forceProject={initialData.projects[0]}
+          forceProject={forceProjectProjects[0]}
         />,
-        initialData.router,
-        initialData.organization
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: '/test/', query: {}},
+            route: '/test/',
+          },
+        }
       );
 
-      expect(initialData.router.replace).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {environment: [], project: ['1']},
-        })
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual({project: '1'});
+      });
     });
   });
 
   describe('maxPickableDays param', () => {
     it('applies maxPickableDays if the query parms exceed it', async () => {
-      renderComponent(
-        <PageFiltersContainer maxPickableDays={7} />,
-        changeQuery(router, {statsPeriod: '14d'}),
-        organization
-      );
-
-      expect(router.push).not.toHaveBeenCalled();
+      render(<PageFiltersContainer maxPickableDays={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
 
       await waitFor(() =>
         expect(PageFiltersStore.getState().selection).toEqual({
@@ -492,18 +456,22 @@ describe('PageFiltersContainer', () => {
           projects: [],
         })
       );
-
-      expect(router.push).not.toHaveBeenCalled();
     });
 
     it('does not use maxPickableDays if the query parms do not exceed it', async () => {
-      renderComponent(
-        <PageFiltersContainer maxPickableDays={7} />,
-        changeQuery(router, {statsPeriod: '3d'}),
-        organization
-      );
+      const {router} = render(<PageFiltersContainer maxPickableDays={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '3d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
 
-      expect(router.push).not.toHaveBeenCalled();
+      // Router location should remain unchanged (no push)
+      expect(router.location.query).toEqual({statsPeriod: '3d'});
 
       await waitFor(() =>
         expect(PageFiltersStore.getState().selection).toEqual({
@@ -518,139 +486,159 @@ describe('PageFiltersContainer', () => {
         })
       );
 
-      expect(router.push).not.toHaveBeenCalled();
+      // Still no push
+      expect(router.location.query).toEqual({statsPeriod: '3d'});
+    });
+
+    it('applies maxPickableDays if the query parms are in the past', async () => {
+      render(<PageFiltersContainer maxPickableDays={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {
+              start: moment().subtract(21, 'days').format('YYYY-MM-DDTHH:mm:ss'),
+              end: moment().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss'),
+            },
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '7d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
     });
   });
 
   describe('skipInitializeUrlParams', () => {
-    const initialData = initializeOrg({
-      organization,
-      projects: [{id: '1', slug: 'staging-project', environments: ['staging']}],
-      router: {
-        location: {pathname: '/test', query: {}},
-      },
-    });
+    const skipInitProjects = [
+      ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
+    ];
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
       });
-      ProjectsStore.loadInitialData(initialData.projects);
+      ProjectsStore.loadInitialData(skipInitProjects);
     });
 
     it('does not add forced project to URL', async () => {
-      renderComponent(
+      const {router} = render(
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
-          forceProject={initialData.projects[0]}
+          forceProject={skipInitProjects[0]}
         />,
-        initialData.router,
-        initialData.organization
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: '/test/', query: {}},
+            route: '/test/',
+          },
+        }
       );
 
       // Needed to make sure things update
       await act(tick);
 
-      expect(router.replace).not.toHaveBeenCalled();
+      // Router location should remain unchanged
+      expect(router.location.query).toEqual({});
     });
   });
 
   describe('multi-project mode', () => {
     describe('without existing URL params', () => {
-      const initialData = initializeOrg({
-        organization: {},
-        projects: [
-          {id: '0', slug: 'random project', isMember: true},
-          {id: '1', slug: 'staging-project', environments: ['staging']},
-          {id: '2', slug: 'prod-project', environments: ['prod']},
-        ],
-        router: {
-          location: {pathname: '/test', query: {}},
-          params: {orgId: 'org-slug'},
-        },
-      });
+      const multiProjectOrg = OrganizationFixture();
+      const multiProjectProjects = [
+        ProjectFixture({id: '0', slug: 'random project', isMember: true}),
+        ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
+        ProjectFixture({id: '2', slug: 'prod-project', environments: ['prod']}),
+      ];
 
-      function getComponentForGlobalView(props: any) {
-        return (
-          <PageFiltersContainer
-            params={{orgId: initialData.organization.slug}}
-            {...props}
-          />
-        );
-      }
-
-      function renderForGlobalView(props = {}, ctx = {}) {
-        const result = renderComponent(
-          getComponentForGlobalView(props),
-          {
-            ...initialData.router,
-            ...ctx,
+      function renderForGlobalView(
+        props: Record<string, unknown> = {},
+        locationQuery: Record<string, string | number | string[]> = {}
+      ) {
+        const result = render(<PageFiltersContainer {...props} />, {
+          organization: multiProjectOrg,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: locationQuery,
+            },
+            route: '/organizations/:orgId/test/',
           },
-          initialData.organization
-        );
+        });
 
-        const rerender = (newProps: any) =>
-          result.rerender(getComponentForGlobalView({...props, ...newProps}));
+        const rerender = (newProps: Record<string, unknown>) =>
+          result.rerender(<PageFiltersContainer {...props} {...newProps} />);
 
         return {...result, rerender};
       }
 
       beforeEach(() => {
-        ProjectsStore.loadInitialData(initialData.projects);
-
-        jest.mocked(initialData.router.push).mockClear();
-        jest.mocked(initialData.router.replace).mockClear();
+        ProjectsStore.loadInitialData(multiProjectProjects);
       });
 
       it('does not use first project in org projects when mounting (and without localStorage data)', () => {
-        renderForGlobalView();
-        expect(initialData.router.replace).not.toHaveBeenCalled();
+        const {router} = renderForGlobalView();
+        // Router location should remain unchanged
+        expect(router.location.query).toEqual({});
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', () => {
         ProjectsStore.reset();
 
-        const {rerender} = renderForGlobalView();
+        const {router, rerender} = renderForGlobalView();
 
         // load the projects
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        act(() => ProjectsStore.loadInitialData(multiProjectProjects));
 
-        rerender({forceProject: initialData.projects[1]});
+        rerender({forceProject: multiProjectProjects[1]});
 
-        expect(initialData.router.replace).not.toHaveBeenCalled();
+        // Router location should remain unchanged
+        expect(router.location.query).toEqual({});
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', () => {
+      it('updates store when `forceProject` becomes available (async)', async () => {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
         const {rerender} = renderForGlobalView({shouldForceProject: true});
 
-        rerender({forceProject: initialData.projects[1]});
+        rerender({forceProject: multiProjectProjects[1]});
 
         // load the projects
-        act(() => ProjectsStore.loadInitialData(initialData.projects));
+        act(() => ProjectsStore.loadInitialData(multiProjectProjects));
 
-        expect(initialData.router.replace).toHaveBeenLastCalledWith({
-          pathname: '/test',
-          query: {environment: [], project: ['1']},
+        // Store is updated with the forced project
+        await waitFor(() => {
+          expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
         });
-
-        expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
       it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', () => {
         // forceProject generally starts undefined
-        const {rerender} = renderForGlobalView(
+        const {router, rerender} = renderForGlobalView(
           {shouldForceProject: true},
-          changeQuery(initialData.router, {project: 2})
+          {project: '2'}
         );
 
-        rerender({forceProject: initialData.projects[1]});
+        rerender({forceProject: multiProjectProjects[1]});
 
-        expect(initialData.router.replace).not.toHaveBeenCalled();
+        // Router location should remain unchanged
+        expect(router.location.query).toEqual({project: '2'});
       });
     });
   });

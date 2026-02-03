@@ -2,13 +2,13 @@ import {Component, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,6 +17,7 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
@@ -68,7 +69,9 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">{t('Deleting this integration has consequences!')}</Alert>
+          <Alert variant="danger">
+            {t('Deleting this integration has consequences!')}
+          </Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -86,7 +89,9 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error">{t('This integration cannot be removed in Sentry')}</Alert>
+          <Alert variant="danger">
+            {t('This integration cannot be removed in Sentry')}
+          </Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -114,7 +119,11 @@ export default class InstalledIntegration extends Component<Props> {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => {
+          const superuser = isActiveSuperuser();
+          const canConfigure =
+            (hasAccess || superuser) && this.integrationStatus === 'active';
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
+          const isPendingDeletion = this.integrationStatus === 'pending_deletion';
           return (
             <Fragment>
               <IntegrationItemBox>
@@ -122,7 +131,7 @@ export default class InstalledIntegration extends Component<Props> {
               </IntegrationItemBox>
               <div>
                 <Tooltip
-                  disabled={allowMemberConfiguration || hasAccess}
+                  disabled={allowMemberConfiguration || hasAccess || superuser}
                   position="left"
                   title={t(
                     'You must be an organization owner, manager or admin to configure'
@@ -146,9 +155,9 @@ export default class InstalledIntegration extends Component<Props> {
                     />
                   )}
                   <StyledLinkButton
-                    borderless
+                    priority="transparent"
                     icon={<IconSettings />}
-                    disabled={!allowMemberConfiguration && disableAction}
+                    disabled={!allowMemberConfiguration && !canConfigure}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
@@ -166,12 +175,12 @@ export default class InstalledIntegration extends Component<Props> {
                   <Confirm
                     priority="danger"
                     onConfirming={this.handleUninstallClick}
-                    disabled={!hasAccess}
+                    disabled={!hasAccess || isPendingDeletion}
                     {...removeConfirmProps}
                   >
                     <StyledButton
-                      disabled={!hasAccess}
-                      borderless
+                      disabled={!hasAccess || isPendingDeletion}
+                      priority="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >
@@ -194,11 +203,11 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const IntegrationItemBox = styled('div')`
@@ -213,7 +222,7 @@ function IntegrationStatus(
 ) {
   const theme = useTheme();
   const {status, hideTooltip, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.gray300;
+  const color = status === 'active' ? theme.tokens.content.success : theme.colors.gray400;
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
@@ -248,14 +257,14 @@ function IntegrationStatus(
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: light;
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.colors.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 

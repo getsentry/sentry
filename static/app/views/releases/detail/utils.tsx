@@ -175,16 +175,16 @@ function generateReleaseMarkLine(
     data: [{name: position, value: null as any}], // TODO(ts): echart types
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
-    color: theme.gray300,
+    color: theme.colors.gray400,
     markLine: MarkLine({
       silent: true,
-      lineStyle: {color: theme.gray300, type: 'solid'},
+      lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
         fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         backgroundColor: theme.tokens.background.secondary,
       },
       data: [

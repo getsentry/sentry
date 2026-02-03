@@ -3,13 +3,15 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/prism';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme} from 'sentry/utils/theme';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;
@@ -110,7 +112,8 @@ export function CodeBlock({
       return;
     }
 
-    if (!language) {
+    // Skip if no language or if language is not a valid Prism language (e.g. "text")
+    if (!language || !getPrismLanguage(language)) {
       return;
     }
 
@@ -170,17 +173,17 @@ export function CodeBlock({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Container flexGrow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Container flexGrow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            priority="transparent"
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{position: 'left'}}
@@ -213,17 +216,15 @@ export function CodeBlock({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
-`;
-
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
+  height: 100%;
   background: var(--prism-block-background);
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
+  border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
   pre {
     margin: 0;
+    height: 100%;
   }
 
   &[data-render-inline='true'] pre {
@@ -235,10 +236,10 @@ const Header = styled('div')<{isFloating: boolean}>`
   display: flex;
   align-items: center;
 
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: var(--prism-base);
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.mono.medium};
   z-index: 2;
 
   ${p =>
@@ -257,12 +258,15 @@ const Header = styled('div')<{isFloating: boolean}>`
       : css`
           gap: ${space(0.75)};
           padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
-          border-bottom: solid 1px ${p.theme.border};
+          border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -281,7 +285,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.purple300};
+      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

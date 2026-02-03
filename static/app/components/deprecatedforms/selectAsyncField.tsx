@@ -1,14 +1,12 @@
-import {
-  SelectAsync,
-  type SelectAsyncControlProps,
-} from 'sentry/components/core/select/async';
+import {SelectAsync, type SelectAsyncControlProps} from '@sentry/scraps/select';
+
 import {
   SelectField,
   type SelectFieldProps,
 } from 'sentry/components/deprecatedforms/selectField';
 import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
-export interface SelectAsyncFieldProps
+interface SelectAsyncFieldProps
   extends SelectFieldProps,
     Omit<SelectAsyncControlProps, 'value' | 'onQuery' | 'onResults'> {
   onQuery?: SelectAsyncControlProps['onQuery'];

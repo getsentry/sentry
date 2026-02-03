@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -19,7 +20,7 @@ function LoadingError({
   return (
     <Alert.Container>
       <Alert
-        type="error"
+        variant="danger"
         data-test-id="loading-error"
         className={className}
         trailingItems={

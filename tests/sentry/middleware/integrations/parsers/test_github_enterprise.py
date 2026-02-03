@@ -123,6 +123,9 @@ class GithubEnterpriseRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": self.external_identifier}, "action": "created"},
             content_type="application/json",
+            headers={
+                "X-GITHUB-EVENT": "installation",
+            },
             HTTP_X_GITHUB_ENTERPRISE_HOST=self.external_host,
         )
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)

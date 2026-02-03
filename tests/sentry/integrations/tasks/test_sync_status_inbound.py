@@ -10,6 +10,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -240,6 +241,18 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_resolved(self.group.id)
         self._assert_resolve_in_release_activity_created(in_next_release=True)
 
+        # Verify the activity is linked to GroupResolution via ident
+        resolution = GroupResolution.objects.get(group=self.group)
+        activity = (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+            )
+            .order_by("-datetime")
+            .first()
+        )
+        assert activity is not None
+        assert activity.ident == str(resolution.id)
+
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_current_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
@@ -271,6 +284,18 @@ class TestSyncStatusInbound(TestCase):
 
         self._assert_group_resolved(self.group.id)
         self._assert_resolve_in_release_activity_created(in_next_release=False)
+
+        # Verify the activity is linked to GroupResolution via ident
+        resolution = GroupResolution.objects.get(group=self.group)
+        activity = (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+            )
+            .order_by("-datetime")
+            .first()
+        )
+        assert activity is not None
+        assert activity.ident == str(resolution.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_no_releases(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:

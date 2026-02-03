@@ -70,10 +70,6 @@ type FormatArg = ComponentMap | React.ReactNode;
  */
 function getClient(): Jed | null {
   if (!i18n) {
-    // If this happens, it could mean that an import was added/changed where
-    // locale initialization does not happen soon enough.
-    // eslint-disable-next-line no-console
-    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
@@ -419,6 +415,22 @@ export function tctCode(template: string, components: ComponentMap = {}) {
 }
 
 /**
+ * Translates a string without formatting support. Used for translating
+ * pre-extracted strings like attribute descriptions from @sentry/conventions.
+ * This function is intentionally not included in the gettext extraction script.
+ */
+function gettextDescription(string: string): string {
+  const val: string = getClient().gettext(string);
+  staticTranslations.add(val);
+  return mark(val);
+}
+
+/**
  * Shorthand versions should primarily be used.
  */
-export {gettext as t, gettextComponentTemplate as tct, ngettext as tn};
+export {
+  gettext as t,
+  gettextComponentTemplate as tct,
+  ngettext as tn,
+  gettextDescription as td,
+};

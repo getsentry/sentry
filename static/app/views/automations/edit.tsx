@@ -1,8 +1,11 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -12,37 +15,45 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
-import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import AutomationForm from 'sentry/views/automations/components/automationForm';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {
+  assignSubfilterIds,
   getAutomationFormData,
   getNewAutomationData,
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {EditAutomationActions} from 'sentry/views/automations/components/editAutomationActions';
+import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
+  return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
@@ -51,7 +62,10 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
         {
           label: title,
           to: makeAutomationDetailsPathname(organization.slug, automationId),
@@ -64,8 +78,6 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
 
 export default function AutomationEdit() {
   const params = useParams<{automationId: string}>();
-
-  useWorkflowEngineFeatureGate({redirect: true});
 
   const {
     data: automation,
@@ -88,7 +100,10 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const params = useParams<{automationId: string}>();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.lg;
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -104,46 +119,102 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return {
       triggers: automation.triggers
         ? automation.triggers
-        : initialAutomationBuilderState.triggers,
-      actionFilters: automation.actionFilters,
+        : {
+            id: 'when',
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+            conditions: [],
+          },
+      actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);
 
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
 
-  const [automationBuilderErrors, setAutomationBuilderErrors] = useState<
-    Record<string, string>
-  >({});
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
 
   const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
 
-  const removeError = useCallback((errorId: string) => {
-    setAutomationBuilderErrors(prev => {
-      const {[errorId]: _removedError, ...remainingErrors} = prev;
-      return remainingErrors;
-    });
-  }, []);
-
   const handleFormSubmit = useCallback<OnSubmitCallback>(
-    async (data, _, __, ___, ____) => {
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const errors = validateAutomationBuilderState(state);
       setAutomationBuilderErrors(errors);
 
-      if (Object.keys(errors).length === 0) {
-        const formData: NewAutomation = getNewAutomationData(
-          data as AutomationFormData,
-          state
+      if (Object.keys(errors).length > 0) {
+        const analyticsPayload = getAutomationAnalyticsPayload(
+          getNewAutomationData({
+            data: data as AutomationFormData,
+            state,
+          })
         );
-        const updatedData = {
+        Sentry.logger.warn('Edit alert form validation failed', {
+          errors,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: false,
+        });
+        return;
+      }
+
+      formModel.setFormSaving();
+
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      if (!formData) {
+        return;
+      }
+      const newAutomationData = getNewAutomationData({
+        data: formData,
+        state,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
+
+      try {
+        const updatedAutomation = await updateAutomation({
           id: automation.id,
-          ...formData,
-        };
-        const updatedAutomation = await updateAutomation(updatedData);
+          ...newAutomationData,
+        });
+        onSubmitSuccess(formModel?.getData() ?? data);
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: true,
+        });
         navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
+      } catch (e) {
+        Sentry.logger.warn('Edit alert request failure', {
+          error: e,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.updated', {
+          organization,
+          ...analyticsPayload,
+          success: false,
+        });
+        onSubmitError?.(e);
       }
     },
-    [automation.id, organization.slug, navigate, updateAutomation, state]
+    [
+      state,
+      setAutomationBuilderErrors,
+      automation.id,
+      updateAutomation,
+      organization,
+      navigate,
+      queryClient,
+    ]
   );
 
   return (
@@ -153,40 +224,81 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       initialData={initialData}
       onSubmit={handleFormSubmit}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
-        <StyledLayoutHeader>
-          <Layout.HeaderContent>
-            <AutomationBreadcrumbs automationId={params.automationId} />
-            <Layout.Title>
-              <EditableAutomationName />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Flex>
-            <EditAutomationActions automation={automation} />
+      <AutomationFormProvider automation={automation}>
+        <AutomationDocumentTitle />
+        <Layout.Page>
+          <StyledLayoutHeader>
+            <HeaderInner maxWidth={maxWidth}>
+              <Layout.HeaderContent>
+                <AutomationBreadcrumbs automationId={params.automationId} />
+                <Layout.Title>
+                  <EditableAutomationName />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <div>
+                <AutomationFeedbackButton />
+              </div>
+            </HeaderInner>
+          </StyledLayoutHeader>
+          <StyledBody maxWidth={maxWidth}>
+            <Layout.Main width="full">
+              <AutomationBuilderErrorContext.Provider
+                value={{
+                  errors: automationBuilderErrors,
+                  setErrors: setAutomationBuilderErrors,
+                  removeError,
+                  mutationErrors: error?.responseJSON,
+                }}
+              >
+                <AutomationBuilderContext.Provider
+                  value={{
+                    state,
+                    actions,
+                    showTriggerLogicTypeSelector:
+                      state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                  }}
+                >
+                  <AutomationForm model={model} />
+                </AutomationBuilderContext.Provider>
+              </AutomationBuilderErrorContext.Provider>
+            </Layout.Main>
+          </StyledBody>
+        </Layout.Page>
+        <StickyFooter>
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} form={model} />
           </Flex>
-        </StyledLayoutHeader>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <AutomationBuilderErrorContext.Provider
-              value={{
-                errors: automationBuilderErrors,
-                setErrors: setAutomationBuilderErrors,
-                removeError,
-                mutationErrors: error?.responseJSON,
-              }}
-            >
-              <AutomationBuilderContext.Provider value={{state, actions}}>
-                <AutomationForm model={model} />
-              </AutomationBuilderContext.Provider>
-            </AutomationBuilderErrorContext.Provider>
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
+        </StickyFooter>
+      </AutomationFormProvider>
     </FullHeightForm>
   );
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
+`;
+
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
+  max-width: ${p => p.maxWidth};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;

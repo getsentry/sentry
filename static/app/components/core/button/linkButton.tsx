@@ -1,17 +1,16 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-// eslint-disable-next-line boundaries/element-types
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import {DO_NOT_USE_getChonkButtonStyles as getChonkButtonStyles} from './styles.chonk';
 import type {
   DO_NOT_USE_CommonButtonProps as CommonButtonProps,
   DO_NOT_USE_LinkButtonProps as LinkButtonProps,
@@ -96,16 +95,19 @@ const StyledLinkButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkLinkButtonStyles(p) : getButtonStyles(p as any))}
+  ${p => getLinkButtonStyles(p)}
+  &:focus-visible {
+    box-shadow: none;
+  }
 `;
 
-const getChonkLinkButtonStyles = (p: LinkButtonProps) => {
-  const chonkStyles = getChonkButtonStyles(p as any);
+const getLinkButtonStyles = (p: LinkButtonProps) => {
+  const buttonStyles = getButtonStyles(p as any);
   return {
     ...(p.disabled || p.busy
-      ? {color: chonkStyles.color, ':hover': {color: chonkStyles.color}}
+      ? {color: buttonStyles.color, ':hover': {color: buttonStyles.color}}
       : undefined),
-    ...chonkStyles,
+    ...buttonStyles,
   };
 };
 

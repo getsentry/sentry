@@ -142,6 +142,18 @@ export function SelectionKeyHandler({
             return;
           }
 
+          // Wrap selected tokens in parentheses when ( or ) is pressed
+          if ((e.key === '(' || e.key === ')') && selectedTokens.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            dispatch({
+              type: 'WRAP_TOKENS_WITH_PARENTHESES',
+              tokens: selectedTokens,
+            });
+            state.selectionManager.clearSelection();
+            return;
+          }
+
           // If the key pressed will generate a symbol, replace the selection with it
           if (/^.$/u.test(e.key)) {
             dispatch({

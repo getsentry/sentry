@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconBranch, IconCommit, IconFile, IconGithub} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -87,13 +88,13 @@ export function PullRequestDetailsHeaderContent({
 function getPrStateBadge(state: PullRequestState): React.ReactNode | null {
   switch (state) {
     case 'open':
-      return <Tag type="success">Open</Tag>;
+      return <Tag variant="success">Open</Tag>;
     case 'closed':
-      return <Tag type="error">Closed</Tag>;
+      return <Tag variant="danger">Closed</Tag>;
     case 'merged':
-      return <Tag type="info">Merged</Tag>;
+      return <Tag variant="info">Merged</Tag>;
     case 'draft':
-      return <Tag type="default">Draft</Tag>;
+      return <Tag variant="muted">Draft</Tag>;
     default:
       return null;
   }
@@ -107,6 +108,6 @@ const GitHubAvatar = styled('img')`
 
 const BranchLabel = styled(Text)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.gray100};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.colors.gray100};
+  border-radius: ${p => p.theme.radius.md};
 `;

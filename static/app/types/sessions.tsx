@@ -14,6 +14,7 @@ export enum SessionField {
   SESSION = 'session',
   SESSION_DURATION = 'session.duration',
   USER = 'user',
+  STATUS = 'session.status',
 }
 
 export type SessionsOperation =
@@ -27,7 +28,11 @@ export type SessionsOperation =
   | 'crash_free_rate'
   | 'crash_rate'
   | 'foreground_anr_rate'
-  | 'sum';
+  | 'sum'
+  | 'unhealthy_rate'
+  | 'abnormal_rate'
+  | 'errored_rate'
+  | 'unhandled_rate';
 
 export type SessionAggregationColumn = {
   outputType: AggregationOutputType | null;

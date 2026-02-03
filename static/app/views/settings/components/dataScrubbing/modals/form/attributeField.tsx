@@ -1,7 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -241,9 +242,9 @@ const Suggestions = styled('ul')`
   list-style: none;
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   top: 100%;
   left: 0;
   z-index: 1002;
@@ -256,12 +257,16 @@ const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr;
   gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
-  background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};
+  background: ${p =>
+    p.active ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
   :hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;

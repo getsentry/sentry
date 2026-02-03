@@ -1,85 +1,102 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Link} from 'sentry/components/core/link';
-import type {
-  RadioGroupProps,
-  RadioOption,
-} from 'sentry/components/forms/controls/radioGroup';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
-  const location = useLocation();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
-  const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
-  const disabledChoices: RadioGroupProps<WidgetType>['disabledChoices'] = [];
 
-  const datasetChoices: Array<RadioOption<WidgetType>> = [];
-  datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
-  if (organization.features.includes('discover-saved-queries-deprecation')) {
-    disabledChoices.push([
-      WidgetType.TRANSACTIONS,
-      tct('This dataset is no longer supported. Please use the [spans] dataset.', {
-        spans: (
-          <Link
-            // We need to do this otherwise the dashboard filters will change
-            to={{
-              pathname: location.pathname,
-              query: {
-                project: location.query.project,
-                start: location.query.start,
-                end: location.query.end,
-                statsPeriod: location.query.statsPeriod,
-                environment: location.query.environment,
-                utc: location.query.utc,
-              },
-            }}
-            onClick={() => {
-              cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-              setSegmentSpanBuilderState();
-            }}
-          >
-            {t('spans')}
-          </Link>
-        ),
-      }),
-    ]);
-  }
+  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+
+  const datasetOptions = [];
+  datasetOptions.push({
+    value: WidgetType.ERRORS,
+    label: t('Errors'),
+    details: t('Errors from your application'),
+  });
+
+  const isTransactionsDeprecated = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
+  const transactionsOption = {
+    value: WidgetType.TRANSACTIONS,
+    label: t('Transactions'),
+    disabled: isTransactionsDeprecated,
+    details: isTransactionsDeprecated
+      ? tctCode(
+          'No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.'
+        )
+      : t('Transactions from your application'),
+  };
 
   if (organization.features.includes('visibility-explore-view')) {
-    datasetChoices.push([WidgetType.SPANS, t('Spans')]);
+    datasetOptions.push({
+      value: WidgetType.SPANS,
+      label: t('Spans'),
+      details: t('Spans from distributed traces'),
+    });
   }
+
   if (isLogsEnabled(organization)) {
-    datasetChoices.push([
-      WidgetType.LOGS,
-      <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key="dataset-choice-logs">
-        {t('Logs')} <FeatureBadge type="new" />
-      </FeatureBadgeAlignmentWrapper>,
-    ]);
+    datasetOptions.push({
+      value: WidgetType.LOGS,
+      label: t('Logs'),
+      details: t('Structured application logs'),
+    });
   }
-  datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
-  datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
-  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
+
+  if (
+    organization.features.includes('tracemetrics-enabled') &&
+    hasTraceMetricsDashboards
+  ) {
+    datasetOptions.push({
+      value: WidgetType.TRACEMETRICS,
+      label: t('Metrics'),
+      details: t('Counters, gauges, and distributions'),
+    });
+  }
+  datasetOptions.push({
+    value: WidgetType.ISSUE,
+    label: t('Issues'),
+    details: t('Grouped events from the Issues Feed'),
+  });
+
+  datasetOptions.push({
+    value: WidgetType.RELEASE,
+    label: t('Releases'),
+    details: t('Session data from releases'),
+  });
+
+  if (organization.features.includes('preprod-app-size-dashboard')) {
+    datasetOptions.push({
+      value: WidgetType.PREPROD_APP_SIZE,
+      label: t('Mobile Builds'),
+      details: t('Mobile app size metrics'),
+    });
+  }
+
+  datasetOptions.push(transactionsOption);
 
   return (
     <Fragment>
@@ -94,13 +111,13 @@ function WidgetBuilderDatasetSelector() {
           }
         )}
       />
-      <DatasetChoices
-        label={t('Dataset')}
+      <CompactSelect
         value={state.dataset ?? WidgetType.ERRORS}
-        choices={datasetChoices}
-        disabledChoices={disabledChoices}
-        tooltipIsHoverable
-        onChange={(newDataset: WidgetType) => {
+        options={datasetOptions}
+        menuWidth={300}
+        onChange={selection => {
+          const newDataset = selection.value;
+
           // Set the current dataset state in local storage for recovery
           // when the user navigates back to this dataset
           cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
@@ -109,6 +126,7 @@ function WidgetBuilderDatasetSelector() {
           // or set the dataset if there is no cached state
           restoreOrSetBuilderState(newDataset);
 
+          Sentry.setTag('widget_builder.dataset', newDataset);
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',
@@ -125,19 +143,6 @@ function WidgetBuilderDatasetSelector() {
 }
 
 export default WidgetBuilderDatasetSelector;
-
-const FeatureBadgeAlignmentWrapper = styled('div')`
-  ${FeatureBadge} {
-    position: relative;
-    top: -1px;
-  }
-`;
-
-const DatasetChoices = styled(RadioGroup<WidgetType>)`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-`;
 
 const StyledSectionHeader = styled(SectionHeader)`
   margin-bottom: ${space(1)};

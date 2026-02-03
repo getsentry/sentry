@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -16,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -33,6 +36,30 @@ import {
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+interface SpanSamplesPanelContainerSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  moduleName: ModuleName;
+  query: string;
+  selection: PageFilters;
+}
+
+function SpanSamplesPanelContainerSearchQueryBuilder({
+  handleSearch,
+  moduleName,
+  query,
+  selection,
+}: SpanSamplesPanelContainerSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${moduleName}-sample-panel`,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
@@ -207,12 +234,11 @@ export function SpanSamplesContainer({
         />
 
         <StyledSearchBar>
-          <EapSpanSearchQueryBuilderWrapper
-            searchSource={`${moduleName}-sample-panel`}
-            initialQuery={searchQuery ?? ''}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            projects={selection.projects}
+          <SpanSamplesPanelContainerSearchQueryBuilder
+            query={searchQuery ?? ''}
+            moduleName={moduleName}
+            selection={selection}
+            handleSearch={handleSearch}
           />
         </StyledSearchBar>
 
@@ -259,7 +285,7 @@ const StyledReadoutRibbon = styled(ReadoutRibbon)`
 const SectionTitle = styled('div')`
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 

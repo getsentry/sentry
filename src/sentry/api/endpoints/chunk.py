@@ -28,6 +28,11 @@ MAX_CONCURRENCY = settings.DEBUG and 1 or 8
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
 API_PREFIX = "/api/0"
+# IMPORTANT: All values in CHUNK_UPLOAD_ACCEPT must be maintained for backwards compatibility
+# with Sentry CLI 2.x and older. Sentry CLI 3.x completely ignores the CHUNK_UPLOAD_ACCEPT
+# field (starting with 3.1.0), but older CLI versions still depend on these values being
+# present in the server's response. Removing any of these values would break functionality
+# for CLI 2.x and older.
 CHUNK_UPLOAD_ACCEPT = (
     "debug_files",  # DIF assemble
     "release_files",  # Release files assemble
@@ -183,36 +188,37 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger.info("chunkupload.start")
 
         files = []
-        if request.FILES:
-            files = request.FILES.getlist("file")
-            files += [GzipChunk(chunk) for chunk in request.FILES.getlist("file_gzip")]
+        checksums = []
+        total_size = 0
 
-        if len(files) == 0:
-            # No files uploaded is ok
+        # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
+        num_files = len(request.FILES.getlist("file")) + len(request.FILES.getlist("file_gzip"))
+
+        if num_files > MAX_CHUNKS_PER_REQUEST:
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # No files uploaded is ok
+        if num_files == 0:
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
-        logger.info("chunkupload.post.files", extra={"len": len(files)})
-
-        # Validate file size
-        checksums = []
-        size = 0
-        for chunk in files:
-            size += chunk.size
+        for chunk, name in get_files(request):
             if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
                 logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                 return Response(
                     {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
                 )
-            checksums.append(chunk.name)
 
-        if size > MAX_REQUEST_SIZE:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST)
+            total_size += chunk.size
+            if total_size > MAX_REQUEST_SIZE:
+                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                return Response({"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if len(files) > MAX_CHUNKS_PER_REQUEST:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
+            files.append(chunk)
+            checksums.append(name)
+
+        logger.info("chunkupload.post.files", extra={"len": len(files)})
 
         try:
             FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
@@ -222,3 +228,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)
+
+
+def get_files(request: Request):
+    for chunk in request.FILES.getlist("file"):
+        yield chunk, chunk.name
+
+    for chunk in request.FILES.getlist("file_gzip"):
+        decompressed_chunk = GzipChunk(chunk)
+        yield decompressed_chunk, chunk.name

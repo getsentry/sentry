@@ -1,9 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -167,13 +169,13 @@ function OrganizationDeveloperSettings() {
           </Fragment>
         }
         action={
-          <ActionContainer>
+          <Flex>
             <ExampleIntegrationButton
               analyticsView={analyticsView}
               style={{marginRight: space(1)}}
             />
             <CreateIntegrationButton analyticsView={analyticsView} />
-          </ActionContainer>
+          </Flex>
         }
       />
       <TabsContainer>
@@ -192,10 +194,6 @@ function OrganizationDeveloperSettings() {
 
 const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const ActionContainer = styled('div')`
-  display: flex;
 `;
 
 export default OrganizationDeveloperSettings;

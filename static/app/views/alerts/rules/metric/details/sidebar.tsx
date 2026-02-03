@@ -2,23 +2,22 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {AlertBadge} from '@sentry/scraps/badge';
+
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconDiamond, IconMegaphone} from 'sentry/icons';
+import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -131,18 +130,11 @@ function TriggerDescription({
 }
 
 function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
-  if (isChonkTheme(theme)) {
-    return type === 'critical'
-      ? theme.colors.chonk.red400
-      : type === 'warning'
-        ? theme.colors.chonk.yellow400
-        : theme.colors.chonk.green400;
-  }
   return type === 'critical'
-    ? theme.errorText
+    ? theme.tokens.background.danger.vibrant
     : type === 'warning'
-      ? theme.warningText
-      : theme.successText;
+      ? theme.tokens.background.warning.vibrant
+      : theme.tokens.background.success.vibrant;
 }
 const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
   fill: ${p => getColor(p.theme, p.type)};
@@ -168,28 +160,22 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-  const openForm = useFeedbackForm();
 
-  const feedbackButton = openForm ? (
-    <Button
-      onClick={() => {
-        openForm({
-          formTitle: 'Anomaly Detection Feedback',
-          messagePlaceholder: t(
-            'How can we make alerts using anomaly detection more useful?'
-          ),
-          tags: {
-            ['feedback.source']: 'dynamic_thresholding',
-            ['feedback.owner']: 'ml-ai',
-          },
-        });
+  const feedbackButton = (
+    <FeedbackButton
+      feedbackOptions={{
+        formTitle: t('Anomaly Detection Feedback'),
+        messagePlaceholder: t(
+          'How can we make alerts using anomaly detection more useful?'
+        ),
+        tags: {
+          ['feedback.source']: 'dynamic_thresholding',
+          ['feedback.owner']: 'ml-ai',
+        },
       }}
       size="xs"
-      icon={<IconMegaphone />}
-    >
-      Give Feedback
-    </Button>
-  ) : null;
+    />
+  );
 
   return (
     <Fragment>
@@ -376,7 +362,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -390,7 +376,11 @@ const StatusContainer = styled('div')`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TriggerContainer = styled('div')`
@@ -407,8 +397,8 @@ const TriggerTitle = styled('div')`
 `;
 
 const TriggerTitleText = styled('h4')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -429,11 +419,11 @@ const TriggerActions = styled('div')`
 
 const TriggerText = styled('span')`
   display: block;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -2,15 +2,16 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
@@ -223,7 +224,7 @@ function ReplayPreviewTable({
                   <Flex gap="xs">
                     {getShortEventId(replay.id)}
                     <Flex gap="xs">
-                      <IconCalendar color="gray300" size="xs" />
+                      <IconCalendar variant="muted" size="xs" />
                       <TimeSince date={replay.started_at} />
                     </Flex>
                   </Flex>
@@ -280,8 +281,11 @@ const SimpleTableWithTwoColumns = styled(SimpleTable)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -289,11 +293,15 @@ const SubText = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LinkWithUnderline = styled(Link)`

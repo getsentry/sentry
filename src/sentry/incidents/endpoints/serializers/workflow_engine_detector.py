@@ -7,6 +7,10 @@ from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
@@ -77,9 +81,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
-                alert_rule_id=alert_rule_id
-            )
+            try:
+                detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
+                    alert_rule_id=alert_rule_id
+                )
+            except AlertRuleDetector.DoesNotExist:
+                detector_id = get_object_id_from_fake_id(int(alert_rule_id))
+
             detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
@@ -320,17 +328,22 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
         triggers = attrs.get("triggers", [])
-        alert_rule_detector_id = None
+        alert_rule_id = None
 
         if triggers:
-            alert_rule_detector_id = triggers[0].get("alertRuleId")
+            alert_rule_id = triggers[0].get("alertRuleId")
         else:
-            alert_rule_detector_id = AlertRuleDetector.objects.values_list(
-                "alert_rule_id", flat=True
-            ).get(detector=obj)
+            try:
+                alert_rule_id = AlertRuleDetector.objects.values_list(
+                    "alert_rule_id", flat=True
+                ).get(detector=obj)
+            except AlertRuleDetector.DoesNotExist:
+                # this detector does not have an analog in the old system,
+                # but we need to return *something*
+                alert_rule_id = get_fake_id_from_object_id(obj.id)
 
         data: AlertRuleSerializerResponse = {
-            "id": str(alert_rule_detector_id),
+            "id": str(alert_rule_id),
             "name": obj.name,
             "organizationId": str(obj.project.organization_id),
             "status": (

@@ -3,12 +3,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {
-  useActiveBreakpoint,
-  useResponsivePropValue,
-  type Breakpoint,
-  type Responsive,
-} from './styles';
+import type {BreakpointSize} from 'sentry/utils/theme';
+
+// eslint-disable-next-line boundaries/entry-point
+import {useActiveBreakpoint, useResponsivePropValue, type Responsive} from './styles';
 
 const theme = ThemeFixture();
 
@@ -32,7 +30,9 @@ const createWrapper = () => {
 };
 
 // Helper to set up media query mocks for specific breakpoints
-const setupMediaQueries = (breakpointMatches: Partial<Record<Breakpoint, boolean>>) => {
+const setupMediaQueries = (
+  breakpointMatches: Partial<Record<BreakpointSize, boolean>>
+) => {
   const originalMatchMedia = window.matchMedia;
 
   window.matchMedia = jest.fn((query: string) => {
@@ -46,7 +46,7 @@ const setupMediaQueries = (breakpointMatches: Partial<Record<Breakpoint, boolean
     )?.[0];
 
     const matches = breakpointName
-      ? (breakpointMatches[breakpointName as Breakpoint] ?? false)
+      ? (breakpointMatches[breakpointName as BreakpointSize] ?? false)
       : false;
 
     return mockMatchMedia(matches);
@@ -194,7 +194,7 @@ describe('useActiveBreakpoint', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current).toBe('xs');
+    expect(result.current).toBe('2xs');
     cleanup();
   });
 
@@ -224,12 +224,15 @@ describe('useActiveBreakpoint', () => {
     });
 
     // Should create media queries for all breakpoints (in reverse order)
-    expect(matchMediaSpy).toHaveBeenCalledTimes(5);
+    expect(matchMediaSpy).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xl})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.lg})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.md})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.sm})`);
     expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xs})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(
+      `(min-width: ${theme.breakpoints['2xs']})`
+    );
   });
 
   it('uses correct breakpoint order (largest first)', () => {
@@ -309,7 +312,7 @@ describe('useActiveBreakpoint', () => {
   });
 
   it('calls AbortController.abort() on unmount', () => {
-    const addEventListenerSpy = jest.fn();
+    const addEventListener = jest.fn();
 
     const abortController = {
       abort: jest.fn(),
@@ -325,7 +328,7 @@ describe('useActiveBreakpoint', () => {
     window.matchMedia = jest.fn(() => ({
       matches: false,
       media: '',
-      addEventListener: addEventListenerSpy,
+      addEventListener,
       removeEventListener: jest.fn(),
       addListener: jest.fn(),
       removeListener: jest.fn(),
@@ -341,7 +344,7 @@ describe('useActiveBreakpoint', () => {
     );
 
     // Sets up listeners for all breakpoints
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(5);
+    expect(addEventListener).toHaveBeenCalledTimes(Object.keys(theme.breakpoints).length);
     unmount();
     // Removes listeners for all breakpoints
     expect(abortController.abort).toHaveBeenCalledTimes(1);

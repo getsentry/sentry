@@ -16,18 +16,18 @@ const StepperContainer = styled('div')`
 const StepperIndicator = styled('span')<{clickable?: boolean}>`
   height: 8px;
   width: 80px;
-  background-color: ${p => p.theme.progressBackground};
+  background-color: ${p => p.theme.colors.gray100};
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
 `;
 
 const StepperTransitionIndicator = styled(motion.span)`
   height: 8px;
   width: 80px;
-  background-color: ${p => p.theme.progressBar};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   position: absolute;
 `;
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+type Props = Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   currentStepIndex: number;
   numSteps: number;
   onClick: (stepIndex: number) => void;

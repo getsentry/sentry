@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -11,12 +12,11 @@ type Props = {
   organization: Organization;
   subscription: Subscription;
 };
-const TAG_TYPE = 'promotion';
 
 function TrialBadge({subscription, organization}: Props) {
   if (subscription.isTrial) {
     return (
-      <Tag type={TAG_TYPE}>
+      <Tag variant="promotion">
         <TrialText>
           {tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}
         </TrialText>
@@ -26,7 +26,7 @@ function TrialBadge({subscription, organization}: Props) {
 
   if (subscription.canTrial) {
     return (
-      <Tag type={TAG_TYPE}>
+      <Tag variant="promotion">
         <TrialText>{t('%s Day Trial', getTrialLength(organization))}</TrialText>
       </Tag>
     );

@@ -77,9 +77,10 @@ export function useSaveAsItems({
   );
 
   const saveAsQuery = useMemo(() => {
-    // Show "Existing Query" if we have a non-prebuilt saved query, otherwise "A New Query"
+    const items = [];
+
     if (defined(id) && savedQuery?.isPrebuilt === false) {
-      return {
+      items.push({
         key: 'update-query',
         textValue: t('Existing Query'),
         label: <span>{t('Existing Query')}</span>,
@@ -98,13 +99,13 @@ export function useSaveAsItems({
             Sentry.captureException(error);
           }
         },
-      };
+      });
     }
 
-    return {
+    items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('logs.save_query_modal', {
           action: 'open',
@@ -119,7 +120,9 @@ export function useSaveAsItems({
           traceItemDataset: TraceItemDataset.LOGS,
         });
       },
-    };
+    });
+
+    return items;
   }, [id, savedQuery?.isPrebuilt, updateQuery, saveQuery, organization]);
 
   const saveAsAlert = useMemo(() => {
@@ -149,10 +152,14 @@ export function useSaveAsItems({
       };
     });
 
+    const newAlertLabel = organization.features.includes('workflow-engine-ui')
+      ? t('Monitor for')
+      : t('Alert for');
+
     return {
       key: 'create-alert',
-      label: t('An Alert for'),
-      textValue: t('An Alert for'),
+      label: newAlertLabel,
+      textValue: newAlertLabel,
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
@@ -220,12 +227,12 @@ export function useSaveAsItems({
         <Feature
           hookName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >
-          {t('A Dashboard widget')}
+          {t('Dashboard widget')}
         </Feature>
       ),
-      textValue: t('A Dashboard widget'),
+      textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,
@@ -235,7 +242,7 @@ export function useSaveAsItems({
   return useMemo(() => {
     const saveAs = [];
     if (isLogsEnabled(organization)) {
-      saveAs.push(saveAsQuery);
+      saveAs.push(...saveAsQuery);
       saveAs.push(saveAsAlert);
       saveAs.push(saveAsDashboard);
     }
@@ -244,5 +251,5 @@ export function useSaveAsItems({
 }
 
 const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
+  color: ${p => p.theme.tokens.content.disabled};
 `;

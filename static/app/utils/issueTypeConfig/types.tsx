@@ -65,12 +65,20 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   /**
+   * Should the grouping information section be shown within the event details?
+   * Some issue types are grouped by some user defined object like a metric or uptime detector,
+   * so in those cases it doesn't make sense to show this.
+   */
+  groupingInfo: DisabledWithReasonConfig;
+  /**
    * Configuration for the issue-level information header
    */
   header: {
     filterBar: DisabledWithReasonConfig & {
       // Display the environment filter in an inactive, locked state
       fixedEnvironment?: boolean;
+      // The search bar can be hidden if the issue type does not support event filtering
+      searchBar?: DisabledWithReasonConfig;
     };
     graph: DisabledWithReasonConfig & {
       type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
@@ -80,6 +88,10 @@ export type IssueTypeConfig = {
     };
     tagDistribution: DisabledWithReasonConfig;
   };
+  /**
+   * Should show the "Fix with Seer" section for this issue type
+   */
+  instrumentationFixSection: DisabledWithReasonConfig;
   /**
    * Is the Issue Summary available for this issue
    */

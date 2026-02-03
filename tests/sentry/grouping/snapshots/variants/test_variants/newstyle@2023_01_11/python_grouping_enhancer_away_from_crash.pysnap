@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:49.333669+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "121caa876de75ec51bf72ed4c852cd75"
@@ -56,7 +54,7 @@ app:
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (marked in-app by the client but ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (marked in-app by the client but ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -114,7 +112,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.core.handlers.base"
             filename (ignored because module takes precedence)
@@ -123,7 +121,7 @@ system:
               "get_response"
             context_line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.generic.base"
             filename (ignored because module takes precedence)
@@ -132,7 +130,7 @@ system:
               "view"
             context_line*
               "return self.dispatch(request, *args, **kwargs)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.utils.decorators"
             filename (ignored because module takes precedence)
@@ -141,7 +139,7 @@ system:
               "_wrapper"
             context_line*
               "return bound_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.decorators.csrf"
             filename (ignored because module takes precedence)
@@ -150,7 +148,7 @@ system:
               "wrapped_view"
             context_line*
               "return view_func(*args, **kwargs)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.utils.decorators"
             filename (ignored because module takes precedence)
@@ -159,7 +157,7 @@ system:
               "bound_func"
             context_line*
               "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (ignored because module takes precedence)
@@ -168,7 +166,7 @@ system:
               "dispatch"
             context_line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.generic.base"
             filename (ignored because module takes precedence)

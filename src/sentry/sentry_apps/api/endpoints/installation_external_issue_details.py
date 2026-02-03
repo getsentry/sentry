@@ -1,17 +1,16 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import deletions
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.services.region import sentry_app_region_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
@@ -19,17 +18,20 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
 
     def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:
-            platform_external_issue = PlatformExternalIssue.objects.get(
-                id=external_issue_id,
-                project__organization_id=installation.organization_id,
-                service_type=installation.sentry_app.slug,
-            )
-        except PlatformExternalIssue.DoesNotExist:
+            external_issue_id = int(external_issue_id)
+        except (ValueError, TypeError):
             raise SentryAppError(
-                message="Could not find the corresponding external issue from given external_issue_id",
-                status_code=404,
+                message="Invalid external_issue_id format. Expected numeric value.",
+                status_code=400,
             )
 
-        deletions.exec_sync(platform_external_issue)
+        result = sentry_app_region_service.delete_external_issue(
+            organization_id=installation.organization_id,
+            installation=installation,
+            external_issue_id=external_issue_id,
+        )
+
+        if result.error:
+            return self.respond_rpc_sentry_app_error(result.error)
 
         return Response(status=204)

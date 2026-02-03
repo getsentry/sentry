@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 
@@ -114,6 +115,29 @@ export const customFilterFields: FieldWithFeature[] = [
         {t('Filter logs by messages. ')}
         {newLineHelpText} {globHelpText}{' '}
         {t('Logs are matched on "<message>", for example "Rate limit*".')}
+      </Fragment>
+    ),
+    getData: getOptionsData,
+  },
+  {
+    name: 'filters:trace_metric_names',
+    type: 'string',
+    feature: 'tracemetrics-ingestion',
+    saveOnBlur: false,
+    saveMessage: t('Changing this filter will apply to all new events.'),
+    monospace: true,
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    rows: 1,
+
+    placeholder: 'e.g. my_metric.*',
+    label: t('Metrics'),
+    help: (
+      <Fragment>
+        {t('Filter metrics by name. ')}
+        {newLineHelpText} {globHelpText}{' '}
+        {t('Metrics are matched on the metric name, for example "my_metric.*".')}
       </Fragment>
     ),
     getData: getOptionsData,

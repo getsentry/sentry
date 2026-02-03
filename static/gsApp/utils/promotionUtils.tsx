@@ -1,24 +1,21 @@
 import * as Sentry from '@sentry/react';
-import type {QueryObserverResult} from '@tanstack/react-query';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import {QueryClient} from 'sentry/utils/queryClient';
+import {QueryClient, type QueryObserverResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import {
   openPromotionModal,
   openPromotionReminderModal,
 } from 'getsentry/actionCreators/modal';
-import {
-  InvoiceItemType,
-  type DiscountInfo,
-  type Plan,
-  type PromotionClaimed,
-  type PromotionData,
-  type Subscription,
+import type {
+  Promotion,
+  PromotionClaimed,
+  PromotionData,
+  Subscription,
 } from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {createPromotionCheckQueryKey} from 'getsentry/utils/usePromotionTriggerCheck';
 
 import trackGetsentryAnalytics from './trackGetsentryAnalytics';
@@ -86,59 +83,19 @@ export async function claimAvailablePromotion({
   );
 }
 
-export function showSubscriptionDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}): boolean {
-  return !!(
-    discountInfo?.durationText &&
-    discountInfo.discountType === 'percentPoints' &&
-    activePlan.billingInterval === discountInfo.billingInterval &&
-    discountInfo.creditCategory === InvoiceItemType.SUBSCRIPTION
-  );
-}
-
-export function showChurnDiscount({
-  activePlan,
-  discountInfo,
-}: {
-  activePlan: Plan;
-  discountInfo?: DiscountInfo;
-}) {
-  // for now, only show discouns for percentPoints that are for the same billing interval
-  if (
-    discountInfo?.discountType !== 'percentPoints' ||
-    activePlan.billingInterval !== discountInfo?.billingInterval
-  ) {
-    return false;
-  }
-  switch (discountInfo.planRequirement) {
-    case 'business':
-      return isBizPlanFamily(activePlan);
-    case 'paid':
-      // can't select a free plan on the checkout page
-      return true;
-    default:
-      return false;
-  }
-}
-
 export async function checkForPromptBasedPromotion({
   organization,
-  refetch,
+  onRefetch,
   promptFeature,
   subscription,
   promotionData,
   onAcceptConditions,
 }: {
   onAcceptConditions: () => void;
+  onRefetch: () => Promise<QueryObserverResult<PromotionData | any, RequestError>>;
   organization: Organization;
   promotionData: PromotionData;
   promptFeature: string;
-  refetch: () => Promise<QueryObserverResult<PromotionData, unknown>>;
   subscription: Subscription;
 }) {
   // from the existing promotion data, check if the user has already claimed the prompt-based promotion
@@ -173,10 +130,10 @@ export async function checkForPromptBasedPromotion({
       feature: promptFeature,
       status: 'dismissed',
     });
-    const result = await refetch();
+    await onRefetch(); // will refresh promotionData
     // find the matching available promotion based on prompt features
-    const promotion = result?.data?.availablePromotions?.find(
-      promo => promo.promptActivityTrigger === promptFeature
+    const promotion = promotionData?.availablePromotions?.find(
+      (promo: Promotion) => promo.promptActivityTrigger === promptFeature
     );
     if (!promotion) {
       return;

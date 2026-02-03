@@ -2,6 +2,7 @@ import re
 from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
@@ -39,19 +40,40 @@ SPLUNK_REQUIRED_KEYS = ["instance_url", "index", "source", "token"]
 
 
 class DataForwarderSerializer(Serializer):
-    organization_id = serializers.IntegerField()
-    is_enabled = serializers.BooleanField(default=True)
-    enroll_new_projects = serializers.BooleanField(default=False)
+    organization_id = serializers.IntegerField(
+        help_text="The ID of the organization related to the data forwarder."
+    )
+    is_enabled = serializers.BooleanField(
+        default=True, help_text="Whether the data forwarder is enabled."
+    )
+    enroll_new_projects = serializers.BooleanField(
+        default=False,
+        help_text="Whether to enroll new projects automatically, after they're created.",
+    )
     provider = serializers.ChoiceField(
         choices=[
             (DataForwarderProviderSlug.SEGMENT, "Segment"),
             (DataForwarderProviderSlug.SQS, "Amazon SQS"),
             (DataForwarderProviderSlug.SPLUNK, "Splunk"),
-        ]
+        ],
+        help_text='The provider of the data forwarder. One of "segment", "sqs", or "splunk".',
     )
-    config = serializers.DictField(child=serializers.CharField(allow_blank=False), default=dict)
+    config = serializers.DictField(
+        child=serializers.CharField(allow_blank=True),
+        default=dict,
+        help_text=f"The configuration for the data forwarder, specific to the provider type. \nFor a '{DataForwarderProviderSlug.SQS.value}' provider, the required keys are {', '.join(SQS_REQUIRED_KEYS)}. If using a FIFO queue, you must also provide a message_group_id, though s3_bucket is optional. \nFor a '{DataForwarderProviderSlug.SEGMENT.value}' provider, the required keys are {', '.join(SEGMENT_REQUIRED_KEYS)}. \nFor a '{DataForwarderProviderSlug.SPLUNK.value}' provider, the required keys are {', '.join(SPLUNK_REQUIRED_KEYS)}.",
+    )
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=True,
+        required=False,
+        default=list,
+        help_text="The IDs of the projects connected to the data forwarder. Missing project IDs will be unenrolled if previously enrolled.",
+    )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
+        # Filter out empty string values (cleared optional fields)
+        config = {k: v for k, v in config.items() if v != ""}
         provider = self.initial_data.get("provider")
 
         if provider == DataForwarderProviderSlug.SQS:
@@ -62,6 +84,24 @@ class DataForwarderSerializer(Serializer):
             return self._validate_splunk_config(config)
 
         raise ValidationError(f"Invalid provider: {provider}")
+
+    def validate_project_ids(self, project_ids: list[int]) -> list[int]:
+        if not project_ids:
+            return project_ids
+
+        valid_project_ids = set(
+            Project.objects.filter(
+                organization_id=self.context["organization"].id, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+
+        if len(valid_project_ids) != len(project_ids):
+            invalid_ids = set(project_ids) - valid_project_ids
+            raise ValidationError(
+                f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+            )
+
+        return project_ids
 
     def _validate_all_fields_present(
         self,
@@ -180,25 +220,49 @@ class DataForwarderSerializer(Serializer):
         return config
 
     def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
-        data_forwarder = DataForwarder.objects.create(**validated_data)
+        project_ids: list[int] = validated_data["project_ids"]
+        data = {k: v for k, v in validated_data.items() if k != "project_ids"}
 
-        # Auto-enroll all existing projects in the organization
-        project_ids = Project.objects.filter(
-            organization_id=validated_data["organization_id"]
-        ).values_list("id", flat=True)
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
+            data_forwarder = DataForwarder.objects.create(**data)
 
-        if project_ids:
-            project_configs = [
-                DataForwarderProject(
-                    data_forwarder=data_forwarder,
-                    project_id=project_id,
-                    is_enabled=True,
+            # Enroll specified projects
+            if project_ids:
+                DataForwarderProject.objects.bulk_create(
+                    [
+                        DataForwarderProject(
+                            data_forwarder=data_forwarder,
+                            project_id=project_id,
+                            is_enabled=True,
+                        )
+                        for project_id in project_ids
+                    ]
                 )
-                for project_id in project_ids
-            ]
-            DataForwarderProject.objects.bulk_create(project_configs, ignore_conflicts=True)
-
         return data_forwarder
+
+    def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
+        project_ids: list[int] = validated_data["project_ids"]
+
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
+            for attr, value in validated_data.items():
+                if attr != "project_ids":
+                    setattr(instance, attr, value)
+            instance.save()
+
+            # Enroll or update specified projects
+            for project_id in project_ids:
+                DataForwarderProject.objects.update_or_create(
+                    data_forwarder=instance,
+                    project_id=project_id,
+                    defaults={"is_enabled": True},
+                )
+
+            # Unenroll projects not in the list
+            DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
+                project_id__in=project_ids
+            ).delete()
+
+        return instance
 
 
 class DataForwarderProjectSerializer(Serializer):
@@ -253,3 +317,15 @@ class DataForwarderProjectSerializer(Serializer):
         project = validated_data.pop("project")
         validated_data["project_id"] = project.id
         return DataForwarderProject.objects.create(**validated_data)
+
+    def update(
+        self, instance: DataForwarderProject, validated_data: MutableMapping[str, Any]
+    ) -> DataForwarderProject:
+        project = validated_data.pop("project", None)
+        if project:
+            validated_data["project_id"] = project.id
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

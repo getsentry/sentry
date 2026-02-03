@@ -22,18 +22,19 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 import {useSpanAncestryAndGroupingItems} from './ancestry';
 
 type GeneralnfoProps = {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: SpanNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 };
 
-function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+function SpanDuration({node}: {node: SpanNode}) {
   const span = node.value;
   const startTimestamp: number = span.start_timestamp;
   const endTimestamp: number = span.timestamp;
@@ -51,7 +52,7 @@ function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   );
 }
 
-function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+function SpanSelfTime({node}: {node: SpanNode}) {
   const span = node.value;
   const startTimestamp: number = span.start_timestamp;
   const endTimestamp: number = span.timestamp;
@@ -244,7 +245,7 @@ const ContentWrapper = styled('div')`
   display: grid;
   column-gap: ${space(1.5)};
   grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 function getFormattedSpanDescription(span: TraceTree.Span) {
@@ -273,5 +274,5 @@ const DescriptionWrapper = styled('div')`
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

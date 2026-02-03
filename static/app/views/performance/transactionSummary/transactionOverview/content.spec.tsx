@@ -80,7 +80,7 @@ describe('Transaction Summary Content', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
     MockApiClient.addMockResponse({

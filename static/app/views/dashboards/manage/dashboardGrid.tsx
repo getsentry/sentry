@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -16,6 +17,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
@@ -89,11 +91,22 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const shouldDisablePrebuiltControls =
+      defined(dashboard.prebuiltId) &&
+      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
+
+    const disableDuplicate =
+      hasReachedDashboardLimit ||
+      isLoadingDashboardsLimit ||
+      shouldDisablePrebuiltControls;
+
+    const disableDelete = defined(dashboard.prebuiltId);
+
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -105,8 +118,10 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
-        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-        tooltip: limitMessage,
+        disabled: disableDuplicate,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be duplicated')
+          : limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -122,8 +137,19 @@ function DashboardGrid({
             onConfirm: () => handleDeleteDashboard(dashboard, 'grid'),
           });
         },
+        disabled: disableDelete,
+        tooltip: shouldDisablePrebuiltControls
+          ? t('Prebuilt dashboards cannot be deleted')
+          : undefined,
       },
     ];
+
+    const disabledKeys = [];
+    if ((dashboards && dashboards.length <= 1) || disableDelete)
+      disabledKeys.push('dashboard-delete');
+    if (disableDuplicate) {
+      disabledKeys.push('dashboard-duplicate');
+    }
 
     return (
       <DropdownMenu
@@ -133,7 +159,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -144,7 +170,7 @@ function DashboardGrid({
           />
         )}
         position="bottom-end"
-        disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
+        disabledKeys={disabledKeys}
         offset={4}
       />
     );

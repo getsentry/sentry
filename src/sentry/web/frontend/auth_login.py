@@ -7,6 +7,7 @@ from collections.abc import Callable
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.core.exceptions import BadRequest
 from django.forms.utils import ErrorList
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
@@ -231,7 +232,8 @@ class AuthLoginView(BaseView):
                 request=request, organization=organization, **kwargs
             )
         else:
-            assert op == "login"
+            if op != "login":
+                raise BadRequest()
             return self.handle_login_form_submit(
                 request=request, organization=organization, **kwargs
             )
@@ -477,12 +479,16 @@ class AuthLoginView(BaseView):
 
     def _handle_login(
         self, request: HttpRequest, user: User, organization: RpcOrganization | None
-    ) -> None:
+    ) -> bool:
         """
         Logs a user in and determines their active org.
+        Returns True if login was successful, False if 2FA is required.
         """
-        login(request=request, user=user, organization_id=coerce_id_from(m=organization))
+        logged_in = login(
+            request=request, user=user, organization_id=coerce_id_from(m=organization)
+        )
         self.active_organization = determine_active_organization(request=request)
+        return logged_in
 
     def refresh_organization_status(
         self, request: HttpRequest, user: User, organization: RpcOrganization
@@ -686,13 +692,14 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                self._handle_login(request, user, organization)
+                logged_in = self._handle_login(request, user, organization)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
                 )
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
+
                 if organization:
                     # Check if the user is a member of the provided organization based on their email
                     membership = organization_service.check_membership_by_email(
@@ -703,8 +710,10 @@ class AuthLoginView(BaseView):
 
                     # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
                     # we redirect them to the invitation page to explicitly accept the invite
+                    # Only redirect if user is logged in (passed 2FA if required)
                     if (
-                        membership
+                        logged_in
+                        and membership
                         and membership.user_id is None
                         and membership.is_pending
                         and invitation_link

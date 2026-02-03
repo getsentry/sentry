@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -63,18 +63,24 @@ export const enum MultipleCheckboxOptions {
   INTEGRATION = 'integration',
 }
 
+export type IntegrationChannel = {
+  label: string;
+  value: string;
+  new?: boolean;
+};
+
 export type IssueAlertNotificationProps = {
   actions: MultipleCheckboxOptions[];
-  channel: string | undefined;
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
   querySuccess: boolean;
   setActions: (action: MultipleCheckboxOptions[]) => void;
-  setChannel: (channel: string | undefined) => void;
+  setChannel: (channel?: IntegrationChannel) => void;
   setIntegration: (integration: OrganizationIntegration | undefined) => void;
   setProvider: (provider: string | undefined) => void;
   shouldRenderSetupButton: boolean;
+  channel?: IntegrationChannel;
 };
 
 export function useCreateNotificationAction({
@@ -109,7 +115,7 @@ export function useCreateNotificationAction({
   const [integration, setIntegration] = useState<OrganizationIntegration | undefined>(
     undefined
   );
-  const [channel, setChannel] = useState<string | undefined>(undefined);
+  const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState<boolean>(false);
 
   useEffect(() => {
@@ -143,7 +149,10 @@ export function useCreateNotificationAction({
 
     if (firstAction.channel) {
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setChannel(firstAction.channel);
+      setChannel({
+        label: firstAction.channel,
+        value: firstAction.channel,
+      });
     }
   }, [defaultActions, providersToIntegrations]);
 
@@ -180,7 +189,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel,
+            channel: channel?.value,
           };
 
           break;
@@ -188,7 +197,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.DISCORD,
             server: integration?.id,
-            channel_id: channel,
+            channel_id: channel?.value,
           };
 
           break;
@@ -196,7 +205,7 @@ export function useCreateNotificationAction({
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel,
+            channel: channel?.value,
           };
           break;
         default:
@@ -257,7 +266,7 @@ export default function IssueAlertNotificationOptions(
         value={actions}
         onChange={values => setActions(values)}
       >
-        <Wrapper>
+        <Stack gap="md">
           <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
             {t('Notify via email')}
           </MultipleCheckbox.Item>
@@ -271,7 +280,7 @@ export default function IssueAlertNotificationOptions(
               )}
             </div>
           )}
-        </Wrapper>
+        </Stack>
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
@@ -281,9 +290,3 @@ export default function IssueAlertNotificationOptions(
     </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;

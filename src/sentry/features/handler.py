@@ -64,6 +64,13 @@ class FeatureHandler:
     ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
+    def batch_has_for_organizations(
+        self,
+        feature_name: str,
+        organizations: Sequence[Organization],
+    ) -> dict[str, bool] | None:
+        raise NotImplementedError
+
 
 class BatchFeatureHandler(FeatureHandler):
     """

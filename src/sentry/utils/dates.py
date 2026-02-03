@@ -197,7 +197,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.now(UTC) if start.tzinfo else datetime.utcnow()
+    now = datetime.now(UTC) if start.tzinfo else datetime.now(UTC).replace(tzinfo=None)
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

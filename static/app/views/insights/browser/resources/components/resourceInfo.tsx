@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t, tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
@@ -115,7 +116,7 @@ function ResourceInfo(props: Props) {
 
       {!isLoading && hasNoData && (
         <Alert.Container>
-          <Alert style={{width: '100%'}} type="warning">
+          <Alert style={{width: '100%'}} variant="warning">
             {t(
               "We couldn't find any size information for this resource, this is likely because the `timing-allow-origin` header is not set."
             )}

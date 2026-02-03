@@ -23,7 +23,12 @@ export function nl2br(str: string): string {
 }
 
 export function escape(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export function percent(value: number, totalValue: number): number {
@@ -36,30 +41,36 @@ export function percent(value: number, totalValue: number): number {
 }
 
 /**
- * Converts a multi-line textarea input value into an array,
- * eliminating empty lines
+ * Converts a multi-line textarea input value into an array, eliminating empty lines.
+ * Safely handles unknown input types for form field getValue callbacks.
  */
-export function extractMultilineFields(value: string): string[] {
-  return value
-    .split('\n')
-    .map(f => f.trim())
-    .filter(f => f !== '');
+export function extractMultilineFields(value: unknown): string[] {
+  // User input
+  if (typeof value === 'string') {
+    return value
+      .split('\n')
+      .map(f => f.trim())
+      .filter(f => f !== '');
+  }
+  // API response / undo form save action
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+    return value;
+  }
+
+  return [];
 }
 
 /**
- * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
+ * Converts a value to a multi-line string for display in textarea.
+ * Safely handles unknown input types for form field setValue callbacks.
  */
-export function convertMultilineFieldValue<T extends string | string[]>(
-  value: T
-): string {
-  if (Array.isArray(value)) {
+export function convertMultilineFieldValue(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
     return value.join('\n');
   }
-
-  if (typeof value === 'string') {
-    return value.split('\n').join('\n');
-  }
-
   return '';
 }
 
@@ -96,9 +107,18 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
  * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
  */
 export function escapeIssueTagKey(key: string) {
+  if (key === '') {
+    return '""';
+  }
+
   // Environment and project should be handled by the page filter
   if (key === 'environment' || key === 'project') {
     return key;
+  }
+
+  // Reserved keywords that conflict with issue search query
+  if (['project.name', 'project_id'].includes(key)) {
+    return `tags[${key}]`;
   }
 
   if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
@@ -122,6 +142,11 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
       break;
     default:
       query.query = appendTagCondition(query.query, tag.key, tag.value);
+  }
+
+  // Checking for the absence of a tag value.
+  if (tag.value === '') {
+    query.query = `!has:${tag.key}`;
   }
 
   return query;

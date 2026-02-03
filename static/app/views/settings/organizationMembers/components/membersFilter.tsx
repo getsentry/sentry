@@ -1,5 +1,7 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
@@ -54,7 +56,11 @@ function MembersFilter({roles, query, onChange}: Props) {
 
   return (
     <CompositeSelect
-      triggerProps={{icon: <IconSliders />, size: 'md', children: t('Filter')}}
+      trigger={props => (
+        <OverlayTrigger.Button {...props} size="md" icon={<IconSliders />}>
+          {t('Filter')}
+        </OverlayTrigger.Button>
+      )}
       maxMenuHeight="22rem"
       size="sm"
     >

@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import NotFound from 'sentry/components/errors/notFound';
@@ -7,14 +7,14 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
@@ -27,12 +27,17 @@ type OrgDashboardsChildrenProps = {
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
 };
 
-type Props = WithRouteAnalyticsProps & {
+interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
-};
+  /**
+   * Initial dashboard state to use for optimistic updates.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
+   */
+  initialDashboard?: DashboardDetails;
+}
 
-function OrgDashboards(props: Props) {
-  const {children} = props;
+function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -40,11 +45,14 @@ function OrgDashboards(props: Props) {
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
-  const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
-  // The currently selected dashboard
+  // The currently selected dashboard. Use initialDashboard for optimistic updates
+  // when navigating from widget builder (passed via location.state).
   const [selectedDashboardState, setSelectedDashboardState] =
-    useState<DashboardDetails | null>(null);
+    useState<DashboardDetails | null>(initialDashboard ?? null);
 
   const {
     data: dashboards,
@@ -58,19 +66,37 @@ function OrgDashboards(props: Props) {
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>([`${ENDPOINT}${dashboardId}/`], {
-    staleTime: 0,
-    enabled: !!dashboardId,
-    retry: false,
-  });
+  } = useApiQuery<DashboardDetails>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!dashboardId,
+      retry: false,
+    }
+  );
 
-  const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+  let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+
+  const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
+    useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
+
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
+  if (selectedDashboard?.prebuiltId) {
+    selectedDashboard = {
+      ...selectedDashboard,
+      ...prebuiltDashboard,
+    };
+  }
 
   useEffect(() => {
     if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
       setSelectedDashboardState(null);
     }
-  }, [dashboardId, selectedDashboard]);
+  }, [dashboardId, selectedDashboard?.id]);
 
   // If we don't have a selected dashboard, and one isn't going to arrive
   // we can redirect to the first dashboard in the list.
@@ -138,7 +164,7 @@ function OrgDashboards(props: Props) {
         {replace: true}
       );
     }
-  }, [location.query, navigate, organization]);
+  }, [location.query, navigate, organization.slug, organization.features]);
 
   useEffect(() => {
     // Clean up the query cache when the dashboard unmounts to prevent
@@ -150,7 +176,22 @@ function OrgDashboards(props: Props) {
     };
   }, [dashboardId, ENDPOINT, queryClient]);
 
-  if (isDashboardsPending || isSelectedDashboardLoading) {
+  const childrenProps = useMemo(
+    () => ({
+      error: Boolean(dashboardsError || selectedDashboardError),
+      dashboard: selectedDashboard
+        ? {
+            ...selectedDashboard,
+            widgets: selectedDashboard.widgets.map(assignTempId),
+          }
+        : null,
+      dashboards: Array.isArray(dashboards) ? dashboards : [],
+      onDashboardUpdate: setSelectedDashboardState,
+    }),
+    [dashboardsError, selectedDashboardError, selectedDashboard, dashboards]
+  );
+
+  if (isDashboardsPending || isSelectedDashboardLoading || isPrebuiltDashboardLoading) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
@@ -185,35 +226,11 @@ function OrgDashboards(props: Props) {
     return <LoadingError />;
   }
 
-  const getDashboards = (): DashboardListItem[] => {
-    return Array.isArray(dashboards) ? dashboards : [];
-  };
-
-  const renderContent = () => {
-    // Ensure there are always tempIds for grid layout
-    // This is needed because there are cases where the dashboard
-    // renders before the onRequestSuccess setState is processed
-    // and will caused stacked widgets because of missing tempIds
-    const dashboard = selectedDashboard
-      ? {
-          ...selectedDashboard,
-          widgets: selectedDashboard.widgets.map(assignTempId),
-        }
-      : null;
-
-    return children({
-      error: Boolean(dashboardsError || selectedDashboardError),
-      dashboard,
-      dashboards: getDashboards(),
-      onDashboardUpdate: setSelectedDashboardState,
-    });
-  };
-
   return (
     <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-      {renderContent()}
+      {children(childrenProps)}
     </SentryDocumentTitle>
   );
 }
 
-export default withRouteAnalytics(OrgDashboards);
+export default OrgDashboards;

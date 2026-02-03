@@ -1,5 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +10,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 
 const theme = ThemeFixture();
 
@@ -15,7 +18,9 @@ describe('getFieldRenderer', () => {
   let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(() => {
-    context = initializeOrg();
+    context = initializeOrg({
+      organization: OrganizationFixture({features: ['dashboards-drilldown-flow']}),
+    });
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
@@ -53,6 +58,7 @@ describe('getFieldRenderer', () => {
       filteredCount: 3000,
       count: 6000,
       selectionDateString: 'last 7 days',
+      'opportunity_score(measurements.score.total)': 0.0345,
     };
 
     MockApiClient.addMockResponse({
@@ -111,6 +117,100 @@ describe('getFieldRenderer', () => {
     );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
+  it('can render dashboard links', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [{dashboardId: '123', field: 'transaction'}],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
+  });
+
+  describe('rate', () => {
+    it('can render null rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': null},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('(no value)')).toBeInTheDocument();
+    });
+
+    it('can render low rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 0.0001},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('<0.01/s')).toBeInTheDocument();
+    });
+
+    it('can render high rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 10},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('10.0/s')).toBeInTheDocument();
+    });
   });
 
   describe('percentage', () => {
@@ -387,5 +487,17 @@ describe('getFieldRenderer', () => {
 
       expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
+  });
+
+  it('renders opportunity score', () => {
+    const renderer = getFieldRenderer('opportunity_score(measurements.score.total)', {
+      'opportunity_score(measurements.score.total)': 'score',
+    });
+
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('3.45')).toBeInTheDocument();
   });
 });

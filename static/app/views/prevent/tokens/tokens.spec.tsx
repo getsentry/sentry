@@ -1,3 +1,5 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
@@ -47,6 +49,13 @@ const mockApiCall = () => {
     url: `/organizations/org-slug/prevent/owner/2/repositories/tokens/`,
     method: 'GET',
     body: mockRepositoryTokensResponse,
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/config/integrations/`,
+    method: 'GET',
+    body: {
+      providers: [GitHubIntegrationProviderFixture()],
+    },
   });
 };
 
@@ -188,6 +197,14 @@ describe('TokensPage', () => {
         url: `/organizations/org-slug/integrations/`,
         method: 'GET',
         body: mockIntegrations,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/`,
+        method: 'GET',
+        body: {
+          providers: [GitHubIntegrationProviderFixture()],
+        },
       });
 
       const mockTokensCall = MockApiClient.addMockResponse({

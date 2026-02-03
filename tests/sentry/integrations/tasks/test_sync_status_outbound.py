@@ -7,7 +7,7 @@ from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
@@ -111,7 +111,7 @@ class TestSyncStatusOutbound(TestCase):
             group=self.group, key="foo_integration", integration=self.example_integration
         )
 
-        with pytest.raises(RetryError):
+        with pytest.raises(RetryTaskError):
             sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
 
         assert mock_record_failure.call_count == 1

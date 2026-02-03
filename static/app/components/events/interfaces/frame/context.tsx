@@ -1,8 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -78,6 +79,10 @@ function Context({
   platform,
 }: Props) {
   const organization = useOrganization();
+  const {
+    hasCoverageData: issueHasCoverageData,
+    setHasCoverageData: setIssueHasCoverageData,
+  } = useLineCoverageContext();
 
   const {projects} = useProjects();
   const project = useMemo(
@@ -111,6 +116,12 @@ function Context({
 
   const hasCoverageData =
     !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
+
+  useEffect(() => {
+    if (hasCoverageData && !issueHasCoverageData) {
+      setIssueHasCoverageData(true);
+    }
+  }, [hasCoverageData, issueHasCoverageData, setIssueHasCoverageData]);
 
   const [lineCoverage = [], hasCoverage] =
     hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
@@ -227,11 +238,11 @@ const CodeWrapper = styled('div')`
 
   && pre,
   && code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     padding: 0;
     border-radius: 0;
   }
@@ -242,8 +253,8 @@ const EmptyContext = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding: 20px;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`
@@ -251,7 +262,7 @@ const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   grid-template-columns: 58px 1fr;
   gap: ${space(1)};
   background: ${p =>
-    p.isActive ? 'var(--prism-highlight-background)' : p.theme.background};
+    p.isActive ? 'var(--prism-highlight-background)' : p.theme.tokens.background.primary};
   padding-right: ${space(2)};
 `;
 

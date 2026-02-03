@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
@@ -36,7 +37,7 @@ function SsoForm({authConfig}: Props) {
     >
       {error && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {error}
           </Alert>
         </Alert.Container>

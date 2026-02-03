@@ -1,12 +1,13 @@
 from typing import Any
 from unittest.mock import patch
 
-from sentry import buffer, eventstore, eventstream
+from sentry import buffer, eventstream
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats

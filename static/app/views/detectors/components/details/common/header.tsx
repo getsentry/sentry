@@ -9,32 +9,66 @@ import {
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
   project: Project;
 };
 
-export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
+function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  return (
+    <Breadcrumbs
+      crumbs={[
+        {
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
+        },
+        {label: detector.name},
+      ]}
+    />
+  );
+}
 
+export function DetectorDetailsDefaultHeaderContent({
+  detector,
+  project,
+}: {
+  detector: Detector;
+  project: Project;
+}) {
+  return (
+    <DetailLayout.HeaderContent>
+      <DetectorDetailsBreadcrumbs detector={detector} />
+      <DetailLayout.Title title={detector.name} project={project} />
+    </DetailLayout.HeaderContent>
+  );
+}
+
+function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
+  return (
+    <DetailLayout.Actions>
+      <MonitorFeedbackButton />
+      <DisableDetectorAction detector={detector} />
+      <EditDetectorAction detector={detector} />
+    </DetailLayout.Actions>
+  );
+}
+
+export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
   return (
     <DetailLayout.Header>
-      <DetailLayout.HeaderContent>
-        <Breadcrumbs
-          crumbs={[
-            {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-            {label: detector.name},
-          ]}
-        />
-        <DetailLayout.Title title={detector.name} project={project} />
-      </DetailLayout.HeaderContent>
-      <DetailLayout.Actions>
-        <MonitorFeedbackButton />
-        <DisableDetectorAction detector={detector} />
-        <EditDetectorAction detector={detector} />
-      </DetailLayout.Actions>
+      <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+      <DetectorDetailsDefaultActions detector={detector} />
     </DetailLayout.Header>
   );
 }

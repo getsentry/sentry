@@ -1,7 +1,10 @@
+import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tabs} from 'sentry/components/core/tabs';
+import {Container} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {space} from 'sentry/styles/space';
 
 /**
@@ -38,17 +41,12 @@ export const Header = styled('header')<{
     p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: ${p =>
-    p.theme.isChonk
-      ? p.theme.background
-      : p.unified
-        ? p.theme.background
-        : 'transparent'};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   ${p =>
     !p.unified &&
     css`
-      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.tokens.border.primary};
     `}
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -99,12 +97,15 @@ export const HeaderActions = styled('div')`
  * badges or ID badges)
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 1.625rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   margin: 0;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;
@@ -127,7 +128,7 @@ export const HeaderTabs = styled(Tabs)`
 export const Body = styled('div')<{noRowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -142,13 +143,39 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   }
 `;
 
+interface MainProps extends HTMLAttributes<HTMLElement> {
+  children: React.ReactNode;
+  /**
+   * Set the width of the main content.
+   * - 'twothirds': The main content will span the left two-thirds of the Body. Use this for layouts with a side column.
+   * - 'full': The main content will span the width of the container. Use when the layout does not have a side column.
+   * - 'full-constrained': The main content will span the width of the container and wrapped in a 1440px wide container.
+   * Defaults to 'twothirds'.
+   */
+  width?: 'twothirds' | 'full' | 'full-constrained';
+}
+
 /**
  * Containers for left column of the 66/33 layout.
  */
-export const Main = styled('section')<{fullWidth?: boolean}>`
-  grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
-  max-width: 100%;
-`;
+export function Main({children, width = 'twothirds', ...props}: MainProps) {
+  // We need the extra DOM element when the width is constrained because Main is a part of a grid layout.
+  // If we apply the max width directly the right end of the page background will be missing
+  return (
+    <Container
+      column={width === 'twothirds' ? '1/2' : '1/3'}
+      as="section"
+      width="100%"
+      {...props}
+    >
+      {width === 'full-constrained' ? (
+        <Container maxWidth="1440px">{children}</Container>
+      ) : (
+        children
+      )}
+    </Container>
+  );
+}
 
 /**
  * Container for the right column the 66/33 layout

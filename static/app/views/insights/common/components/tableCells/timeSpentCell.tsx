@@ -1,7 +1,8 @@
 import clamp from 'lodash/clamp';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {NumberContainer} from 'sentry/utils/discover/styles';

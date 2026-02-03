@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
@@ -70,6 +71,7 @@ function getAggregateOptions(
 
 export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSeriesResponse> =
   {
+    name: t('Transactions'),
     SearchBar: TraceSearchBar,
     defaultEventTypes: DEFAULT_EVENT_TYPES,
     defaultField: TransactionsConfig.defaultField,
@@ -113,17 +115,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     separateEventTypesFromQuery: query =>
       parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
-    toSnubaQueryString: snubaQuery => {
-      if (!snubaQuery) {
-        return '';
-      }
-
-      if (snubaQuery.query.includes('event.type:transaction')) {
-        return snubaQuery.query;
-      }
-
-      return `event.type:transaction ${snubaQuery.query}`;
-    },
+    toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },

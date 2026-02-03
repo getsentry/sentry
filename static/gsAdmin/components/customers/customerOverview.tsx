@@ -3,15 +3,17 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -30,11 +32,13 @@ import type {
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
+  getBilledCategory,
   getProductTrial,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
@@ -130,11 +134,11 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             <small>{customer.contractInterval}</small>
           </DetailLabel>
         )}
+        {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
         <DetailLabel title="On-Demand">
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Can Grace Period" yesNo={customer.canGracePeriod} />
         <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
         {customer.hasSoftCap && (
           <DetailLabel
@@ -213,7 +217,9 @@ function ReservedData({customer}: ReservedDataProps) {
                   : 'None'}
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
-                <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
+                <DetailLabel
+                  title={`${displayBudgetName(customer.planDetails, {title: true})} Cost-Per-Event ${categoryName}`}
+                >
                   {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
                         cents: categoryHistory.paygCpe,
@@ -399,7 +405,11 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
-    [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: dynamicSamplingEnabled,
@@ -468,9 +478,11 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       customer.planDetails?.categories.includes(categoryInfo.plural)
   );
 
-  const productTrialCategoryGroups = Object.values(
-    customer.planDetails?.availableReservedBudgetTypes || {}
-  ).filter(group => group.canProductTrial);
+  const productTrialAddOns = Object.values(customer.addOns || {}).filter(
+    // TODO(billing): Right now all our add-ons can use product trials, but in future we should distinguish this
+    // like we do for other product types
+    addOn => addOn.isAvailable
+  );
 
   const categoryHasUsedProductTrial = (category: DataCategory) => {
     const trial = getProductTrial(customer.productTrials ?? [], category);
@@ -506,9 +518,9 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
-        <TrialState>
+        <Stack gap="md">
           <StyledTag
-            type={
+            variant={
               lessThanOneDayLeft
                 ? 'promotion'
                 : hasActiveProductTrial
@@ -524,7 +536,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 ? 'Used'
                 : 'Available'}
           </StyledTag>
-          <TrialActions>
+          <Flex align="center" wrap="wrap" gap="md">
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
@@ -567,8 +579,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             >
               Stop Trial
             </Button>
-          </TrialActions>
-        </TrialState>
+          </Flex>
+        </Stack>
       </DetailLabel>
     );
   };
@@ -634,7 +646,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
           <DetailLabel title="Data Storage Location">{region}</DetailLabel>
           <DetailLabel title="Data Retention">
-            {customer.dataRetention || '90d'}
+            {customer.orgRetention?.standard ??
+              customer.categories?.errors?.retention?.standard ??
+              90}
+            {' days'}
           </DetailLabel>
           <DetailLabel title="Joined">
             {moment(customer.dateJoined).fromNow()}
@@ -751,7 +766,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             </ExternalLink>
           </DetailLabel>
         </DetailList>
-        {productTrialCategories.length + productTrialCategoryGroups.length > 0 && (
+        {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
@@ -767,13 +782,15 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                   categoryName
                 );
               })}
-              {productTrialCategoryGroups.map(group => {
-                const category = group.dataCategories[0]; // doesn't matter which category we use
+              {productTrialAddOns.map(addOn => {
+                const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
                   return getTrialManagementActions(
                     category,
-                    group.apiName,
-                    group.productName
+                    addOn.apiName,
+                    addOn.apiName === AddOnCategory.LEGACY_SEER
+                      ? addOn.productName + ' (Legacy)'
+                      : addOn.productName
                   );
                 }
                 return null;
@@ -830,19 +847,6 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-const TrialState = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TrialActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  align-items: center;
-`;
-
 const ProductTrialsDetailListContainer = styled(DetailList)`
   align-items: baseline;
   dt {
@@ -877,7 +881,7 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 }
 
 const ThresholdValue = styled('dd')<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
 
 export default CustomerOverview;

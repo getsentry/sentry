@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {NotificationTemplateRegistration} from 'sentry/debug/notifications/types';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -55,7 +56,7 @@ export function DebugNotificationsExample({
           Body
         </Text>
         {displayFormat === ExampleDataFormat.FORMATTED ? (
-          <Text>{registration.example.body}</Text>
+          <Text>{JSON.stringify(registration.example.body)}</Text>
         ) : (
           <CodeBlock language="javascript">
             {JSON.stringify(registration.example.body)}
@@ -134,8 +135,8 @@ export function DebugNotificationsExample({
 const PlaceholderChart = styled('div')`
   height: 100px;
   width: 200px;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   background: linear-gradient(
     to bottom right,
     ${p => p.theme.tokens.background.primary},

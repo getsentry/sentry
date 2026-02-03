@@ -69,6 +69,12 @@ pytestmark = requires_snuba
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -169,7 +175,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
-        rule: Rule = Rule.objects.create(project=self.project, label="my rule")
+        rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -231,7 +237,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -253,9 +259,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             project_id=self.project.id,
         )
 
-        rule = Rule.objects.create(
-            project=self.project, label="my rule", environment_id=environment.id
-        )
+        rule = self.create_project_rule(name="my rule", environment_id=environment.id)
         ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = Notification(event=event, rule=rule)
@@ -381,7 +385,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         event.group.type = MonitorIncidentType.type_id
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -437,7 +441,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         event.group.type = MonitorIncidentType.type_id
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -457,7 +461,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_simple_notification_perf(self) -> None:
         event = self.create_performance_issue()
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -575,8 +579,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    @with_feature("organizations:workflow-engine-ui-links")
-    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
+    @with_feature("organizations:workflow-engine-ui")  # snooze
+    def test_notify_users_does_email_workflow_engine_ui(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -760,18 +764,20 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
-    def test_notify_users_with_their_timezones(self) -> None:
+    def test_notify_users_with_their_time_preferences(self) -> None:
         """
-        Test that ensures that datetime in issue alert email is in the user's timezone
+        Test that ensures that datetime in issue alert email is in the user's timezone, and their
+        preferred clock format (24h or 12h)
         """
         from django.template.defaultfilters import date
 
         timestamp = timezone.now()
         local_timestamp_s = timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
-        local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
+        local_timestamp_24h = date(local_timestamp_s, "N j, Y, H:i:s e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+            UserOption.objects.create(user=self.user, key="clock_24_hours", value=True)
 
         event = self.store_event(
             data={"message": "foobar", "level": "error", "timestamp": timestamp.isoformat()},
@@ -791,7 +797,14 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
-        assert local_timestamp in str(msg.alternatives)
+        assert local_timestamp_24h in str(msg.alternatives)
+
+        alert_notification = AlertRuleNotification(notification, ActionTargetType.ISSUE_OWNERS)
+        recipient_context = alert_notification.get_recipient_context(
+            Actor.from_orm_user(self.user), {}
+        )
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+        assert recipient_context["clock_24_hours"] is True
 
     def _test_invalid_timezone(self, s: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -812,6 +825,17 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_context_invalid_timezone_garbage_value(self) -> None:
         self._test_invalid_timezone("not/a/real/timezone")
+
+    def test_recipient_context_clock_24_hours_false_by_default(self) -> None:
+        event = self.store_event(
+            data={"message": "foobar", "level": "error"},
+            project_id=self.project.id,
+        )
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["clock_24_hours"] is False
 
     def test_notify_with_suspect_commits(self) -> None:
         repo = Repository.objects.create(
@@ -1395,7 +1419,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         event.group.substatus = GroupSubStatus.REGRESSED
         event.group.save()
 
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
@@ -1763,14 +1787,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetType": "Member",
             "targetIdentifier": str(444),
         }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="a rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
+        rule = self.create_project_rule(name="a rule", action_data=[action_data])
 
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1787,7 +1804,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
     def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         futures = [RuleFuture(rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
@@ -1850,7 +1867,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(name="my rule")
         futures = [RuleFuture(rule, {})]
         notification_uuid = str(uuid.uuid4())
         with mock.patch.object(self.adapter, "notify") as notify:
@@ -1900,12 +1917,15 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
                 type="workflow",
                 value="always",
             )
+        assignee = self.project.teams.first()
+        assert assignee is not None
+
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
             user_id=self.create_user("foo@example.com").id,
-            data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
+            data={"assignee": str(assignee.id), "assigneeType": "team"},
         )
 
         with self.tasks():
@@ -1937,7 +1957,9 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
+        team = self.project.teams.first()
+        assert team is not None
+        team.organization.member_set.create(user_id=user_foo.id)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1954,7 +1976,9 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
+        team = self.project.teams.first()
+        assert team is not None
+        team.organization.member_set.create(user_id=user_foo.id)
 
         return UserReport.objects.create(
             project_id=self.project.id,

@@ -1,18 +1,22 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
+
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Link} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   MEPState,
   useMEPSettingContext,
@@ -28,10 +32,8 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  getWidgetLogURL,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -105,6 +107,71 @@ const createExploreUrl = (
   }
   return getExploreUrl({organization, selection, ...queryParams});
 };
+
+export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | null => {
+  if (!widget.changedReason) {
+    return null;
+  }
+
+  const columnsDropped = [];
+  const equationsDropped = [];
+  const orderbyDropped = [];
+  for (const changedReason of widget.changedReason) {
+    if (changedReason.selected_columns.length > 0) {
+      columnsDropped.push(...changedReason.selected_columns);
+    }
+    if (changedReason.equations) {
+      equationsDropped.push(
+        ...changedReason.equations.map(equation => equation.equation)
+      );
+    }
+    if (changedReason.orderby) {
+      orderbyDropped.push(
+        ...changedReason.orderby.flatMap(orderby =>
+          typeof orderby.reason === 'string' ? orderby.orderby : orderby.reason
+        )
+      );
+    }
+  }
+
+  const orderbyDroppedWithoutNegation = orderbyDropped.map(orderby =>
+    orderby.startsWith('-') ? orderby.replace('-', '') : orderby
+  );
+  const equationsDroppedParsed = equationsDropped.map(equation => {
+    if (isEquation(equation)) {
+      return stripEquationPrefix(equation);
+    }
+    return equation;
+  });
+  const combinedWarnings = [
+    ...columnsDropped,
+    ...equationsDroppedParsed,
+    ...orderbyDroppedWithoutNegation,
+  ];
+  const allWarningsSet = new Set(combinedWarnings);
+  const allWarnings = [...allWarningsSet];
+
+  if (allWarnings.length > 0) {
+    return (
+      <div>
+        <StyledText as="p">
+          {tct(
+            'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
+            {
+              columns: allWarnings.join(', '),
+            }
+          )}
+        </StyledText>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const StyledText = styled(Text)`
+  padding-bottom: ${p => p.theme.space.xs};
+`;
 
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
@@ -181,7 +248,7 @@ export function getMenuOptions(
     }
   }
 
-  if (widget.widgetType === WidgetType.SPANS) {
+  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
     menuOptions.push({
       key: 'open-in-explore',
       label: t('Open in Explore'),
@@ -196,17 +263,17 @@ export function getMenuOptions(
     });
   }
 
-  if (widget.widgetType === WidgetType.LOGS) {
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
     menuOptions.push({
-      key: 'open-in-explore',
+      key: 'open-in-metrics',
       label: t('Open in Explore'),
-      to: getWidgetLogURL(
-        widget,
-        dashboardFilters,
-        selection,
-        organization,
-        getReferrer(widget.displayType)
-      ),
+      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      onAction: () => {
+        trackAnalytics('dashboards_views.open_in_metrics.opened', {
+          organization,
+          widget_type: widget.displayType,
+        });
+      },
     });
   }
 
@@ -238,12 +305,14 @@ export function getMenuOptions(
           organization,
           location,
           selection,
-          widget: {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
+          widgets: [
+            {
+              ...widget,
+              id: undefined,
+              dashboardId: undefined,
+              layout: undefined,
+            },
+          ],
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
           source: DashboardWidgetSource.DASHBOARDS,
         });

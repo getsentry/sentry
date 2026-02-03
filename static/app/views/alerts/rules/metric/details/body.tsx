@@ -3,16 +3,21 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +26,7 @@ import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/feat
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -38,7 +44,10 @@ import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
@@ -46,7 +55,7 @@ import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
-import {getFilter, getPeriodInterval} from './utils';
+import {getFilter, getIsMigratedExtrapolationMode, getPeriodInterval} from './utils';
 
 interface MetricDetailsBodyProps {
   timePeriod: TimePeriodType;
@@ -69,10 +78,6 @@ export default function MetricDetailsBody({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
-    useState(
-      organization.features.includes('performance-transaction-deprecation-banner')
-    );
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
@@ -113,14 +118,14 @@ export default function MetricDetailsBody({
     );
   }
 
-  const {dataset, aggregate, query} = rule;
+  const {dataset, aggregate, query, eventTypes, extrapolationMode} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
   const queryWithTypeFilter =
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
       ? query
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
-  const relativeOptions = {
+  const relativeOptions: Record<string, string> = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
@@ -146,11 +151,19 @@ export default function MetricDetailsBody({
   const deprecateTransactionsAlertsWarning =
     ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
+  const showExtrapolationModeWarning = getIsMigratedExtrapolationMode(
+    extrapolationMode,
+    dataset,
+    traceItemType
+  );
+
   return (
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <Alert type="warning">
+          <Alert variant="warning">
             {t('Alert Rule settings have been updated since this alert was triggered.')}
           </Alert>
         </StyledLayoutBody>
@@ -160,7 +173,7 @@ export default function MetricDetailsBody({
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (
-                <Alert type="info">
+                <Alert variant="info">
                   {tct(
                     "[creator] muted this alert for everyone so you won't get these notifications in the future.",
                     {
@@ -173,34 +186,13 @@ export default function MetricDetailsBody({
               )}
             </Alert.Container>
           )}
-          {deprecateTransactionsAlertsWarning && showTransactionsDeprecationAlert && (
-            <Alert.Container>
-              <Alert
-                type="warning"
-                trailingItems={
-                  <StyledCloseButton
-                    icon={<IconClose size="sm" />}
-                    aria-label={t('Close')}
-                    onClick={() => {
-                      setShowTransactionsDeprecationAlert(false);
-                    }}
-                    size="zero"
-                    borderless
-                  />
-                }
-              >
-                {tctCode(
-                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
-                  {
-                    FAQLink: (
-                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
-                    ),
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
-          <StyledSubHeader>
+          <TransactionsDeprecationAlert isEnabled={deprecateTransactionsAlertsWarning} />
+          <MigratedAlertWarning
+            isEnabled={showExtrapolationModeWarning}
+            rule={rule}
+            project={project}
+          />
+          <Flex align="center" marginBottom="xl">
             <StyledTimeRangeSelector
               relative={timePeriod.period ?? ''}
               start={(timePeriod.custom && timePeriod.start) || null}
@@ -209,12 +201,13 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerProps={{
-                children: timePeriod.custom
-                  ? timePeriod.label
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    relativeOptions[timePeriod.period ?? ''],
-              }}
+              trigger={triggerProps => (
+                <TimeRangeSelectTrigger {...triggerProps}>
+                  {timePeriod.custom
+                    ? timePeriod.label
+                    : (relativeOptions[timePeriod.period ?? ''] ?? triggerProps.children)}
+                </TimeRangeSelectTrigger>
+              )}
             />
             {selectedIncident && (
               <Tooltip
@@ -231,7 +224,7 @@ export default function MetricDetailsBody({
                 </Link>
               </Tooltip>
             )}
-          </StyledSubHeader>
+          </Flex>
 
           {selectedIncident?.alertRule.detectionType ===
             AlertRuleComparisonType.DYNAMIC && (
@@ -259,7 +252,7 @@ export default function MetricDetailsBody({
             theme={theme}
           />
           <DetailWrapper>
-            <ActivityWrapper>
+            <Stack flex="1" width="100%">
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
@@ -287,7 +280,7 @@ export default function MetricDetailsBody({
                   filter={extractEventTypeFilterFromRule(rule)}
                 />
               )}
-            </ActivityWrapper>
+            </Stack>
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
@@ -299,6 +292,85 @@ export default function MetricDetailsBody({
       </Layout.Body>
     </Fragment>
   );
+}
+
+function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
+  const organization = useOrganization();
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
+
+  if (isEnabled && showTransactionsDeprecationAlert) {
+    return (
+      <Alert.Container>
+        <Alert
+          variant="warning"
+          trailingItems={
+            <StyledCloseButton
+              icon={<IconClose size="sm" />}
+              aria-label={t('Close')}
+              onClick={() => {
+                setShowTransactionsDeprecationAlert(false);
+              }}
+              size="zero"
+              priority="transparent"
+            />
+          }
+        >
+          {tctCode(
+            'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+            {
+              FAQLink: (
+                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+  return null;
+}
+
+function MigratedAlertWarning({
+  isEnabled,
+  rule,
+  project,
+}: {
+  isEnabled: boolean;
+  rule: MetricRule;
+  project?: Project;
+}) {
+  const organization = useOrganization();
+  const editLink = rule
+    ? makeAlertsPathname({
+        path: `/metric-rules/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`,
+        organization,
+      })
+    : '#';
+
+  if (isEnabled) {
+    return (
+      <Alert.Container>
+        <Alert variant="info">
+          {tctCode(
+            'To match the original behaviour, we’ve migrated this alert from a transaction-based alert to a span-based alert using a special compatibility mode. When you have a moment, please [editLink:edit] the alert updating its thresholds to account for [samplingLink:sampling].',
+            {
+              editLink: <Link to={editLink} />,
+              samplingLink: (
+                <ExternalLink
+                  href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                  openInNewTab
+                />
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
+  return null;
 }
 
 const DetailWrapper = styled('div')`
@@ -318,21 +390,8 @@ const StyledLayoutBody = styled(Layout.Body)`
   }
 `;
 
-const ActivityWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-`;
-
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
-`;
-
-const StyledSubHeader = styled('div')`
-  margin-bottom: ${space(2)};
-  display: flex;
-  align-items: center;
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`

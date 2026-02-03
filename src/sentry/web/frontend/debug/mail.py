@@ -67,6 +67,7 @@ from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
+from sentry.web.frontend.base import control_silo_view, internal_region_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
 
 logger = logging.getLogger(__name__)
@@ -410,6 +411,7 @@ class ActivityMailPreview:
             raise
 
 
+@internal_region_silo_view
 class ActivityMailDebugView(View):
     def get_activity(self, request: AuthenticatedHttpRequest, event):
         raise NotImplementedError
@@ -446,6 +448,7 @@ class ActivityMailDebugView(View):
         )
 
 
+@internal_region_silo_view
 @login_required
 def alert(request):
     random = get_random(request)
@@ -489,6 +492,7 @@ def alert(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def digest(request):
     random = get_random(request)
@@ -611,6 +615,7 @@ def digest(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def request_access(request):
     org = Organization(id=1, slug="sentry", name="Sentry org")
@@ -631,6 +636,7 @@ def request_access(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def request_access_for_another_member(request):
     org = Organization(id=1, slug="sentry", name="Sentry org")
@@ -652,6 +658,7 @@ def request_access_for_another_member(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def invitation(request):
     org = Organization(id=1, slug="example", name="Example")
@@ -673,6 +680,7 @@ def invitation(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def access_approved(request):
     org = Organization(id=1, slug="example", name="Example")
@@ -690,6 +698,7 @@ def access_approved(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def confirm_email(request):
     email = request.user.emails.first()
@@ -711,6 +720,7 @@ def confirm_email(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def recover_account(request):
     return MailPreview(
@@ -731,6 +741,7 @@ def recover_account(request):
     ).render(request)
 
 
+@control_silo_view
 @login_required
 def relocate_account(request):
     password_hash, __ = LostPasswordHash.objects.get_or_create(user_id=request.user.id)
@@ -753,6 +764,7 @@ def relocate_account(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def relocation_failed(request):
     return MailPreview(
@@ -767,6 +779,7 @@ def relocation_failed(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def relocation_started(request):
     return MailPreview(
@@ -781,6 +794,7 @@ def relocation_started(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def relocation_succeeded(request):
     return MailPreview(
@@ -795,6 +809,7 @@ def relocation_succeeded(request):
     ).render(request)
 
 
+@internal_region_silo_view
 @login_required
 def org_delete_confirm(request):
     from sentry.models.auditlogentry import AuditLogEntry

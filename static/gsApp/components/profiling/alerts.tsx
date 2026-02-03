@@ -1,9 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -107,7 +109,7 @@ interface GraceAlertProps {
   children: React.ReactNode;
   dismiss: undefined | (() => void);
   disableAction?: boolean;
-  type?: 'error';
+  type?: 'danger';
 }
 
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
@@ -118,7 +120,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       </Button>
       {dismiss ? (
         <StyledButton priority="link" size="sm" onClick={dismiss}>
-          <IconClose color="gray500" size="sm" />
+          <IconClose variant="primary" size="sm" />
         </StyledButton>
       ) : null}
     </Fragment>
@@ -129,7 +131,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
       system
       trailingItems={trailingItems}
-      type={type ? type : dismiss ? 'info' : 'error'}
+      variant={type ? type : dismiss ? 'info' : 'danger'}
     >
       {children}
     </Alert>
@@ -291,7 +293,7 @@ function ContinuousProfilingBetaAlertBannerInner({
 
   return (
     <Alert
-      type="warning"
+      variant="warning"
       system
       trailingItems={
         <AddEventsCTA
@@ -310,29 +312,27 @@ function ContinuousProfilingBetaAlertBannerInner({
       }
     >
       {subscription.isFree
-        ? isAm2Plan(subscription.plan)
-          ? tct(
-              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
-              {bold: <b />}
-            )
-          : tct(
-              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
-              {bold: <b />}
-            )
+        ? tct(
+            '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a [budgetTerm] after this date. To avoid disruptions, upgrade to a paid plan.',
+            {
+              bold: <b />,
+              budgetTerm: displayBudgetName(subscription.planDetails, {withBudget: true}),
+            }
+          )
         : isEnterprise(subscription.plan)
           ? tct(
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
               {bold: <b />}
             )
-          : isAm2Plan(subscription.plan)
-            ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
-                {bold: <b />}
-              )
-            : tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
-                {bold: <b />}
-              )}
+          : tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a [budgetTerm] after this date.',
+              {
+                bold: <b />,
+                budgetTerm: displayBudgetName(subscription.planDetails, {
+                  withBudget: true,
+                }),
+              }
+            )}
     </Alert>
   );
 }
@@ -361,7 +361,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <Alert system type="warning">
+      <Alert system variant="warning">
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {
@@ -372,13 +372,13 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
           {sdkDeprecations.values().map(sdk => {
             const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
             return (
-              <SDKDeprecationContainer key={key}>
+              <Flex as="li" align="baseline" key={key}>
                 <Dot />
                 {tct('[name] minimum version [version]', {
                   name: <code>{sdk.sdkName}</code>,
                   version: <code>{sdk.minimumVersion}</code>,
                 })}
-              </SDKDeprecationContainer>
+              </Flex>
             );
           })}
         </SDKDeprecationsContainer>
@@ -486,7 +486,7 @@ function BusinessTrialBanner({
   subscription,
 }: ProductBannerProps) {
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">{t('Try Sentry Business for Free')}</Heading>
       <AlertBody>
         <Text>
@@ -520,7 +520,7 @@ function ProductTrialBanner({
   const [isStartingTrial, setIsStartingTrial] = useState(false);
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">
         {tct('Try [product] for free', {product: categoryInfo.productName})}
       </Heading>
@@ -570,7 +570,7 @@ function OnDemandOrPaygBanner({
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
-    <Alert type="info">
+    <Alert variant="info">
       <Heading as="h3">
         {displayBudgetName(subscription.planDetails, {title: true})}
       </Heading>
@@ -637,19 +637,13 @@ const SDKDeprecationsContainer = styled('ul')`
   margin: 0;
 `;
 
-const SDKDeprecationContainer = styled('li')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-`;
-
 const Dot = styled('span')`
   display: inline-block;
   margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${space(0.5)};
   height: ${space(0.5)};
-  background-color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.tokens.content.primary};
 `;
 
 const AlertBody = styled('div')`

@@ -1,4 +1,10 @@
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
@@ -134,7 +140,12 @@ describe('ColumnEditorModal', () => {
       ['span.duration', 'number'],
       ['span.op', 'string'],
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Column \u2014'}));
+
+    const projectColumn = screen.getAllByTestId('editor-column')[2]!;
+
+    await userEvent.click(
+      within(projectColumn).getByRole('button', {name: 'Column \u2014'})
+    );
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]![0]);
@@ -182,7 +193,12 @@ describe('ColumnEditorModal', () => {
       ['span.duration', 'number'],
       ['span.op', 'string'],
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Column project string'}));
+
+    const projectColumn = screen.getAllByTestId('editor-column')[1]!;
+
+    await userEvent.click(
+      within(projectColumn).getByRole('button', {name: 'Column project string'})
+    );
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]![0]);

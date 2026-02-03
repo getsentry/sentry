@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -28,15 +30,13 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;
-  missingInstrumentationNode: MissingInstrumentationNode;
+  missingInstrumentationNode: NoInstrumentationNode;
   profileID: string | undefined;
   profilerID: string | undefined;
   project: Project | undefined;
@@ -74,11 +74,8 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    return isEAPSpanNode(missingInstrumentationNode.previous)
-      ? (TraceTree.ParentEAPTransaction(missingInstrumentationNode)?.profiles?.length ??
-          0) > 0
-      : (TraceTree.ParentTransaction(missingInstrumentationNode)?.profiles?.length ?? 0) >
-          0;
+    const parentTransaction = missingInstrumentationNode.findClosestParentTransaction();
+    return !!parentTransaction?.hasProfiles;
   }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {
@@ -227,7 +224,7 @@ export function ProfilePreview({
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;
@@ -240,7 +237,7 @@ function ProfilePreviewLegend() {
   const systemFrameColor = colorComponentsToRGBA(theme.COLORS.FRAME_SYSTEM_COLOR);
 
   return (
-    <LegendContainer>
+    <Flex gap="lg">
       <LegendItem>
         <LegendMarker color={applicationFrameColor} />
         {t('Application Function')}
@@ -249,7 +246,7 @@ function ProfilePreviewLegend() {
         <LegendMarker color={systemFrameColor} />
         {t('System Function')}
       </LegendItem>
-    </LegendContainer>
+    </Flex>
   );
 }
 
@@ -307,19 +304,13 @@ const FlamegraphContainer = styled('div')`
   position: relative;
 `;
 
-const LegendContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
-`;
-
 const LegendItem = styled('span')`
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

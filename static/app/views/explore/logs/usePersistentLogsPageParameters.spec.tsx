@@ -59,7 +59,8 @@ describe('usePersistentLogsPageParameters', () => {
           [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
           [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
         }),
-      })
+      }),
+      {replace: true}
     );
   });
 
@@ -87,5 +88,38 @@ describe('usePersistentLogsPageParameters', () => {
     render(<Main />);
 
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('uses replace to navigate only on the first render', () => {
+    (useLocation as jest.Mock).mockReturnValue({
+      pathname: '/logs/',
+      query: {},
+    });
+
+    (usePersistedLogsPageParams as jest.Mock).mockReturnValue([
+      {
+        fields: ['message'],
+        sortBys: [{field: 'message', order: 'desc'}],
+      },
+    ]);
+
+    function Main() {
+      usePersistentLogsPageParameters();
+      return <div>main</div>;
+    }
+
+    const {rerender} = render(<Main />);
+    expect(navigateMock).toHaveBeenCalledWith(expect.anything(), {replace: true});
+
+    // Change the fields and sort by props to retrigger navigation
+    (usePersistedLogsPageParams as jest.Mock).mockReturnValue([
+      {
+        fields: ['test'],
+        sortBys: [{field: 'test', order: 'desc'}],
+      },
+    ]);
+
+    rerender(<Main />);
+    expect(navigateMock).toHaveBeenCalledWith(expect.anything(), {replace: false});
   });
 });

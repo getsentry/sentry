@@ -5,6 +5,25 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationTest(TestCase):
+    def test_is_public_with_null_secret(self) -> None:
+        """Public clients are created with client_secret=None (NULL in DB)."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+            client_secret=None,
+        )
+        assert app.is_public is True
+
+    def test_is_public_with_secret(self) -> None:
+        """Confidential clients have a client_secret."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com",
+            # client_secret defaults to a generated token
+        )
+        assert app.client_secret is not None
+        assert app.is_public is False
+
     def test_is_valid_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(
             owner=self.user,
@@ -88,6 +107,46 @@ class ApiApplicationTest(TestCase):
         assert app.is_valid_redirect_uri("http://127.0.0.1:3000/callback")
         assert not app.is_valid_redirect_uri("http://127.0.0.1:3001/callback")
         assert not app.is_valid_redirect_uri("http://127.0.0.1/callback")
+
+    def test_is_valid_redirect_uri_custom_scheme(self) -> None:
+        # Test custom scheme for Apple apps (sentry-apple://)
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="sentry-apple://sentry.io/auth",
+            version=0,  # legacy behavior
+        )
+
+        # Exact match should work
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth")
+
+        # With trailing slash - depends on normalization
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/")
+
+        # Prefix match should work in legacy mode
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/callback")
+
+        # Different scheme should fail
+        assert not app.is_valid_redirect_uri("https://sentry.io/auth")
+
+        # Different host should fail
+        assert not app.is_valid_redirect_uri("sentry-apple://other.io/auth")
+
+        # Different path should fail (not a prefix)
+        assert not app.is_valid_redirect_uri("sentry-apple://sentry.io/other")
+
+    def test_is_valid_redirect_uri_custom_scheme_strict(self) -> None:
+        # Test custom scheme with strict validation (version 1)
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="sentry-apple://sentry.io/auth",
+            version=1,  # strict mode
+        )
+
+        # Exact match should work
+        assert app.is_valid_redirect_uri("sentry-apple://sentry.io/auth")
+
+        # Prefix match should NOT work in strict mode
+        assert not app.is_valid_redirect_uri("sentry-apple://sentry.io/auth/callback")
 
     def test_get_default_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(

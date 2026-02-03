@@ -5,12 +5,12 @@ import * as qs from 'query-string';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {isValidEventUUID} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
@@ -184,7 +184,16 @@ function useDemoTrace(
   // created and stored already so that the users can visualize in the context of a trace.
   const demoEventQuery = useApiQuery<EventTransaction>(
     [
-      `/organizations/${organization.slug}/events/${demoEventSlug?.project_slug}:${demoEventSlug?.event_id}/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: demoEventSlug?.project_slug!,
+            eventId: demoEventSlug?.event_id!,
+          },
+        }
+      ),
       {
         query: {
           referrer: 'trace-view',
@@ -262,7 +271,9 @@ export function useTrace(
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+      }),
       {query: queryParams},
     ],
     {
@@ -273,7 +284,9 @@ export function useTrace(
 
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
-      `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+      }),
       {
         query: {
           ...queryParams,
@@ -291,3 +304,9 @@ export function useTrace(
 
   return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }
+
+const isValidEventUUID = (id: string): boolean => {
+  const uuidRegex =
+    /^[0-9a-f]{8}[0-9a-f]{4}[1-5][0-9a-f]{3}[89ab][0-9a-f]{3}[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};

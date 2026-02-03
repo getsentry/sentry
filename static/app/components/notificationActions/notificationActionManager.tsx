@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -240,7 +241,7 @@ function NotificationActionManager({
             isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             disabled={isAddAlertDisabled}
           >
             {t('Add Action')}

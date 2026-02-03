@@ -1,15 +1,22 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useNavContext} from 'sentry/views/nav/context';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
+import formatCurrency from 'getsentry/utils/formatCurrency';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+
+const MAX_WIDTH = 'calc(100vw - 48px - 32px)'; // 100vw - 48px (outer padding) - 32px (inner padding)
 
 function BillingInfoCard({
   subscription,
@@ -18,13 +25,6 @@ function BillingInfoCard({
   organization: Organization;
   subscription: Subscription;
 }) {
-  if (
-    subscription.isSelfServePartner ||
-    (!subscription.canSelfServe && !subscription.onDemandInvoiced)
-  ) {
-    return null;
-  }
-
   return (
     <SubscriptionHeaderCard
       title={t('Billing information')}
@@ -36,7 +36,7 @@ function BillingInfoCard({
           align="start"
           maxWidth="100%"
         >
-          <BillingDetailsInfo />
+          <BillingDetailsInfo subscription={subscription} />
           <PaymentSourceInfo subscription={subscription} />
         </Flex>,
         <LinkButton
@@ -55,7 +55,9 @@ function BillingInfoCard({
   );
 }
 
-function BillingDetailsInfo() {
+function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
+  const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
   const {data: billingDetails, isLoading} = useBillingDetails();
 
   if (isLoading) {
@@ -69,7 +71,7 @@ function BillingDetailsInfo() {
 
   if (!billingDetails || !hasSomeBillingDetails(billingDetails)) {
     return (
-      <Container maxWidth="100%" overflow="hidden">
+      <Container overflow="hidden" maxWidth={isMobile ? MAX_WIDTH : '100%'}>
         <Text size="sm" variant="muted">
           {t('No billing details on file')}
         </Text>
@@ -96,8 +98,27 @@ function BillingDetailsInfo() {
     secondaryDetails.push(`${taxFieldInfo.label}: ${billingDetails.taxNumber}`);
   }
 
+  const balance =
+    subscription.accountBalance < 0
+      ? tct('[credits] credit', {
+          credits: formatCurrency(0 - subscription.accountBalance),
+        })
+      : `${formatCurrency(subscription.accountBalance)}`;
+
   return (
-    <Flex maxWidth="100%" overflow="hidden" direction="column" gap="sm">
+    <Flex
+      overflow="hidden"
+      direction="column"
+      gap="sm"
+      maxWidth={isMobile ? MAX_WIDTH : '100%'}
+    >
+      {!!subscription.accountBalance && (
+        <Text ellipsis size="sm" variant="muted">
+          {tct('Account balance: [balance]', {
+            balance,
+          })}
+        </Text>
+      )}
       <Text ellipsis size="sm" variant="muted">
         {primaryDetails.length > 0
           ? primaryDetails.join(', ')
@@ -125,7 +146,8 @@ function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
 
   return (
     <Text ellipsis size="sm" variant="muted">
-      {tct('Card ending in [last4]', {
+      {tct('[cardBrand] ending in [last4]', {
+        cardBrand: toTitleCase(paymentSource.brand, {allowInnerUpperCase: true}),
         last4: paymentSource.last4,
       })}
     </Text>

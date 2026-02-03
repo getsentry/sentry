@@ -1405,3 +1405,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
             # we need to allow updates to the title of existing transaction widgets
             assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics(self) -> None:
+        data = {
+            "title": "Test Metrics Query",
+            "widgetType": "tracemetrics",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

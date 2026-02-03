@@ -21,6 +21,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -40,6 +41,13 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -108,9 +116,7 @@ class Fixtures:
 
     @cached_property
     def project(self):
-        return self.create_project(
-            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
-        )
+        return self.create_project(name="Bar", slug="bar", teams=[self.team])
 
     @cached_property
     def release(self):
@@ -274,6 +280,9 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_repository_settings(self, *args, **kwargs):
+        return Factories.create_repository_settings(*args, **kwargs)
+
     def create_commit(self, *args, **kwargs):
         return Factories.create_commit(*args, **kwargs)
 
@@ -326,6 +335,16 @@ class Fixtures:
     def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
         return Factories.create_tempest_credentials(project, *args, **kwargs)
 
+    def create_github_identity(
+        self, user: User | None = None, idp: IdentityProvider | None = None, **kwargs
+    ) -> Identity:
+        if not user:
+            user = self.user
+        return Factories.create_github_identity(user=user, idp=idp, **kwargs)
+
+    def create_github_provider(self, **kwargs) -> IdentityProvider:
+        return Factories.create_github_provider(**kwargs)
+
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -360,6 +379,11 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_data_forwarder(organization, *args, **kwargs)
+
+    def create_data_forwarder_project(self, data_forwarder=None, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_data_forwarder_project(data_forwarder, project, **kwargs)
 
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
@@ -418,6 +442,9 @@ class Fixtures:
 
     def create_service_hook(self, *args, **kwargs):
         return Factories.create_service_hook(*args, **kwargs)
+
+    def create_service_hook_project_for_installation(self, *args, **kwargs):
+        return Factories.create_service_hook_project_for_installation(*args, **kwargs)
 
     def create_userreport(self, *args, **kwargs):
         return Factories.create_userreport(*args, **kwargs)
@@ -691,15 +718,15 @@ class Fixtures:
 
     def create_detector(
         self,
+        project: Project | None = None,
+        type: str | None = ErrorGroupType.slug,
         *args,
-        project=None,
-        type=ErrorGroupType.slug,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, type=type, **kwargs)
+        return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
@@ -763,6 +790,7 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        assertion: Any | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -787,6 +815,7 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -885,6 +914,272 @@ class Fixtures:
         )
 
         return detector
+
+    # Preprod artifact helpers
+
+    def create_commit_comparison(
+        self, organization: Organization | None = None, **kwargs
+    ) -> CommitComparison:
+        if organization is None:
+            organization = self.organization
+        return Factories.create_commit_comparison(organization=organization, **kwargs)
+
+    def create_preprod_artifact(self, project: Project | None = None, **kwargs) -> PreprodArtifact:
+        if project is None:
+            project = self.project
+        return Factories.create_preprod_artifact(project=project, **kwargs)
+
+    def create_preprod_artifact_mobile_app_info(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodArtifactMobileAppInfo:
+        return Factories.create_preprod_artifact_mobile_app_info(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
+    def create_preprod_artifact_size_metrics(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodArtifactSizeMetrics:
+        return Factories.create_preprod_artifact_size_metrics(artifact=preprod_artifact, **kwargs)
+
+    def create_preprod_artifact_size_comparison(
+        self,
+        head_size_analysis: PreprodArtifactSizeMetrics,
+        base_size_analysis: PreprodArtifactSizeMetrics,
+        organization: Organization | None = None,
+        **kwargs,
+    ) -> PreprodArtifactSizeComparison:
+        if organization is None:
+            organization = self.organization
+        return Factories.create_preprod_artifact_size_comparison(
+            organization=organization,
+            head_size_analysis=head_size_analysis,
+            base_size_analysis=base_size_analysis,
+            **kwargs,
+        )
+
+    def create_preprod_build_configuration(
+        self, project: Project | None = None, **kwargs
+    ) -> PreprodBuildConfiguration:
+        if project is None:
+            project = self.project
+        return Factories.create_preprod_build_configuration(project=project, **kwargs)
+
+    def create_installable_preprod_artifact(self, preprod_artifact, **kwargs):
+        return Factories.create_installable_preprod_artifact(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
+    def create_ios_preprod_artifact(
+        self,
+        project: Project | None = None,
+        app_id: str = "com.example.iosapp",
+        app_name: str = "iOS Test App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        commit_comparison: CommitComparison | None = None,
+        **kwargs,
+    ) -> PreprodArtifact:
+        """Create a processed iOS preprod artifact (xcarchive)."""
+        if project is None:
+            project = self.project
+        return Factories.create_preprod_artifact(
+            project=project,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            app_id=app_id,
+            app_name=app_name,
+            build_version=build_version,
+            build_number=build_number,
+            state=state,
+            commit_comparison=commit_comparison,
+            **kwargs,
+        )
+
+    def create_android_preprod_artifact(
+        self,
+        project: Project | None = None,
+        app_id: str = "com.example.androidapp",
+        app_name: str = "Android Test App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        artifact_type: int = PreprodArtifact.ArtifactType.APK,
+        commit_comparison: CommitComparison | None = None,
+        **kwargs,
+    ) -> PreprodArtifact:
+        """Create a processed Android preprod artifact (APK or AAB)."""
+        if project is None:
+            project = self.project
+        return Factories.create_preprod_artifact(
+            project=project,
+            artifact_type=artifact_type,
+            app_id=app_id,
+            app_name=app_name,
+            build_version=build_version,
+            build_number=build_number,
+            state=state,
+            commit_comparison=commit_comparison,
+            **kwargs,
+        )
+
+    def create_ios_preprod_artifact_with_size_metrics(
+        self,
+        project: Project | None = None,
+        app_id: str = "com.example.iosapp",
+        app_name: str = "iOS Test App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        commit_comparison: CommitComparison | None = None,
+        max_install_size: int = 50 * 1024 * 1024,  # 50 MB
+        max_download_size: int = 25 * 1024 * 1024,  # 25 MB
+        size_analysis_state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        **kwargs,
+    ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
+        """
+        Create a fully processed iOS preprod artifact with completed size metrics.
+
+        Returns a tuple of (artifact, size_metrics) for easy access in tests.
+        """
+        artifact = self.create_ios_preprod_artifact(
+            project=project,
+            app_id=app_id,
+            app_name=app_name,
+            build_version=build_version,
+            build_number=build_number,
+            commit_comparison=commit_comparison,
+            **kwargs,
+        )
+        size_metrics = Factories.create_preprod_artifact_size_metrics(
+            artifact=artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=size_analysis_state,
+            max_install_size=max_install_size,
+            max_download_size=max_download_size,
+            min_install_size=max_install_size,
+            min_download_size=max_download_size,
+        )
+        return artifact, size_metrics
+
+    def create_android_preprod_artifact_with_size_metrics(
+        self,
+        project: Project | None = None,
+        app_id: str = "com.example.androidapp",
+        app_name: str = "Android Test App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        artifact_type: int = PreprodArtifact.ArtifactType.APK,
+        commit_comparison: CommitComparison | None = None,
+        max_install_size: int = 30 * 1024 * 1024,  # 30 MB
+        max_download_size: int = 15 * 1024 * 1024,  # 15 MB
+        size_analysis_state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        **kwargs,
+    ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
+        """
+        Create a fully processed Android preprod artifact with completed size metrics.
+
+        Returns a tuple of (artifact, size_metrics) for easy access in tests.
+        """
+        artifact = self.create_android_preprod_artifact(
+            project=project,
+            app_id=app_id,
+            app_name=app_name,
+            build_version=build_version,
+            build_number=build_number,
+            artifact_type=artifact_type,
+            commit_comparison=commit_comparison,
+            **kwargs,
+        )
+        size_metrics = Factories.create_preprod_artifact_size_metrics(
+            artifact=artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=size_analysis_state,
+            max_install_size=max_install_size,
+            max_download_size=max_download_size,
+            min_install_size=max_install_size,
+            min_download_size=max_download_size,
+        )
+        return artifact, size_metrics
+
+    def create_preprod_artifact_pair_for_comparison(
+        self,
+        project: Project | None = None,
+        artifact_type: int = PreprodArtifact.ArtifactType.APK,
+        app_id: str = "com.example.app",
+        head_build_version: str = "1.1.0",
+        base_build_version: str = "1.0.0",
+        head_install_size: int = 35 * 1024 * 1024,  # 35 MB
+        base_install_size: int = 30 * 1024 * 1024,  # 30 MB
+        head_download_size: int = 18 * 1024 * 1024,  # 18 MB
+        base_download_size: int = 15 * 1024 * 1024,  # 15 MB
+    ) -> tuple[
+        PreprodArtifact, PreprodArtifactSizeMetrics, PreprodArtifact, PreprodArtifactSizeMetrics
+    ]:
+        """
+        Create a head/base artifact pair with size metrics for comparison tests.
+
+        Creates two artifacts with a linked commit comparison (head's base_sha = base's head_sha)
+        to simulate a typical PR comparison scenario.
+
+        Returns a tuple of (head_artifact, head_size_metrics, base_artifact, base_size_metrics).
+        """
+        if project is None:
+            project = self.project
+
+        # Create base commit comparison first
+        base_commit_comparison = self.create_commit_comparison(
+            organization=project.organization,
+            head_sha="b" * 40,
+            base_sha="a" * 40,
+            head_ref="main",
+            base_ref="main~1",
+        )
+
+        # Create head commit comparison that references base's head_sha
+        head_commit_comparison = self.create_commit_comparison(
+            organization=project.organization,
+            head_sha="c" * 40,
+            base_sha="b" * 40,  # Points to base's head_sha
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        # Create base artifact with size metrics
+        base_artifact = self.create_preprod_artifact(
+            project=project,
+            artifact_type=artifact_type,
+            app_id=app_id,
+            build_version=base_build_version,
+            commit_comparison=base_commit_comparison,
+        )
+        base_size_metrics = Factories.create_preprod_artifact_size_metrics(
+            artifact=base_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=base_install_size,
+            max_download_size=base_download_size,
+            min_install_size=base_install_size,
+            min_download_size=base_download_size,
+        )
+
+        # Create head artifact with size metrics
+        head_artifact = self.create_preprod_artifact(
+            project=project,
+            artifact_type=artifact_type,
+            app_id=app_id,
+            build_version=head_build_version,
+            commit_comparison=head_commit_comparison,
+        )
+        head_size_metrics = Factories.create_preprod_artifact_size_metrics(
+            artifact=head_artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=head_install_size,
+            max_download_size=head_download_size,
+            min_install_size=head_install_size,
+            min_download_size=head_download_size,
+        )
+
+        return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

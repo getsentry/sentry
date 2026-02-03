@@ -92,7 +92,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         :param bool default_rules: create default rules (defaults to True)
         :auth: required
         """
-        serializer = ProjectPostSerializer(data=request.data)
+        serializer = ProjectPostSerializer(
+            data=request.data, context={"organization": organization}
+        )
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)

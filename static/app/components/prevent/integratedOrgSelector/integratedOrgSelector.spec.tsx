@@ -1,3 +1,5 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
@@ -17,6 +19,13 @@ const mockApiCall = () => {
     url: `/organizations/org-slug/integrations/`,
     method: 'GET',
     body: mockIntegrations,
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/config/integrations/`,
+    method: 'GET',
+    body: {
+      providers: [GitHubIntegrationProviderFixture()],
+    },
   });
 };
 

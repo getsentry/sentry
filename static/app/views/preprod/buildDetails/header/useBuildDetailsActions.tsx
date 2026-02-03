@@ -1,15 +1,34 @@
 import {useNavigate} from 'react-router-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getListBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
   projectId: string;
+}
+
+type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
+
+function handleStaffPermissionError(responseDetail: ErrorDetail) {
+  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
+    addErrorMessage(
+      t(
+        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
+      )
+    );
+    setTimeout(() => {
+      window.location.href = '/_admin/';
+    }, 2000);
+    return;
+  }
+
+  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
 }
 
 export function useBuildDetailsActions({
@@ -32,7 +51,12 @@ export function useBuildDetailsActions({
     onSuccess: () => {
       addSuccessMessage(t('Build deleted successfully'));
       // TODO(preprod): navigate back to the release page once built?
-      navigate(`/organizations/${organization.slug}/preprod/${projectId}/`);
+      navigate(
+        getListBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+        })
+      );
     },
     onError: () => {
       addErrorMessage(t('Failed to delete build'));
@@ -43,90 +67,75 @@ export function useBuildDetailsActions({
     deleteArtifact();
   };
 
-  const handleDeleteAction = () => {
-    openConfirmModal({
-      message: t(
-        'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
-      ),
-      onConfirm: handleDeleteArtifact,
-    });
+  const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/internal/preprod-artifact/rerun-analysis/`,
+        method: 'POST',
+        data: {
+          preprod_artifact_id: artifactId,
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Analysis rerun initiated successfully'));
+    },
+    onError: error => {
+      if (error.status === 403) {
+        handleStaffPermissionError(error.responseJSON?.detail);
+      } else {
+        addErrorMessage(t('Failed to rerun analysis'));
+      }
+    },
+  });
+
+  const handleRerunAction = () => {
+    rerunAnalysis();
   };
 
   const handleDownloadAction = async () => {
-    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+    await downloadPreprodArtifact({
+      organizationSlug: organization.slug,
+      projectSlug: projectId,
+      artifactId,
+      onStaffPermissionError: handleStaffPermissionError,
+    });
+  };
 
-    try {
-      const response = await fetch(downloadUrl, {
-        method: 'HEAD',
-        credentials: 'include',
+  const {mutate: rerunStatusChecks, isPending: isRerunningStatusChecks} = useMutation<
+    void,
+    RequestError
+  >({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
+        method: 'POST',
+        data: {
+          check_types: ['size'],
+        },
       });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Status checks rerun initiated successfully'));
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to rerun status checks'));
+    },
+  });
 
-      if (!response.ok) {
-        let errorMessage = `Download failed (${response.status})`;
-
-        let errorResponse: Response;
-        try {
-          errorResponse = await fetch(downloadUrl, {
-            method: 'GET',
-            credentials: 'include',
-          });
-        } catch {
-          if (response.status === 403) {
-            errorMessage = 'Access denied. You may need to re-authenticate as staff.';
-          } else if (response.status === 404) {
-            errorMessage = 'Build file not found.';
-          } else if (response.status === 401) {
-            errorMessage = 'Unauthorized.';
-          }
-          addErrorMessage(t('Download failed: %s', errorMessage));
-          return;
-        }
-
-        if (!errorResponse.ok) {
-          const errorText = await errorResponse.text();
-          let errorJson: any;
-          try {
-            errorJson = JSON.parse(errorText);
-          } catch {
-            addErrorMessage(t('Download failed: %s', errorText || errorMessage));
-            return;
-          }
-
-          if (errorJson.detail) {
-            if (typeof errorJson.detail === 'string') {
-              errorMessage = errorJson.detail;
-            } else if (errorJson.detail.message) {
-              errorMessage = errorJson.detail.message;
-            } else if (errorJson.detail.code) {
-              errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
-            }
-          }
-        }
-
-        addErrorMessage(t('Download failed: %s', errorMessage));
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `preprod_artifact_${artifactId}.zip`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      addSuccessMessage(t('Build download started'));
-    } catch (error) {
-      addErrorMessage(t('Download failed: %s', String(error)));
-    }
+  const handleRerunStatusChecksAction = () => {
+    rerunStatusChecks();
   };
 
   return {
     // State
     isDeletingArtifact,
+    isRerunningStatusChecks,
 
     // Actions
-    handleDeleteAction,
+    handleDeleteArtifact,
+    handleRerunAction,
     handleDownloadAction,
+    handleRerunStatusChecksAction,
   };
 }

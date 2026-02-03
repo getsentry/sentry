@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Link} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +29,6 @@ type Props = {
 };
 
 const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
-const SECONDARY_SPAN_QUERY_KEY = 'secondarySpanSearchQuery';
 
 export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props) {
   const organization = useOrganization();
@@ -58,7 +59,7 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
 
   transactionRoute ??= getTransactionSummaryBaseUrl(organization, view);
 
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const {primaryRelease} = useReleaseSelection();
 
   const {query} = useLocation();
   const {project} = useCrossPlatformProject();
@@ -98,34 +99,21 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
           </TitleContainer>
         </HeaderContainer>
         <PageAlert />
-        <ChartsContainer>
-          <ChartsContainerItem key="release1">
+        <Flex gap="xl">
+          <ChartsContainerItem>
             <SpanSamplesContainer
               groupId={groupId}
               moduleName={moduleName}
               transactionName={transactionName}
               transactionMethod={transactionMethod}
               release={primaryRelease}
-              sectionTitle={t('Release 1')}
+              sectionTitle={t('Release')}
               searchQueryKey={PRIMARY_SPAN_QUERY_KEY}
               spanOp={spanOp}
               additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
-          <ChartsContainerItem key="release2">
-            <SpanSamplesContainer
-              groupId={groupId}
-              moduleName={moduleName}
-              transactionName={transactionName}
-              transactionMethod={transactionMethod}
-              release={secondaryRelease}
-              sectionTitle={t('Release 2')}
-              searchQueryKey={SECONDARY_SPAN_QUERY_KEY}
-              spanOp={spanOp}
-              additionalFilters={additionalFilters}
-            />
-          </ChartsContainerItem>
-        </ChartsContainer>
+        </Flex>
       </SampleDrawerBody>
     </PageAlertProvider>
   );
@@ -167,13 +155,6 @@ const SpanDescription = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 35vw;
-`;
-
-const ChartsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(2)};
-  align-items: top;
 `;
 
 const ChartsContainerItem = styled('div')`

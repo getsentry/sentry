@@ -1,7 +1,5 @@
 ---
-created: '2025-10-06T17:30:32.665321+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_fingerprinting.py
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
 ---
 config:
   rules:
@@ -23,7 +21,7 @@ variants:
       hint: ignored because custom server fingerprint takes precedence
     contributes: false
     hint: ignored because custom server fingerprint takes precedence
-    key: app_exception_message
+    key: app_exception_stacktrace
     type: component
   custom_fingerprint:
     contributes: true

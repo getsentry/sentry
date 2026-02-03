@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import merge from 'lodash/merge';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -46,6 +45,7 @@ export enum Token {
   KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
   KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_AGGREGATE = 'keyAggregate',
@@ -591,6 +591,16 @@ export class TokenConverter {
     key,
   });
 
+  tokenKeyExplicitBooleanTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_BOOLEAN_TAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_AGGREGATE_PARAMS as const,
@@ -880,6 +890,7 @@ export class TokenConverter {
         Token.KEY_SIMPLE,
         Token.KEY_EXPLICIT_TAG,
         Token.KEY_AGGREGATE,
+        Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
         Token.KEY_EXPLICIT_FLAG,
@@ -896,6 +907,7 @@ export class TokenConverter {
         | Token.KEY_EXPLICIT_TAG
         | Token.KEY_EXPLICIT_FLAG
         | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_BOOLEAN_TAG
         | Token.KEY_EXPLICIT_NUMBER_TAG
         | Token.KEY_EXPLICIT_NUMBER_FLAG
         | Token.KEY_EXPLICIT_STRING_TAG
@@ -1524,7 +1536,7 @@ export function parseSearch(
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
   const config = additionalConfig
-    ? merge({...defaultConfig}, additionalConfig)
+    ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
   return tryParseSearch(query, {
@@ -1533,6 +1545,28 @@ export function parseSearch(
     TermOperator,
     FilterType,
   });
+}
+
+/**
+ * Applies a partial search configuration onto the default config. This is very
+ * similar to a simple `{...a, ...b}`, but it ignores any `undefined` values of
+ * `b`. This is important because `{...{key: false}, ...{key: undefined}}`
+ * results in `{key: undefined}`, which is not what we want. We want the values
+ * of the search config to override the default _only_ if they're actually
+ * defined.
+ */
+function mergeSearchConfigWithDefaults(
+  a: SearchConfig,
+  b: Partial<SearchConfig>
+): SearchConfig {
+  const newConfig: SearchConfig = {
+    ...a,
+    ...Object.fromEntries(
+      Object.entries(b).filter(([_key, value]) => value !== undefined)
+    ),
+  };
+
+  return newConfig;
 }
 
 /**

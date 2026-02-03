@@ -48,7 +48,6 @@ Gemfile.lock
 .pytest_cache/
 .vscode/tags
 .vscode/bookmarks.json
-coverage.xml
 junit.xml
 *.codestyle.xml
 .webpack.meta
@@ -63,3 +62,5 @@ yalc.lock
 ngrok.yml
 package-lock.json
 yarn.lock
+.claude/settings.local.json
+.claude/plans

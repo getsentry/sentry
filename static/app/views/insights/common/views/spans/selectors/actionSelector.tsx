@@ -1,7 +1,9 @@
 import type {ReactNode} from 'react';
 import omit from 'lodash/omit';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -86,7 +88,12 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   return (
     <CompactSelect
       style={{maxWidth: '200px'}}
-      triggerProps={{prefix: LABEL_FOR_MODULE_NAME[moduleName]}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={LABEL_FOR_MODULE_NAME[moduleName]}
+        />
+      )}
       options={options}
       value={value ?? ''}
       onChange={newValue => {
@@ -129,7 +136,11 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mobile-ui': t('Action'),
   'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
-  agents: t('Action'),
-  mcp: t('Action'),
+  'agent-models': t('Action'),
+  'agent-tools': t('Action'),
+  'mcp-tools': t('Action'),
+  'mcp-resources': t('Action'),
+  'mcp-prompts': t('Action'),
+  'ai-generations': t('Action'),
   sessions: t('Action'),
 };

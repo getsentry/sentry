@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
@@ -83,10 +84,9 @@ export function IntegrationReposAddRepository({
     try {
       const repo = await promise;
       onAddRepository(repo);
-      addSuccessMessage(t('Repository added'));
       RepositoryStore.resetRepositories();
-    } catch (error) {
-      addErrorMessage(t('Unable to add repository.'));
+    } catch {
+      // Error feedback is handled by addRepository/migrateRepository
     } finally {
       setAdding(false);
     }
@@ -126,6 +126,7 @@ export function IntegrationReposAddRepository({
       options={dropdownItems}
       onChange={addRepo}
       disabled={false}
+      value={undefined}
       menuTitle={t('Repositories')}
       emptyMessage={
         query.isFetching
@@ -140,10 +141,11 @@ export function IntegrationReposAddRepository({
       loading={query.isFetching}
       searchable
       onSearch={setSearch}
-      triggerProps={{
-        busy: adding,
-        children: t('Add Repository'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} busy={adding}>
+          {t('Add Repository')}
+        </OverlayTrigger.Button>
+      )}
       disableSearchFilter
     />
   );

@@ -564,6 +564,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             ]
 
     def test_noise_reduction(self) -> None:
+        # Access project before patching registry to ensure it's created with grouptypes registered
+        project_id = self.project.id
+
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
 
             @dataclass(frozen=True)
@@ -575,7 +578,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
-            event = self.store_event(data={}, project_id=self.project.id)
+            event = self.store_event(data={}, project_id=project_id)
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
@@ -583,7 +586,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                     "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
                 )
 
-            new_event = self.store_event(data={}, project_id=self.project.id)
+            new_event = self.store_event(data={}, project_id=project_id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
             group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
             assert group_info is not None
@@ -712,6 +715,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 1
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
     def test_update_group_priority_open_period_activity_entry(self) -> None:
         fingerprint = ["some-fingerprint"]
@@ -745,9 +749,11 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert len(activity_updates) == 2
         assert activity_updates[0].type == OpenPeriodActivityType.OPENED
         assert activity_updates[0].value == PriorityLevel.MEDIUM
+        assert activity_updates[0].event_id == event.event_id
 
         assert activity_updates[1].type == OpenPeriodActivityType.STATUS_CHANGE
         assert activity_updates[1].value == PriorityLevel.HIGH
+        assert activity_updates[1].event_id == new_occurrence.event_id
 
     @mock.patch("sentry.issues.ingest._process_existing_aggregate")
     def test_update_group_priority_and_unresolve(self, mock_is_regression: mock.MagicMock) -> None:

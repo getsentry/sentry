@@ -21,6 +21,7 @@ from sentry.rules import init_registry
 from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -233,6 +234,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 contexts=contexts,
             )
 
+        assert isinstance(perf_event, GroupEvent)
         start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             perf_event,
@@ -252,6 +254,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         rulegroup_to_events = buffer.backend.get_hash(
             model=Project, field={"project_id": self.project.id}
         )
+        assert perf_event.group is not None
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
                 {
@@ -972,7 +975,13 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_slack_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_slack_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions: MagicMock, mock_post: MagicMock
+    ) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -1000,7 +1009,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    def test_msteams_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_msteams_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions: MagicMock, mock_post: MagicMock
+    ) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         integration = self.create_integration(
@@ -1042,7 +1057,13 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.integrations.discord.message_builder.base.base.DiscordMessageBuilder._build")
-    def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
+    @patch(
+        "sentry.notifications.notification_action.utils.should_fire_workflow_actions",
+        return_value=False,
+    )
+    def test_discord_title_link_notification_uuid(
+        self, mock_should_fire_workflow_actions: MagicMock, mock_build: MagicMock
+    ) -> None:
         integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",

@@ -5,7 +5,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 export const ListWrap = styled('ul')`
@@ -48,9 +50,9 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
   margin: ${space(0.5)} ${space(1.5)};
@@ -58,7 +60,7 @@ export const ListLabel = styled('p')`
 `;
 
 export const ListSeparator = styled('div')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   :first-child {
@@ -94,9 +96,9 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;
 
@@ -107,9 +109,9 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   transition: opacity 0.1s;
 
   &:focus-visible {
@@ -137,7 +139,7 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
 
 export const SectionSeparator = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)};
 
   &:first-of-type {
@@ -150,36 +152,40 @@ export const SectionGroup = styled('ul')`
   padding: 0;
 `;
 
-export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 1em;
-  height: 1.4em;
-  padding-bottom: 1px;
-  pointer-events: none;
-`;
+export function LeadWrap(props: FlexProps) {
+  return (
+    <Flex
+      justify="center"
+      align="center"
+      minWidth="1em"
+      height="1.4em"
+      pointerEvents="none"
+      {...props}
+    />
+  );
+}
 
 export const EmptyMessage = styled('p')`
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1)} ${space(1.5)} ${space(1.5)};
   margin: 0;
 
   /* Message should only be displayed when _all_ preceding lists are empty */
   display: block;
+  div:has(ul:not(:empty)) ~ &,
   ul:not(:empty) ~ & {
     display: none;
   }
 `;
 
 export const SizeLimitMessage = styled('li')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
+  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
   padding: ${space(0.75)} ${space(1)} 0;
 
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   list-style-type: none;
   white-space: nowrap;
   text-align: center;

@@ -82,6 +82,7 @@ metadata = IntegrationMetadata(
 OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
     "https://api.opsgenie.com/": "app.opsgenie.com",
     "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
+    "https://api.atlassian.com/jsm/ops/integration/": "atlassian.net",
 }
 
 
@@ -91,6 +92,7 @@ class InstallationForm(forms.Form):
         choices=[
             ("https://api.opsgenie.com/", "api.opsgenie.com"),
             ("https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"),
+            ("https://api.atlassian.com/jsm/ops/integration/", "api.atlassian.com (JSM)"),
         ],
     )
     provider = forms.CharField(
@@ -234,6 +236,9 @@ class OpsgenieIntegration(IntegrationInstallation):
 
         return super().update_organization_config(data)
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name"]
+
     def schedule_migrate_opsgenie_plugin(self):
         migrate_opsgenie_plugin.apply_async(
             kwargs={
@@ -286,7 +291,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 )
 
             except OrganizationIntegration.DoesNotExist:
-                logger.exception("The Opsgenie post_install step failed.")
+                logger.warning("The Opsgenie post_install step failed.")
                 return
 
             key = integration.metadata["api_key"]

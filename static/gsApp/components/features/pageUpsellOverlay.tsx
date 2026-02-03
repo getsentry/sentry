@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -24,7 +24,6 @@ type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
   source: string;
   subscription: Subscription;
   customSecondaryCTA?: React.ReactNode;
-  defaultUpsellSelection?: string;
 };
 
 /**
@@ -42,7 +41,6 @@ function PageUpsellOverlay({
   source,
   requiredPlan,
   customSecondaryCTA,
-  defaultUpsellSelection,
   ...props
 }: Props) {
   const requiredPlanContents =
@@ -66,7 +64,7 @@ function PageUpsellOverlay({
         <Fragment>
           <Header>{name}</Header>
           <Body>{description}</Body>
-          <Body css={theme => `font-size: ${theme.fontSize.md}`}>
+          <Body css={theme => `font-size: ${theme.font.size.md}`}>
             {requiredPlanContents}
           </Body>
           <Body>
@@ -90,7 +88,6 @@ function PageUpsellOverlay({
                     openUpsellModal({
                       organization,
                       source,
-                      defaultSelection: defaultUpsellSelection,
                     })
                   }
                   size="sm"

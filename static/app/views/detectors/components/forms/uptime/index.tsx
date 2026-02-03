@@ -1,49 +1,35 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
+import useOrganization from 'sentry/utils/useOrganization';
+import {mapAssertionFormErrors} from 'sentry/views/alerts/rules/uptime/assertionFormErrors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
+import type {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+import {ConnectedTestUptimeMonitorButton} from 'sentry/views/detectors/components/forms/uptime/connectedTestUptimeMonitorButton';
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
   uptimeFormDataToEndpointPayload,
   uptimeSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
+import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 
-const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
-
-function ConnectedHttpSnippet() {
-  const url = useFormField<string>('url');
-  const method = useFormField<string>('method');
-  const headers = useFormField<Array<[string, string]>>('headers');
-  const body = useFormField<string>('body');
-  const traceSampling = useFormField<boolean>('traceSampling');
-
-  if (!url || !method) {
-    return null;
-  }
-
-  const shouldIncludeBody = !HTTP_METHODS_NO_BODY.includes(method);
-
-  return (
-    <HTTPSnippet
-      url={url}
-      method={method}
-      headers={headers ?? []}
-      body={shouldIncludeBody ? (body ?? null) : null}
-      traceSampling={traceSampling ?? false}
-    />
-  );
-}
+const ENVIRONMENT_CONFIG: React.ComponentProps<typeof DetectorBaseFields>['environment'] =
+  {includeAllEnvironments: false, fieldProps: {required: true}};
 
 function UptimeDetectorForm() {
+  const theme = useTheme();
+
   useSetAutomaticName(form => {
     const url = form.getValue('url');
 
@@ -63,23 +49,33 @@ function UptimeDetectorForm() {
   });
 
   return (
-    <FormStack>
+    <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
       <UptimeRegionWarning />
+      <PreviewSection />
       <UptimeDetectorFormDetectSection />
-      <ConnectedHttpSnippet />
+      <UptimeDetectorVerificationSection />
       <UptimeDetectorResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
-    </FormStack>
+    </Stack>
   );
 }
 
 export function NewUptimeDetectorForm() {
+  const organization = useOrganization();
+  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
-      initialFormData={{name: 'New Monitor'}}
+      initialFormData={{}}
+      environment={ENVIRONMENT_CONFIG}
+      extraFooterButton={
+        showTestButton ? <ConnectedTestUptimeMonitorButton /> : undefined
+      }
+      mapFormErrors={mapAssertionFormErrors}
     >
       <UptimeDetectorForm />
     </NewDetectorLayout>
@@ -87,21 +83,21 @@ export function NewUptimeDetectorForm() {
 }
 
 export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
+  const organization = useOrganization();
+  const showTestButton = organization.features.includes('uptime-runtime-assertions');
+
   return (
     <EditDetectorLayout
       detector={detector}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       savedDetectorToFormData={uptimeSavedDetectorToFormData}
+      environment={ENVIRONMENT_CONFIG}
+      extraFooterButton={
+        showTestButton ? <ConnectedTestUptimeMonitorButton size="sm" /> : undefined
+      }
+      mapFormErrors={mapAssertionFormErrors}
     >
       <UptimeDetectorForm />
     </EditDetectorLayout>
   );
 }
-
-const FormStack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-  max-width: ${p => p.theme.breakpoints.lg};
-  padding-bottom: 160px;
-`;

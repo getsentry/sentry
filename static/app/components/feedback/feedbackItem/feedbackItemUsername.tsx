@@ -1,9 +1,11 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -46,9 +48,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     selectText(node);
   }, [userNodeId]);
 
-  const {onClick: handleCopyToClipboard} = useCopyToClipboard({
-    text: user ?? '',
-  });
+  const {copy} = useCopyToClipboard();
 
   if (!name && !email) {
     return <strong>{t('Anonymous User')}</strong>;
@@ -71,7 +71,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       <Flex align="center" wrap="wrap" gap="xs">
         {isAiSummaryEnabled && summary && (
           <Fragment>
-            <strong>{summary}</strong>
+            <AiPrivacyTooltip>
+              <strong>{summary}</strong>
+            </AiPrivacyTooltip>
             <Purple>•</Purple>
           </Fragment>
         )}
@@ -83,7 +85,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
             gap="xs"
             onClick={() => {
               handleSelectText();
-              handleCopyToClipboard();
+              copy(user ?? '');
             }}
           >
             {isSameNameAndEmail ? (
@@ -103,9 +105,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
           <LinkButton
             href={mailToHref}
             external
-            icon={<IconMail color="gray300" />}
+            icon={<IconMail variant="muted" />}
             aria-label={t(`Email %s`, user)}
-            borderless
+            priority="transparent"
             size="zero"
           />
         </Tooltip>
@@ -115,5 +117,5 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 }
 
 const Purple = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.tokens.content.accent};
 `;

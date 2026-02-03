@@ -27,6 +27,7 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializer,
 )
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -62,6 +63,9 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 EMAIL_STATUS_DISPLAY = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
@@ -509,6 +513,7 @@ def generate_incident_trigger_email_context(
     trigger_threshold: float | None,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
+    detector_serialized_response: DetectorSerializerResponse | None = None,
 ) -> dict[str, Any]:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
@@ -562,6 +567,7 @@ def generate_incident_trigger_email_context(
                 open_period_context=open_period_context,
                 size=ChartSize({"width": 600, "height": 200}),
                 subscription=subscription,
+                detector_serialized_response=detector_serialized_response,
             )
         except Exception:
             logging.exception("Error while attempting to build_metric_alert_chart")
@@ -577,36 +583,25 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-ui-links", organization):
-        assert (
-            metric_issue_context.group is not None
-        ), "Group should not be None when workflow engine ui links are enabled"
-        alert_link = organization.absolute_url(
-            reverse(
-                "sentry-group",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_id": project.id,
-                    "group_id": metric_issue_context.group.id,
-                },
-            ),
-            query=urlencode(alert_link_params),
-        )
-    elif should_fire_workflow_actions(organization, MetricIssue.type_id):
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         # lookup the incident_id from the open_period_identifier
         try:
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
                 group_open_period_id=metric_issue_context.open_period_identifier
             )
+            incident_identifier = incident_group_open_period.incident_identifier
         except IncidentGroupOpenPeriod.DoesNotExist:
-            raise ValueError("IncidentGroupOpenPeriod does not exist")
+            # the corresponding metric detector was not dual written
+            incident_identifier = get_fake_id_from_object_id(
+                metric_issue_context.open_period_identifier
+            )
 
         alert_link = organization.absolute_url(
             reverse(
                 "sentry-metric-alert",
                 kwargs={
                     "organization_slug": organization.slug,
-                    "incident_id": incident_group_open_period.incident_identifier,
+                    "incident_id": incident_identifier,
                 },
             ),
             query=urlencode(alert_link_params),
@@ -622,14 +617,10 @@ def generate_incident_trigger_email_context(
             ),
             query=urlencode(alert_link_params),
         )
-
-    snooze_alert_url = None
-    snooze_alert = False
     # We don't have user muting for workflows in the new workflow engine system
     # so we don't need to show the snooze alert url
-    if not features.has("organizations:workflow-engine-ui-links", organization):
-        snooze_alert = True
-        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+    snooze_alert_url = None
+    snooze_alert = False
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
@@ -682,6 +673,7 @@ def email_users(
     targets: list[tuple[int, str]],
     project: Project,
     notification_uuid: str | None = None,
+    detector_serialized_response: DetectorSerializerResponse | None = None,
 ) -> list[int]:
     users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
     sent_to_users = []
@@ -704,6 +696,7 @@ def email_users(
             trigger_threshold=alert_context.alert_threshold,
             user=user,
             notification_uuid=notification_uuid,
+            detector_serialized_response=detector_serialized_response,
         )
         build_message(email_context, trigger_status, user_id).send_async(to=[email])
         sent_to_users.append(user_id)

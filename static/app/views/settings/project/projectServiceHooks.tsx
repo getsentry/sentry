@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
@@ -29,7 +30,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -65,7 +65,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-function ProjectServiceHooks() {
+export default function ProjectServiceHooks() {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const api = useApi({persistInFlight: true});
@@ -139,7 +139,7 @@ function ProjectServiceHooks() {
       <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info">
+          <PanelAlert variant="info">
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}
@@ -171,7 +171,7 @@ function ProjectServiceHooks() {
               to={`/settings/${organization.slug}/projects/${projectId}/hooks/new/`}
               size="sm"
               priority="primary"
-              icon={<IconAdd isCircled />}
+              icon={<IconAdd />}
             >
               {t('Create New Hook')}
             </LinkButton>
@@ -182,5 +182,3 @@ function ProjectServiceHooks() {
     </Fragment>
   );
 }
-
-export default withOrganization(ProjectServiceHooks);

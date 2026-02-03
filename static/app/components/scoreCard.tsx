@@ -1,7 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -12,7 +13,6 @@ type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
-  isEstimate?: boolean;
   isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
@@ -64,11 +64,11 @@ export function ScoreCard({
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendStatus) {
     case 'good':
-      return p.theme.successText;
+      return p.theme.tokens.content.success;
     case 'bad':
-      return p.theme.errorText;
+      return p.theme.tokens.content.danger;
     default:
-      return p.theme.subText;
+      return p.theme.tokens.content.secondary;
   }
 }
 
@@ -89,24 +89,25 @@ const HeaderTitle = styled('div')`
 `;
 
 export const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.headingColor};
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-export const ScoreWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  max-width: 100%;
-`;
+export const ScoreWrapper = styled((props: FlexProps<'div'>) => {
+  return <Flex align="baseline" maxWidth="100%" {...props} />;
+})``;
 
 export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
 `;
 

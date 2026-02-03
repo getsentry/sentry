@@ -34,7 +34,6 @@ export type Project = {
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
-  hasInsightsLlmMonitoring: boolean;
   hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
@@ -46,13 +45,13 @@ export type Project = {
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
+  hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
   isInternal: boolean;
   isMember: boolean;
   name: string;
   organization: Organization;
-
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
@@ -82,6 +81,10 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  preprodDistributionEnabledQuery?: string | null;
+  preprodSizeEnabledQuery?: string | null;
+  preprodSizeStatusChecksEnabled?: boolean;
+  preprodSizeStatusChecksRules?: unknown[];
   securityToken?: string;
   securityTokenHeader?: string;
   seerScannerAutomation?: boolean;
@@ -93,7 +96,6 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
-  tempestFetchDumps?: boolean;
   tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -111,6 +113,7 @@ export type ProjectKey = {
     cdn: string;
     crons: string;
     csp: string;
+    integration: string;
     minidump: string;
     otlp_logs: string;
     otlp_traces: string;
@@ -122,6 +125,8 @@ export type ProjectKey = {
   };
   dynamicSdkLoaderOptions: {
     hasDebug: boolean;
+    hasFeedback: boolean;
+    hasLogsAndMetrics: boolean;
     hasPerformance: boolean;
     hasReplay: boolean;
   };

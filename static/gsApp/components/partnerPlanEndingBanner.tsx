@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-ending.svg';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,10 +63,10 @@ function PartnerPlanEndingBanner({
       align="center"
     >
       <div>
-        <PartnerPlanEndingText>
+        <Stack align="start" padding="xl" gap="md">
           <PartnerPlanEndingBannerTitle>
             {t('Your current promotional plan is ending')}
-            <DaysLeftTag type="error" icon={<IconClock size="xs" />}>
+            <DaysLeftTag variant="danger" icon={<IconClock size="xs" />}>
               {tn('%s day left', '%s days left', daysLeft)}
             </DaysLeftTag>
           </PartnerPlanEndingBannerTitle>
@@ -81,27 +82,19 @@ function PartnerPlanEndingBanner({
             analyticsEventName="Partner Plan Ending Banner: Manage Subscription"
             size="md"
             onClick={() => handleAnalytics()}
-            to={`/settings/${organization.slug}/billing/checkout/?referrer=partner_plan_ending_banner`}
+            to={`/checkout/${organization.slug}/?referrer=partner_plan_ending_banner`}
           >
             {t('Upgrade to %s', planToUpgradeTo)}
           </LinkButton>
-        </PartnerPlanEndingText>
+        </Stack>
       </div>
       <IllustrationContainer src={PartnerPlanEndingBackground} />
     </Flex>
   );
 }
 
-const PartnerPlanEndingText = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  align-items: flex-start;
-`;
-
 const PartnerPlanEndingBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   display: flex;
   gap: ${space(1)};
@@ -117,7 +110,7 @@ const IllustrationContainer = styled('img')`
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
     pointer-events: none;
     flex-grow: 1;
   }

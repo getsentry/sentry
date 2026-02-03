@@ -9,6 +9,13 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
+import {Alert, AlertLink} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -16,13 +23,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -40,7 +40,7 @@ import LoadingMask from 'sentry/components/loadingMask';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -457,6 +457,12 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     metric.endSpan({name: 'saveAlertRule'});
 
+    if (isNew) {
+      trackAnalytics('issue_alert_rule.created', {
+        organization,
+      });
+    }
+
     router.push(
       makeAlertsPathname({
         path: `/rules/${project.slug}/${rule.id}/details/`,
@@ -636,6 +642,16 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+
+      // If changing the channel name for a Slack action, clear the channel id for convenience
+      if (
+        type === 'actions' &&
+        prop === 'channel' &&
+        prevState.rule?.actions?.[idx]?.id === IssueAlertActionType.SLACK
+      ) {
+        set(clonedState, `rule[${type}][${idx}][channel_id]`, '');
+      }
+
       return clonedState;
     });
   };
@@ -830,7 +846,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert variant="danger">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -906,8 +922,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       <AlertLink.Container>
         <AlertLink
           openInNewTab
-          type="error"
-          trailingItems={<IconNot color="red300" />}
+          variant="danger"
+          trailingItems={<IconNot variant="danger" />}
           href={makeAlertsPathname({
             path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
             organization,
@@ -956,7 +972,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert variant="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1177,7 +1193,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Main fullWidth>
+      <Main width="full">
         <SentryDocumentTitle
           title={rule ? t('Alert — %s', rule.name) : t('New Alert Rule')}
           orgSlug={organization.slug}
@@ -1244,12 +1260,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                     <StepConnector />
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1302,7 +1313,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1334,12 +1345,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          color="gray200"
-                          isCircled
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
 
                       <StepContent data-test-id="rule-filters">
@@ -1389,7 +1395,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.filters![0]}
                               </Alert>
                             )
@@ -1410,12 +1416,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   <Step>
                     <StepContainer>
                       <ChevronContainer>
-                        <IconChevron
-                          isCircled
-                          color="gray200"
-                          direction="right"
-                          size="sm"
-                        />
+                        <IconChevron variant="muted" direction="right" size="sm" />
                       </ChevronContainer>
                       <StepContent>
                         <StepLead>
@@ -1438,7 +1439,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error" showIcon={false}>
+                              <Alert variant="danger" showIcon={false}>
                                 {detailedError?.actions![0]}
                               </Alert>
                             )
@@ -1615,7 +1616,7 @@ const ConditionsPanel = styled(Panel)`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
@@ -1657,7 +1658,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray200} dashed;
+  border-right: 1px ${p => p.theme.colors.gray200} dashed;
 `;
 
 const StepLead = styled('div')`
@@ -1679,14 +1680,14 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   min-width: 56px;
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.5;
 `;
 
@@ -1696,7 +1697,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
 
@@ -1741,7 +1742,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

@@ -76,7 +76,8 @@ function Step({
   isChangesFirstAppearance,
   isAutoTriggeredRun,
   event,
-}: StepProps) {
+  codingAgents,
+}: StepProps & {codingAgents?: Record<string, any>}) {
   return (
     <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
       <ContentWrapper>
@@ -104,8 +105,10 @@ function Step({
                   runId={runId}
                   causes={step.causes}
                   rootCauseSelection={step.selection}
+                  status={step.status}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  codingAgents={codingAgents}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
@@ -119,6 +122,7 @@ function Step({
                   solution={step.solution}
                   description={step.description}
                   solutionSelected={step.solution_selected}
+                  status={step.status}
                   customSolution={step.custom_solution}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
@@ -273,6 +277,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
               }
               isAutoTriggeredRun={isAutoTriggeredRun}
               event={event}
+              codingAgents={data.coding_agents}
             />
           </div>
         );
@@ -308,8 +313,8 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
 const StepMessage = styled('div')`
   overflow: hidden;
   padding: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   justify-content: flex-start;
   text-align: left;
 `;
@@ -340,5 +345,5 @@ const AnimationWrapper = styled(motion.div)``;
 const StandaloneErrorMessage = styled('div')`
   margin: ${space(1)} 0;
   padding: ${space(2)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

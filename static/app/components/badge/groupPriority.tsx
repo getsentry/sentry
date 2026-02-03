@@ -1,17 +1,16 @@
 import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -24,6 +23,7 @@ import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -53,10 +53,18 @@ function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
-  const {data} = useApiQuery<{activity: Activity[]}>([`/issues/${groupId}/activities/`], {
-    enabled: !defined(incomingLastEditedBy),
-    staleTime: 0,
-  });
+  const organization = useOrganization();
+  const {data} = useApiQuery<{activity: Activity[]}>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+      }),
+    ],
+    {
+      enabled: !defined(incomingLastEditedBy),
+      staleTime: 0,
+    }
+  );
 
   const lastEditedBy = useMemo(() => {
     if (incomingLastEditedBy) {
@@ -99,7 +107,7 @@ export function GroupPriorityBadge({
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
+    <StyledTag variant="muted" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -169,7 +177,7 @@ function GroupPriorityLearnMore() {
       </LinkButton>
       <DismissButton
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -212,7 +220,7 @@ export function GroupPriorityDropdown({
           }
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -241,21 +249,16 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
   border-radius: 20px;
   box-shadow: none;
 
-  ${p =>
-    // Chonk tags have a smaller border radius, so we need make sure it matches.
-    p.theme.isChonk &&
-    css`
-      > span > div {
-        border-radius: 20px;
-      }
-    `}
+  > span > div {
+    border-radius: 20px;
+  }
 `;
 
 const StyledTag = styled(Tag)`
@@ -272,25 +275,33 @@ const InlinePlaceholder = styled(Placeholder)`
 
 const StyledFooter = styled(DropdownMenuFooter)`
   max-width: 230px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TruncatedFooterText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1.5)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   overflow: hidden;
   background: linear-gradient(
     269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
+    ${p => p.theme.tokens.background.tertiary} 0.32%,
     rgba(245, 243, 247, 0) 99.69%
   );
 
@@ -303,7 +314,7 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BannerStar1 = styled('img')`

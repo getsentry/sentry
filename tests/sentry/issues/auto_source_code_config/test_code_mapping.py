@@ -308,6 +308,13 @@ class TestDerivedCodeMappings(TestCase):
                 "nothing/something.js",
             )
 
+    def test_find_roots_empty_source_path(self) -> None:
+        with pytest.raises(UnexpectedPathException):
+            find_roots(
+                create_frame_info({"filename": "sentry/foo.py"}),
+                "",
+            )
+
     def test_find_roots_windows_path_with_spaces(self) -> None:
         stacktrace_root, source_path = find_roots(
             create_frame_info({"filename": "C:\\Program Files\\MyApp\\src\\file.py"}), "src/file.py"

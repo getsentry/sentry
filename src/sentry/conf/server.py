@@ -20,6 +20,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
+from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.region_config import RegionConfig
@@ -28,6 +29,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
+from sentry.conf.types.taskworker import crontab as task_crontab
 from sentry.conf.types.uptime import UptimeRegionConfig
 
 
@@ -69,7 +71,8 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        if "SENTRY_RUNNING_UWSGI" in os.environ:
+        # TODO: check this is actually still correct, since granian doesn't fork
+        if "SENTRY_RUNNING_GRANIAN" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -189,6 +192,12 @@ SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
+SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
+SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
+SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
+SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -375,6 +384,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
@@ -382,7 +392,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
-    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -434,6 +443,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "crispy_forms",
     "rest_framework",
     "sentry",
+    "sentry.autopilot",
     "sentry.analytics",
     "sentry.auth_v2",
     "sentry.incidents.apps.Config",
@@ -479,6 +489,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.prevent",
+    "sentry.seer",
 )
 
 # Silence internal hints from Django's system checks
@@ -567,6 +579,10 @@ if ENVIRONMENT == "development":
 
 # To enforce CSP (block violated resources), update the following parameter to False
 CSP_REPORT_ONLY = True
+
+COOP_ENABLED = False
+COOP_REPORT_ONLY = True
+COOP_REPORT_TO: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -775,6 +791,7 @@ TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
+    "flush-delayed-workflows",
     "sync-options",
     "sync-options-control",
     "schedule-digests",
@@ -787,17 +804,13 @@ BGTASKS: dict[str, BgTaskConfig] = {
     },
 }
 
-# Fernet keys for database encryption.
-# First key in the dict is used as a primary key, and if
-# encryption method options is "fernet", the first key will be
-# used to decrypt the data.
-#
-# Other keys are used only for data decryption. This structure
-# is used to allow easier key rotation when "fernet" is used
-# as an encryption method.
-DATABASE_ENCRYPTION_FERNET_KEYS = {
-    os.getenv("DATABASE_ENCRYPTION_KEY_ID_1"): os.getenv("DATABASE_ENCRYPTION_FERNET_KEY_1"),
+# Settings for encrypted database fields.
+DATABASE_ENCRYPTION_SETTINGS: EncryptedFieldSettings = {
+    "method": "plaintext",
+    "fernet_primary_key_id": os.getenv("DATABASE_ENCRYPTION_FERNET_PRIMARY_KEY_ID"),
+    "fernet_keys_location": os.getenv("DATABASE_ENCRYPTION_FERNET_KEYS_LOCATION"),
 }
+
 
 #######################
 # Taskworker settings #
@@ -820,10 +833,15 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
+# This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.autopilot.tasks",
+    "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
+    "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
+    "sentry.deletions.tasks.nodestore",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -836,8 +854,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.integrations.github.tasks.codecov_account_link",
+    "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
-    "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
@@ -846,6 +865,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.slack.tasks.link_slack_user_identities",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.tasks.create_comment",
     "sentry.integrations.tasks.kick_off_status_syncs",
     "sentry.integrations.tasks.migrate_repo",
@@ -857,20 +877,29 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.vsts.tasks.subscription_check",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
+    "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
+    "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
+    "sentry.replays.data_export",
     "sentry.replays.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.seer.autofix.issue_summary",
+    "sentry.seer.code_review.webhooks.task",
+    "sentry.seer.entrypoints.operator",
+    "sentry.seer.entrypoints.integrations.slack",
     "sentry.snuba.tasks",
+    "sentry.tasks.activity",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
@@ -890,13 +919,17 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.delete_pending_groups",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
+    "sentry.tasks.files",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection.detection",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
+    "sentry.tasks.organization_contributors",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -914,19 +947,22 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.user_report",
+    "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.autodetect.notifications",
+    "sentry.uptime.autodetect.tasks",
+    "sentry.uptime.consumers.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
+    "sentry.tasks.seer_explorer_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
 
-from sentry.conf.types.taskworker import crontab as task_crontab
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
@@ -948,7 +984,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1002,6 +1038,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "deletions:sentry.deletions.tasks.reattempt_deletions",
         "schedule": task_crontab("0", "*/2", "*", "*", "*"),
     },
+    "delete-pending-groups": {
+        "task": "deletions:sentry.tasks.delete_pending_groups",
+        # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
+    },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": task_crontab("0", "12", "sat", "*", "*"),
@@ -1046,6 +1087,14 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
+    "autopilot-run-sdk-update-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "autopilot-run-missing-sdk-integration-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
+        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+    },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
@@ -1078,6 +1127,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
     },
+    "seer-explorer-index": {
+        "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
@@ -1102,9 +1155,17 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
+    "llm-issue-detection": {
+        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
+    "web-vitals-issue-detection": {
+        "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
@@ -1236,6 +1297,8 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "toronado.cssutils": {"level": "ERROR", "handlers": ["null"], "propagate": False},
+        "CSSUTILS": {"level": "ERROR", "handlers": ["null"], "propagate": False},
         "urllib3.connectionpool": {
             "level": "ERROR",
             "handlers": ["console"],
@@ -1243,6 +1306,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 
@@ -1333,7 +1397,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
     "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
 # NOTE: Features can have their default value set when calling
@@ -1367,6 +1430,9 @@ SENTRY_PROJECT_KEY: int | None = None
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
+
+# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
+SENTRY_DEFAULT_ORGANIZATION_ID = 1
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -1564,6 +1630,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
 
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
+
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
@@ -1722,6 +1792,7 @@ SENTRY_SCOPES = {
     "project:write",
     "project:admin",
     "project:releases",
+    "project:distribution",
     "event:read",
     "event:write",
     "event:admin",
@@ -1760,6 +1831,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "project:write": {"project:read", "project:write"},
     "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
+    "project:distribution": {"project:distribution"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
     "event:admin": {"event:read", "event:write", "event:admin"},
@@ -1769,6 +1841,15 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "profile": {"profile"},
     "email": {"email"},
 }
+
+# Specialized scopes that can be granted to integration tokens even if the
+# user doesn't have them in their role. These are token-only scopes not intended
+# for user roles.
+SENTRY_TOKEN_ONLY_SCOPES = frozenset(
+    [
+        "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
 
 SENTRY_SCOPE_SETS = (
     (
@@ -1799,6 +1880,7 @@ SENTRY_SCOPE_SETS = (
         ("project:read", "Read access to projects."),
     ),
     (("project:releases", "Read, write, and admin access to project releases."),),
+    (("project:distribution", "Access to app distribution and preprod artifacts."),),
     (
         ("event:admin", "Read, write, and admin access to events."),
         ("event:write", "Read and write access to events."),
@@ -2096,7 +2178,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.9.0"
+SELF_HOSTED_STABLE_VERSION = "26.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2120,6 +2202,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
 
@@ -2476,7 +2559,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 # WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
-# use below, and a legacy one still used in `getsentry`.
+# use below, and a legacy one that still might be used by self-hosted instances.
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
@@ -2545,7 +2628,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
     "uptime-results": "default",
-    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -2668,13 +2750,17 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
+FALL_2025_GROUPING_CONFIG = "newstyle:2026-01-20"
+# Note: When the default config here is updated, `DEFAULT_ENHANCEMENTS_BASE` in
+# `sentry.grouping.enhancer.__init__` *may* also need to be updated.
+DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_UWSGI = True
+SENTRY_USE_GRANIAN = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
@@ -2778,17 +2864,16 @@ SEER_ALERT_DELETION_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
 )
 
+SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/alert-data"
+)
+
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
-
-# Used to validate RPC requests from the Overwatch service
-OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
-if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
-    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -2879,6 +2964,7 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
@@ -2940,6 +3026,10 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }
+
+SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE = (
+    0.1  # relative to SENTRY_PROCESS_EVENT_APM_SAMPLING
+)
 
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
@@ -3011,10 +3101,6 @@ SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 # but existing customers have been using these routes
 # on the main domain for a long time.
 REGION_PINNED_URL_NAMES = {
-    # These paths have organization scoped aliases
-    "sentry-api-0-builtin-symbol-sources",
-    "sentry-api-0-grouping-configs",
-    "sentry-api-0-prompts-activity",
     # Unprefixed issue URLs
     "sentry-api-0-group-details",
     "sentry-api-0-group-activities",
@@ -3037,13 +3123,10 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-shared-group-details",
     # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
-    "sentry-api-0-relay-projectids",
     "sentry-api-0-relay-publickeys",
     "sentry-api-0-relays-healthcheck",
     "sentry-api-0-relays-details",
@@ -3171,3 +3254,17 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "http://127.0.0.1:9096")
+CONDUIT_GATEWAY_JWT_ISSUER: str = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "sentry.io")
+CONDUIT_GATEWAY_JWT_AUDIENCE: str = os.getenv("CONDUIT_GATEWAY_JWT_AUDIENCE", "conduit")
+
+CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
+CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
+CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
+CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+SYNAPSE_HMAC_SECRET: list[str] | None = None
+if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:
+    SYNAPSE_HMAC_SECRET = [val]

@@ -1,11 +1,12 @@
 import type {ReactNode} from 'react';
 
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+
 import Access from 'sentry/components/acl/access';
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
-interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'type'> {
+interface OrganizationPermissionAlertProps extends Omit<AlertProps, 'variant'> {
   access?: Scope[];
   message?: ReactNode;
 }
@@ -22,7 +23,7 @@ export function OrganizationPermissionAlert({
       {({hasAccess}) =>
         !hasAccess && (
           <Alert.Container>
-            <Alert data-test-id="org-permission-alert" type="warning" {...props}>
+            <Alert data-test-id="org-permission-alert" variant="warning" {...props}>
               {message}
             </Alert>
           </Alert.Container>

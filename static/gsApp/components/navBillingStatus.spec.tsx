@@ -2,9 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
+import {DataCategory} from 'sentry/types/core';
 
 import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -83,7 +86,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     );
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Mon Jun 06 2022' // MOCK_TODAY
+      '2022-06-06T05:09:33.000Z' // MOCK_TODAY
     );
   });
 
@@ -97,7 +100,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     ).toBe('errors-replays-spans-profileDuration');
     expect(
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
-    ).toBe('Mon Jun 06 2022');
+    ).toBe('2022-06-06T05:09:33.000Z');
   }
 
   it('should render for multiple categories', async () => {
@@ -399,7 +402,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when more than a day has passed', async () => {
+  it('should auto open the alert when more than a day has passed (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun Jun 05 2022'
@@ -409,7 +412,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when the last shown date is before the current usage cycle started', async () => {
+  it('should auto open the alert when the last shown date is before the current usage cycle started (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun May 29 2022'
@@ -417,5 +420,241 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when more than a day has passed (ISO date format)', async () => {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      '2022-06-05T15:00:32.000Z'
+    ); // more than a day, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when the last shown date is before the current usage cycle started (ISO date format))', async () => {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      '2022-05-29T05:09:33.000Z'
+    ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  describe('PAYG ineligible categories', () => {
+    it('should render Size Analysis quota exceeded with Contact Sales CTA', async () => {
+      const newSub = SubscriptionFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      // Add SIZE_ANALYSIS category with usageExceeded
+      newSub.categories.sizeAnalyses = MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        usageExceeded: true,
+        order: 20,
+      });
+      // Clear other exceeded flags
+      for (const key of Object.keys(newSub.categories) as Array<
+        keyof typeof newSub.categories
+      >) {
+        if (key !== 'sizeAnalyses' && newSub.categories[key]) {
+          newSub.categories[key].usageExceeded = false;
+        }
+      }
+      SubscriptionStore.set(organization.slug, newSub);
+      localStorage.setItem(
+        `billing-status-last-shown-categories-${organization.id}`,
+        'sizeAnalyses'
+      );
+
+      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+
+      expect(
+        await screen.findByText('Size Analysis Builds - Quota Exceeded')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Your organization has used your full quota of size analysis builds this billing period/
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /contact sales to discuss custom pricing available on the Enterprise plan/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
+        'href',
+        'mailto:sales@sentry.io'
+      );
+      expect(
+        screen.getByRole('button', {
+          name: 'Dismiss alert for the rest of the billing cycle',
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('should render Build Distribution quota exceeded with Contact Sales CTA', async () => {
+      const newSub = SubscriptionFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      // Add INSTALLABLE_BUILD category with usageExceeded
+      newSub.categories.installableBuilds = MetricHistoryFixture({
+        category: DataCategory.INSTALLABLE_BUILD,
+        reserved: 25000,
+        prepaid: 25000,
+        usageExceeded: true,
+        order: 21,
+      });
+      // Clear other exceeded flags
+      for (const key of Object.keys(newSub.categories) as Array<
+        keyof typeof newSub.categories
+      >) {
+        if (key !== 'installableBuilds' && newSub.categories[key]) {
+          newSub.categories[key].usageExceeded = false;
+        }
+      }
+      SubscriptionStore.set(organization.slug, newSub);
+      localStorage.setItem(
+        `billing-status-last-shown-categories-${organization.id}`,
+        'installableBuilds'
+      );
+
+      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+
+      expect(
+        await screen.findByText('Build Distribution Installs - Quota Exceeded')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Your organization has used your full quota of build distribution installs this billing period/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
+        'href',
+        'mailto:sales@sentry.io'
+      );
+    });
+
+    it('should render both PAYG ineligible categories exceeded', async () => {
+      const newSub = SubscriptionFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      // Add both PAYG ineligible categories with usageExceeded
+      newSub.categories.sizeAnalyses = MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        usageExceeded: true,
+        order: 20,
+      });
+      newSub.categories.installableBuilds = MetricHistoryFixture({
+        category: DataCategory.INSTALLABLE_BUILD,
+        reserved: 25000,
+        prepaid: 25000,
+        usageExceeded: true,
+        order: 21,
+      });
+      // Clear other exceeded flags
+      for (const key of Object.keys(newSub.categories) as Array<
+        keyof typeof newSub.categories
+      >) {
+        if (
+          key !== 'sizeAnalyses' &&
+          key !== 'installableBuilds' &&
+          newSub.categories[key]
+        ) {
+          newSub.categories[key].usageExceeded = false;
+        }
+      }
+      SubscriptionStore.set(organization.slug, newSub);
+      localStorage.setItem(
+        `billing-status-last-shown-categories-${organization.id}`,
+        'sizeAnalyses-installableBuilds'
+      );
+
+      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+
+      expect(
+        await screen.findByText(
+          'Size Analysis Builds and Build Distribution Installs - Quota Exceeded'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Your organization has used your full quota of size analysis builds and build distribution installs this billing period/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
+        'href',
+        'mailto:sales@sentry.io'
+      );
+    });
+
+    it('should render mixed PAYG ineligible and other categories exceeded', async () => {
+      const newSub = SubscriptionFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      // Add SIZE_ANALYSIS with usageExceeded
+      newSub.categories.sizeAnalyses = MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        usageExceeded: true,
+        order: 20,
+      });
+      // Set errors as exceeded too
+      newSub.categories.errors!.usageExceeded = true;
+      // Clear other exceeded flags
+      for (const key of Object.keys(newSub.categories) as Array<
+        keyof typeof newSub.categories
+      >) {
+        if (key !== 'sizeAnalyses' && key !== 'errors' && newSub.categories[key]) {
+          newSub.categories[key].usageExceeded = false;
+        }
+      }
+      SubscriptionStore.set(organization.slug, newSub);
+      localStorage.setItem(
+        `billing-status-last-shown-categories-${organization.id}`,
+        'errors-sizeAnalyses'
+      );
+
+      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+
+      // Should show PAYG ineligible section
+      expect(
+        await screen.findByText('Size Analysis Builds - Quota Exceeded')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Your organization has used your full quota of size analysis builds this billing period/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Contact Sales'})).toHaveAttribute(
+        'href',
+        'mailto:sales@sentry.io'
+      );
+
+      // Should also show standard category section
+      expect(screen.getByText('Error Quota Exceeded')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /You have used up your quota for errors. Monitoring and new data are paused until your quota resets./
+        )
+      ).toBeInTheDocument();
+    });
   });
 });

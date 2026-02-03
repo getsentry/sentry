@@ -17,7 +17,8 @@ export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
           'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         playstation:
           'http://dev.getsentry.net:8000/api/1/playstation/?sentry_key=188ee45a58094d939428d8585aa6f661',
-        otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+        integration: 'http://dev.getsentry.net:8000/api/1/integration/',
+        otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
         otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
       },
       public: '188ee45a58094d939428d8585aa6f661',
@@ -40,9 +41,11 @@ export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
         ],
       },
       dynamicSdkLoaderOptions: {
+        hasDebug: false,
+        hasFeedback: false,
         hasPerformance: false,
         hasReplay: false,
-        hasDebug: false,
+        hasLogsAndMetrics: false,
       },
     },
     ...params,

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 
+from django.db import router, transaction
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +11,7 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.analytics import (
     PreprodArtifactApiSizeAnalysisCompareGetEvent,
     PreprodArtifactApiSizeAnalysisComparePostEvent,
@@ -24,7 +28,11 @@ from sentry.preprod.api.models.size_analysis.project_preprod_size_analysis_compa
     SizeAnalysisComparePOSTResponse,
     SizeAnalysisComparison,
 )
-from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeComparison,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.size_analysis.tasks import manual_size_analysis_comparison
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 
@@ -43,11 +51,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
     def get(
         self,
         request: Request,
-        project,
-        head_artifact_id,
-        base_artifact_id,
-        head_artifact,
-        base_artifact,
+        project: Project,
+        head_artifact_id: int,
+        base_artifact_id: int,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
     ) -> HttpResponseBase:
         """
         Get size analysis comparison results for a preprod artifact
@@ -69,15 +77,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_artifact_id=head_artifact_id,
-                base_artifact_id=base_artifact_id,
+                head_artifact_id=str(head_artifact_id),
+                base_artifact_id=str(base_artifact_id),
             )
         )
 
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.get",
@@ -85,7 +93,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         )
 
         if head_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
+            return Response({"detail": "Project not found"}, status=404)
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[head_artifact.id],
@@ -100,7 +108,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             )
 
         if base_artifact.project.id != project.id:
-            return Response({"error": "Project not found"}, status=404)
+            return Response({"detail": "Project not found"}, status=404)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
             preprod_artifact_id__in=[base_artifact.id],
@@ -229,11 +237,11 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
     def post(
         self,
         request: Request,
-        project,
-        head_artifact_id,
-        base_artifact_id,
-        head_artifact,
-        base_artifact,
+        project: Project,
+        head_artifact_id: int,
+        base_artifact_id: int,
+        head_artifact: PreprodArtifact,
+        base_artifact: PreprodArtifact,
     ) -> HttpResponseBase:
         """
         Trigger size analysis comparison for a preprod artifact
@@ -255,15 +263,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_artifact_id=head_artifact_id,
-                base_artifact_id=base_artifact_id,
+                head_artifact_id=str(head_artifact_id),
+                base_artifact_id=str(base_artifact_id),
             )
         )
 
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.post",
@@ -272,7 +280,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
 
         if head_artifact.build_configuration != base_artifact.build_configuration:
             return Response(
-                {"error": "Head and base build configurations must be the same."}, status=400
+                {"detail": "Head and base build configurations must be the same."}, status=400
             )
 
         head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -331,9 +339,10 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
         base_size_metrics = list(base_size_metrics_qs)
 
         # Check if the size metrics can be compared
-        if not can_compare_size_metrics(head_size_metrics, base_size_metrics):
+        validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
+        if not validation_result.can_compare:
             return Response(
-                {"detail": "Head and base size metrics cannot be compared."},
+                {"detail": validation_result.error_message},
                 status=400,
             )
 
@@ -373,13 +382,52 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
             body = SizeAnalysisComparePOSTResponse(
                 status="exists",
                 message="A comparison already exists for the head and base size metrics.",
-                existing_comparisons=comparison_models,
+                comparisons=comparison_models,
             )
             return Response(body.dict(), status=200)
 
         logger.info(
-            "preprod.size_analysis.compare.api.post.running_comparison",
+            "preprod.size_analysis.compare.api.post.creating_pending_comparisons",
             extra={"head_artifact_id": head_artifact.id, "base_artifact_id": base_artifact.id},
+        )
+
+        # Create PENDING comparison records for each matching head/base metric pair
+        head_metrics_map = build_size_metrics_map(head_size_metrics)
+        base_metrics_map = build_size_metrics_map(base_size_metrics)
+
+        created_comparisons = []
+        with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
+            for key, head_metric in head_metrics_map.items():
+                base_metric = base_metrics_map.get(key)
+                if base_metric:
+                    comparison = PreprodArtifactSizeComparison.objects.create(
+                        head_size_analysis=head_metric,
+                        base_size_analysis=base_metric,
+                        organization_id=project.organization_id,
+                        state=PreprodArtifactSizeComparison.State.PENDING,
+                    )
+                    comparison.save()
+
+                    created_comparisons.append(
+                        SizeAnalysisComparison(
+                            head_size_metric_id=head_metric.id,
+                            base_size_metric_id=base_metric.id,
+                            metrics_artifact_type=head_metric.metrics_artifact_type,
+                            identifier=head_metric.identifier,
+                            state=PreprodArtifactSizeComparison.State.PENDING,
+                            comparison_id=None,
+                            error_code=None,
+                            error_message=None,
+                        )
+                    )
+
+        logger.info(
+            "preprod.size_analysis.compare.api.post.running_comparison",
+            extra={
+                "head_artifact_id": head_artifact.id,
+                "base_artifact_id": base_artifact.id,
+                "pending_comparisons_count": len(created_comparisons),
+            },
         )
 
         manual_size_analysis_comparison.apply_async(
@@ -393,6 +441,16 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
 
         logger.info(
             "preprod.size_analysis.compare.api.post.success",
-            extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+                "created_comparisons_count": len(created_comparisons),
+            },
         )
-        return Response(status=200)
+
+        body = SizeAnalysisComparePOSTResponse(
+            status="created",
+            message="Comparison records created and processing started.",
+            comparisons=created_comparisons,
+        )
+        return Response(body.dict(), status=200)

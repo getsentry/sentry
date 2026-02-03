@@ -1,19 +1,15 @@
-import type React from 'react';
+import {Outlet} from 'react-router-dom';
 
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
 
-type Props = {
-  children: React.JSX.Element;
-};
-
-function OrganizationSubscriptionContext({children}: Props) {
+export default function OrganizationSubscriptionContext() {
   return (
     <OrganizationContainer>
-      <SubscriptionContext>{children}</SubscriptionContext>
+      <SubscriptionContext>
+        <Outlet />
+      </SubscriptionContext>
     </OrganizationContainer>
   );
 }
-
-export default OrganizationSubscriptionContext;

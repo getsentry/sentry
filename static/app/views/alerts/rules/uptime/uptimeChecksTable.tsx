@@ -4,6 +4,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,13 +14,13 @@ import {UptimeChecksGrid} from './uptimeChecksGrid';
 
 interface UptimeChecksTableProps {
   detectorId: string;
-  projectSlug: string;
+  project: Project;
   traceSampling: boolean;
 }
 
 export function UptimeChecksTable({
   detectorId,
-  projectSlug,
+  project,
   traceSampling,
 }: UptimeChecksTableProps) {
   const location = useLocation();
@@ -40,7 +41,7 @@ export function UptimeChecksTable({
   } = useUptimeChecks(
     {
       orgSlug: organization.slug,
-      projectSlug,
+      projectSlug: project.slug,
       detectorId,
       cursor: decodeScalar(location.query.cursor),
       ...timeRange,
@@ -61,7 +62,11 @@ export function UptimeChecksTable({
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <UptimeChecksGrid traceSampling={traceSampling} uptimeChecks={uptimeChecks} />
+        <UptimeChecksGrid
+          project={project}
+          traceSampling={traceSampling}
+          uptimeChecks={uptimeChecks}
+        />
       )}
       <Pagination pageLinks={getResponseHeader?.('Link')} />
     </Fragment>

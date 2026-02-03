@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 
 import {usePageFilterDates} from './useMonitorDates';
 
@@ -30,6 +31,7 @@ export function useTimeWindowConfig({
   recomputeOnWindowFocus,
   recomputeQueryKey,
 }: Options) {
+  const timezone = useTimezone();
   const {since, until} = usePageFilterDates({
     recomputeInterval,
     recomputeOnWindowFocus,
@@ -37,7 +39,7 @@ export function useTimeWindowConfig({
   });
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth),
-    [since, until, timelineWidth]
+    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
+    [since, until, timelineWidth, timezone]
   );
 }

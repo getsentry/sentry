@@ -1,0 +1,47 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "ad4d21cacbbadddbe1a37535d7dbbba5"
+  contributing component: threads
+  hint: None
+  root_component:
+    app*
+      threads*
+        stacktrace*
+          frame* (marked in-app by the client)
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (marked out of app by the client)
+            function*
+              "__99+[Something else]_block_invoke_2"
+          frame (marked out of app by the client)
+            function*
+              "__00+[Something else]_block_invoke_2"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because app threads take precedence
+  root_component:
+    default (ignored because app threads take precedence)
+      message (ignored because app threads take precedence)
+        "Foo"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  contributing component: null
+  hint: ignored because app threads take precedence
+  root_component:
+    system (ignored because app threads take precedence)
+      threads (ignored because hash matches app variant)
+        stacktrace*
+          frame*
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "__99+[Something else]_block_invoke_2"
+          frame (ignored by built-in stack trace rule (category:internals -group))
+            function*
+              "__00+[Something else]_block_invoke_2"

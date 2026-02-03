@@ -1,18 +1,19 @@
 import {useCallback, useMemo} from 'react';
-import type {Location} from 'history';
+
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import type {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -22,10 +23,8 @@ import {
 
 interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;
-  location: Location;
   organization: Organization;
   projects: Project[];
-  router: WithRouterProps['router'];
   source?: DiscoverQueryPageSource;
 }
 
@@ -56,6 +55,9 @@ const UNSUPPORTED_TRANSACTION_NAME_DOCS = [
 export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
 ): React.ReactElement | null {
+  const location = useLocation();
+  const router = useRouter();
+
   const isOnFallbackThresolds = props.organization.features.includes(
     'performance-mep-bannerless-ui'
   );
@@ -65,7 +67,7 @@ export function MetricsDataSwitcherAlert(
   }, []);
 
   const docsLink = useMemo(() => {
-    const platforms = getSelectedProjectPlatformsArray(props.location, props.projects);
+    const platforms = getSelectedProjectPlatformsArray(location, props.projects);
     if (platforms.length < 1) {
       return null;
     }
@@ -84,18 +86,22 @@ export function MetricsDataSwitcherAlert(
     }
 
     return `https://docs.sentry.io/platforms/${supportedPlatform}/enriching-events/transaction-name/`;
-  }, [props.location, props.projects]);
+  }, [location, props.projects]);
 
   const handleSwitchToCompatibleProjects = useCallback(() => {
-    updateProjects(props.compatibleProjects || [], props.router);
-  }, [props.compatibleProjects, props.router]);
+    updateProjects(props.compatibleProjects || [], router);
+  }, [props.compatibleProjects, router]);
 
   if (!props.shouldNotifyUnnamedTransactions && !props.shouldWarnIncompatibleSDK) {
     // Control showing generic sdk-alert here since stacking alerts is noisy.
     return null;
   }
 
-  const discoverTarget = createUnnamedTransactionsDiscoverTarget(props);
+  const discoverTarget = createUnnamedTransactionsDiscoverTarget({
+    location,
+    organization: props.organization,
+    source: props.source,
+  });
 
   if (isOnFallbackThresolds) {
     return null;
@@ -112,7 +118,7 @@ export function MetricsDataSwitcherAlert(
         return (
           <Alert.Container>
             <Alert
-              type="warning"
+              variant="warning"
               data-test-id="landing-mep-alert-multi-project-all-incompatible"
             >
               {tct(
@@ -128,7 +134,7 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert.Container>
           <Alert
-            type="warning"
+            variant="warning"
             data-test-id="landing-mep-alert-multi-project-incompatible"
           >
             {tct(
@@ -150,7 +156,7 @@ export function MetricsDataSwitcherAlert(
     return (
       <Alert.Container>
         <Alert
-          type="warning"
+          variant="warning"
           data-test-id="landing-mep-alert-single-project-incompatible"
         >
           {tct(
@@ -169,7 +175,7 @@ export function MetricsDataSwitcherAlert(
     if (!docsLink) {
       return (
         <Alert.Container>
-          <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover">
+          <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover">
             {tct(
               `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
               {
@@ -183,7 +189,7 @@ export function MetricsDataSwitcherAlert(
 
     return (
       <Alert.Container>
-        <Alert type="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
+        <Alert variant="warning" data-test-id="landing-mep-alert-unnamed-discover-or-set">
           {tct(
             `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
             {

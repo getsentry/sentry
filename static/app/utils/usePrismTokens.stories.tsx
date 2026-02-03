@@ -120,11 +120,11 @@ const Line = styled('div')`
   gap: ${space(1)};
   height: 22px;
   line-height: 22px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const LineNumber = styled('div')`
-  background: ${p => p.theme.purple400};
-  color: ${p => p.theme.white};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
   padding: 0 ${space(1)};
 `;

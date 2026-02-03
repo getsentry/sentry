@@ -1,11 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
 import Indicators from 'sentry/components/indicators';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
@@ -13,12 +13,14 @@ jest.mock('sentry/components/forms/formIndicators');
 jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', () => {
-  const {organization, routerProps} = initializeOrg();
+  const organization = OrganizationFixture();
   let putMock: jest.Mock;
+  let membersRequest: jest.Mock;
   const onSave = jest.fn();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    OrganizationStore.onUpdate(organization, {replace: true});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -29,6 +31,10 @@ describe('OrganizationSettingsForm', () => {
       body: {
         providers: [{canAdd: true}],
       },
+    });
+    membersRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
     });
     onSave.mockReset();
   });
@@ -41,11 +47,7 @@ describe('OrganizationSettingsForm', () => {
     });
 
     render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture()}
-        onSave={onSave}
-      />
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
     );
 
     render(<Indicators />);
@@ -114,11 +116,7 @@ describe('OrganizationSettingsForm', () => {
     });
 
     render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture()}
-        onSave={onSave}
-      />
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
     );
 
     const input = screen.getByRole('textbox', {name: 'Organization Slug'});
@@ -150,7 +148,6 @@ describe('OrganizationSettingsForm', () => {
 
     render(
       <OrganizationSettingsForm
-        {...routerProps}
         initialData={OrganizationFixture({codecovAccess: false})}
         onSave={onSave}
       />,
@@ -178,13 +175,12 @@ describe('OrganizationSettingsForm', () => {
 
   it('can toggle "Show Generative AI Features"', async () => {
     // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
-    const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
+    const hiddenAiOrg = OrganizationFixture({
+      hideAiFeatures: true,
+      features: ['gen-ai-features'],
+    });
     render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture()}
-        onSave={onSave}
-      />,
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
       {organization: hiddenAiOrg}
     );
     const mock = MockApiClient.addMockResponse({
@@ -224,7 +220,7 @@ describe('OrganizationSettingsForm', () => {
     });
   });
 
-  it('shows hideAiFeatures togglefor DE region', () => {
+  it('shows hideAiFeatures togglefor DE region', async () => {
     // Mock the region util to return DE region
     jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
@@ -233,256 +229,376 @@ describe('OrganizationSettingsForm', () => {
     }));
 
     render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture()}
-        onSave={onSave}
-      />,
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
       {
         organization: {
           ...organization,
-          features: ['autofix'],
+          features: ['autofix', 'gen-ai-features'],
         },
       }
     );
+
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
     const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     expect(toggle).toBeEnabled();
   });
 
-  it('renders AI Code Review field', () => {
+  it('disables "Show Generative AI Features" toggle when feature flag is off', async () => {
     render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: true})}
-        onSave={onSave}
-      />
+      <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
+      {
+        organization: {
+          ...organization,
+          features: [], // No gen-ai-features flag
+        },
+      }
     );
 
-    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
-    expect(screen.getByText('beta')).toBeInTheDocument();
-
-    expect(
-      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
-    ).toBeInTheDocument();
-
-    const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
-    expect(learnMoreLink).toBeInTheDocument();
-    expect(learnMoreLink).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
-    );
-  });
-
-  it('hides AI Code Review field when AI features are disabled', () => {
-    render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        // This logic is inverted from the variable name
-        initialData={OrganizationFixture({hideAiFeatures: false})}
-        onSave={onSave}
-      />
-    );
-
-    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'Use AI to review, find bugs, and generate tests in pull requests'
-      )
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows PR Review and Test Generation field when AI features are enabled', () => {
-    render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: true})}
-        onSave={onSave}
-      />
-    );
-
-    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
-    expect(
-      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
-    ).toBeInTheDocument();
-  });
-
-  it('shows/hides PR Review field when toggling AI features', async () => {
-    render(
-      <OrganizationSettingsForm
-        {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: false})}
-        onSave={onSave}
-      />
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show Generative AI Features',
     });
 
-    // Initially AI features are disabled, so PR Review field should be hidden
-    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
-
-    const aiToggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
-    await userEvent.click(aiToggle);
-
-    // PR Review field should now be visible
-    expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
-
-    await userEvent.click(aiToggle);
-
-    // PR Review field should be hidden again
-    expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toBeChecked();
   });
 
   describe('AI Code Review field', () => {
-    it('is enabled when US region', () => {
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
-        name: 'us',
-        displayName: 'United States of America (US)',
-        url: 'https://sentry.example.com',
-      });
-
+    it('renders AI Code Review field', async () => {
       render(
         <OrganizationSettingsForm
-          {...routerProps}
           initialData={OrganizationFixture({hideAiFeatures: true})}
-          onSave={onSave}
-        />
-      );
-
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeEnabled();
-      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
-    });
-
-    it('is disabled when non US region', async () => {
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
-        name: 'de',
-        displayName: 'Europe (Frankfurt)',
-        url: 'https://sentry.de.example.com',
-      });
-
-      render(
-        <OrganizationSettingsForm
-          {...routerProps}
-          initialData={OrganizationFixture({hideAiFeatures: true})}
-          onSave={onSave}
-        />
-      );
-
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
-
-      // Hover over the disabled tag to show the tooltip
-      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
-      expect(disabledTag).toBeInTheDocument();
-      await userEvent.hover(disabledTag);
-      expect(
-        await screen.findByText('This feature is only available in the US region')
-      ).toBeInTheDocument();
-    });
-
-    it('is enabled when user is an admin (has org:write access)', () => {
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
-        name: 'us',
-        displayName: 'United States of America (US)',
-        url: 'https://sentry.example.com',
-      });
-
-      render(
-        <OrganizationSettingsForm
-          {...routerProps}
-          initialData={OrganizationFixture({
-            hideAiFeatures: true,
-          })}
           onSave={onSave}
         />,
         {
           organization: {
             ...organization,
-            access: ['org:write'],
+            features: ['gen-ai-features', 'code-review-beta'],
           },
         }
       );
 
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeEnabled();
-      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
-    });
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
 
-    it('is disabled when user is a member (does not have org:write access)', async () => {
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
-        name: 'us',
-        displayName: 'United States of America (US)',
-        url: 'https://sentry.example.com',
-      });
+      expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
 
-      render(
-        <OrganizationSettingsForm
-          {...routerProps}
-          initialData={OrganizationFixture({
-            hideAiFeatures: true,
-          })}
-          onSave={onSave}
-        />,
-        {
-          organization: {
-            access: ['org:read'],
-          },
-        }
-      );
+      expect(screen.getByText('beta')).toBeInTheDocument();
 
-      const preventAiField = await screen.findByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
-      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
-    });
-
-    it('is disabled when self-hosted', async () => {
-      ConfigStore.set('isSelfHosted', true);
-
-      render(
-        <OrganizationSettingsForm
-          {...routerProps}
-          initialData={OrganizationFixture({
-            hideAiFeatures: true,
-          })}
-          onSave={onSave}
-        />,
-        {
-          organization: {
-            access: ['org:write'],
-          },
-        }
-      );
-
-      const preventAiField = screen.getByRole('checkbox', {
-        name: /Enable AI Code Review/i,
-      });
-      expect(preventAiField).toBeInTheDocument();
-      expect(preventAiField).toBeDisabled();
-
-      // Hover over the disabled tag to show the tooltip
-      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
-      expect(disabledTag).toBeInTheDocument();
-      await userEvent.hover(disabledTag);
       expect(
-        await screen.findByText('This feature is not available for self-hosted instances')
+        screen.getByText('Use AI to review and find bugs in pull requests')
       ).toBeInTheDocument();
+
+      const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
+      expect(learnMoreLink).toBeInTheDocument();
+      expect(learnMoreLink).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+      );
+    });
+
+    it('hides AI Code Review field when AI features are disabled', async () => {
+      render(
+        <OrganizationSettingsForm
+          // This logic is inverted from the variable name
+          initialData={OrganizationFixture({hideAiFeatures: false})}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['gen-ai-features'],
+          },
+        }
+      );
+
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+      expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Use AI to review, find bugs, and generate tests in pull requests'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows PR Review and Test Generation field when AI features are enabled', async () => {
+      render(
+        <OrganizationSettingsForm
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['gen-ai-features', 'code-review-beta'],
+          },
+        }
+      );
+
+      await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+      expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
+      expect(
+        screen.getByText('Use AI to review and find bugs in pull requests')
+      ).toBeInTheDocument();
+    });
+
+    it('shows/hides PR Review field when toggling AI features', async () => {
+      render(
+        <OrganizationSettingsForm
+          initialData={OrganizationFixture({hideAiFeatures: false})}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['gen-ai-features', 'code-review-beta'],
+          },
+        }
+      );
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        method: 'PUT',
+      });
+
+      // Initially AI features are disabled, so PR Review field should be hidden
+      expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+
+      const aiToggle = screen.getByRole('checkbox', {
+        name: 'Show Generative AI Features',
+      });
+      await userEvent.click(aiToggle);
+
+      // PR Review field should now be visible
+      expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
+
+      await userEvent.click(aiToggle);
+
+      // PR Review field should be hidden again
+      expect(screen.queryByText('Enable AI Code Review')).not.toBeInTheDocument();
+    });
+
+    describe('AI Code Review field', () => {
+      it('is enabled when US region', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'us',
+          displayName: 'United States of America (US)',
+          url: 'https://sentry.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({hideAiFeatures: true})}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+        const preventAiField = screen.getByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        });
+        expect(preventAiField).toBeInTheDocument();
+        expect(preventAiField).toBeEnabled();
+        expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+      });
+
+      it('is visible when seer-added or code-review-beta feature flag is on', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'us',
+          displayName: 'United States of America (US)',
+          url: 'https://sentry.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({hideAiFeatures: true})}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              features: ['gen-ai-features', 'seer-added', 'code-review-beta'],
+            },
+          }
+        );
+
+        await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+        expect(
+          screen.getByRole('checkbox', {
+            name: /Enable AI Code Review/i,
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('is enabled when EU region', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'de',
+          displayName: 'Europe (Frankfurt)',
+          url: 'https://sentry.de.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({hideAiFeatures: true})}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              features: ['gen-ai-features', 'seer-added'],
+            },
+          }
+        );
+
+        await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+        const preventAiField = screen.getByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        });
+        expect(preventAiField).toBeInTheDocument();
+        expect(preventAiField).toBeEnabled();
+        expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+      });
+
+      it('is enabled when user is an admin (has org:write access)', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'us',
+          displayName: 'United States of America (US)',
+          url: 'https://sentry.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({
+              hideAiFeatures: true,
+            })}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              access: ['org:write'],
+              features: ['gen-ai-features', 'seer-added'],
+            },
+          }
+        );
+
+        await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+        const preventAiField = screen.getByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        });
+        expect(preventAiField).toBeInTheDocument();
+        expect(preventAiField).toBeEnabled();
+        expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+      });
+
+      it('is disabled when user is a member (does not have org:write access)', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'us',
+          displayName: 'United States of America (US)',
+          url: 'https://sentry.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({
+              hideAiFeatures: true,
+            })}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              access: ['org:read'],
+              features: ['gen-ai-features', 'seer-added'],
+            },
+          }
+        );
+
+        const preventAiField = await screen.findByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        });
+        expect(preventAiField).toBeInTheDocument();
+        expect(preventAiField).toBeDisabled();
+        expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+      });
+
+      it('is disabled when self-hosted', async () => {
+        ConfigStore.set('isSelfHosted', true);
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({
+              hideAiFeatures: true,
+            })}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              access: ['org:write'],
+              features: ['gen-ai-features', 'seer-added'],
+            },
+          }
+        );
+
+        const preventAiField = screen.getByRole('checkbox', {
+          name: /Enable AI Code Review/i,
+        });
+        expect(preventAiField).toBeInTheDocument();
+        expect(preventAiField).toBeDisabled();
+
+        // Hover over the disabled tag to show the tooltip
+        const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
+        expect(disabledTag).toBeInTheDocument();
+        await userEvent.hover(disabledTag);
+        expect(
+          await screen.findByText(
+            'This feature is not available for self-hosted instances'
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('is hidden when seat-based-seer-enabled feature is on', async () => {
+        jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+          name: 'us',
+          displayName: 'United States of America (US)',
+          url: 'https://sentry.example.com',
+        });
+
+        render(
+          <OrganizationSettingsForm
+            initialData={OrganizationFixture({hideAiFeatures: true})}
+            onSave={onSave}
+          />,
+          {
+            organization: {
+              ...organization,
+              features: ['gen-ai-features', 'seer-added', 'seat-based-seer-enabled'],
+            },
+          }
+        );
+
+        await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+
+        expect(
+          screen.queryByRole('checkbox', {
+            name: /Enable AI Code Review/i,
+          })
+        ).not.toBeInTheDocument();
+      });
     });
   });
 });

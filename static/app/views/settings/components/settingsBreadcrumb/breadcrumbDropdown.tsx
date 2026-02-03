@@ -1,18 +1,23 @@
 import {useCallback, useContext, useEffect, useRef} from 'react';
 import {useHover} from '@react-aria/interactions';
+import {mergeProps} from '@react-aria/utils';
 import {type OverlayTriggerState} from '@react-stately/overlays';
 
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
+  ControlContext,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {SelectContext} from 'sentry/components/core/compactSelect/control';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
-import Crumb from './crumb';
 import Divider from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps extends SingleSelectProps<string> {
+interface BreadcrumbDropdownProps
+  extends Omit<SingleSelectProps<string>, 'onChange' | 'clearable'> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
@@ -37,15 +42,17 @@ function BreadcrumbDropdown({
 
   if (!hasMenu) {
     return (
-      <Crumb>
-        <span>{name || route.name} </span>
-        {isLast ? null : <Divider />}
-      </Crumb>
+      <Button priority="link">
+        <Flex gap="sm" align="center">
+          <Text bold={false}>{name || route.name} </Text>
+          {isLast ? null : <Divider />}
+        </Flex>
+      </Button>
     );
   }
 
   return (
-    <CompactSelect<string>
+    <CompactSelect
       searchable
       options={options.map(item => ({...item, hideCheck: true}))}
       onChange={selected => {
@@ -60,8 +67,6 @@ function BreadcrumbDropdown({
           crumbLabel={name || route.name}
           menuHasHover={isHovered}
           {...triggerProps}
-          // @ts-expect-error - TODO: Crumb component should be refactored to use a button element instead of a div
-          ref={triggerProps.ref}
         />
       )}
       {...props}
@@ -69,12 +74,11 @@ function BreadcrumbDropdown({
   );
 }
 
-interface MenuCrumbProps extends React.ComponentProps<typeof Crumb> {
+type MenuCrumbProps = TriggerProps & {
   crumbLabel: React.ReactNode;
   menuHasHover: boolean;
   isLast?: boolean;
-}
-
+};
 // XXX(epurkhiser): We have a couple hacks in place to get hover-activation of
 // our CompactSelect working well for these breadcrumbs.
 //
@@ -91,7 +95,7 @@ const activeCrumbStates = new Set<OverlayTriggerState | undefined>();
 const CLOSE_MENU_TIMEOUT = 250;
 
 function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps) {
-  const {overlayState, overlayIsOpen} = useContext(SelectContext);
+  const {overlayState, overlayIsOpen} = useContext(ControlContext);
   const {open, close} = overlayState ?? {};
 
   const closeTimeoutRef = useRef<number>(undefined);
@@ -121,10 +125,22 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
   }, [menuHasHover, queueMenuClose]);
 
   return (
-    <Crumb {...props} onPointerEnter={handleOpen} onPointerLeave={queueMenuClose}>
-      <span>{crumbLabel} </span>
-      {isLast ? null : <Divider isHover={overlayIsOpen} />}
-    </Crumb>
+    <Flex alignSelf="center">
+      {flexProps => (
+        <OverlayTrigger.Button
+          {...mergeProps(props, flexProps)}
+          priority="link"
+          showChevron={false}
+          onPointerEnter={handleOpen}
+          onPointerLeave={queueMenuClose}
+        >
+          <Flex gap="sm" align="center">
+            <Text bold={false}>{crumbLabel} </Text>
+            {isLast ? null : <Divider isHover={overlayIsOpen} />}
+          </Flex>
+        </OverlayTrigger.Button>
+      )}
+    </Flex>
   );
 }
 

@@ -3,6 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class CursorApiKeyMetadata(BaseModel):
+    apiKeyName: str
+    createdAt: str
+    userEmail: str
+
+
 class CursorAgentLaunchRequestPrompt(BaseModel):
     text: str
     images: list[dict] = []

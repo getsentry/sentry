@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout from '@r4ai/remark-callout';
+import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -86,6 +86,8 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
+// Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
+const SHOULD_LAZY_COMPILATION = Boolean(env.LAZY_COMPILATION);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -213,6 +215,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
+              experimental_rewrite_emotion_styled: process.env.NODE_ENV === 'development',
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -284,11 +287,15 @@ const appConfig: Configuration = {
     // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
     // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
     css: false,
-    // https://rspack.dev/config/experiments#experimentslazybarrel
-    lazyBarrel: true,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: false,
+    nativeWatcher: true,
+  },
+  // Disable lazy compilation for now to avoid crashes when new modules are loaded
+  // https://rspack.rs/config/lazy-compilation
+  lazyCompilation: {
+    imports: SHOULD_LAZY_COMPILATION,
+    entries: false,
   },
   module: {
     /**
@@ -318,7 +325,22 @@ const appConfig: Configuration = {
                 remarkFrontmatter,
                 remarkMdxFrontmatter,
                 remarkGfm,
-                remarkCallout,
+                [
+                  remarkCallout,
+                  {
+                    root: (callout: Callout) => {
+                      return {
+                        tagName: 'Callout',
+                        properties: {
+                          title: callout.title,
+                          type: callout.type.toLowerCase(),
+                          isFoldable: callout.isFoldable ?? false,
+                          defaultFolded: callout.defaultFolded ?? false,
+                        },
+                      };
+                    },
+                  },
+                ],
               ],
               rehypePlugins: [
                 [
@@ -402,6 +424,14 @@ const appConfig: Configuration = {
     ),
 
     /**
+     * The platformicons package uses dynamic require() to load SVG files:
+     * require(`../${format === "lg" ? "svg_80x80" : "svg"}/${icon}.svg`)
+     *
+     * This plugin tells rspack where to find those SVG files
+     */
+    new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
+
+    /**
      * TODO(epurkhiser): Figure out if we still need these
      */
     new rspack.ProvidePlugin({
@@ -437,10 +467,20 @@ const appConfig: Configuration = {
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              configFile: path.resolve(
-                import.meta.dirname,
-                './config/tsconfig.build.json'
-              ),
+              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+              configOverwrite: {
+                compilerOptions: {
+                  allowJs: false,
+                  checkJs: false,
+                },
+                exclude: [
+                  'node_modules/**/*',
+                  'tests/**/*',
+                  '**/*.spec.*',
+                  'static/eslint/**/*',
+                  'scripts/**/*',
+                ],
+              },
             },
             devServer: false,
           }),
@@ -752,8 +792,8 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        router: ({hostname}: {hostname: string}) => {
-          const orgSlug = extractSlug(hostname);
+        router: req => {
+          const orgSlug = extractSlug((req as any).hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },

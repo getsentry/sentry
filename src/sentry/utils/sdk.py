@@ -82,12 +82,14 @@ SAMPLED_TASKS = {
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+    "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
 }
 
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
+    # Temporary: 100% sampling for ai-conversations endpoint debugging (sentry org)
+    "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -204,6 +206,7 @@ def traces_sampler(sampling_context):
 
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
+        "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
     if "transaction_context" in sampling_context:
@@ -298,6 +301,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["send_client_reports"] = True
     sdk_options["add_full_stack"] = True
+    sdk_options["enable_http_request_source"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
@@ -305,9 +309,10 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
-        transport_http2=True,
+        transport_http2=options.get("sdk_http2_experiment.enabled"),
         before_send_log=before_send_log,
         enable_logs=True,
+        enable_metrics=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -480,7 +485,12 @@ def configure_sdk():
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
-            DjangoIntegration(signals_spans=False, cache_spans=True),
+            DjangoIntegration(
+                signals_spans=False,
+                cache_spans=True,
+                middleware_spans=False,
+                db_transaction_spans=True,
+            ),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

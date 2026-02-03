@@ -1,6 +1,7 @@
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {isWebVitalsEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -42,7 +43,7 @@ export function generateTraceTarget(
       organization,
       traceSlug: traceId,
       dateSelection,
-      timestamp: getEventTimestampInSeconds(event),
+      timestamp: isWebVitalsEvent(event) ? undefined : getEventTimestampInSeconds(event),
       eventId: event.eventID,
       location,
       source,

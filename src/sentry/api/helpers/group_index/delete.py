@@ -19,6 +19,7 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.iterators import chunked
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
 from .validators import ValidationError
@@ -85,14 +86,30 @@ def delete_group_list(
     GroupInbox.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # Schedule a task per GROUP_CHUNK_SIZE batch of groups
-    for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):
+    schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
+
+
+def schedule_group_deletion_tasks(
+    project_id: int, group_ids: list[int], transaction_id: str | None = None
+) -> int:
+    """Schedule tasks to delete groups in batches of GROUP_CHUNK_SIZE.
+
+    :param project_id: The project ID.
+    :param group_ids: The list of group IDs to delete.
+    :param transaction_id: The transaction ID.
+    :return: The total number of tasks scheduled.
+    """
+    total_tasks = 0
+    for group_id_chunk in chunked(group_ids, GROUP_CHUNK_SIZE):
         delete_groups_for_project.apply_async(
             kwargs={
-                "project_id": project.id,
-                "object_ids": group_ids[i : i + GROUP_CHUNK_SIZE],
-                "transaction_id": str(transaction_id),
+                "project_id": project_id,
+                "object_ids": group_id_chunk,
+                "transaction_id": transaction_id or uuid4().hex,
             }
         )
+        total_tasks += 1
+    return total_tasks
 
 
 def create_audit_entries(

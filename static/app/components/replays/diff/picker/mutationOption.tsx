@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Radio} from 'sentry/components/core/radio';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -37,7 +38,7 @@ export default function MutationOption({
     <Label htmlFor={id}>
       <Flex direction="column" gap="xs" align="center">
         <Flex gap="sm" align="center">
-          <IconClock color="gray500" size="sm" />
+          <IconClock variant="primary" size="sm" />
           <span>{formattedDuration}</span>
         </Flex>
         <span>{name}</span>

@@ -4,9 +4,10 @@ This is later used for generating group forecasts for determining when a group m
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
 from django.db.models.signals import post_save
@@ -33,20 +34,28 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.occurrences.common_queries import count_occurrences
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 
+logger = logging.getLogger(__name__)
+
 __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 
-REFERRER = "sentry.issues.escalating"
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
-IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 GROUP_HOURLY_COUNT_TTL = 60
 HOUR = 3600  # 3600 seconds
 
@@ -77,6 +86,29 @@ def query_groups_past_counts(groups: Iterable[Group]) -> list[GroupsCountRespons
     than 7 days old) will skew the optimization since we may only get one page and less elements than the max
     ELEMENTS_PER_SNUBA_PAGE.
     """
+    groups_list = list(groups)
+    if not groups_list:
+        return []
+
+    snuba_results = _query_groups_past_counts_snuba(groups_list)
+    results = snuba_results
+
+    if EAPOccurrencesComparator.should_check_experiment(
+        "issues.escalating.query_groups_past_counts"
+    ):
+        eap_results = _query_groups_past_counts_eap(groups_list)
+        results = EAPOccurrencesComparator.check_and_choose(
+            snuba_results,
+            eap_results,
+            "issues.escalating.query_groups_past_counts",
+            is_experimental_data_a_null_result=len(eap_results) == 0,
+        )
+
+    return results
+
+
+def _query_groups_past_counts_snuba(groups: Sequence[Group]) -> list[GroupsCountResponse]:
+    """Snuba implementation: Query hourly event counts for groups."""
     all_results: list[GroupsCountResponse] = []
     if not groups:
         return all_results
@@ -94,6 +126,107 @@ def query_groups_past_counts(groups: Iterable[Group]) -> list[GroupsCountRespons
 
     all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
     all_results += _process_groups(other_groups, start_date, end_date)
+
+    return all_results
+
+
+def _query_groups_past_counts_eap(groups: Sequence[Group]) -> list[GroupsCountResponse]:
+    """EAP implementation: Query hourly event counts for groups."""
+    all_results: list[GroupsCountResponse] = []
+    if not groups:
+        return all_results
+
+    error_groups: list[Group] = []
+    other_groups: list[Group] = []
+    for g in groups:
+        if g.issue_category == GroupCategory.ERROR:
+            error_groups.append(g)
+        elif g.issue_type.should_detect_escalation():
+            other_groups.append(g)
+
+    all_results += _query_groups_eap_by_org(error_groups)
+    all_results += _query_groups_eap_by_org(other_groups)
+
+    return all_results
+
+
+def _query_groups_eap_by_org(groups: Sequence[Group]) -> list[GroupsCountResponse]:
+    """Query EAP for groups, processing by organization."""
+    all_results: list[GroupsCountResponse] = []
+    if not groups:
+        return all_results
+
+    start_date, end_date = _start_and_end_dates()
+
+    groups_by_org = _extract_organization_and_project_and_group_ids(groups)
+
+    for organization_id in sorted(groups_by_org.keys()):
+        group_ids_by_project = groups_by_org[organization_id]
+
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            continue
+
+        project_ids = list(group_ids_by_project.keys())
+        all_group_ids = [gid for gids in group_ids_by_project.values() for gid in gids]
+        projects = list(Project.objects.filter(id__in=project_ids))
+
+        if not projects or not all_group_ids:
+            continue
+
+        # Build query string for group_id filter
+        if len(all_group_ids) == 1:
+            query_string = f"group_id:{all_group_ids[0]}"
+        else:
+            group_id_filter = " OR ".join([f"group_id:{gid}" for gid in all_group_ids])
+            query_string = f"({group_id_filter})"
+
+        snuba_params = SnubaParams(
+            start=start_date,
+            end=end_date,
+            organization=organization,
+            projects=projects,
+            granularity_secs=HOUR,  # 1 hour buckets
+        )
+
+        try:
+            timeseries_results = Occurrences.run_grouped_timeseries_query(
+                params=snuba_params,
+                query_string=query_string,
+                y_axes=["count()"],
+                groupby=["project_id", "group_id"],
+                referrer=Referrer.ESCALATING_GROUPS.value,
+                config=SearchResolverConfig(),
+            )
+
+            # Transform to expected GroupsCountResponse format
+            for row in timeseries_results:
+                count = row.get("count()", 0)
+                if count > 0:
+                    bucket_dt = datetime.fromtimestamp(row["time"], tz=timezone.utc)
+                    all_results.append(
+                        {
+                            "project_id": int(row["project_id"]),
+                            "group_id": int(row["group_id"]),
+                            "hourBucket": bucket_dt.isoformat(),
+                            "count()": int(count),
+                        }
+                    )
+
+        except Exception:
+            logger.exception(
+                "Fetching groups past counts from EAP failed",
+                extra={
+                    "organization_id": organization_id,
+                    "project_ids": project_ids,
+                    "group_ids": all_group_ids,
+                },
+            )
+            continue
+
+    # Sort to match Snuba's orderby: (project_id, group_id, hourBucket)
+    all_results.sort(key=lambda x: (x["project_id"], x["group_id"], x["hourBucket"]))
 
     return all_results
 
@@ -165,11 +298,14 @@ def _query_with_pagination(
         )
         request = Request(
             dataset=_issue_category_dataset(category),
-            app_id=REFERRER,
+            app_id=Referrer.ESCALATING_GROUPS.value,
             query=query,
-            tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+            tenant_ids={
+                "referrer": Referrer.ESCALATING_GROUPS.value,
+                "organization_id": organization_id,
+            },
         )
-        results = raw_snql_query(request, referrer=REFERRER)["data"]
+        results = raw_snql_query(request, referrer=Referrer.ESCALATING_GROUPS.value)["data"]
 
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
@@ -244,7 +380,7 @@ def _extract_organization_and_project_and_group_ids(
     return group_ids_by_organization
 
 
-def get_group_hourly_count(group: Group) -> int:
+def get_group_hourly_count_snuba(group: Group) -> int:
     """Return the number of events a group has had today in the last hour"""
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
@@ -266,17 +402,41 @@ def get_group_hourly_count(group: Group) -> int:
         )
         request = Request(
             dataset=_issue_category_dataset(group.issue_category),
-            app_id=IS_ESCALATING_REFERRER,
+            app_id=Referrer.IS_ESCALATING_GROUP.value,
             query=query,
             tenant_ids={
-                "referrer": IS_ESCALATING_REFERRER,
+                "referrer": Referrer.IS_ESCALATING_GROUP.value,
                 "organization_id": group.project.organization.id,
             },
         )
         hourly_count = int(
-            raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
+            raw_snql_query(request, referrer=Referrer.IS_ESCALATING_GROUP.value)["data"][0][
+                "count()"
+            ]
         )
         cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
+    return int(hourly_count)
+
+
+def get_group_hourly_count_eap(group: Group) -> int:
+    """Return the number of events a group has had today in the last hour"""
+    key = f"hourly-group-count-eap:{group.project.id}:{group.id}"
+    hourly_count = cache.get(key)
+
+    if hourly_count is None:
+        now = datetime.now()
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        hourly_count = count_occurrences(
+            organization=group.project.organization,
+            projects=[group.project],
+            start=current_hour,
+            end=now,
+            referrer=Referrer.IS_ESCALATING_GROUP.value,
+            group_id=group.id,
+        )
+        cache.set(key, hourly_count, GROUP_HOURLY_COUNT_TTL)
+
     return int(hourly_count)
 
 
@@ -284,7 +444,15 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
-    group_hourly_count = get_group_hourly_count(group)
+    snuba_count = get_group_hourly_count_snuba(group)
+    group_hourly_count = snuba_count
+
+    if EAPOccurrencesComparator.should_check_experiment("issues.escalating.is_escalating"):
+        eap_count = get_group_hourly_count_eap(group)
+        group_hourly_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count, eap_count, "issues.escalating.is_escalating"
+        )
+
     forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
     # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:

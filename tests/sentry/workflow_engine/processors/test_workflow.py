@@ -6,17 +6,19 @@ from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
-from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -31,7 +33,6 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 )
 from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
 from sentry.workflow_engine.processors.workflow import (
-    DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
@@ -40,6 +41,7 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -62,13 +64,19 @@ class TestProcessWorkflows(BaseWorkflowTest):
             )
         )
 
-        self.group, self.event, self.group_event = self.create_group_event()
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=MetricIssue.type_id
+        )
         self.event_data = WorkflowEventData(
             event=self.group_event,
             group=self.group,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
             ),
+        )
+        self.issue_stream_detector = self.create_detector(
+            project=self.project,
+            type=IssueStreamGroupType.slug,
         )
         self.batch_client = DelayedWorkflowClient()
 
@@ -88,12 +96,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     def test_error_event(self) -> None:
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     @patch("sentry.workflow_engine.processors.action.fire_actions")
     def test_process_workflows_event(self, mock_fire_actions: MagicMock) -> None:
@@ -115,6 +123,90 @@ class TestProcessWorkflows(BaseWorkflowTest):
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_process_workflows_event__service_hooks_event_alert(
+        self, mock_process_service_hook: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+        project2 = self.create_project(organization=self.organization)
+        self.create_service_hook(
+            project=project2,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        self.create_workflow_action(workflow=self.error_workflow)
+
+        process_workflows_event(
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_reappeared=False,
+            has_escalated=False,
+        )
+
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
+
+    @with_feature("projects:servicehooks")
+    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    def test_process_workflows_event__service_hooks_event_created(
+        self, mock_process_service_hook: MagicMock
+    ) -> None:
+        hook = self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.created"],
+        )
+        self.create_service_hook(
+            project=self.project,
+            organization=self.project.organization,
+            actor=self.user,
+            events=["event.alert"],
+        )
+
+        process_workflows_event(
+            project_id=self.project.id,
+            event_id=self.event.event_id,
+            group_id=self.group.id,
+            occurrence_id=self.group_event.occurrence_id,
+            group_state={
+                "id": 1,
+                "is_new": False,
+                "is_regression": True,
+                "is_new_group_environment": False,
+            },
+            has_reappeared=False,
+            has_escalated=False,
+        )
+
+        # no actions to fire, only event.created service hook fired
+        mock_process_service_hook.delay.assert_called_once_with(
+            servicehook_id=hook.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+        )
 
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
@@ -161,9 +253,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert self.event_data.group_state
         self.event_data.group_state["is_new"] = True
 
-        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_filter.assert_called_with({workflow_filters}, self.event_data)
+        assert result.tainted is False
 
     def test_same_environment_only(self) -> None:
         env = self.create_environment(project=self.project)
@@ -190,9 +282,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=non_matching_env_workflow,
         )
 
-        dcg = self.create_data_condition_group()
+        matching_dcg = self.create_data_condition_group()
         matching_env_workflow = self.create_workflow(
-            when_condition_group=dcg,
+            when_condition_group=matching_dcg,
             environment=env,
         )
         self.create_detector_workflow(
@@ -200,23 +292,25 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=matching_env_workflow,
         )
 
+        mismatched_dcg = self.create_data_condition_group()
         mismatched_env_workflow = self.create_workflow(
-            when_condition_group=dcg, environment=other_env
+            when_condition_group=mismatched_dcg, environment=other_env
         )
         self.create_detector_workflow(
             detector=self.error_detector,
             workflow=mismatched_env_workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow, matching_env_workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow, matching_env_workflow}
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
+        self.group_event.group.type = issue_occurrence.type.type_id
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.workflow}
 
     def test_regressed_event(self) -> None:
         dcg = self.create_data_condition_group()
@@ -233,25 +327,31 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow, workflow}
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow, workflow}
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.msg == "No Detectors associated with the issue were found"
 
-        assert not triggered_workflows
+    @patch("sentry.utils.metrics.incr")
+    @patch("sentry.workflow_engine.processors.detector.logger")
+    def test_no_issue_stream_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
+        self.issue_stream_detector.delete()
+        self.group.update(type=ErrorGroupType.type_id)
 
-        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
+        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        mock_incr.assert_any_call("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
-            "Detector not found for event",
+            "Issue stream detector not found for event",
             extra={
-                "event_id": self.event.event_id,
+                "project_id": self.group.project_id,
                 "group_id": self.group_event.group_id,
-                "detector_id": None,
             },
         )
 
@@ -260,9 +360,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
         cache.clear()
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        assert not triggered_workflows
+        assert not result.data.triggered_workflows
+        assert result.msg == "Environment for event not found"
 
         mock_incr.assert_called_once_with(
             "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
@@ -275,11 +376,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.event_data.event.project_id = 0
+        self.group.update(type=ErrorGroupType.type_id)
+
+        self.error_detector.delete()
+        self.issue_stream_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
-        mock_logger.exception.assert_called_once()
+        mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
+        mock_logger.exception.assert_called()  # called twice
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_with_workflows(self, mock_incr: MagicMock) -> None:
@@ -301,6 +405,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
@@ -333,13 +438,40 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
 
-    def test_defaults_to_error_workflows(self) -> None:
+    def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence
         self.group.update(type=issue_occurrence.type.type_id)
 
-        triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.error_workflow}
+        self.error_workflow.delete()
+
+        issue_stream_workflow, _, _, _ = self.create_detector_and_workflow(
+            name_prefix="issue_stream",
+            workflow_triggers=self.create_data_condition_group(),
+            detector_type=IssueStreamGroupType.slug,
+        )
+
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        assert result.tainted is True
+        assert result.data.triggered_workflows == {issue_stream_workflow}
+        assert result.data.triggered_actions is not None
+        assert len(result.data.triggered_actions) == 0
+
+    def test_multiple_detectors__preferred(self) -> None:
+        _, issue_stream_detector, _, _ = self.create_detector_and_workflow(
+            name_prefix="issue_stream",
+            workflow_triggers=self.create_data_condition_group(),
+            detector_type=IssueStreamGroupType.slug,
+        )
+        self.create_detector_workflow(
+            detector=issue_stream_detector,
+            workflow=self.error_workflow,
+        )
+
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.data.triggered_workflows == {self.error_workflow}
+        assert result.data.associated_detector == self.error_detector
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
@@ -367,7 +499,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_logs_triggered_workflows(self, mock_logger: MagicMock) -> None:
-        WorkflowEventContext.set(
+        ctx_token = WorkflowEventContext.set(
             WorkflowEventContextData(
                 detector=self.detector,
             )
@@ -383,6 +515,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
                 "group_type": self.event_data.group.type,
             },
         )
+
+        WorkflowEventContext.reset(ctx_token)
 
     def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -439,7 +573,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert triggered_workflows == {self.workflow, workflow_two}
 
     @patch.object(get_data_conditions_for_group, "batch")
-    def test_batched_data_condition_lookup_is_used(self, mock_batch):
+    def test_batched_data_condition_lookup_is_used(self, mock_batch: MagicMock) -> None:
         """Test that batch lookup is used when evaluating multiple workflows."""
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
 
@@ -530,6 +664,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
 
     def setUp(self) -> None:
+        self.project = self.create_project(create_default_detectors=True)
         (
             self.workflow,
             self.detector,
@@ -539,7 +674,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=occurrence,
+            occurrence=occurrence, group_type_id=MetricIssue.type_id
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.action_group, _ = self.create_workflow_action(self.workflow)
@@ -737,15 +872,26 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         ) = self.create_detector_and_workflow()
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
+        self.issue_stream_detector = self.create_detector(
+            project=self.project,
+            type=IssueStreamGroupType.slug,
+        )
 
         self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
+            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id}),
+            group_type_id=MetricIssue.type_id,
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.batch_client = DelayedWorkflowClient()
 
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
+    @patch("sentry.workflow_engine.tasks.utils.IssueOccurrence.fetch")
+    @patch("sentry.workflow_engine.processors.action.Action.trigger")
+    def test_metrics_issue_dual_processing_metrics(
+        self, mock_trigger: MagicMock, mock_fetch: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self.group_event.occurrence
+
         with self.tasks():
             process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_any_call(
@@ -756,6 +902,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             },
             sample_rate=1.0,
         )
+        mock_trigger.assert_called_once()
 
     def test_basic__no_filter(self) -> None:
         triggered_action_filters, _ = evaluate_workflows_action_filters(
@@ -816,7 +963,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert not triggered_action_filters
 
     @patch.object(get_data_conditions_for_group, "batch")
-    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch):
+    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch: MagicMock) -> None:
         """Test that batch lookup is used when evaluating action filters."""
         # Create a second workflow with action filters
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
@@ -878,7 +1025,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # ensure we do not enqueue slow condition evaluation
         assert not queue_items
 
-    def test_enqueues_when_slow_conditions(self):
+    def test_enqueues_when_slow_conditions(self) -> None:
         assert isinstance(self.event_data.event, GroupEvent)
         queue_items_by_workflow_id = {
             self.workflow: DelayedWorkflowItem(

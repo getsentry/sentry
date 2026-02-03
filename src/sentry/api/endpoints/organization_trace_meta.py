@@ -2,6 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableR
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
@@ -52,7 +53,7 @@ def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
 
 
 @region_silo_endpoint
-class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -220,6 +221,20 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
         }
+
+        sentry_sdk.metrics.distribution(
+            "performance.trace.logs.count",
+            response["logs"],
+        )
+        sentry_sdk.metrics.distribution(
+            "performance.trace.span.count",
+            response["span_count"],
+        )
+        sentry_sdk.metrics.distribution(
+            "performance.trace.errors.count",
+            response["errors"],
+        )
+
         if uptime_count is not None:
             response["uptime_checks"] = uptime_count
         return response

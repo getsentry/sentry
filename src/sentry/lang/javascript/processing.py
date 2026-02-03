@@ -5,7 +5,7 @@ from typing import Any
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import Symbolicator
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.models.eventerror import EventError
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
@@ -252,6 +252,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules=modules,
         release=data.get("release"),
         dist=data.get("dist"),
+        # We are sending frames in the same order in which
+        # they were stored in the event, so this has to be "caller_first".
+        frame_order=FrameOrder.caller_first,
     )
 
     if not _handle_response_status(data, response):

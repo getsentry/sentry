@@ -10,6 +10,7 @@ import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -77,7 +78,9 @@ function AddBillingMetricUsageModal({
 
   const {data: projects = [], isPending: isLoadingProjects} = useApiQuery<Project[]>(
     [
-      `/organizations/${orgSlug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
       {
         query: {all_projects: '1'},
       },
@@ -134,7 +137,7 @@ function AddBillingMetricUsageModal({
       date: getDateString(date),
     };
 
-    api.request(`/_admin/${orgSlug}/record-usage/`, {
+    api.request(`/customers/${orgSlug}/record-usage/`, {
       method: 'POST',
       data,
       success: () => {

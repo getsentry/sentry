@@ -3,14 +3,14 @@ import type {Project} from 'sentry/types/project';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {parseEventTypesFromQuery} from 'sentry/views/detectors/datasetConfig/eventTypes';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 type Params = {
   aggregate: string;
   dataset: Dataset;
   organization: Organization;
   project: Project | undefined;
-  environment?: string | string[];
+  environment?: string | string[] | null;
   eventTypes?: EventTypes[];
   name?: string;
   query?: string;
@@ -48,7 +48,7 @@ export function getMetricMonitorUrl({
   } as const;
 
   return {
-    pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
+    pathname: `${makeMonitorCreatePathname(organization.slug)}settings`,
     query: queryParams,
   };
 }

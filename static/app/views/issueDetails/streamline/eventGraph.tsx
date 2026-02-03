@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   useCallback,
   useEffect,
@@ -10,15 +9,16 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
-import Color from 'color';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -29,12 +29,12 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -183,7 +183,9 @@ export function EventGraph({
     data: Array<{'count_unique(user)': number}>;
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
@@ -245,6 +247,9 @@ export function EventGraph({
     event,
     group,
     eventSeries,
+    isFiltered: isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    seriesType: visibleSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -355,8 +360,6 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.gray300).alpha(0.5).string();
-    const lightGray300 = Color(theme.gray300).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -364,8 +367,8 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -377,8 +380,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: userSeries,
         animation: false,
@@ -390,8 +395,8 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -403,8 +408,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple300 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: eventSeries,
         animation: false,
@@ -451,7 +458,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
+    inactiveColor: theme.tokens.content.secondary,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -468,7 +475,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert type="error" {...styleProps}>
+      <GraphAlert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </GraphAlert>
     );
@@ -476,50 +483,34 @@ export function EventGraph({
 
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
-      <GraphWrapper {...styleProps}>
+      <Grid columns="auto 1fr" {...styleProps}>
         {showSummary ? (
           <SummaryContainer>
-            <GraphButton
-              isActive={visibleSeries === EventGraphSeries.EVENT}
-              disabled
-              label={t('Events')}
-            />
-            <GraphButton
-              isActive={visibleSeries === EventGraphSeries.USER}
-              disabled
-              label={t('Users')}
-            />
+            <GraphButton disabled label={t('Events')} />
+            <GraphButton disabled label={t('Users')} />
           </SummaryContainer>
         ) : (
           <div />
         )}
-        <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
-        </LoadingChartContainer>
-      </GraphWrapper>
+        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
+          <Placeholder height="90px" testId="event-graph-loading" />
+        </Flex>
+      </Grid>
     );
   }
 
   return (
-    <GraphWrapper {...styleProps}>
+    <Grid columns="auto 1fr" {...styleProps}>
       {showSummary ? (
         <SummaryContainer>
           <GraphButton
-            onClick={() =>
-              visibleSeries === EventGraphSeries.USER &&
-              setVisibleSeries(EventGraphSeries.EVENT)
-            }
-            isActive={visibleSeries === EventGraphSeries.EVENT}
+            onClick={() => setVisibleSeries(EventGraphSeries.EVENT)}
             disabled={visibleSeries === EventGraphSeries.EVENT}
             label={tn('Event', 'Events', eventCount)}
             count={String(eventCount)}
           />
           <GraphButton
-            onClick={() =>
-              visibleSeries === EventGraphSeries.EVENT &&
-              setVisibleSeries(EventGraphSeries.USER)
-            }
-            isActive={visibleSeries === EventGraphSeries.USER}
+            onClick={() => setVisibleSeries(EventGraphSeries.USER)}
             disabled={visibleSeries === EventGraphSeries.USER}
             label={tn('User', 'Users', userCount)}
             count={String(userCount)}
@@ -592,81 +583,43 @@ export function EventGraph({
             : chartZoomProps)}
         />
       </ChartContainer>
-    </GraphWrapper>
+    </Grid>
   );
 }
 
 function GraphButton({
-  isActive,
   label,
   count,
   ...props
 }: {
-  isActive: boolean;
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
+  const textVariant = undefined;
+
   return (
-    <CalloutButton
-      isActive={isActive}
-      aria-label={`${t('Toggle graph series')} - ${label}`}
-      {...props}
-    >
-      <Flex direction="column">
-        <Label isActive={isActive}>{label}</Label>
-        <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
+    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
+      <Flex direction="column" gap="xs">
+        <Text size="sm" variant={textVariant}>
+          {label}
+        </Text>
+        <Text size="lg" variant={textVariant}>
+          {count ? formatAbbreviatedNumber(count) : '-'}
+        </Text>
       </Flex>
     </CalloutButton>
   );
 }
 
-const GraphWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-`;
+function SummaryContainer(props: FlexProps) {
+  return (
+    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
+  );
+}
 
-const SummaryContainer = styled('div')`
-  display: flex;
-  gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
-  flex-direction: column;
-  margin: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-`;
-
-const CalloutButton = withChonk(
-  styled(Button)<{isActive: boolean}>`
-    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-    box-shadow: none;
-    height: unset;
-    overflow: hidden;
-    &:disabled {
-      opacity: 1;
-    }
-    &:hover {
-      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-    }
-  `,
-  styled(Button)<never>`
-    height: unset;
-    padding: ${space(0.5)} ${space(1.5)};
-  `
-);
-
-const Label = styled('div')<{isActive: boolean}>`
-  line-height: 1;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
-`;
-
-const Count = styled('div')<{isActive: boolean}>`
-  line-height: 1;
-  margin-top: ${p => p.theme.space.xs};
-  font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
+const CalloutButton = styled(Button)`
+  height: unset;
+  padding: ${space(0.5)} ${space(1.5)};
 `;
 
 const ChartContainer = styled('div')`
@@ -679,13 +632,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const LoadingChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const GraphAlert = styled(Alert)`
+export const GraphAlert = styled(Alert)`
   padding-left: ${p => p.theme.space['2xl']};
   margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;

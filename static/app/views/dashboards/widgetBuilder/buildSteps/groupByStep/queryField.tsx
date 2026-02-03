@@ -2,13 +2,14 @@ import {Fragment, type ReactNode} from 'react';
 import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {QueryField as TableQueryField} from 'sentry/views/discover/table/queryField';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 export interface QueryFieldProps {
   fieldOptions: React.ComponentProps<typeof TableQueryField>['fieldOptions'];
@@ -23,6 +24,11 @@ export interface QueryFieldProps {
   listeners?: DraggableSyntheticListeners;
   onDelete?: () => void;
   ref?: React.Ref<HTMLDivElement>;
+  renderTagOverride?: (
+    kind: FieldValueKind,
+    label: string,
+    meta: FieldValue['meta']
+  ) => ReactNode;
   style?: React.CSSProperties;
 }
 
@@ -40,6 +46,7 @@ export function QueryField({
   fieldValidationError,
   isDragging,
   disabled,
+  renderTagOverride,
 }: QueryFieldProps) {
   return (
     <QueryFieldWrapper ref={ref} style={style}>
@@ -52,7 +59,7 @@ export function QueryField({
               aria-label={t('Drag to reorder')}
               icon={<IconGrabbable size="xs" />}
               size="zero"
-              borderless
+              priority="transparent"
             />
           )}
           <TableQueryField
@@ -62,12 +69,13 @@ export function QueryField({
             onChange={onChange}
             disabled={disabled}
             filterPrimaryOptions={option => option.value.kind !== FieldValueKind.FUNCTION}
+            renderTagOverride={renderTagOverride}
           />
           {fieldValidationError ? fieldValidationError : null}
           {canDelete && (
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               onClick={onDelete}
               icon={<IconDelete />}
               title={t('Remove group')}

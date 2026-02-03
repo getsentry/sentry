@@ -3,7 +3,12 @@
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
-import {TextDecoder, TextEncoder} from 'node:util';
+import {
+  // @ts-expect-error structuredClone is available in Node 17+ but types don't like it
+  structuredClone as nodeStructuredClone,
+  TextDecoder,
+  TextEncoder,
+} from 'node:util';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -98,29 +103,76 @@ jest.mock('@stripe/stripe-js', () => ({
     })
   ),
 }));
-jest.mock('@stripe/react-stripe-js', () => ({
-  Elements: jest.fn(({children}: {children: any}) => children),
-  AddressElement: jest.fn(() => null),
-  CardElement: jest.fn(() => null),
-  PaymentElement: jest.fn(() => null),
-  useStripe: jest.fn(() => ({
-    confirmCardPayment: jest.fn(() =>
-      Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
-    ),
-    confirmCardSetup: jest.fn((secretKey: string) => {
-      if (secretKey === 'ERROR') {
-        return Promise.resolve({error: {message: 'card invalid'}});
-      }
-      return Promise.resolve({
-        error: undefined,
-        setupIntent: {payment_method: 'test-pm'},
-      });
+jest.mock('@stripe/react-stripe-js', () => {
+  const {useEffect} = jest.requireActual('react');
+  return {
+    Elements: jest.fn(({children}: {children: any}) => children),
+    AddressElement: jest.fn(({onReady}: any) => {
+      // Simulate AddressElement loading by calling onReady after mount
+      useEffect(() => {
+        if (onReady) {
+          // Use setTimeout to allow initial render assertions to run
+          setTimeout(() => onReady(), 0);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
     }),
-  })),
-  useElements: jest.fn(() => ({
-    getElement: jest.fn(() => ({})),
-  })),
-}));
+    CardElement: jest.fn(() => null),
+    PaymentElement: jest.fn(({onChange, onReady}: any) => {
+      // Simulate a completed Stripe form by calling onChange and onReady after mount
+      useEffect(() => {
+        // Use setTimeout to allow initial render assertions to run
+        setTimeout(() => {
+          if (onReady) {
+            onReady();
+          }
+          if (onChange) {
+            onChange({complete: true});
+          }
+        }, 0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }),
+    useStripe: jest.fn(() => ({
+      confirmCardPayment: jest.fn(() =>
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+      ),
+      confirmCardSetup: jest.fn((secretKey: string) => {
+        if (secretKey === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmSetup: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'card invalid'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          setupIntent: {payment_method: 'test-pm'},
+        });
+      }),
+      confirmPayment: jest.fn((options: any) => {
+        if (options?.clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'payment failed'}});
+        }
+        return Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        });
+      }),
+    })),
+    useElements: jest.fn(() => ({
+      getElement: jest.fn(() => ({})),
+      submit: jest.fn(() => Promise.resolve({error: undefined})),
+    })),
+  };
+});
 jest.mock('getsentry/utils/trackMarketingEvent');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
@@ -219,6 +271,15 @@ jest.mock('@sentry/react', function sentryReact() {
         end: jest.fn(),
       }),
     }),
+    logger: {
+      warn: jest.fn(),
+      error: jest.fn(),
+      fatal: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+      trace: jest.fn(),
+      fmt: jest.fn(),
+    },
   };
 });
 
@@ -326,3 +387,7 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = nodeStructuredClone;
+}

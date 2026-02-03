@@ -44,6 +44,21 @@ describe('EditableText', () => {
     expect(handleChange).toHaveBeenCalledTimes(0);
   });
 
+  it('reverts to previous value when allowEmpty is true', async () => {
+    const handleChange = jest.fn();
+
+    render(
+      <EditableText value="foo" onChange={handleChange} allowEmpty errorMessage="error" />
+    );
+
+    await userEvent.click(screen.getByText('foo'));
+    await userEvent.clear(screen.getByRole('textbox'));
+    await userEvent.click(document.body);
+
+    expect(handleChange).not.toHaveBeenCalled();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+  });
+
   it('displays a disabled value', async () => {
     render(<EditableText value="foo" onChange={jest.fn()} isDisabled />);
 

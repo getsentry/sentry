@@ -319,3 +319,38 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         assert signal_handler.call_count == 1
         assert signal_handler.call_args[1]["origin"] == "ui"
         project_created.disconnect(signal_handler)
+
+    @with_feature(["organizations:team-roles"])
+    def test_console_platform_not_enabled(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            name="Nintendo Project",
+            platform="nintendo-switch",
+            status_code=400,
+        )
+        assert "Console platform 'nintendo-switch' is not enabled for this organization" in str(
+            response.data["platform"]
+        )
+
+    @with_feature(["organizations:team-roles"])
+    def test_console_platform_enabled(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+        response = self.get_success_response(
+            self.organization.slug,
+            name="Nintendo Project",
+            platform="nintendo-switch",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.platform == "nintendo-switch"
+
+    @with_feature(["organizations:team-roles"])
+    def test_console_platform_xbox_not_enabled(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["nintendo-switch"])
+        response = self.get_error_response(
+            self.organization.slug, name="Xbox Project", platform="xbox", status_code=400
+        )
+        assert "Console platform 'xbox' is not enabled for this organization" in str(
+            response.data["platform"]
+        )

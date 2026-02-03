@@ -15,6 +15,22 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "(avg(span.duration):<10 OR span.duration:11) AND is_transaction:1",
         ),
         pytest.param(
+            "foo:10 OR transaction.duration:11",
+            "(tags[foo,number]:10 OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "foo:1 OR transaction.duration:11",
+            "(tags[foo,number]:1 OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "!foo:true OR transaction.duration:11",
+            "(!foo:true OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "foo:true OR transaction.duration:11",
+            "((tags[foo,number]:1 OR foo:true) OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
             "has:transaction.duration OR has:measurements.lcp",
             "(has:span.duration OR has:measurements.lcp) AND is_transaction:1",
         ),
@@ -69,6 +85,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
         pytest.param(
             "platform.name:python",
             "(platform:python) AND is_transaction:1",
+        ),
+        pytest.param(
+            "span.module:db",
+            "(span.category:db) AND is_transaction:1",
         ),
     ],
 )
@@ -134,10 +154,18 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
             [],
         ),
         pytest.param(
-            ["user_misery(300)", "apdex(300)", "count_if(transaction.duration,greater,300)"],
+            [
+                "user_misery(300)",
+                "apdex(300)",
+                "apdex(.5)",
+                "apdex(0.7)",
+                "count_if(transaction.duration,greater,300)",
+            ],
             [
                 "equation|user_misery(span.duration,300)",
                 "equation|apdex(span.duration,300)",
+                "equation|apdex(span.duration,0.5)",
+                "equation|apdex(span.duration,0.7)",
                 "equation|count_if(span.duration,greater,300)",
             ],
             [],
@@ -145,11 +173,16 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         pytest.param(
             ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
             ["transaction", "count(span.duration)"],
-            ["any(span.duration)", "count_miserable(user,300)"],
+            ["any(transaction.duration)", "count_miserable(user,300)"],
         ),
         pytest.param(
             ["platform.name", "count()"],
             ["platform", "count(span.duration)"],
+            [],
+        ),
+        pytest.param(
+            ["span.module"],
+            ["span.category"],
             [],
         ),
     ],
@@ -237,8 +270,8 @@ def test_mep_to_eap_simple_selected_columns(
             [],
         ),
         pytest.param(
-            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)"],
-            [],
+            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)", "equation|"],
+            ["equation|"],
             [
                 {
                     "equation": "equation|(sum(transaction.duration) + 5) + count_miserable(user,300)",
@@ -338,15 +371,15 @@ def test_mep_to_eap_simple_equations(
             [
                 {
                     "orderby": "-count_miserable(user,300)",
-                    "reason": "fields were dropped: count_miserable(user,300)",
+                    "reason": ["count_miserable(user,300)"],
                 },
                 {
                     "orderby": "count_web_vitals(user,300)",
-                    "reason": "fields were dropped: count_web_vitals(user,300)",
+                    "reason": ["count_web_vitals(user,300)"],
                 },
                 {
                     "orderby": "any(transaction.duration)",
-                    "reason": "fields were dropped: any(span.duration)",
+                    "reason": ["any(transaction.duration)"],
                 },
             ],
         ),
@@ -366,14 +399,14 @@ def test_mep_to_eap_simple_equations(
             [
                 {
                     "orderby": "equation|count_miserable(user,300) + 3",
-                    "reason": "equation was dropped",
+                    "reason": "dropped",
                 }
             ],
         ),
         pytest.param(
             ["equation[3453]"],
             [],
-            [{"orderby": "equation[3453]", "reason": "equation at this index doesn't exist"}],
+            [{"orderby": "equation[3453]", "reason": "equation issue"}],
         ),
     ],
 )

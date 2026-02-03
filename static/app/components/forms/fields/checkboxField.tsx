@@ -1,12 +1,11 @@
-import styled from '@emotion/styled';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
 import FormField from 'sentry/components/forms/formField';
-import {space} from 'sentry/styles/space';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,
@@ -51,8 +50,8 @@ function CheckboxField(props: Props) {
         }
 
         return (
-          <FieldLayout>
-            <ControlWrapper>
+          <Flex direction="row">
+            <Flex as="span" alignSelf="flex-start" marginRight="md">
               <Checkbox
                 id={id}
                 name={name}
@@ -60,7 +59,7 @@ function CheckboxField(props: Props) {
                 checked={value === true}
                 onChange={handleChange}
               />
-            </ControlWrapper>
+            </Flex>
             <FieldDescription htmlFor={id} aria-label={ariaLabel}>
               {label && (
                 <FieldLabel disabled={disabled}>
@@ -76,22 +75,11 @@ function CheckboxField(props: Props) {
                 </FieldHelp>
               )}
             </FieldDescription>
-          </FieldLayout>
+          </Flex>
         );
       }}
     </FormField>
   );
 }
-
-const ControlWrapper = styled('span')`
-  align-self: flex-start;
-  display: flex;
-  margin-right: ${space(1)};
-`;
-
-const FieldLayout = styled('div')`
-  display: flex;
-  flex-direction: row;
-`;
 
 export default CheckboxField;

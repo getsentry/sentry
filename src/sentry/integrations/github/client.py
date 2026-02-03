@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any, TypedDict
 
 import orjson
@@ -57,6 +58,21 @@ class GithubRateLimitInfo:
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
+
+
+class GitHubReaction(StrEnum):
+    """
+    https://docs.github.com/en/rest/reactions/reactions#about-reactions
+    """
+
+    PLUS_ONE = "+1"
+    MINUS_ONE = "-1"
+    LAUGH = "laugh"
+    CONFUSED = "confused"
+    HEART = "heart"
+    HOORAY = "hooray"
+    ROCKET = "rocket"
+    EYES = "eyes"
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -161,6 +177,18 @@ class GithubProxyClient(IntegrationProxyClient):
                 "permissions": permissions,
             }
         )
+
+        if integration.debug_data is None:
+            integration.debug_data = {}
+
+        integration.debug_data.update(
+            {
+                "permissions": permissions,
+                "expires_at": expires_at,
+                "last_refresh_at": datetime.utcnow().isoformat(),
+            }
+        )
+
         integration.save()
         logger.info(
             "token.refresh_end",
@@ -332,7 +360,7 @@ class GitHubBaseClient(
         """
         Get the merge commit sha from a commit sha.
         """
-        response = self.get_pullrequest_from_commit(repo.name, sha)
+        response = self.get_pull_request_from_commit(repo.name, sha)
         if not response or (isinstance(response, list) and len(response) != 1):
             # the response should return a single merged PR, return if multiple
             return None
@@ -347,7 +375,7 @@ class GitHubBaseClient(
 
         return pull_request.get("merge_commit_sha")
 
-    def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pull_request_from_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
@@ -355,13 +383,21 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
+    def get_pull_request_files(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
         Returns up to 30 files associated with a pull request. Responses are paginated.
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
+
+    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+        """
+        https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
+
+        Returns a single pull request.
+        """
+        return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
     def get_repo(self, repo: str) -> Any:
         """
@@ -523,7 +559,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/issues/{issue_number}/comments")
 
-    def get_pullrequest_comments(self, repo: str, pull_number: str) -> Any:
+    def get_pull_request_comments(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/comments#list-review-comments-on-a-pull-request
         """
@@ -535,6 +571,39 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
+
+    def update_issue_assignees(self, repo: str, issue_number: str, assignees: list[str]) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/issues#update-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}"
+        return self.patch(endpoint, data={"assignees": assignees})
+
+    def update_issue_status(self, repo: str, issue_number: str, status: str) -> Any:
+        """
+        https://docs.github.com/en/rest/issues/issues#update-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}"
+        return self.patch(endpoint, data={"state": status})
+
+    def get_issue_reactions(self, repo: str, issue_number: str) -> list[Any]:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue
+        """
+        return self._get_with_pagination(f"/repos/{repo}/issues/{issue_number}/reactions")
+
+    def create_issue_reaction(self, repo: str, issue_number: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue
+        """
+        endpoint = f"/repos/{repo}/issues/{issue_number}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-reaction
+        """
+        return self.delete(f"/repos/{repo}/issues/{issue_number}/reactions/{reaction_id}")
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
@@ -570,6 +639,18 @@ class GitHubBaseClient(
         reactions = response.get("reactions", {})
         reactions.pop("url", None)
         return reactions
+
+    def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#create-reaction-for-an-issue-comment
+
+        Args:
+            repo: Repository name in "owner/repo" format
+            comment_id: The ID of the comment
+            reaction: The reaction type
+        """
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
+        return self.post(endpoint, data={"content": reaction.value})
 
     def get_user(self, gh_username: str) -> Any:
         """
@@ -630,7 +711,7 @@ class GitHubBaseClient(
                 metrics.incr(
                     "integrations.github.get_blame_for_files.not_enough_requests_remaining"
                 )
-                logger.error(
+                logger.warning(
                     "sentry.integrations.github.get_blame_for_files.rate_limit",
                     extra={
                         "provider": IntegrationProviderSlug.GITHUB,
@@ -661,7 +742,7 @@ class GitHubBaseClient(
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(str(e), log_info)
+                logger.warning(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)

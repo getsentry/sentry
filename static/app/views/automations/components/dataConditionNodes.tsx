@@ -2,7 +2,8 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {
   DataConditionType,
@@ -20,7 +21,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/assignedTo';
 import {
   AgeComparison,
-  Attributes,
+  Attribute,
   Interval,
   Level,
   MatchType,
@@ -120,6 +121,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     DataConditionType.FIRST_SEEN_EVENT,
     {
       label: t('A new issue is created'),
+      validate: undefined,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_RESOLVED_TRIGGER,
+    {
+      label: t('An issue is resolved'),
       validate: undefined,
     },
   ],
@@ -245,7 +253,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
       defaultComparison: {
-        attribute: Attributes.MESSAGE,
+        attribute: Attribute.MESSAGE,
         match: MatchType.CONTAINS,
       },
       validate: validateEventAttributeCondition,

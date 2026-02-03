@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
@@ -21,10 +21,10 @@ function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
 }
 
 interface BackgroundPatternsProps {
-  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
+  errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
+  occurrences: BaseNode['occurrences'];
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {

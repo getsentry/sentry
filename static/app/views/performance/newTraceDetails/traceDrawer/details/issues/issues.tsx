@@ -1,5 +1,6 @@
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -10,14 +11,14 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -26,7 +27,7 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-const issueOrderPriority: Record<keyof Theme['level'], number> = {
+const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
   error: 1,
   warning: 2,
@@ -69,8 +70,8 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const isOccurence: boolean = isTraceOccurence(props.issue);
-  const iconClassName: string = isOccurence ? 'occurence' : props.issue.level;
+  const iconClassName: string =
+    props.issue.event_type === 'error' ? props.issue.level : 'occurence';
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -83,10 +84,10 @@ function Issue(props: IssueProps) {
           <TraceIcons.Icon event={props.issue} />
         </IconBackground>
       </IconWrapper>
-      <SummaryWrapper>
+      <Stack justify="left" width="100%" overflow="hidden">
         <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
         <EventOrGroupExtraDetails data={fetchedIssue} />
-      </SummaryWrapper>
+      </Stack>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError
@@ -109,7 +110,7 @@ const IconBackground = styled('div')`
   svg {
     width: 16px;
     height: 16px;
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
   }
 `;
 
@@ -172,24 +173,16 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const SummaryWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  width: 100%;
-  justify-content: left;
-`;
-
 type IssueListProps = {
   issues: TraceTree.TraceIssue[];
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   organization: Organization;
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
-    ...TraceTree.UniqueErrorIssues(node).sort(sortIssuesByLevel),
-    ...TraceTree.UniqueOccurrences(node),
+    ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
+    ...node.uniqueOccurrenceIssues,
   ];
 
   if (!issues.length) {
@@ -205,25 +198,18 @@ export function IssueList({issues, node, organization}: IssueListProps) {
       </StyledPanel>
       {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
         <TraceDrawerComponents.IssuesLink node={node}>
-          <IssueLinkWrapper>
+          <Flex align="center" marginLeft="2xs" gap="xs">
             <IconOpen />
             {t(
               `Open %s more in Issues`,
               uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
             )}
-          </IssueLinkWrapper>
+          </Flex>
         </TraceDrawerComponents.IssuesLink>
       ) : null}
     </IssuesWrapper>
   );
 }
-
-const IssueLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-left: ${space(0.25)};
-`;
 
 const StyledPanel = styled(Panel)`
   container-type: inline-size;
@@ -251,7 +237,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
 
   /* Add a border between two rows of loading issue states */
   & + & {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

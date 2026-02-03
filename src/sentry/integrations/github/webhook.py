@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import inspect
 import logging
-from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping
+from abc import ABC
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
-from typing import Any
+from typing import Any, Protocol
 
 import orjson
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -24,11 +26,18 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
+from sentry.integrations.github.webhook_types import (
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
+)
 from sentry.integrations.pipeline import ensure_integration
-from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -38,6 +47,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import (
+    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -45,17 +58,39 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
+from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.code_review.webhooks.handlers import (
+    handle_webhook_event as code_review_handle_webhook_event,
+)
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
+from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
+
+
+# Functions that process webhook events need to have this signature.
+# This is used to type check the webhook processors.
+class WebhookProcessor(Protocol):
+    def __call__(
+        self,
+        *,
+        # This comes from the X-GitHub-Event header
+        github_event: GithubWebhookType,
+        # This comes from the webhook payload
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        integration: RpcIntegration | None = None,
+        **kwargs: Any,
+    ) -> None: ...
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
@@ -72,20 +107,99 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
+def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
+    """
+    Determine if a contributor is eligible for seat assignment based on their user type.
+    """
+    return user_type != "Bot"
+
+
+def _handle_pr_webhook_for_autofix_processor(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
+) -> None:
+    """
+    Adapter to make handle_github_pr_webhook_for_autofix work with standard processor signature.
+
+    This extracts the required parameters from the standardized webhook processor format
+    and calls the legacy autofix handler with its expected signature.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    action = event.get("action")
+    user = pull_request.get("user")
+
+    if organization and action and user:
+        # Because we require that the sentry github integration be installed for autofix, we can piggyback
+        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
 class GitHubWebhook(SCMWebhook, ABC):
     """
     Base class for GitHub webhooks handled in region silos.
     """
 
+    EVENT_TYPE: IntegrationWebhookEventType
+    # When subclassing, add your webhook event processor here.
+    WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
+            raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return self.EVENT_TYPE
+
     @property
     def provider(self) -> str:
         return IntegrationProviderSlug.GITHUB.value
 
-    @abstractmethod
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs) -> None:
-        pass
+    # _handle() is needed by _call() in the base class.
+    # subclasses can now just add their function to the WEBHOOK_EVENT_PROCESSORS tuple
+    # without needing to implement _handle()
+    def _handle(
+        self,
+        github_event: GithubWebhookType,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
+        for processor in self.WEBHOOK_EVENT_PROCESSORS:
+            try:
+                processor(
+                    github_event=github_event,
+                    event=event,
+                    integration=integration,
+                    organization=organization,
+                    repo=repo,
+                    **kwargs,
+                )
+            except Exception as e:
+                # Continue processing other processors even if one fails.
+                logger.warning(
+                    "github.webhook.processor.error",
+                    extra={"event_type": self.event_type.value, "error": str(e)},
+                )
+                metrics.incr(
+                    "github.webhook.processor.error",
+                    tags={"event_type": self.event_type.value},
+                    sample_rate=1.0,
+                )
+                continue
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        github_event = kwargs["github_event"]
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -157,6 +271,7 @@ class GitHubWebhook(SCMWebhook, ABC):
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self.update_repo_data(repo, event)
                 self._handle(
+                    github_event=github_event,
                     integration=integration,
                     event=event,
                     organization=orgs[repo.organization_id],
@@ -191,7 +306,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                     config=dict(repo.config, name=name_from_event),
                 )
             except IntegrityError:
-                logger.exception(
+                logger.warning(
                     "github.webhook.update_repo_data.integrity_error",
                     extra={
                         "repo_id": repo.id,
@@ -220,11 +335,9 @@ class InstallationEventWebhook(GitHubWebhook):
     https://developer.github.com/v3/activity/events/types/#installationevent
     """
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INSTALLATION
+    EVENT_TYPE = IntegrationWebhookEventType.INSTALLATION
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         installation = event["installation"]
 
         if not installation:
@@ -253,13 +366,15 @@ class InstallationEventWebhook(GitHubWebhook):
             org_integrations = result.organization_integrations
 
             if integration is not None:
-                self._handle(integration, event, org_integrations=org_integrations)
+                self._handle_organization_deletion(
+                    integration, event, org_integrations=org_integrations
+                )
             else:
                 # It seems possible for the GH or GHE app to be installed on their
                 # end, but the integration to not exist. Possibly from deleting in
                 # Sentry first or from a failed install flow (where the integration
                 # didn't get created in the first place)
-                logger.info(
+                logger.warning(
                     "github.deletion-missing-integration",
                     extra={
                         "action": event["action"],
@@ -267,15 +382,14 @@ class InstallationEventWebhook(GitHubWebhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.error("Installation is missing.")
 
-    def _handle(
+    def _handle_organization_deletion(
         self,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        org_integrations: Sequence[RpcOrganizationIntegration],
     ) -> None:
-        org_ids = {oi.organization_id for oi in kwargs.get("org_integrations", [])}
+        org_ids = [oi.organization_id for oi in org_integrations]
 
         logger.info(
             "InstallationEventWebhook._handle_delete",
@@ -314,23 +428,21 @@ class InstallationEventWebhook(GitHubWebhook):
 class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PUSH
+    EVENT_TYPE = IntegrationWebhookEventType.PUSH
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
     ) -> None:
         authors = {}
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
-
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
@@ -442,16 +554,16 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c, _ = create_commit(
-                        organization=organization,
-                        repo_id=repo.id,
+                    c = Commit.objects.create(
+                        organization_id=organization.id,
+                        repository_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
 
-                    file_changes = []
+                    file_changes: list[CommitFileChange] = []
 
                     for fname in commit["added"]:
                         languages.add(get_file_language(fname))
@@ -487,93 +599,229 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(file_changes)
+                        CommitFileChange.objects.bulk_create(file_changes)
                         post_bulk_create(file_changes)
 
             except IntegrityError:
                 pass
 
         languages.discard(None)
-        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.languages = list(
+            set(repo.languages or []).union({lang for lang in languages if lang is not None})
+        )
         repo.save()
 
 
 class IssuesEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#issuesevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.INBOUND_SYNC
+    # Inbound sync because we are handling assignment and status changes.
+    EVENT_TYPE = IntegrationWebhookEventType.INBOUND_SYNC
 
-    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+    def _handle(
+        self,
+        github_event: GithubWebhookType,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
+    ) -> None:
         """
         Handle GitHub issue events, particularly assignment and status changes.
         """
 
         action = event.get("action")
+
+        external_issue_key = self._extract_issue_key(integration, event)
+
+        if not external_issue_key:
+            logger.warning(
+                "github.webhook.issues.missing-external-issue-key",
+                extra={
+                    "integration_id": integration.id,
+                    "action": action,
+                },
+            )
+            return
+
+        # Route to appropriate handler based on action
+        if action in [
+            IssueEvenntWebhookActionType.ASSIGNED.value,
+            IssueEvenntWebhookActionType.UNASSIGNED.value,
+        ]:
+            self._handle_assignment(integration, event, external_issue_key, action)
+        elif action in [
+            IssueEvenntWebhookActionType.CLOSED.value,
+            IssueEvenntWebhookActionType.REOPENED.value,
+        ]:
+            self._handle_status_change(integration, external_issue_key, action)
+
+    def _handle_assignment(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        external_issue_key: str,
+        action: str,
+    ) -> None:
+        """
+        Handle issue assignment and unassignment events.
+
+        When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
+        non-deterministic order. To avoid race conditions, we sync based on the current
+        state in issue.assignees rather than the delta in the assignee field.
+
+        Args:
+            integration: The GitHub integration
+            event: The webhook event payload
+            external_issue_key: The formatted issue key
+            action: The action type ('assigned' or 'unassigned')
+        """
+        # Use issue.assignees (current state) instead of assignee (delta) to avoid race conditions
+        issue = event.get("issue", {})
+        assignees = issue.get("assignees", [])
+
+        # If there are no assignees, deassign
+        if not assignees:
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name="",  # Not used for deassignment
+                external_issue_key=external_issue_key,
+                assign=False,
+            )
+            logger.info(
+                "github.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": None,
+                    "action": "deassigned",
+                },
+            )
+            return
+
+        # GitHub supports multiple assignees, but Sentry currently only supports one
+        # Take the first assignee from the current state
+        first_assignee = assignees[0]
+        assignee_gh_name = first_assignee.get("login")
+
+        if not assignee_gh_name:
+            logger.warning(
+                "github.webhook.missing-assignee",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "action": action,
+                },
+            )
+            return
+
+        # Sentry uses the @username format for assignees
+        assignee_name = f"@{assignee_gh_name}"
+
+        sync_group_assignee_inbound_by_external_actor(
+            integration=integration,
+            external_user_name=assignee_name,
+            external_issue_key=external_issue_key,
+            assign=True,
+        )
+
+        logger.info(
+            "github.webhook.assignment.synced",
+            extra={
+                "integration_id": integration.id,
+                "external_issue_key": external_issue_key,
+                "assignee_name": assignee_name,
+                "action": action,
+                "total_assignees": len(assignees),
+            },
+        )
+
+    def _handle_status_change(
+        self, integration: RpcIntegration, external_issue_key: str, action: str
+    ) -> None:
+        """
+        Handle issue status changes (closed/reopened).
+
+        Args:
+            integration: The GitHub integration
+            external_issue_key: The formatted issue key
+            action: The action type ('closed' or 'reopened')
+        """
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id,
+            providers=[integration.provider],
+            status=ObjectStatus.ACTIVE,
+        )
+
+        for oi in org_integrations:
+            installation = integration.get_installation(oi.organization_id)
+
+            if hasattr(installation, "sync_status_inbound"):
+                installation.sync_status_inbound(external_issue_key, {"action": action})
+
+                logger.info(
+                    "github.webhook.status-change.synced",
+                    extra={
+                        "integration_id": integration.id,
+                        "organization_id": oi.organization_id,
+                        "external_issue_key": external_issue_key,
+                        "action": action,
+                    },
+                )
+
+    def _extract_issue_key(
+        self, integration: RpcIntegration, event: Mapping[str, Any]
+    ) -> str | None:
+        """
+        Extract and validate the external issue key from the event.
+
+        Returns the external issue key in format 'repo_full_name#issue_number' or None if invalid.
+        """
         issue = event.get("issue", {})
         repository = event.get("repository", {})
         repo_full_name = repository.get("full_name")
         issue_number = issue.get("number")
-        assignee_gh_name = event.get("assignee", {}).get("login")
 
-        if not repo_full_name or not issue_number or not assignee_gh_name:
+        if not repo_full_name or not issue_number:
             logger.warning(
                 "github.webhook.missing-data",
                 extra={
                     "integration_id": integration.id,
                     "repo": repo_full_name,
                     "issue_number": issue_number,
-                    "action": action,
+                    "action": event.get("action"),
                 },
             )
-            return
+            return None
 
-        external_issue_key = f"{repo_full_name}#{issue_number}"
-
-        # Handle issue assignment changes
-        if action in ["assigned", "unassigned"]:
-            # Sentry uses the @username format for assignees
-            assignee_name = "@" + assignee_gh_name
-
-            # Sync the assignment to Sentry
-            sync_group_assignee_inbound_by_external_actor(
-                integration=integration,
-                external_user_name=assignee_name,
-                external_issue_key=external_issue_key,
-                assign=(action == "assigned"),
-            )
-
-            logger.info(
-                "github.webhook.assignment.synced",
-                extra={
-                    "integration_id": integration.id,
-                    "external_issue_key": external_issue_key,
-                    "assignee_name": assignee_name,
-                    "action": action,
-                },
-            )
+        return f"{repo_full_name}#{issue_number}"
 
 
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
-    @property
-    def event_type(self) -> IntegrationWebhookEventType:
-        return IntegrationWebhookEventType.PULL_REQUEST
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
+    WEBHOOK_EVENT_PROCESSORS = (
+        _handle_pr_webhook_for_autofix_processor,
+        code_review_handle_webhook_event,
+    )
 
     def _handle(
         self,
+        github_event: GithubWebhookType,
         integration: RpcIntegration,
         event: Mapping[str, Any],
-        **kwargs,
+        organization: Organization,
+        repo: Repository,
+        **kwargs: Any,
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
-        action = event["action"]
+        user_type = user.get("type")
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -592,9 +840,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
         author_email = "{}@localhost".format(user["login"][:65])
-
-        if not ((organization := kwargs.get("organization")) and (repo := kwargs.get("repo"))):
-            raise ValueError("Missing organization and repo")
 
         try:
             commit_author = CommitAuthor.objects.get(
@@ -631,7 +876,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         author.preload_users()
         try:
-            pr, created = PullRequest.objects.update_or_create(
+            _, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -644,20 +889,115 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            installation = integration.get_installation(organization_id=organization.id)
-            if (
-                action == "opened"
-                and created
-                and isinstance(installation, CommitContextIntegration)
-            ):
-                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=organization)
+            if created:
+
+                try:
+                    pr_repo_private = pull_request["head"]["repo"]["private"]
+                except (KeyError, AttributeError, TypeError):
+                    pr_repo_private = False
+
+                metrics.incr(
+                    "github.webhook.pull_request.created",
+                    sample_rate=1.0,
+                    tags={
+                        "is_private": pr_repo_private,
+                    },
+                )
+
+                logger.info(
+                    "github.webhook.organization_contributor.eligibility_check",
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "pr_number": number,
+                        "user_login": user["login"],
+                        "user_type": user_type,
+                        "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
+                    },
+                )
+
+                if is_contributor_eligible_for_seat_assignment(user_type):
+                    # Track AI contributor if eligible
+                    contributor, _ = OrganizationContributors.objects.get_or_create(
+                        organization_id=organization.id,
+                        integration_id=integration.id,
+                        external_identifier=user["id"],
+                        defaults={
+                            "alias": user["login"],
+                        },
+                    )
+
+                    if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                        metrics.incr(
+                            "github.webhook.organization_contributor.should_create",
+                            sample_rate=1.0,
+                        )
+
+                        locked_contributor = None
+                        with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                            try:
+                                locked_contributor = (
+                                    OrganizationContributors.objects.select_for_update().get(
+                                        organization_id=organization.id,
+                                        integration_id=integration.id,
+                                        external_identifier=user["id"],
+                                    )
+                                )
+                                locked_contributor.num_actions += 1
+                                locked_contributor.save(
+                                    update_fields=["num_actions", "date_updated"]
+                                )
+                            except OrganizationContributors.DoesNotExist:
+                                logger.warning(
+                                    "github.webhook.organization_contributor.not_found",
+                                    extra={
+                                        "organization_id": organization.id,
+                                        "integration_id": integration.id,
+                                        "external_identifier": user["id"],
+                                    },
+                                )
+
+                        if (
+                            locked_contributor
+                            and locked_contributor.num_actions
+                            >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                        ):
+                            assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
         except IntegrityError:
             pass
 
-        # Because we require that the sentry github integration be installed for autofix, we can piggyback
-        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        super()._handle(
+            github_event=github_event,
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+            **kwargs,
+        )
+
+
+class CheckRunEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub check_run webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#check_run
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.CI_CHECK
+    WEBHOOK_EVENT_PROCESSORS = (
+        code_review_handle_webhook_event,
+        handle_preprod_check_run_event,
+    )
+
+
+class IssueCommentEventWebhook(GitHubWebhook):
+    """
+    Handles GitHub issue_comment webhook events.
+    https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
 
 
 @all_silo_endpoint
@@ -675,25 +1015,30 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers: dict[str, type[GitHubWebhook]] = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-        "issues": IssuesEventWebhook,
+    _handlers: dict[GithubWebhookType, type[GitHubWebhook]] = {
+        GithubWebhookType.CHECK_RUN: CheckRunEventWebhook,
+        GithubWebhookType.INSTALLATION: InstallationEventWebhook,
+        GithubWebhookType.ISSUE: IssuesEventWebhook,
+        GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
+        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.PUSH: PushEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
+    def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+    @staticmethod
+    def compute_signature(method: str, body: bytes, secret: str) -> str:
         if method == "sha256":
             mod = hashlib.sha256
         elif method == "sha1":
             mod = hashlib.sha1
         else:
             raise NotImplementedError(f"signature method {method} is not supported")
-        expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
+        return hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
+        expected = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, secret)
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
@@ -720,25 +1065,27 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         secret = self.get_secret()
 
         if secret is None:
-            logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         body = bytes(request.body)
         if not body:
-            logger.error("github.webhook.missing-body", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         try:
-            handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
+            github_event = GithubWebhookType(request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY])
+            handler = self.get_handler(github_event)
         except KeyError:
-            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception("Missing Github event in webhook.")
+            logger.warning("github.webhook.missing-event", extra=self.get_logging_data())
             return HttpResponse(status=400)
+        except ValueError:
+            return HttpResponse(status=204)
 
         if not handler:
-            logger.info(
+            logger.warning(
                 "github.webhook.missing-handler",
-                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"github_event": github_event},
             )
             return HttpResponse(status=204)
 
@@ -748,26 +1095,34 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             )
             method, signature = header.split("=", 1)
         except (KeyError, ValueError):
-            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.warning("github.webhook.missing-signature", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, secret, signature):
-            logger.error("github.webhook.invalid-signature", extra=self.get_logging_data())
+            logger.warning("github.webhook.invalid-signature", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
         try:
             event = orjson.loads(body)
         except orjson.JSONDecodeError:
-            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
-            logger.exception("Invalid JSON.")
+            logger.warning("github.webhook.invalid-json", extra=self.get_logging_data())
             return HttpResponse(status=400)
 
         event_handler = handler()
 
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event)
+        # Create a new transaction for each webhook event to ensure separate traces
+        transaction_name = f"github.webhook.{github_event.value}"
+        with sentry_sdk.start_transaction(
+            op="webhook",
+            name=transaction_name,
+            source="component",
+        ) as transaction:
+            transaction.set_tag("github_event", github_event.value)
+
+            with IntegrationWebhookEvent(
+                interaction_type=event_handler.event_type,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=event_handler.provider,
+            ).capture():
+                event_handler(event, github_event=github_event)
         return HttpResponse(status=204)

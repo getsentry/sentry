@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
@@ -39,13 +40,13 @@ export function useGroupByFields({
         .map(([_, tag]) => optionFromTag(tag, traceItemType)),
       ...groupBys
         .filter(
-          groupBy =>
-            groupBy &&
-            !numberTags.hasOwnProperty(groupBy) &&
-            !stringTags.hasOwnProperty(groupBy)
+          groupBy => groupBy && !(groupBy in numberTags) && !(groupBy in stringTags)
         )
         .map(groupBy =>
-          optionFromTag({key: groupBy, name: groupBy, kind: FieldKind.TAG}, traceItemType)
+          optionFromTag(
+            {key: groupBy, name: prettifyTagKey(groupBy), kind: FieldKind.TAG},
+            traceItemType
+          )
         ),
     ];
 
@@ -94,5 +95,5 @@ function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

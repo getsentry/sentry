@@ -32,6 +32,7 @@ describe('convertBuilderStateToWidget', () => {
           columns: ['geo.country'],
           conditions: '',
           name: '',
+          linkedDashboards: [],
           orderby: 'geo.country',
           selectedAggregate: undefined,
         },

@@ -1,9 +1,10 @@
 import {useEffect, useRef} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -78,7 +79,7 @@ function DeleteInProgressAlert({
 }) {
   return (
     <Alert
-      type="info"
+      variant="info"
       trailingItems={
         <LinkButton
           size="xs"

@@ -218,12 +218,10 @@ export function EnvironmentPageFilter({
       menuFooterMessage={footerMessage}
       trigger={
         trigger ??
-        ((tp, isOpen) => (
+        (tp => (
           <EnvironmentPageFilterTrigger
             {...tp}
             {...triggerProps}
-            isOpen={isOpen}
-            size={selectProps.size}
             value={value}
             environments={environments}
             ready={projectsLoaded && pageFilterIsReady}

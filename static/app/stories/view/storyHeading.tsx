@@ -2,9 +2,10 @@ import type {ComponentProps, ReactElement, ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {IconLink} from 'sentry/icons';
 import {useStory} from 'sentry/stories/view/useStory';
 import slugify from 'sentry/utils/slugify';
@@ -17,18 +18,7 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const text = stringifyReactNode(props.children);
   const id = props.id ?? slugify(text);
 
-  const {onClick} = useCopyToClipboard({
-    text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
-    successMessage: (
-      <Fragment>
-        Copied link to{' '}
-        <strong>
-          {storyTitle ? `${storyTitle} > ` : null}
-          {text}
-        </strong>
-      </Fragment>
-    ),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Flex gap="md" align="center">
@@ -37,10 +27,21 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
         priority="transparent"
         size="xs"
         href={`#${id}`}
-        onClick={onClick}
-      >
-        <IconLink />
-      </StyledLinkButton>
+        icon={<IconLink />}
+        onClick={() =>
+          copy(`${window.location.toString().replace(/#.*$/, '')}#${id}`, {
+            successMessage: (
+              <Fragment>
+                Copied link to{' '}
+                <strong>
+                  {storyTitle ? `${storyTitle} > ` : null}
+                  {text}
+                </strong>
+              </Fragment>
+            ),
+          })
+        }
+      />
     </Flex>
   );
 }

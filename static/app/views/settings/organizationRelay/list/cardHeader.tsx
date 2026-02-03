@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
@@ -26,7 +26,7 @@ function CardHeader({
   onEdit,
   onDelete,
 }: Props) {
-  const {onClick} = useCopyToClipboard({text: publicKey});
+  const {copy} = useCopyToClipboard();
 
   const deleteButton = (
     <Button
@@ -47,7 +47,11 @@ function CardHeader({
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar>
-        <Button size="sm" icon={<IconCopy />} onClick={onClick}>
+        <Button
+          size="sm"
+          icon={<IconCopy />}
+          onClick={() => copy(publicKey, {successMessage: t('Copied key to clipboard')})}
+        >
           {t('Copy Key')}
         </Button>
         <Button
@@ -88,8 +92,8 @@ const KeyName = styled('div')`
 
 const DateCreated = styled('div')`
   grid-row: 2/3;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

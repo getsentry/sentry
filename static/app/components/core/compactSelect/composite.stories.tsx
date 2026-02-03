@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {CompactSelect, CompositeSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconSentry, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-
-import {CompositeSelect} from './composite';
-import {CompactSelect} from './';
 
 const MONTH_OPTIONS = [
   {value: 'jan', label: 'January'},
@@ -78,12 +78,12 @@ export default Storybook.story('CompositeSelect', story => {
           <code>options</code>.
         </p>
         <CompositeSelect
-          triggerProps={{
-            children: 'Select an Option',
-            showChevron: false,
-            icon: <IconSentry />,
-            size: 'sm',
-          }}
+          size="sm"
+          trigger={props => (
+            <OverlayTrigger.Button icon={<IconSentry />} {...props}>
+              Select an Option
+            </OverlayTrigger.Button>
+          )}
         >
           <CompositeSelect.Region
             label="Month"
@@ -125,12 +125,12 @@ export default Storybook.story('CompositeSelect', story => {
 
         <Flex gap="md">
           <CompositeSelect
-            triggerProps={{
-              size: 'sm',
-              icon: <IconSentry />,
-              children: 'Composite Select Single Select',
-              showChevron: false,
-            }}
+            size="sm"
+            trigger={props => (
+              <OverlayTrigger.Button icon={<IconSentry />} {...props}>
+                Composite Select Single Select
+              </OverlayTrigger.Button>
+            )}
           >
             <CompositeSelect.Region
               label="Mains"
@@ -147,12 +147,16 @@ export default Storybook.story('CompositeSelect', story => {
           </CompositeSelect>
 
           <CompactSelect
-            triggerProps={{
-              size: 'sm',
-              icon: <IconStar />,
-              children: 'Compact Select Single Select',
-              showChevron: false,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconStar />}
+                showChevron={false}
+              >
+                {'Compact Select Single Select'}
+              </OverlayTrigger.Button>
+            )}
             value={drink}
             onChange={selection => setDrink(selection.value)}
             options={[
@@ -163,12 +167,16 @@ export default Storybook.story('CompositeSelect', story => {
 
           <CompactSelect
             multiple
-            triggerProps={{
-              size: 'sm',
-              icon: <IconStar />,
-              children: 'Compact Select Multiple Select',
-              showChevron: false,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconStar />}
+                showChevron={false}
+              >
+                {'Compact Select Multiple Select'}
+              </OverlayTrigger.Button>
+            )}
             value={drinks}
             onChange={selection => setDrinks(selection.map(s => s.value))}
             options={[

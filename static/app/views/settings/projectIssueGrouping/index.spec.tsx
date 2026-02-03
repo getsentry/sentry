@@ -1,5 +1,3 @@
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -20,13 +18,10 @@ describe('projectIssueGrouping', () => {
       body: [],
     });
 
-    render(
-      <ProjectIssueGrouping
-        organization={organization}
-        project={project}
-        {...RouteComponentPropsFixture()}
-      />
-    );
+    render(<ProjectIssueGrouping />, {
+      organization,
+      outletContext: {project},
+    });
 
     expect(request).toHaveBeenCalled();
     expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
@@ -41,13 +36,10 @@ describe('projectIssueGrouping', () => {
       statusCode: 500,
     });
 
-    render(
-      <ProjectIssueGrouping
-        organization={organization}
-        project={project}
-        {...RouteComponentPropsFixture()}
-      />
-    );
+    render(<ProjectIssueGrouping />, {
+      organization,
+      outletContext: {project},
+    });
 
     expect(request).toHaveBeenCalled();
     expect(
@@ -63,13 +55,10 @@ describe('projectIssueGrouping', () => {
     });
 
     // First render with a non-superuser
-    const {rerender} = render(
-      <ProjectIssueGrouping
-        organization={organization}
-        project={project}
-        {...RouteComponentPropsFixture()}
-      />
-    );
+    const {rerender} = render(<ProjectIssueGrouping />, {
+      organization,
+      outletContext: {project},
+    });
 
     // Verify the section is not visible for non-superuser
     expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
@@ -77,13 +66,7 @@ describe('projectIssueGrouping', () => {
 
     // Re-render for superuser
     jest.mocked(isActiveSuperuser).mockReturnValue(true);
-    rerender(
-      <ProjectIssueGrouping
-        organization={organization}
-        project={project}
-        {...RouteComponentPropsFixture()}
-      />
-    );
+    rerender(<ProjectIssueGrouping />);
 
     // Verify the section is visible for superuser
     expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();

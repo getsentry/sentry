@@ -50,14 +50,12 @@ VALID_ACTIONS = ["created", "deleted"]
 class SentryAppInstallationTokenCreator:
     sentry_app_installation: SentryAppInstallation
     expires_at: datetime.date | None = None
-    generate_audit: bool = False
 
     def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()
             self._create_sentry_app_installation_token(api_token=api_token)
-            self.audit(request, api_token)
         self.record_analytics(user)
         return api_token
 
@@ -85,18 +83,6 @@ class SentryAppInstallationTokenCreator:
         return SentryAppInstallationToken.objects.create(
             api_token=api_token, sentry_app_installation=self.sentry_app_installation
         )
-
-    def audit(self, request: HttpRequest | None, api_token: ApiToken) -> None:
-        from sentry.utils.audit import create_audit_entry
-
-        if request and self.generate_audit:
-            create_audit_entry(
-                request=request,
-                organization=self.organization_id,
-                target_object=api_token.id,
-                event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
-                data={"sentry_app": self.sentry_app.name},
-            )
 
     def record_analytics(self, user: User | RpcUser) -> None:
         from sentry import analytics

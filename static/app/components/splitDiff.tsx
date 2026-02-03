@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
 
+import {Flex} from '@sentry/scraps/layout';
+
+import {unreachable} from 'sentry/utils/unreachable';
+
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
 export const DIFF_COLORS = {
   removedRow: 'hsl(358deg 89% 65% / 15%)',
@@ -11,17 +15,11 @@ export const DIFF_COLORS = {
   added: 'hsl(166deg 58% 47% / 32%)',
 } as const;
 
-const diffFnMap = {
-  chars: diffChars,
-  words: diffWords,
-  lines: diffLines,
-} as const;
-
 type Props = {
   base: string;
   target: string;
   className?: string;
-  type?: keyof typeof diffFnMap;
+  type?: 'lines' | 'words' | 'chars';
 };
 
 // this function splits the lines from diffLines into words that are diffed
@@ -51,12 +49,25 @@ function getDisplayData(
 }
 
 function SplitDiff({className, type = 'lines', base, target}: Props) {
-  const diffFn = diffFnMap[type];
-
-  const results = diffFn(base, target, {newlineIsToken: true});
-
   // split one change that includes multiple lines into one change per line (for formatting)
   const groupedChanges = useMemo((): Change[][] => {
+    let diffResults: Change[] | undefined;
+    switch (type) {
+      case 'lines':
+        diffResults = diffLines(base, target, {newlineIsToken: true});
+        break;
+      case 'words':
+        diffResults = diffWords(base, target);
+        break;
+      case 'chars':
+        diffResults = diffChars(base, target);
+        break;
+      default:
+        unreachable(type);
+        break;
+    }
+    const results = diffResults ?? [];
+
     let currentLine: Change[] = [];
     const processedLines: Change[][] = [];
     for (const change of results) {
@@ -68,6 +79,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
             value: lineValue,
             added: change.added,
             removed: change.removed,
+            count: 1,
           });
         }
         if (i < lines.length - 1) {
@@ -80,7 +92,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
       processedLines.push(currentLine);
     }
     return processedLines;
-  }, [results]);
+  }, [base, target, type]);
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
@@ -92,7 +104,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
           return (
             <tr key={j}>
               <Cell isRemoved={highlightRemoved}>
-                <Line>
+                <Flex wrap="wrap">
                   {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.added)
                     .map((result, i) => (
@@ -100,13 +112,13 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
 
               <Gap />
 
               <Cell isAdded={highlightAdded}>
-                <Line>
+                <Flex wrap="wrap">
                   {getDisplayData(line, highlightAdded, highlightRemoved)
                     .filter(result => !result.removed)
                     .map((result, i) => (
@@ -114,7 +126,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
                         {result.value}
                       </Word>
                     ))}
-                </Line>
+                </Flex>
               </Cell>
             </tr>
           );
@@ -131,8 +143,8 @@ const SplitTable = styled('table')`
 `;
 
 const SplitBody = styled('tbody')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
@@ -143,11 +155,6 @@ const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
 
 const Gap = styled('td')`
   width: 20px;
-`;
-
-const Line = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
 `;
 
 const Word = styled('span')<{isAdded?: boolean; isRemoved?: boolean}>`

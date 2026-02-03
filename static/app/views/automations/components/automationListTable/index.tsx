@@ -1,8 +1,9 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
@@ -96,7 +97,10 @@ function AutomationListTable({
     setSelected(newSelected);
   };
   const automationIds = new Set(automations.map(a => a.id));
-  const pageSelected = !isPending && automationIds.difference(selected).size === 0;
+  const pageSelected =
+    !isPending &&
+    automationIds.size !== 0 &&
+    automationIds.difference(selected).size === 0;
   const anySelected = selected.size > 0;
 
   const canEnable = useMemo(
@@ -170,9 +174,9 @@ function AutomationListTable({
         />
       )}
       {isSuccess && automations.length === 0 && (
-        <SimpleTable.Empty>{t('No automations found')}</SimpleTable.Empty>
+        <SimpleTable.Empty>{t('No alerts found')}</SimpleTable.Empty>
       )}
-      {isError && <LoadingError message={t('Error loading automations')} />}
+      {isError && <LoadingError message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (

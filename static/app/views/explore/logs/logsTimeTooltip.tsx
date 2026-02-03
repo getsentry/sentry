@@ -2,8 +2,9 @@ import React, {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import {useTimezone} from 'sentry/components/timezoneProvider';
@@ -160,14 +161,14 @@ const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const HorizontalRule = styled('hr')`
   grid-column: 1 / -1;
   margin: ${space(0.5)} 0;
   border: none;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimestampLabelLink = styled(Link)`
@@ -175,7 +176,7 @@ const TimestampLabelLink = styled(Link)`
 `;
 
 const TimestampLabel = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
 `;
 
 const TimestampLabelLinkContainer = styled('dd')`

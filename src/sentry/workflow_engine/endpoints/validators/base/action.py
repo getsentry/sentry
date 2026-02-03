@@ -20,7 +20,7 @@ class BaseActionValidator(CamelSnakeSerializer):
     data: Any = serializers.JSONField()
     config: Any = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
-    integration_id = serializers.IntegerField(required=False)
+    integration_id = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.CharField(required=False)
 
     def _get_action_handler(self) -> builtins.type[ActionHandler]:

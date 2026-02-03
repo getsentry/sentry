@@ -6,6 +6,10 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry.dashboards.endpoints.organization_dashboards import (
+    PREBUILT_DASHBOARDS,
+    PrebuiltDashboardId,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -20,6 +24,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -1417,77 +1422,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
 
-    def test_integrity_error(self) -> None:
+    def test_duplicate_title_auto_increments(self) -> None:
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
-        assert response.status_code == 409
-        assert response.data == "Dashboard title already taken"
-
-    def test_duplicate_dashboard(self) -> None:
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
+        response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
     def test_many_duplicate_dashboards(self) -> None:
         title = "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard copy"
 
         for i in range(1, 10):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": title, "duplicate": True},
-            )
-
+            response = self.do_request("post", self.url, data={"title": title})
             assert response.status_code == 201, response.data
             assert response.data["title"] == f"My Awesome Dashboard copy {i}"
 
     def test_duplicate_a_duplicate(self) -> None:
         title = "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 4"
 
@@ -1889,6 +1856,57 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 201
 
+    @patch("sentry.quotas.backend.get_dashboard_limit")
+    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+        Dashboard.objects.all().delete()
+        mock_get_dashboard_limit.return_value = 2
+
+        responses = []
+        for i in range(5):
+            response = self.do_request("post", self.url, data={"title": f"Burst Request {i}"})
+            responses.append(response)
+
+        # Only up to the configured limit of dashboards should exist.
+        dashboards = Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=None,
+        )
+        assert dashboards.count() == 2
+
+        # Only two requests should have successfully created a dashboard.
+        created_response_count = sum(1 for response in responses if response.status_code == 201)
+        assert created_response_count == 2
+
+    @patch("sentry.quotas.backend.get_dashboard_limit")
+    def test_dashboard_limit_does_not_count_prebuilt_dashboards(
+        self, mock_get_dashboard_limit
+    ) -> None:
+        mock_get_dashboard_limit.return_value = 2
+
+        Dashboard.objects.create(
+            organization=self.organization,
+            title="Prebuilt Dashboard 1",
+            created_by_id=None,
+            prebuilt_id=1,
+        )
+        Dashboard.objects.create(
+            organization=self.organization,
+            title="Prebuilt Dashboard 2",
+            created_by_id=None,
+            prebuilt_id=2,
+        )
+
+        # 2 prebuilt + 2 user dashboards
+        response = self.do_request("post", self.url, data={"title": "Dashboard at Limit"})
+        assert response.status_code == 400
+        assert response.data == "You may not exceed 2 dashboards on your current plan."
+
+        self.dashboard.delete()
+
+        # 2 prebuilt + 1 user dashboard
+        response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Prebuilt"})
+        assert response.status_code == 201
+
     def test_prebuilt_dashboard_is_shown_when_favorites_pinned_and_no_dashboards(self) -> None:
         # The prebuilt dashboard should not show up when filtering by owned dashboards
         # because it is not created by the user
@@ -1906,3 +1924,116 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["title"] == "General"
+
+    def test_endpoint_creates_prebuilt_dashboards_when_none_exist(self) -> None:
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        prebuilt_dashboards = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        )
+        assert prebuilt_dashboards.count() == 3
+
+        for prebuilt_dashboard in PREBUILT_DASHBOARDS[:3]:
+            dashboard = prebuilt_dashboards.get(prebuilt_id=prebuilt_dashboard["prebuilt_id"])
+            assert dashboard.title == prebuilt_dashboard["title"]
+            assert dashboard.organization == self.organization
+            assert dashboard.created_by_id is None
+            assert dashboard.prebuilt_id == prebuilt_dashboard["prebuilt_id"]
+
+            matching_response_data = [
+                d
+                for d in response.data
+                if "prebuiltId" in d and d["prebuiltId"] == prebuilt_dashboard["prebuilt_id"]
+            ]
+            assert len(matching_response_data) == 1
+
+    def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+        initial_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert initial_count == 3
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        final_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert final_count == initial_count
+        assert final_count == 3
+
+    def test_endpoint_deletes_old_prebuilt_dashboards_not_in_list(self) -> None:
+        old_prebuilt_id = 9999  # 9999 is not a valid prebuilt dashboard id
+        old_dashboard = Dashboard.objects.create(
+            organization=self.organization,
+            title="Old Prebuilt Dashboard",
+            created_by_id=None,
+            prebuilt_id=old_prebuilt_id,
+        )
+        assert Dashboard.objects.filter(id=old_dashboard.id).exists()
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(id=old_dashboard.id).exists()
+
+        prebuilt_dashboards = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        )
+        assert prebuilt_dashboards.count() == 3
+
+    def test_endpoint_does_not_sync_without_feature_flag(self) -> None:
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0
+
+    def test_get_with_prebuilt_ids(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request(
+                    "get", self.url, {"prebuiltId": [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]}
+                )
+                assert response.status_code == 200
+                assert len(response.data) == 1
+                assert response.data[0]["prebuiltId"] == PrebuiltDashboardId.FRONTEND_SESSION_HEALTH
+
+    def test_get_with_exclude_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "excludePrebuilt"})
+
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                total_count = Dashboard.objects.filter(organization=self.organization).count()
+                assert prebuilt_dashboards_count == 3
+                assert total_count == 5
+
+                assert response.status_code == 200
+                assert len(response.data) == total_count - prebuilt_dashboards_count

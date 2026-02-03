@@ -1,7 +1,8 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {Component, createRef, Fragment} from 'react';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
@@ -99,6 +100,7 @@ type GridEditableProps<
   error?: unknown | null;
 
   fit?: 'max-content';
+  getRowAriaLabel?: (row: DataRow) => string | undefined;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
@@ -111,7 +113,9 @@ type GridEditableProps<
 
   isLoading?: boolean;
 
+  isRowClickable?: (row: DataRow) => boolean;
   minimumColWidth?: number;
+  onRowClick?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOut?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   onRowMouseOver?: (row: DataRow, key: number, event: React.MouseEvent) => void;
   /**
@@ -396,8 +400,16 @@ export default class GridEditable<
   }
 
   renderGridBodyRow(dataRow: DataRow, row: number) {
-    const {columnOrder, grid, onRowMouseOver, onRowMouseOut, highlightedRowKey} =
-      this.props;
+    const {
+      columnOrder,
+      grid,
+      onRowMouseOver,
+      onRowMouseOut,
+      highlightedRowKey,
+      onRowClick,
+      isRowClickable,
+      getRowAriaLabel,
+    } = this.props;
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(false, dataRow, row)
       : [];
@@ -407,7 +419,10 @@ export default class GridEditable<
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
+        onClick={event => onRowClick?.(dataRow, row, event)}
         data-test-id="grid-body-row"
+        isClickable={isRowClickable?.(dataRow)}
+        aria-label={getRowAriaLabel?.(dataRow)}
       >
         <InteractionStateLayer
           isHovered={row === highlightedRowKey}
@@ -435,7 +450,7 @@ export default class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

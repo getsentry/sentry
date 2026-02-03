@@ -3,11 +3,12 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
@@ -95,7 +96,7 @@ function TeamMisery({
             }
             headers={[
               <Flex align="center" key="transaction">
-                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
+                <StyledIconStar isSolid variant="warning" /> {t('Key transaction')}
               </Flex>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -132,7 +133,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow300" />
+                      <StyledIconStar isSolid variant="warning" />
                     </div>
                     <TransactionWrapper>
                       <Link
@@ -161,7 +162,13 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? theme.successText : theme.errorText}>
+                      <TrendText
+                        color={
+                          trend >= 0
+                            ? theme.tokens.content.success
+                            : theme.tokens.content.danger
+                        }
+                      >
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>
@@ -275,7 +282,7 @@ export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
@@ -295,7 +302,10 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
 `;
@@ -307,7 +317,11 @@ const StyledIconStar = styled(IconStar)`
 `;
 
 const TransactionWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const RightAligned = styled('span')`
@@ -322,7 +336,7 @@ const ScoreWrapper = styled('div')`
 `;
 
 const SubText = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TrendText = styled('div')<{color: string}>`

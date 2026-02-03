@@ -1,12 +1,15 @@
-from typing import TypedDict
+from __future__ import annotations
 
-from pydantic import BaseModel
+from enum import StrEnum
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
-class BranchOverride(TypedDict):
-    tag_name: str
-    tag_value: str
-    branch_name: str
+class BranchOverride(BaseModel):
+    tag_name: str = Field(description="The tag key to match against")
+    tag_value: str = Field(description="The tag value to match against")
+    branch_name: str = Field(description="The branch to use when this tag matches")
 
 
 class SummarizeIssueScores(BaseModel):
@@ -27,14 +30,24 @@ class SummarizeIssueResponse(BaseModel):
 
 
 class SeerRepoDefinition(BaseModel):
-    integration_id: str | None = None  # TODO(jianyuan): Make this required
+    organization_id: int | None = None
+    integration_id: str | None = None
     provider: str
     owner: str
     name: str
     external_id: str
-    branch_name: str | None = None
-    branch_overrides: list[BranchOverride] = []
-    instructions: str | None = None
+    branch_name: str | None = Field(
+        default=None,
+        description="The branch that will be used, otherwise the default branch will be used.",
+    )
+    branch_overrides: list[BranchOverride] = Field(
+        default_factory=list,
+        description="List of branch overrides based on event tags.",
+    )
+    instructions: str | None = Field(
+        default=None,
+        description="Custom instructions when working in this repo.",
+    )
     base_commit_sha: str | None = None
     provider_raw: str | None = None
 
@@ -64,6 +77,38 @@ class SummarizePageWebVitalsResponse(BaseModel):
     suggested_investigations: list[PageWebVitalsInsight]
 
 
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: AutofixHandoffPoint
+    target: Literal["cursor_background_agent"]
+    integration_id: int
+    auto_create_pr: bool = False
+
+
+class SeerProjectPreference(BaseModel):
+    organization_id: int
+    project_id: int
+    repositories: list[SeerRepoDefinition]
+    automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
+
+
+class SeerRawPreferenceResponse(BaseModel):
+    """Response model for Seer's /v1/project-preference endpoint."""
+
+    preference: SeerProjectPreference | None
+
+
+class PreferenceResponse(BaseModel):
+    """Response model used by ProjectSeerPreferencesEndpoint which adds code_mapping_repos."""
+
+    preference: SeerProjectPreference | None
+    code_mapping_repos: list[SeerRepoDefinition]
+
+
 class SeerApiError(Exception):
     def __init__(self, message: str, status: int):
         self.message = message
@@ -71,6 +116,14 @@ class SeerApiError(Exception):
 
     def __str__(self):
         return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerApiResponseValidationError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return f"Seer API response validation error: {self.message}"
 
 
 class SeerPermissionError(Exception):

@@ -63,6 +63,7 @@ export enum CodingAgentStatus {
 
 export enum CodingAgentProvider {
   CURSOR_BACKGROUND_AGENT = 'cursor_background_agent',
+  GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
 export interface CodingAgentState {
@@ -306,12 +307,22 @@ export interface SeerRepoDefinition {
   branch_name?: string;
   branch_overrides?: BranchOverride[];
   instructions?: string;
+  integration_id?: string;
+  organization_id?: number | string; // TODO: should be string
   provider_raw?: string;
+}
+
+interface SeerAutomationHandoffConfiguration {
+  handoff_point: 'root_cause';
+  integration_id: number;
+  target: 'cursor_background_agent';
+  auto_create_pr?: boolean;
 }
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
   automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+  automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

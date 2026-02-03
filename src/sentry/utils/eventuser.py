@@ -314,7 +314,7 @@ class EventUser:
 
     @classmethod
     def for_tags(
-        cls: type[EventUser], project_id: int, values: Sequence[str]
+        cls: type[EventUser], project_id: int, values: Sequence[str | None]
     ) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
@@ -338,7 +338,7 @@ class EventUser:
 
     @classmethod
     def _process_tag_batch(
-        cls, projects: QuerySet[Project], values: Sequence[str]
+        cls, projects: QuerySet[Project], values: Sequence[str | None]
     ) -> dict[str, EventUser]:
         """
         Process a single batch of tag values and return the matching EventUser objects.
@@ -346,6 +346,10 @@ class EventUser:
         result = {}
         keyword_filters: dict[str, Any] = {}
         for value in values:
+            # Skip None values - these represent events without the tag set.
+            # There's no EventUser to look up for these cases.
+            if value is None:
+                continue
             key, value = value.split(":", 1)[0], value.split(":", 1)[-1]
             if keyword_filters.get(key):
                 keyword_filters[key].append(value)

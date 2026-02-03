@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -15,6 +16,7 @@ import {
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -85,6 +87,7 @@ export function OnboardingLayout({
       project,
       isLogsSelected: activeProductSelection.includes(ProductSolution.LOGS),
       isFeedbackSelected: false,
+      isMetricsSelected: activeProductSelection.includes(ProductSolution.METRICS),
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -110,7 +113,16 @@ export function OnboardingLayout({
       introduction: doc.introduction?.(docParams),
       steps: [
         ...doc.install(docParams),
-        ...doc.configure(docParams),
+        ...injectCopyDsnButtonIntoFirstConfigureStep({
+          configureSteps: doc.configure(docParams),
+          dsn,
+          onCopyDsn: () => {
+            trackAnalytics('onboarding.dsn-copied', {
+              organization,
+              platform: platformKey,
+            });
+          },
+        }),
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
@@ -207,7 +219,7 @@ export function OnboardingLayout({
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;

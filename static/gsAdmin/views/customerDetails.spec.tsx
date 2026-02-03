@@ -674,6 +674,10 @@ function setUpMocks(
     url: `/organizations/${organization.slug}/projects/`,
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/customers/${organization.slug}/integrations/`,
+    body: [],
+  });
 }
 
 describe('Customer Details', () => {
@@ -730,7 +734,7 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 1000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.purple300,
+        color: theme.tokens.graphics.accent.vibrant,
       },
       {
         seriesName: 'Filtered (Server)',
@@ -841,7 +845,7 @@ describe('Customer Details', () => {
             ],
           },
         ],
-        color: theme.purple200,
+        color: theme.tokens.graphics.accent.moderate,
       },
       {
         seriesName: 'Over Quota',
@@ -869,12 +873,12 @@ describe('Customer Details', () => {
           {name: '2021-07-19T00:00:00Z', value: 2000},
           {name: '2021-07-20T00:00:00Z', value: 0},
         ],
-        color: theme.pink200,
+        color: theme.tokens.graphics.promotion.moderate,
       },
       {
         seriesName: 'Discarded (Client)',
         data: [],
-        color: theme.yellow300,
+        color: theme.tokens.graphics.warning.vibrant,
       },
       {
         seriesName: 'Dropped (Server)',
@@ -1093,7 +1097,7 @@ describe('Customer Details', () => {
             ],
           },
         ],
-        color: theme.red300,
+        color: theme.tokens.graphics.danger.vibrant,
       },
     ]);
   });
@@ -1698,106 +1702,6 @@ describe('Customer Details', () => {
     });
   });
 
-  describe('allow grace period', () => {
-    const gracePeriodOrg = OrganizationFixture({slug: 'grace-period'});
-
-    it('renders in the dropdown', async () => {
-      setUpMocks(gracePeriodOrg);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${gracePeriodOrg.slug}`},
-          route: `/customers/:orgId`,
-        },
-        organization: gracePeriodOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByText('Allow Grace Period')).toBeInTheDocument();
-    });
-
-    it('disabled in the dropdown', async () => {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: `/customers/:orgId`,
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByTestId('allowGrace')).toHaveAttribute('aria-disabled', 'true');
-
-      await userEvent.hover(
-        within(screen.getByTestId('allowGrace')).getByText('Allow Grace Period')
-      );
-
-      expect(
-        await screen.findByText('Account may already be in a grace period')
-      ).toBeInTheDocument();
-    });
-
-    it('allows an org to grace period again', async () => {
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${gracePeriodOrg.slug}/`,
-        method: 'PUT',
-        body: OrganizationFixture(),
-      });
-
-      setUpMocks(gracePeriodOrg, {canGracePeriod: false});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${gracePeriodOrg.slug}`},
-          route: `/customers/:orgId`,
-        },
-        organization: gracePeriodOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Allow Grace Period'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() =>
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${gracePeriodOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              canGracePeriod: true,
-            },
-          })
-        )
-      );
-    });
-  });
-
   describe('terminate contract', () => {
     const terminateOrg = OrganizationFixture();
 
@@ -2027,7 +1931,7 @@ describe('Customer Details', () => {
       await userEvent.type(screen.getByRole('textbox', {name: 'Reason'}), 'test');
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/refund-vercel/`,
+        url: `/customers/${organization.slug}/refund-vercel/`,
         method: 'POST',
         body: {},
       });
@@ -2036,7 +1940,7 @@ describe('Customer Details', () => {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/refund-vercel/`,
+          `/customers/${organization.slug}/refund-vercel/`,
           expect.objectContaining({
             method: 'POST',
             data: {
@@ -2529,6 +2433,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2564,6 +2469,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2599,6 +2505,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2633,6 +2540,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 
@@ -2689,6 +2597,7 @@ describe('Customer Details', () => {
           countryCode: 'US',
           expMonth: 12,
           expYear: 2028,
+          brand: 'Visa',
         },
       });
 

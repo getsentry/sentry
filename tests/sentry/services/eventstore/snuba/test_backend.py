@@ -388,6 +388,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_transaction_get_next_prev_event_id(self) -> None:
         group = self.transaction_event_2.group
+        assert group is not None
         _filter = Filter(
             project_ids=[self.project2.id],
             group_ids=[group.id],

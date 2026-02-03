@@ -1,27 +1,28 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', () => {
   it('renders', async () => {
-    const {organization, routerProps, project} = initializeOrg();
+    const organization = OrganizationFixture();
+    const project = ProjectFixture();
 
     render(
       <ProjectPlugins
-        {...routerProps}
         organization={organization}
-        params={{
-          orgId: organization.slug,
-        }}
         project={project}
         onChange={jest.fn()}
         loading={false}
         error={undefined}
         plugins={PluginsFixture()}
-      />
+      />,
+      {
+        organization,
+      }
     );
 
     await waitFor(() =>
@@ -30,21 +31,21 @@ describe('ProjectPlugins', () => {
   });
 
   it('has error state when plugins=[]', async () => {
-    const {organization, routerProps, project} = initializeOrg();
+    const organization = OrganizationFixture();
+    const project = ProjectFixture();
 
     render(
       <ProjectPlugins
-        {...routerProps}
         organization={organization}
-        params={{
-          orgId: organization.slug,
-        }}
         project={project}
         onChange={jest.fn()}
         loading={false}
         error={new Error('An error')}
         plugins={[]}
-      />
+      />,
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();

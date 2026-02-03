@@ -14,6 +14,7 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 interface UseTraceItemAttributeKeysProps extends UseTraceItemAttributeBaseProps {
   enabled?: boolean;
   query?: string;
+  search?: string;
 }
 
 export function useTraceItemAttributeKeys({
@@ -22,6 +23,7 @@ export function useTraceItemAttributeKeys({
   traceItemType,
   projects,
   query,
+  search,
 }: UseTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
 
@@ -53,8 +55,8 @@ export function useTraceItemAttributeKeys({
 
   const {data, isFetching, error} = useQuery<TagCollection>({
     enabled,
-    queryKey,
-    queryFn: () => getTraceItemAttributeKeys(),
+    queryKey: [...queryKey, search],
+    queryFn: () => getTraceItemAttributeKeys(search),
   });
 
   const previous = usePrevious(data, isFetching);

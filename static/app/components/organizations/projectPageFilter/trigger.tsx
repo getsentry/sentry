@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Badge} from '@sentry/scraps/badge';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+
 import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
@@ -10,13 +10,12 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
-interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
+interface ProjectPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
   desynced: boolean;
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
   value: number[];
-  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export function ProjectPageFilterTrigger({
@@ -71,7 +70,7 @@ export function ProjectPageFilterTrigger({
       : value.length - projectsToShow.length;
 
   return (
-    <DropdownButton
+    <OverlayTrigger.Button
       {...props}
       data-test-id="page-filter-project-selector"
       icon={
@@ -89,9 +88,9 @@ export function ProjectPageFilterTrigger({
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
       {remainingCount > 0 && (
-        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+        <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
       )}
-    </DropdownButton>
+    </OverlayTrigger.Button>
   );
 }
 
@@ -101,7 +100,10 @@ const TriggerLabelWrap = styled('span')`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: relative;
   width: auto;
 `;

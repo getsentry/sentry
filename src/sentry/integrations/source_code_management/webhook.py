@@ -18,7 +18,7 @@ class SCMWebhook(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         raise NotImplementedError
 
     @abstractmethod

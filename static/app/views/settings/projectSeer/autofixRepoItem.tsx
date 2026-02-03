@@ -1,12 +1,13 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofix/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
@@ -125,20 +126,20 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
   };
 
   return (
-    <SelectedRepoContainer>
+    <Stack width="100%" overflow="hidden">
       <SelectedRepoHeader role="button" onClick={toggleExpanded}>
         <InteractionStateLayer />
-        <RepoNameAndExpandToggle>
+        <Flex align="center">
           <StyledIconExpandToggle direction={isExpanded ? 'up' : 'down'} size="xs" />
-          <RepoInfoWrapper>
+          <Stack marginLeft="md">
             <RepoName>{repo.name}</RepoName>
-          </RepoInfoWrapper>
-        </RepoNameAndExpandToggle>
+          </Stack>
+        </Flex>
         <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
       </SelectedRepoHeader>
       {isExpanded && (
         <ExpandedContent>
-          <RepoForm>
+          <Stack gap="md" width="100%">
             <div>
               <SettingsGroup>
                 <BranchInputLabel>
@@ -151,7 +152,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   />
                 </BranchInputLabel>
 
-                <BranchInputContainer>
+                <Flex align="center" gap="md">
                   <SubHeader>{t('By default, look at')}</SubHeader>
 
                   <InputGroup>
@@ -170,7 +171,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -189,7 +190,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    borderless
+                    priority="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -199,12 +200,12 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     )}
                     size="sm"
                   />
-                </BranchInputContainer>
+                </Flex>
 
-                <BranchOverridesList>
+                <Stack marginTop="md">
                   {branchOverridesValue.map((override, index) => (
                     <BranchOverrideItem key={index}>
-                      <BranchOverrideFields>
+                      <Flex align="center" flex="1" gap="md">
                         <SubHeader>{t('When')}</SubHeader>
                         <OverrideInputGroup>
                           <InputGroup.LeadingItems disablePointerEvents>
@@ -253,18 +254,18 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                             placeholder={t('Branch name (e.g. dev)')}
                           />
                         </OverrideInputGroup>
-                      </BranchOverrideFields>
+                      </Flex>
                       <Button
                         size="sm"
-                        borderless
-                        icon={<IconDelete size="sm" color="subText" />}
+                        priority="transparent"
+                        icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
                         title={t('Remove override')}
                       />
                     </BranchOverrideItem>
                   ))}
-                </BranchOverridesList>
+                </Stack>
               </SettingsGroup>
 
               <SettingsGroup>
@@ -279,7 +280,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 />
               </SettingsGroup>
             </div>
-            <FormActions>
+            <Flex justify="between" marginTop="md" gap="md">
               <Confirm
                 onConfirm={onRemove}
                 message={tct('Are you sure you want to remove [repo] from Seer?', {
@@ -300,20 +301,13 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                   </Button>
                 </ButtonBar>
               )}
-            </FormActions>
-          </RepoForm>
+            </Flex>
+          </Stack>
         </ExpandedContent>
       )}
-    </SelectedRepoContainer>
+    </Stack>
   );
 }
-
-const SelectedRepoContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden;
-`;
 
 const SelectedRepoHeader = styled('div')`
   position: relative;
@@ -329,22 +323,22 @@ const RepoName = styled('div')`
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
 const ExpandedContent = styled('div')`
   padding: 0 ${space(2)} ${space(1)} 40px;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SettingsGroup = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.lg};
   padding-top: ${p => p.theme.space.lg};
 
@@ -356,36 +350,16 @@ const SettingsGroup = styled('div')`
 const BranchInputLabel = styled('label')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
-  color: ${p => p.theme.text};
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${p => p.theme.space.sm};
   gap: ${p => p.theme.space.md};
 `;
 
 const SubHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const BranchInputContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const RepoForm = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  width: 100%;
-`;
-
-const FormActions = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
-  margin-top: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const StyledTextArea = styled(TextArea)`
@@ -395,35 +369,19 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const ClearButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.colors.gray400};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.colors.gray800};
   }
-`;
-
-const RepoNameAndExpandToggle = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`
   margin-right: ${space(0.5)};
 `;
 
-const RepoInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-left: ${space(1)};
-`;
 const AddOverrideButton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
-
-const BranchOverridesList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-top: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const BranchOverrideItem = styled('div')`
@@ -432,13 +390,6 @@ const BranchOverrideItem = styled('div')`
   gap: ${p => p.theme.space.md};
   padding-top: ${p => p.theme.space.md};
   padding-bottom: ${p => p.theme.space.md};
-`;
-
-const BranchOverrideFields = styled('div')`
-  display: flex;
-  flex: 1;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;
 
 const OverrideInputGroup = styled(InputGroup)`

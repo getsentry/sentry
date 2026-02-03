@@ -1,6 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -71,6 +72,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
@@ -114,7 +116,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_logs: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -182,10 +183,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['crons_monitor'],
     });
 
-    result.push({
-      categoryHeading: t('Custom'),
-      options: ['custom_transactions'],
-    });
+    if (!deprecateTransactionAlerts(org)) {
+      result.push({
+        categoryHeading: t('Custom'),
+        options: ['custom_transactions'],
+      });
+    }
   }
   return result;
 };

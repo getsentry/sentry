@@ -2,14 +2,15 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -54,10 +55,10 @@ function TopSection({
 }) {
   const tags = getCategories(featureData);
   return (
-    <TopSectionWrapper>
+    <Flex justify="between">
       <Flex>
         {integrationIcon}
-        <NameContainer>
+        <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
             <StatusWrapper>
@@ -66,16 +67,18 @@ function TopSection({
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
-              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
+              <StyledTag key={feature} variant="muted">
+                {startCase(feature)}
+              </StyledTag>
             ))}
           </Flex>
-        </NameContainer>
+        </Stack>
       </Flex>
       <Flex align="center">
         {addInstallButton}
         {additionalCTA}
       </Flex>
-    </TopSectionWrapper>
+    </Flex>
   );
 }
 
@@ -149,13 +152,11 @@ function Body({
 function EmptyConfigurations({action}: {action: React.ReactElement}) {
   return (
     <Panel>
-      <EmptyMessage
-        title={t("You haven't set anything up yet")}
-        description={t(
-          'But that doesn’t have to be the case for long! Add an installation to get started.'
+      <EmptyMessage title={t("You haven't set anything up yet")} action={action}>
+        {t(
+          "But that doesn't have to be the case for long! Add an installation to get started."
         )}
-        action={action}
-      />
+      </EmptyMessage>
     </Panel>
   );
 }
@@ -168,7 +169,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <IconCloseCircle isCircled />
+    <IconCloseCircle />
     <span>{reason}</span>
   </div>
 ))`
@@ -254,7 +255,7 @@ function InformationCard({
           {permissions}
           {alerts.map((alert, i) => (
             <Alert.Container key={i}>
-              <Alert key={i} type={alert.type}>
+              <Alert variant={alert.variant}>
                 <span
                   dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
                 />
@@ -269,8 +270,8 @@ function InformationCard({
               <div>{author}</div>
             </AuthorInfo>
           )}
-          {resourceLinks.map(({title, url}) => (
-            <ExternalLinkContainer key={url}>
+          {resourceLinks.map(({title, url}, index) => (
+            <ExternalLinkContainer key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
             </ExternalLinkContainer>
@@ -313,21 +314,8 @@ const IntegrationDescription = styled('div')`
   flex-grow: 1;
 `;
 
-const TopSectionWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
-`;
-
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -345,7 +333,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.dangerText};
+  color: ${p => p.theme.tokens.content.danger};
   margin-right: ${space(1)};
 `;
 
@@ -382,8 +370,8 @@ const AuthorInfo = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
 `;
 

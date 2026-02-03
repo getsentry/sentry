@@ -1,8 +1,9 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.test import RequestFactory, override_settings
+from django.urls import resolve
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay.auth import generate_key_pair
@@ -10,10 +11,11 @@ from sentry_relay.auth import generate_key_pair
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
+    HmacSignatureAuthentication,
+    JWTClientSecretAuthentication,
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
-    ServiceRpcSignatureAuthentication,
     UserAuthTokenAuthentication,
     compare_service_signature,
 )
@@ -29,6 +31,7 @@ from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -36,11 +39,17 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.token import AuthTokenType
+from sentry.utils import jwt
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
-def _drf_request(data: dict[str, str] | None = None) -> Request:
-    req = RequestFactory().post("/example", data, format="json")
+def _drf_request(data: dict[str, str] | None = None, path: str = "/example") -> Request:
+    req = RequestFactory().post(path, data, format="json")
+
+    # Set resolver_match for paths that match real URL patterns
+    if path != "/example":
+        req.resolver_match = resolve(path)
+
     return drf_request_from_request(req)
 
 
@@ -107,6 +116,123 @@ class TestClientIdSecretAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+
+@control_silo_test
+class TestJWTClientSecretAuthentication(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.auth = JWTClientSecretAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
+        self.installation = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.user
+        )
+        self.api_app = self.sentry_app.application
+
+    def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
+        """Helper to create a JWT token"""
+        if exp is None:
+            exp = datetime.now() + timedelta(hours=1)
+
+        payload = {
+            "iss": client_id,  # Issuer
+            "sub": client_id,  # Subject
+            "iat": int(datetime.now(UTC).timestamp()),  # Issued at
+            "exp": int(exp.timestamp()),  # Expiration
+            "jti": str(uuid.uuid4()),  # JWT ID (unique identifier)
+        }
+        return jwt.encode(payload, self.api_app.client_secret, algorithm="HS256")
+
+    def test_authenticate(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+    def test_missing_installation(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        fake_uuid = uuid.uuid4()
+        path = f"/api/0/sentry-app-installations/{fake_uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="Installation not found"):
+            self.auth.authenticate(request)
+
+    def test_invalid_client_id(self) -> None:
+        token = self._create_jwt("wrong-client-id")
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="JWT is not valid for this application"):
+            self.auth.authenticate(request)
+
+    def test_expired_token(self) -> None:
+        expired_time = datetime.now() - timedelta(hours=1)
+        token = self._create_jwt(self.api_app.client_id, exp=expired_time)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
+            self.auth.authenticate(request)
+
+    def test_missing_authorization_header(self) -> None:
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+
+        with pytest.raises(AuthenticationFailed, match="Header is in invalid form"):
+            self.auth.authenticate(request)
+
+    def test_invalid_bearer_format(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Token {token}"  # Wrong scheme
+
+        with pytest.raises(AuthenticationFailed, match="Bearer not present in token"):
+            self.auth.authenticate(request)
+
+    def test_malformed_jwt(self) -> None:
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = "Bearer invalid.jwt.token"
+
+        with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
+            self.auth.authenticate(request)
+
+    def test_no_request_data(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request(path=path)  # No data
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="Invalid request"):
+            self.auth.authenticate(request)
+
+    def test_jwt_cannot_be_used_twice(self) -> None:
+        # Test that the same JWT token cannot be used twice
+        token = self._create_jwt(self.api_app.client_id)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        # First request should succeed
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+        # Second request with the same token should fail due to cache
+        request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+            self.auth.authenticate(request2)
 
 
 class TestDSNAuthentication(TestCase):
@@ -216,6 +342,20 @@ class TestTokenAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+    def test_authenticate_bearer_scheme_case_insensitive(self) -> None:
+        """
+        Allow lowercase 'bearer' scheme for input authorization header.
+        """
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"bearer {self.token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
 
 
 @control_silo_test
@@ -412,12 +552,12 @@ class TestRpcSignatureAuthentication(TestCase):
                 self.auth.authenticate(request)
 
 
-class TestServiceRpcSignatureAuthentication(TestCase):
+class TestHmacSignatureAuthentication(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
         # Create a concrete implementation for testing
-        class TestServiceAuth(ServiceRpcSignatureAuthentication):
+        class TestServiceAuth(HmacSignatureAuthentication):
             shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
             service_name = "TestService"
             sdk_tag_name = "test_service_rpc_auth"
@@ -456,6 +596,79 @@ class TestServiceRpcSignatureAuthentication(TestCase):
         user, token = self.auth.authenticate(request)
         assert user.is_anonymous
         assert token == signature
+
+    def test_authenticate_with_custom_prefix(self) -> None:
+        # Create a service auth with custom prefix
+        class CustomPrefixAuth(HmacSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+            signature_prefix = "service0"
+
+        auth = CustomPrefixAuth()
+
+        data = b'{"test": "data"}'
+        request = drf_request_from_request(
+            RequestFactory().post("/test", data=data, content_type="application/json")
+        )
+
+        # Generate signature with rpc0: prefix (from test utility)
+        rpc_signature = generate_service_request_signature(
+            request.path_info, request.body, ["test-secret-key"], "TestService"
+        )
+        # Extract signature data and use custom prefix
+        signature_data = rpc_signature.split(":", 1)[1]
+        custom_signature = f"service0:{signature_data}"
+
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {custom_signature}"
+
+        with override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"]):
+            user, token = auth.authenticate(request)
+            assert user.is_anonymous
+            assert token == custom_signature
+
+    @override_settings(TEST_SERVICE_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_authenticate_with_include_url_in_signature(self) -> None:
+        class UrlInSignatureAuth(HmacSignatureAuthentication):
+            shared_secret_setting_name = "TEST_SERVICE_RPC_SHARED_SECRET"
+            service_name = "TestService"
+            sdk_tag_name = "test_service_rpc_auth"
+            include_url_in_signature = True
+
+        auth = UrlInSignatureAuth()
+
+        data = b'{"test": "data"}'
+        url_path = "/test/endpoint"
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
+
+        signature = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=True,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+        # Signature without URL should fail
+
+        signature_without_url = generate_service_request_signature(
+            request.path_info,
+            request.body,
+            ["test-secret-key"],
+            "TestService",
+            include_url_in_signature=False,
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature_without_url}"
+
+        with pytest.raises(AuthenticationFailed):
+            auth.authenticate(request)
 
     def test_authenticate_without_signature(self) -> None:
         request = drf_request_from_request(
@@ -753,3 +966,19 @@ class TestAuthTokens(TestCase):
             assert auth_token.allowed_origins == token.get_allowed_origins()
             assert auth_token.scopes == token.get_scopes()
             assert auth_token.audit_log_data == token.get_audit_log_data()
+
+
+class TestAuthenticateHeader:
+    """Tests for RFC 6750 Section 3 compliance: WWW-Authenticate header."""
+
+    def test_user_auth_token_returns_bearer_with_realm(self) -> None:
+        auth = UserAuthTokenAuthentication()
+        assert auth.authenticate_header(_drf_request()) == 'Bearer realm="api"'
+
+    def test_org_auth_token_returns_bearer_with_realm(self) -> None:
+        auth = OrgAuthTokenAuthentication()
+        assert auth.authenticate_header(_drf_request()) == 'Bearer realm="api"'
+
+    def test_dsn_authentication_returns_dsn_with_realm(self) -> None:
+        auth = DSNAuthentication()
+        assert auth.authenticate_header(_drf_request()) == 'Dsn realm="api"'

@@ -24,7 +24,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
 export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;
@@ -36,7 +36,7 @@ function Measurements({
   organization,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: SpanNode;
   organization: Organization;
 }) {
   const theme = useTheme();

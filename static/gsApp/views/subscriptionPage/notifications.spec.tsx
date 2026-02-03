@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,6 +13,7 @@ describe('Subscription > Notifications', () => {
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/spend-notifications/`,
@@ -45,68 +45,34 @@ describe('Subscription > Notifications', () => {
     });
 
     organization.access = ['org:billing'];
-    organization.features = [];
+    organization.features = ['spend-visibility-notifications'];
     subscription.planDetails.allowOnDemand = false;
     SubscriptionStore.set(organization.slug, subscription);
   });
 
   it('renders', async () => {
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByText(
-        "Configure the thresholds for your organization's spend notifications."
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Manage Spend Notifications')).not.toBeInTheDocument();
-
-    expect(screen.getByText('Subscription consumption')).toBeInTheDocument();
-    expect(screen.getByText('90%')).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole('textbox', {
-        name: 'Update subscription consumption spend notification thresholds',
-      })
-    );
-    const expectedOptions = [
-      '90%',
-      '80%',
-      '70%',
-      '60%',
-      '50%',
-      '40%',
-      '30%',
-      '20%',
-      '10%',
-    ];
-    const actualOptions = screen.getAllByTestId('menu-list-item-label');
-    expect(actualOptions).toHaveLength(expectedOptions.length);
-    actualOptions.forEach((element, idx) => {
-      expect(element).toHaveTextContent(expectedOptions[idx]!);
-    });
-    expect(screen.queryByText('On-Demand consumption')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
-  });
-
-  it('renders for new billing UI', async () => {
-    organization.features = ['subscriptions-v3'];
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('Manage Spend Notifications')).toBeInTheDocument();
   });
 
+  it('redirects without flag', () => {
+    organization.features = [];
+    const {router} = render(<Notifications subscription={subscription} />, {
+      organization,
+    });
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: '/settings/chum-bucket/billing/overview/',
+        query: {},
+      })
+    );
+  });
+
   it('renders an error for non-billing users', async () => {
     organization.access = [];
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -119,17 +85,9 @@ describe('Subscription > Notifications', () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
 
-    expect(
-      await screen.findByText(
-        "Configure the thresholds for your organization's spend notifications."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText('Subscription consumption')).toBeInTheDocument();
+    expect(await screen.findByText('Subscription consumption')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
     expect(screen.getByText('On-Demand consumption')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
@@ -140,10 +98,7 @@ describe('Subscription > Notifications', () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     const textbox = screen.getByRole('textbox', {
@@ -161,10 +116,7 @@ describe('Subscription > Notifications', () => {
   });
 
   it('reverts to saved thresholds on reset', async () => {
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     const textbox = screen.getByRole('textbox', {
@@ -193,10 +145,7 @@ describe('Subscription > Notifications', () => {
       body: {reservedPercent: [90, 60], perProductOndemandPercent: [80, 50]},
     });
 
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
+    render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     await userEvent.click(

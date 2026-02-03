@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
@@ -42,7 +43,7 @@ function OrganizationMembershipSettingsForm({
         {({hasFeature}) =>
           !hasFeature && (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert variant="warning">
                 {t('You must be on a paid plan to invite additional members.')}
               </Alert>
             </Alert.Container>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -28,13 +28,12 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
-    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
 
 
-AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+AbuseQuotaScope = Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
 
 
 @dataclass
@@ -71,7 +70,12 @@ class RetentionSettings:
 
 # This mirrors the Retentions struct in relay
 # https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
-RETENTIONS_CONFIG_MAPPING = {DataCategory.SPAN: "span", DataCategory.LOG_BYTE: "log"}
+RETENTIONS_CONFIG_MAPPING = {
+    DataCategory.LOG_BYTE: "log",
+    DataCategory.TRANSACTION: "span",
+    DataCategory.SPAN: "span",
+    DataCategory.TRACE_METRIC: "traceMetric",
+}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:
@@ -80,7 +84,6 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     scopes: list[tuple[AbuseQuotaScope, str]] = [
         (QuotaScope.PROJECT, "p"),
         (QuotaScope.ORGANIZATION, "o"),
-        (QuotaScope.GLOBAL, "g"),
     ]
 
     for scope, prefix in scopes:
@@ -324,7 +327,6 @@ class Quota(Service):
         "get_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
-        "assign_monitor_seat",
         "check_accept_monitor_checkin",
         "update_monitor_slug",
     )
@@ -495,7 +497,6 @@ class Quota(Service):
         reason_codes = {
             QuotaScope.ORGANIZATION: "org_abuse_limit",
             QuotaScope.PROJECT: "project_abuse_limit",
-            QuotaScope.GLOBAL: "global_abuse_limit",
         }
 
         for quota in abuse_quotas:
@@ -582,9 +583,7 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def check_assign_seat(
-        self, data_category: DataCategory, seat_object: SeatObject
-    ) -> SeatAssignmentResult:
+    def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
         If it is not possible to assign a monitor a seat, a reason
@@ -600,7 +599,8 @@ class Quota(Service):
         return SeatAssignmentResult(assignable=True)
 
     def check_assign_seats(
-        self, data_category: DataCategory, seat_objects: list[SeatObject]
+        self,
+        seat_objects: Sequence[SeatObject],
     ) -> SeatAssignmentResult:
         """
         Determines if a list of assignable seat objects can be assigned seat.
@@ -619,7 +619,7 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
-    def assign_seat(self, data_category: DataCategory, seat_object: SeatObject) -> int:
+    def assign_seat(self, seat_object: SeatObject) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
         If the object cannot be assigned a seat it will be
@@ -634,12 +634,12 @@ class Quota(Service):
         Removes a monitor from it's assigned seat.
         """
 
-    def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def disable_seat(self, seat_object: SeatObject) -> None:
         """
         Disables an assigned seat.
         """
 
-    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+    def remove_seat(self, seat_object: SeatObject) -> None:
         """
         Removes an assigned seat.
         """
@@ -690,7 +690,34 @@ class Quota(Service):
         """
         return True
 
-    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+    def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Check if organization has available quota for a usage-based category.
+
+        This is for categories with TallyType.USAGE (not SEAT-based). Unlike
+        has_available_reserved_budget (which is for cost-based Reserved Budgets
+        where reserved=-2), this checks usage-based quotas where reserved=N
+        means N events are allocated.
+
+        Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
+        similar categories that are not rate-limited in Relay.
+
+        Args:
+            org_id: The organization ID
+            data_category: The data category to check quota for
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+        """
+        return True
+
+    def record_seer_run(
+        self,
+        org_id: int,
+        project_id: int,
+        data_category: DataCategory,
+        seat_object: SeatObject | None = None,
+    ) -> None:
         """
         Records a seer run for an organization.
         """
@@ -721,3 +748,11 @@ class Quota(Service):
         Returns the maximum number of detectors allowed for the organization's plan type.
         """
         return -1
+
+    def check_seer_quota(
+        self, org_id: int, data_category: DataCategory, seat_object: SeatObject | None = None
+    ) -> bool:
+        """
+        Checks if the organization has access to Seer for the given data category and seat object.
+        """
+        return True

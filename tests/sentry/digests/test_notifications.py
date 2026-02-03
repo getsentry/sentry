@@ -14,6 +14,7 @@ from sentry.digests.notifications import (
 )
 from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWithRuleObjects
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase
@@ -26,8 +27,15 @@ class BindRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
 
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
+    @cached_property
     def rule(self) -> Rule:
-        return self.event.project.rule_set.all()[0]
+        rule = self.event.project.rule_set.all()[0]
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.save()
+        return rule
 
     @cached_property
     def record(self) -> Record:
@@ -59,6 +67,10 @@ class GroupRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
 
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
+    @cached_property
     def rule(self) -> Rule:
         return self.project.rule_set.all()[0]
 
@@ -82,17 +94,18 @@ class GroupRecordsTestCase(TestCase):
 
 
 class SortDigestTestCase(TestCase):
+    @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
     def test_success(self) -> None:
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.project,
-            label="Send a notification for regressions",
-            data={
-                "match": "all",
-                "conditions": [
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
-            },
+            name="Send a notification for regressions",
+            condition_data=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
 
         rules = list(self.project.rule_set.all())

@@ -5,9 +5,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -19,16 +21,9 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import {
-  DataCategory,
-  DataCategoryExact,
-  type DataCategoryInfo,
-  type PageFilters,
-} from 'sentry/types/core';
+import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -36,10 +31,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {ChartDataTransform} from './usageChart';
@@ -166,10 +161,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    const selection_projects = this.props.selection.projects.length
-      ? this.props.selection.projects
-      : [ALL_ACCESS_PROJECTS];
-    return selection_projects;
+    return this.props.selection.projects;
   }
 
   get isSingleProject(): boolean {
@@ -271,13 +263,19 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return organization.features.includes('seer-billing');
+        return (
+          organization.features.includes('seer-billing') &&
+          organization.features.includes('seer-added')
+        );
       }
       if ([DataCategory.LOG_BYTE].includes(opt.value)) {
         return organization.features.includes('ourlogs-enabled');
       }
       if ([DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
+      }
+      if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
+        return canUseMetricsStatsUI(organization);
       }
       if (
         [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
@@ -288,6 +286,12 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       }
       if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
+      }
+      if (opt.value === DataCategory.SIZE_ANALYSIS) {
+        return organization.features.includes('expose-category-size-analysis');
+      }
+      if (opt.value === DataCategory.INSTALLABLE_BUILD) {
+        return organization.features.includes('expose-category-installable-build');
       }
       return true;
     }).map(opt => {
@@ -302,7 +306,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={this.dataCategory}
             options={options}
             onChange={opt =>
@@ -335,29 +341,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     );
   }
 
-  renderEstimationDisclaimer() {
-    if (
-      this.dataCategory === DATA_CATEGORY_INFO.profile_duration.plural ||
-      this.dataCategory === DATA_CATEGORY_INFO.profile_duration_ui.plural
-    ) {
-      return (
-        <EstimationText data-test-id="estimation-text">
-          {tct(
-            '*This is an estimation, and may not be 100% accurate. [estimateLink: How we calculate estimated usage]',
-            {
-              estimateLink: (
-                <ExternalLink
-                  href={`${getPricingDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}#how-can-i-estimate-usage-for-continuous-profiling-on-the-backend`}
-                />
-              ),
-            }
-          )}
-        </EstimationText>
-      );
-    }
-    return null;
-  }
-
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
@@ -382,12 +365,11 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
               noTeamInsightsHeader
             )}
             <div>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <HookHeader organization={organization} />
-                <ControlsWrapper>
+                <Flex justify="between" align="center" marginBottom="xl" gap="xs">
                   {this.renderProjectPageControl()}
-                  {this.renderEstimationDisclaimer()}
-                </ControlsWrapper>
+                </Flex>
                 {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
@@ -453,14 +435,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
-`;
-
 const PageControl = styled('div')`
   display: grid;
 
@@ -469,10 +443,4 @@ const PageControl = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
-`;
-
-const EstimationText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: ${p => p.theme.text.lineHeightBody};
 `;

@@ -27,7 +27,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -88,25 +87,18 @@ const createWrapper = (props = {}) => {
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts
-      {...RouteComponentPropsFixture()}
-      organization={organization}
-      project={project}
+    <IssueRuleEditor
+      route={RouteComponentPropsFixture().route}
+      routeParams={RouteComponentPropsFixture().routeParams}
       params={params}
-    >
-      <IssueRuleEditor
-        route={RouteComponentPropsFixture().route}
-        routeParams={RouteComponentPropsFixture().routeParams}
-        params={params}
-        location={router.location}
-        routes={projectAlertRuleDetailsRoutes}
-        router={router}
-        members={[]}
-        onChangeTitle={onChangeTitleMock}
-        project={project}
-        userTeamIds={[]}
-      />
-    </ProjectAlerts>,
+      location={router.location}
+      routes={projectAlertRuleDetailsRoutes}
+      router={router}
+      members={[]}
+      onChangeTitle={onChangeTitleMock}
+      project={project}
+      userTeamIds={[]}
+    />,
     {
       router,
       organization,
@@ -443,6 +435,36 @@ describe('IssueRuleEditor', () => {
         within(filtersContainer).getAllByText('production')[0]!,
         'staging'
       );
+    });
+
+    it('clears channel_id when Slack channel name is modified', async () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: ProjectAlertRuleFixture({
+          actions: [
+            {
+              id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+              workspace: '123',
+              channel: '#old-channel',
+              channel_id: 'C12345',
+            },
+          ],
+        }),
+      });
+      createWrapper();
+
+      const channelInput = await screen.findByPlaceholderText(
+        'i.e #critical, Jane Schmidt'
+      );
+      expect(channelInput).toHaveValue('#old-channel');
+
+      const channelIdInput = screen.getByPlaceholderText('i.e. CA2FRA079 or UA1J9RTE1');
+      expect(channelIdInput).toHaveValue('C12345');
+
+      await userEvent.clear(channelInput);
+      await userEvent.type(channelInput, '#new-channel');
+
+      expect(channelIdInput).toHaveValue('');
     });
   });
 

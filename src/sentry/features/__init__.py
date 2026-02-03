@@ -60,6 +60,7 @@ entity_features = default_manager.entity_features
 get = default_manager.get
 has = default_manager.has
 batch_has = default_manager.batch_has
+batch_has_for_organizations = default_manager.batch_has_for_organizations
 all = default_manager.all
 add_handler = default_manager.add_handler
 add_entity_handler = default_manager.add_entity_handler

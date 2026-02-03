@@ -15,7 +15,7 @@ type Props = {
 
 const PanelItem = styled('div')<Props>`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   ${p => p.noPadding || `padding: ${space(2)}`};
   ${p => p.center && 'align-items: center'};
 

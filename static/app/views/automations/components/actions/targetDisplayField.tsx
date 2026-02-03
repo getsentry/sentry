@@ -12,7 +12,7 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
       name={`${actionId}.config.targetDisplay`}
       aria-label={t('Target')}
       placeholder={placeholder ? placeholder : t('channel name or ID')}
-      value={action.config.targetDisplay}
+      value={action.config.targetDisplay ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           config: {
@@ -35,7 +35,7 @@ export function TargetIdentifierField({placeholder}: {placeholder?: string}) {
       name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Target ID')}
       placeholder={placeholder}
-      value={action.config.targetIdentifier}
+      value={action.config.targetIdentifier ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           config: {

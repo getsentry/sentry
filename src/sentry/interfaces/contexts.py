@@ -183,7 +183,11 @@ class AppContextType(ContextType):
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    context_to_tag_mapping = {"": "{model}", "family": "{family}"}
+    context_to_tag_mapping = {
+        "": "{model}",
+        "family": "{family}",
+        "device_type": "{device_type}",
+    }
     # model_id, arch
 
 
@@ -203,7 +207,12 @@ class BrowserContextType(ContextType):
 @contexttype
 class OsContextType(ContextType):
     type = "os"
-    context_to_tag_mapping = {"": "{os}", "name": "{name}", "rooted": "{rooted}"}
+    context_to_tag_mapping = {
+        "": "{os}",
+        "name": "{name}",
+        "rooted": "{rooted}",
+        "build": "{build}",
+    }
     # build, rooted
 
 
@@ -229,6 +238,15 @@ class TraceContextType(ContextType):
 class OtelContextType(ContextType):
     type = "otel"
     context_to_tag_mapping = {}
+
+
+@contexttype
+class UnityContextType(ContextType):
+    type = "unity"
+    context_to_tag_mapping = {
+        "is_main_thread": "{is_main_thread}",
+        "install_mode": "{install_mode}",
+    }
 
 
 class Contexts(Interface):

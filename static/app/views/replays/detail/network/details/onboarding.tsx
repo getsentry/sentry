@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -78,7 +80,7 @@ export function Setup({
 
   return isVideoReplay ? (
     visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert type="info">
+      <StyledAlert variant="info">
         {tct(
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
@@ -115,7 +117,7 @@ function SetupInstructions({
 }) {
   if (showSnippet === Output.DATA && visibleTab === 'details') {
     return (
-      <NoMarginAlert type="muted" system data-test-id="network-setup-steps">
+      <NoMarginAlert variant="muted" system data-test-id="network-setup-steps">
         {tct(
           'You can capture additional headers by adding them to the [requestConfig] and [responseConfig] lists in your SDK config.',
           {
@@ -171,7 +173,7 @@ function SetupInstructions({
           }
         )}
       </p>
-      <NetworkUrlWrapper>
+      <Container margin="md 0 lg 0">
         {showSnippet === Output.URL_SKIPPED &&
           url !== '[Filtered]' &&
           tct(
@@ -181,10 +183,10 @@ function SetupInstructions({
               alert: <StyledTextCopyInput>{trimUrl(url)}</StyledTextCopyInput>,
             }
           )}
-      </NetworkUrlWrapper>
+      </Container>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
-          <Alert type="warning" showIcon={false}>
+          <Alert variant="warning" showIcon={false}>
             {tct('Enable [field] to capture both Request and Response bodies.', {
               field: <code>networkCaptureBodies: true</code>,
             })}
@@ -216,19 +218,15 @@ const StyledTextCopyInput = styled(TextCopyInput)`
   margin-top: ${space(0.5)};
 `;
 
-const NetworkUrlWrapper = styled('div')`
-  margin: ${space(1)} 0 ${space(1.5)} 0;
-`;
-
 const NoMarginAlert = styled(Alert)`
   border-width: 1px 0 0 0;
 `;
 
 const StyledInstructions = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   margin-top: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(2)};
   &:first-child {
     margin-top: 0;

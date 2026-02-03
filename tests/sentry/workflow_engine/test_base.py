@@ -16,6 +16,8 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.notification_action.types import BaseActionValidatorHandler
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -108,13 +110,13 @@ class MockActionValidatorTranslator(BaseActionValidatorHandler):
 
 
 class DataConditionHandlerMixin:
-    patches: list = []
+    patches: list[Any] = []
 
     def setup_condition_mocks(
         self,
         evaluate_value: Callable[[int, Any], DataConditionResult],
         module_paths: list[str],
-    ):
+    ) -> Any:
         """
         Sets up a mock handler for a DataCondition. This method mocks out the registry of the class, and will
         always return the `MockDataConditionHandler` class.
@@ -131,7 +133,7 @@ class DataConditionHandlerMixin:
         for module_path in module_paths:
             new_patch = mock.patch(
                 f"{module_path}.condition_handler_registry.get",
-                return_value=MockDataConditionHandler(),
+                return_value=MockDataConditionHandler,
             )
             self.patches.append(new_patch)
             new_patch.start()
@@ -142,7 +144,7 @@ class DataConditionHandlerMixin:
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    def teardown_condition_mocks(self):
+    def teardown_condition_mocks(self) -> None:
         """
         Removes the mocks / patches for the DataConditionHandler.
         """
@@ -152,7 +154,7 @@ class DataConditionHandlerMixin:
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
-    def create_snuba_query(self, **kwargs):
+    def create_snuba_query(self, **kwargs: Any) -> SnubaQuery:
         return SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
             dataset="events",
@@ -163,8 +165,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         )
 
     def create_snuba_query_subscription(
-        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs
-    ):
+        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs: Any
+    ) -> QuerySubscription:
         if snuba_query_id is None:
             snuba_query_id = self.create_snuba_query().id
         if project_id is None:
@@ -180,11 +182,11 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         project_id: int,
         timestamp: datetime,
         fingerprint: str,
-        environment=None,
-        level="error",
+        environment: str | None = None,
+        level: str = "error",
         tags: list[list[str]] | None = None,
     ) -> Event:
-        data = {
+        data: dict[str, Any] = {
             "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
@@ -215,7 +217,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         workflow_triggers: DataConditionGroup | None = None,
         detector_type: str = MetricIssue.slug,
         project: Project | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
         Create a Workflow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
@@ -253,7 +255,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
     def create_test_query_data_source(
         self, detector: Detector
-    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket]:
+    ) -> tuple[SnubaQuery, QuerySubscription, DataSource, DataPacket[ProcessedSubscriptionUpdate]]:
         """
         Create a DataSource and DataPacket for testing; this will create a QuerySubscriptionUpdate and link it to a data_source.
 
@@ -314,7 +316,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         workflow: Workflow,
         action: Action | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
@@ -336,7 +338,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         event: Event | None = None,
         occurrence: IssueOccurrence | None = None,
         environment: str | None = None,
-        fingerprint="test_fingerprint",
+        fingerprint: str = "test_fingerprint",
         group_type_id: int | None = None,
     ) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project
@@ -364,3 +366,82 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         )
 
         return group, event, group_event
+
+    def create_sentry_app_with_schema(self) -> tuple[SentryApp, SentryAppInstallation]:
+        sentry_app_settings_schema = self.create_alert_rule_action_schema()
+        sentry_app = self.create_sentry_app(
+            name="Moo Deng's Fire Sentry App",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    sentry_app_settings_schema,
+                ]
+            },
+            is_alertable=True,
+        )
+        installation = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+        return sentry_app, installation
+
+
+class ProjectAccessTestMixin(TestCase):
+    """
+    Mixin that provides common setup for testing project-level access controls.
+
+    Sets up an organization with open membership disabled, two teams with separate
+    projects, a limited user with access to only one team/project, and workflows
+    connected to detectors in each project.
+
+    Use this mixin for testing IDOR vulnerabilities and project-level access filtering.
+    """
+
+    def setup_project_access_test_data(self) -> None:
+        """
+        Set up common test data for project access tests.
+        Call this from setUp() after calling super().setUp().
+        """
+        # Disable Open Membership - this is the key condition for testing project access
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams: one for the user, one for someone else
+        self.user_team = self.create_team(organization=self.organization, name="user-team")
+        self.other_team = self.create_team(organization=self.organization, name="other-team")
+
+        # Create two projects, each owned by a different team
+        self.user_project = self.create_project(
+            organization=self.organization, teams=[self.user_team], name="user-proj"
+        )
+        self.other_project = self.create_project(
+            organization=self.organization, teams=[self.other_team], name="other-proj"
+        )
+
+        # Create a user who is only a member of user_team (has access to user_project only)
+        self.limited_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.limited_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.user_team],
+        )
+
+        # Create workflows with different project connections
+        self.user_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="User's Workflow"
+        )
+        self.other_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Other's Workflow"
+        )
+        self.unattached_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Unattached Workflow"
+        )
+
+        # Create detectors in each project
+        self.user_detector = self.create_detector(project=self.user_project)
+        self.other_detector = self.create_detector(project=self.other_project)
+
+        # Connect workflows to detectors
+        DetectorWorkflow.objects.create(workflow=self.user_workflow, detector=self.user_detector)
+        DetectorWorkflow.objects.create(workflow=self.other_workflow, detector=self.other_detector)
+        # unattached_workflow has no detectors connected

@@ -2,8 +2,8 @@ from urllib.parse import quote_plus
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 
-from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
+from sentry.web.frontend.base import control_silo_view
 
 SCRIPT = r"""#!/bin/sh
 set -eu
@@ -147,12 +147,13 @@ echo 'Done!'
 """
 
 
+@control_silo_view
 def get_cli(request: HttpRequest) -> HttpResponse:
     metrics.incr("cli.download_script")
     return HttpResponse(SCRIPT, content_type="text/plain")
 
 
-@control_silo_function
+@control_silo_view
 def get_cli_download_url(request: HttpRequest, platform: str, arch: str) -> HttpResponseRedirect:
     url = "https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch={}&platform={}&package=sentry-cli".format(
         quote_plus(arch),

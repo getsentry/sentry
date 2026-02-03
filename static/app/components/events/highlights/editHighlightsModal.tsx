@@ -2,11 +2,12 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import type {InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {InputProps} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -20,13 +21,13 @@ import {
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
@@ -338,11 +339,7 @@ export default function EditHighlightsModal({
 
   const organization = useOrganization();
 
-  const {mutate: saveHighlights, isPending} = useMutateProject({
-    organization,
-    project,
-    onSuccess: closeModal,
-  });
+  const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
   const columnCount = 3;
   return (
@@ -435,7 +432,26 @@ export default function EditHighlightsModal({
             disabled={isPending}
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
-              saveHighlights({highlightContext, highlightTags});
+              saveHighlights(
+                {highlightContext, highlightTags},
+                {
+                  onError: () => {
+                    addErrorMessage(
+                      tct(`Failed to update '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                  },
+                  onSuccess: () => {
+                    addSuccessMessage(
+                      tct(`Successfully updated '[projectName]' project`, {
+                        projectName: project.name,
+                      })
+                    );
+                    closeModal();
+                  },
+                }
+              );
             }}
             priority="primary"
             size="sm"
@@ -452,7 +468,7 @@ function SectionFilterInput(props: InputProps) {
   return (
     <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch color="subText" size="xs" />
+        <IconSearch variant="muted" size="xs" />
       </InputGroup.LeadingItems>
       <InputGroup.Input size="xs" autoComplete="off" {...props} />
     </InputGroup>
@@ -468,11 +484,11 @@ const modalBodyCss = css`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Subtitle = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(1.5)};
   padding-bottom: ${space(0.5)};
   display: flex;
@@ -481,7 +497,7 @@ const Subtitle = styled('div')`
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 `;
 
@@ -489,24 +505,24 @@ const FooterInfo = styled('div')`
   flex: 1;
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(1)};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: 4px;
   padding: ${space(2)};
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
   margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
   margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
@@ -524,12 +540,12 @@ const EditHighlightSectionContent = styled('div')<{columnCount: number}>`
 const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.innerBorder};
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};
     margin-left: -1px;
   }
   &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.innerBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-right: ${space(2)};
   }
 `;
@@ -544,23 +560,23 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditTagContainer = styled('div')`
   display: grid;
   grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   align-items: center;
 `;
 
@@ -570,8 +586,6 @@ const EditContextContainer = styled(EditTagContainer)`
 
 const EditButton = styled(Button)`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  border-color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.border)};
   width: 18px;
   height: 18px;
   min-height: 18px;
@@ -582,15 +596,13 @@ const EditButton = styled(Button)`
     height: 10px;
     width: 10px;
   }
-  &:hover {
-    color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  }
 `;
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.disabledBorder : p.theme.subText)};
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: 0;
   word-wrap: break-word;
   word-break: break-all;
@@ -599,7 +611,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

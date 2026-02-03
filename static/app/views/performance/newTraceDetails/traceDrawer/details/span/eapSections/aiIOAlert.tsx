@@ -1,26 +1,27 @@
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Prose} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Prose} from '@sentry/scraps/text';
+
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiGenerationNode,
   getIsExecuteToolNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 
@@ -32,6 +33,8 @@ const knownSpanOrigins = {
     'auto.ai.langgraph',
     'auto.ai.anthropic',
     'auto.ai.litellm',
+    'auto.ai.google_genai',
+    'auto.ai.pydantic_ai',
   ],
   javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
@@ -71,12 +74,10 @@ export function AIIOAlert({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const theme = useTheme();
-  const isChonk = isChonkTheme(theme);
   const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
   const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
@@ -102,15 +103,9 @@ export function AIIOAlert({
 
   return (
     <Alert.Container>
-      <Alert type="info">
+      <Alert variant="info">
         <Stack direction="column" gap="md" paddingTop="2xs">
-          <Heading
-            as="h4"
-            variant="accent"
-            style={{
-              color: isChonk ? undefined : 'inherit',
-            }}
-          >
+          <Heading as="h4" variant="accent">
             {t('Missing the input and output of your AI model?')}
           </Heading>
           {instrumentationType === 'automatic' ? (
@@ -136,6 +131,10 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.langgraph': 'https://docs.sentry.io/platforms/python/integrations/langgraph/',
   'auto.ai.anthropic': 'https://docs.sentry.io/platforms/python/integrations/anthropic/',
   'auto.ai.litellm': 'https://docs.sentry.io/platforms/python/integrations/litellm/',
+  'auto.ai.google_genai':
+    'https://docs.sentry.io/platforms/python/integrations/google-genai/',
+  'auto.ai.pydantic_ai':
+    'https://docs.sentry.io/platforms/python/integrations/pydantic-ai/',
 };
 
 function PythonContent({
@@ -259,7 +258,7 @@ function ManualContent({sdkLanguage}: {sdkLanguage: SupportedSDKLanguage}) {
 
 // TODO(aknaus): Remove this once the Prose component adds styling for code elements
 const StyledCode = styled('code')`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const codeSnippetStyles = css`

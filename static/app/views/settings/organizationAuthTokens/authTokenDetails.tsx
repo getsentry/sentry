@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -16,7 +17,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
@@ -29,18 +29,14 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {
   makeFetchOrgAuthTokensForOrgQueryKey,
   tokenPreview,
 } from 'sentry/views/settings/organizationAuthTokens';
-
-type Props = {
-  organization: Organization;
-  params: {tokenId: string};
-};
 
 type FetchOrgAuthTokenParameters = {
   orgSlug: string;
@@ -54,13 +50,8 @@ type UpdateTokenQueryVariables = {
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
 
-function AuthTokenDetailsForm({
-  token,
-  organization,
-}: {
-  organization: Organization;
-  token: OrgAuthToken;
-}) {
+function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
+  const organization = useOrganization();
   const initialData = {
     name: token.name,
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
@@ -182,8 +173,9 @@ function AuthTokenDetailsForm({
   );
 }
 
-function OrganizationAuthTokensDetails({params, organization}: Props) {
-  const {tokenId} = params;
+function OrganizationAuthTokensDetails() {
+  const organization = useOrganization();
+  const {tokenId} = useParams<{tokenId: string}>();
 
   const {
     isPending,
@@ -228,13 +220,11 @@ function OrganizationAuthTokensDetails({params, organization}: Props) {
 
           {isPending && <LoadingIndicator />}
 
-          {!isPending && !isError && token && (
-            <AuthTokenDetailsForm token={token} organization={organization} />
-          )}
+          {!isPending && !isError && token && <AuthTokenDetailsForm token={token} />}
         </PanelBody>
       </Panel>
     </div>
   );
 }
 
-export default withOrganization(OrganizationAuthTokensDetails);
+export default OrganizationAuthTokensDetails;

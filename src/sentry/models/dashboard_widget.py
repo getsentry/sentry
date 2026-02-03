@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import JSONField
 
 ON_DEMAND_ENABLED_KEY = "enabled"
@@ -67,6 +68,14 @@ class DashboardWidgetTypes(TypesClass):
     These represent the logs trace item type on the EAP dataset.
     """
     LOGS = 103
+    """
+    These represent the tracemetrics item type on the EAP dataset.
+    """
+    TRACEMETRICS = 104
+    """
+    Mobile app size metrics from preprod item type on the EAP dataset.
+    """
+    PREPROD_APP_SIZE = 105
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -79,6 +88,8 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
         (LOGS, "logs"),
+        (TRACEMETRICS, "tracemetrics"),
+        (PREPROD_APP_SIZE, "preprod-app-size"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -118,6 +129,22 @@ class DatasetSourcesTypes(Enum):
      Dataset modified by using the widget snapshot to restore the original transaction query
     """
     RESTORED_SPAN_MIGRATION_VERSION_1 = 7
+    """
+     Dataset modified by the transaction -> span migration version 2
+    """
+    SPAN_MIGRATION_VERSION_2 = 8
+    """
+    Dataset modified by the transaction -> span migration version 3
+    """
+    SPAN_MIGRATION_VERSION_3 = 9
+    """
+    Dataset modified by the transaction -> span migration version 4 (fixing boolean bug)
+    """
+    SPAN_MIGRATION_VERSION_4 = 10
+    """
+    Dataset modified by the transaction -> span migration version 5 (fixing boolean bug again)
+    """
+    SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
     def as_choices(cls):
@@ -146,6 +173,8 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TABLE = 4
     BIG_NUMBER = 6
     TOP_N = 7
+    DETAILS = 8
+    CATEGORICAL_BAR_CHART = 9
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -154,6 +183,8 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TABLE, "table"),
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
+        (DETAILS, "details"),
+        (CATEGORICAL_BAR_CHART, "categorical_bar"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -196,6 +227,23 @@ class DashboardWidgetQuery(Model):
         unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
+
+
+@region_silo_model
+class DashboardFieldLink(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    dashboard_widget_query = FlexibleForeignKey(
+        "sentry.DashboardWidgetQuery", on_delete=models.CASCADE
+    )
+    field = models.TextField()
+    # The dashboard that the field is linked to
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfieldlink"
+        unique_together = (("dashboard_widget_query", "field"),)
 
 
 @region_silo_model

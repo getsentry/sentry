@@ -1,14 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {
-  EChartsOption,
-  SeriesOption,
-  ToolboxComponentOption,
-  YAXisComponentOption,
-} from 'echarts';
+import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -19,14 +13,13 @@ import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {
+  useChartXRangeSelection,
+  type ChartXRangeSelectionProps,
+} from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import type {
-  EChartBrushEndHandler,
-  EChartBrushStartHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartDownplayHandler,
@@ -41,15 +34,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {
-  NO_PLOTTABLE_VALUES,
-  X_GUTTER,
-  Y_GUTTER,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
@@ -64,31 +54,8 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn} = Sentry.logger;
 
-export interface BoxSelectProps {
-  /**
-   * The brush options for the chart.
-   */
-  brush: EChartsOption['brush'];
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user finishes a brush operation.
-   */
-  onBrushEnd: EChartBrushEndHandler;
-
-  /**
-   * Callback that returns an updated ECharts brush selection when the user starts a brush operation.
-   */
-  onBrushStart: EChartBrushStartHandler;
-
-  /**
-   * The toolBox options for the chart.
-   */
-  toolBox?: ToolboxComponentOption;
-}
-
 export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps>,
-    Partial<BoxSelectProps> {
+  extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -106,6 +73,11 @@ export interface TimeSeriesWidgetVisualizationProps
    * Reference to the chart instance
    */
   chartRef?: React.Ref<ReactEchartsRef>;
+  /**
+   * The props for the chart x range selection on drag.
+   */
+  chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
+
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -159,7 +131,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
+  const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} =
@@ -171,8 +143,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
-  const {onDataZoom, ...chartZoomProps} = useChartZoom({
+  const {
+    onDataZoom,
+    onChartReady: onChartReadyZoom,
+    ...chartZoomProps
+  } = useChartZoom({
     saveOnZoom: true,
+  });
+
+  const {brush, onBrushEnd, onBrushStart, toolBox, ActionMenu} = useChartXRangeSelection({
+    chartRef,
+    deps: [props.plottables],
+    disabled: true,
+    chartsGroupName: groupName,
+    ...props.chartXRangeSelection,
   });
 
   const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
@@ -442,19 +426,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         plottable.handleChartRef?.(e);
       }
 
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+  );
+
+  const handleChartReady = useCallback(
+    (instance: echarts.ECharts) => {
+      onChartReadyZoom(instance);
+      registerWithWidgetSyncContext(instance);
+    },
+    [onChartReadyZoom, registerWithWidgetSyncContext]
   );
 
   const showXAxisProp = props.showXAxis ?? 'auto';
@@ -609,92 +593,74 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   return (
-    <BaseChart
-      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
-      autoHeightResize
-      series={allSeries}
-      grid={{
-        // NOTE: Adding a few pixels of left padding prevents ECharts from
-        // incorrectly truncating long labels. See
-        // https://github.com/apache/echarts/issues/15562
-        left: 2,
-        top: showLegend ? 25 : 10,
-        right: 8,
-        bottom: 0,
-        containLabel: true,
-        ...releaseBubbleGrid,
-        ...xAxisGrid,
-      }}
-      legend={
-        showLegend
-          ? {
-              top: 0,
-              left: 0,
-              formatter(seriesName: string) {
-                return truncationFormatter(
-                  aliases[seriesName] ?? seriesName,
-                  true,
-                  // Escaping the legend string will cause some special
-                  // characters to render as their HTML equivalents.
-                  // So disable it here.
-                  false
-                );
-              },
-              selected: props.legendSelection,
-            }
-          : undefined
-      }
-      onLegendSelectChanged={event => {
-        props?.onLegendSelectionChange?.(event.selected);
-      }}
-      tooltip={{
-        appendToBody: true,
-        trigger: 'axis',
-        axisPointer: {
-          type: 'cross',
-        },
-        formatter: formatTooltip,
-      }}
-      xAxis={xAxis}
-      yAxes={yAxes}
-      {...chartZoomProps}
-      onDataZoom={props.onZoom ?? onDataZoom}
-      toolBox={props.toolBox ?? chartZoomProps.toolBox}
-      brush={props.brush}
-      onBrushStart={props.onBrushStart}
-      onBrushEnd={props.onBrushEnd}
-      isGroupedByDate
-      useMultilineDate
-      start={start ? new Date(start) : undefined}
-      end={end ? new Date(end) : undefined}
-      period={period}
-      utc={utc ?? undefined}
-      onHighlight={handleHighlight}
-      onDownplay={handleDownplay}
-      onClick={handleClick}
-    />
-  );
-}
-
-function LoadingPanel({
-  loadingMessage,
-  expectMessage,
-}: {
-  // If we expect that a message will be provided, we can render a non-visible element that will
-  // be replaced with the message to prevent layout shift.
-  expectMessage?: boolean;
-  loadingMessage?: string;
-}) {
-  return (
-    <LoadingPlaceholder>
-      <LoadingMask visible />
-      <LoadingIndicator mini />
-      {(expectMessage || loadingMessage) && (
-        <LoadingMessage visible={Boolean(loadingMessage)}>
-          {loadingMessage}
-        </LoadingMessage>
-      )}
-    </LoadingPlaceholder>
+    <Fragment>
+      {ActionMenu}
+      <BaseChart
+        ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+        autoHeightResize
+        series={allSeries}
+        grid={{
+          // NOTE: Adding a few pixels of left padding prevents ECharts from
+          // incorrectly truncating long labels. See
+          // https://github.com/apache/echarts/issues/15562
+          left: 2,
+          top: showLegend ? 25 : 10,
+          right: 8,
+          bottom: 0,
+          containLabel: true,
+          ...releaseBubbleGrid,
+          ...xAxisGrid,
+        }}
+        legend={
+          showLegend
+            ? {
+                top: 0,
+                left: 0,
+                formatter(seriesName: string) {
+                  return truncationFormatter(
+                    aliases[seriesName] ?? seriesName,
+                    true,
+                    // Escaping the legend string will cause some special
+                    // characters to render as their HTML equivalents.
+                    // So disable it here.
+                    false
+                  );
+                },
+                selected: props.legendSelection,
+              }
+            : undefined
+        }
+        onLegendSelectChanged={event => {
+          props?.onLegendSelectionChange?.(event.selected);
+        }}
+        tooltip={{
+          appendToBody: true,
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+          },
+          formatter: formatTooltip,
+        }}
+        xAxis={xAxis}
+        yAxes={yAxes}
+        {...chartZoomProps}
+        onDataZoom={props.onZoom ?? onDataZoom}
+        toolBox={toolBox ?? chartZoomProps.toolBox}
+        brush={brush}
+        onBrushStart={onBrushStart}
+        onBrushEnd={onBrushEnd}
+        onChartReady={handleChartReady}
+        isGroupedByDate
+        useMultilineDate
+        start={start ? new Date(start) : undefined}
+        end={end ? new Date(end) : undefined}
+        period={period}
+        utc={utc ?? undefined}
+        onHighlight={handleHighlight}
+        onDownplay={handleDownplay}
+        onClick={handleClick}
+      />
+    </Fragment>
   );
 }
 
@@ -737,26 +703,4 @@ const HIDDEN_X_AXIS = {
   axisLabel: {show: false},
 };
 
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-
-  padding: ${Y_GUTTER} ${X_GUTTER};
-`;
-
-const LoadingMessage = styled('div')<{visible: boolean}>`
-  opacity: ${p => (p.visible ? 1 : 0)};
-  height: ${p => p.theme.fontSize.sm};
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.background};
-`;
-
-TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
+TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

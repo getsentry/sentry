@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -36,10 +36,6 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
 
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
-
-type Props = {
-  isEditing: boolean;
-};
 
 function ScheduleTypeField() {
   return (
@@ -80,7 +76,7 @@ function Schedule() {
             defaultValue={DEFAULT_CRONTAB}
             css={css`
               input {
-                font-family: ${theme.text.familyMono};
+                font-family: ${theme.font.family.mono};
               }
             `}
             required
@@ -188,6 +184,7 @@ function Thresholds() {
         <NumberField
           name="failureIssueThreshold"
           min={1}
+          max={720}
           placeholder="1"
           defaultValue={CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD}
           help={t(
@@ -200,7 +197,7 @@ function Thresholds() {
   );
 }
 
-export function CronDetectorFormDetectSection({isEditing}: Props) {
+export function CronDetectorFormDetectSection() {
   return (
     <Container>
       <Section title={t('Detect')}>
@@ -212,13 +209,6 @@ export function CronDetectorFormDetectSection({isEditing}: Props) {
                 link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
               })}
             </Text>
-            {isEditing && (
-              <Alert type="info" showIcon={false}>
-                {t(
-                  'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
-                )}
-              </Alert>
-            )}
             <Schedule />
             <Margins />
             <Thresholds />
@@ -240,7 +230,7 @@ const SubSectionSeparator = styled('hr')`
   border: none;
   margin: 0;
   margin-bottom: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
@@ -265,8 +255,8 @@ const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
 `;
 
 const LabelText = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`
@@ -281,8 +271,8 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

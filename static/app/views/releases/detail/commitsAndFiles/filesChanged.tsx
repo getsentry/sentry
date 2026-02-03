@@ -72,14 +72,14 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
       />
       <Layout.Body>
         {releaseRepos.length > 1 && (
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <RepositorySwitcher
               repositories={releaseRepos}
               activeRepository={activeReleaseRepo}
             />
           </Layout.Main>
         )}
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           {fileListError && <LoadingError onRetry={refetch} />}
           {isLoadingFileList ? (
             <LoadingIndicator />

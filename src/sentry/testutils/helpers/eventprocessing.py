@@ -28,6 +28,6 @@ def save_new_event(event_data: dict[str, Any], project: Project) -> Event:
         # This does a similar thing for syncing the DB across silos
         outbox_runner(),
     ):
-        event = EventManager(event_data).save(project.id)
+        event = EventManager(event_data).save(project=project)
 
     return event

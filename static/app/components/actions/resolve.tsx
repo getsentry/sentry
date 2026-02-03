@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -19,8 +19,6 @@ import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/gr
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -226,7 +224,7 @@ function ResolveActions({
               key: 'semver-release',
               label: t('The current semver release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : (
@@ -238,7 +236,7 @@ function ResolveActions({
                       </div>{' '}
                     </Fragment>
                   )}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -251,7 +249,7 @@ function ResolveActions({
               key: 'current-release',
               label: t('The current release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : latestRelease ? (
@@ -264,7 +262,7 @@ function ResolveActions({
                       ({isSemver ? t('semver') : t('non-semver')})
                     </Fragment>
                   ) : null}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -340,7 +338,6 @@ function ResolveActions({
         onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        organization={organization}
         projectSlug={projectSlug}
       />
     ));
@@ -383,31 +380,13 @@ function ResolveActions({
 
 export default ResolveActions;
 
-const ResolveButton = withChonk(
-  styled(Button)<{priority?: 'primary'}>`
-    box-shadow: none;
-    ${p =>
-      p.priority === 'primary' &&
-      css`
-        &::after {
-          content: '';
-          position: absolute;
-          top: -1px;
-          bottom: -1px;
-          right: -1px;
-          border-right: solid 1px currentColor;
-          opacity: 0.25;
-        }
-      `}
-  `,
-  chonkStyled(Button)`
-    box-shadow: none;
-`
-);
+const ResolveButton = styled(Button)`
+  box-shadow: none;
+`;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;
 
@@ -431,24 +410,22 @@ const SetupReleases = styled('div')`
   align-items: center;
   padding: ${space(2)} 0;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
 `;
 
-const CurrentReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
 const MaxReleaseWidthWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 250px;
 `;

@@ -20,23 +20,23 @@ const CalendarStylesWrapper = styled('div')`
     right: 0;
     top: 3px;
     bottom: 3px;
-    background-color: ${p => p.theme.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayNumber {
     top: 3px;
     bottom: 3px;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 
   .rdrDayNumber span {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 
   .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span,
   .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
 
   .rdrDayDisabled {
@@ -45,12 +45,12 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayDisabled .rdrDayNumber span,
   .rdrDayPassive .rdrDayNumber span {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     opacity: 0.5;
   }
 
   .rdrDayToday .rdrDayNumber span {
-    color: ${p => p.theme.activeText};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &:after {
       display: none;
@@ -59,11 +59,11 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayToday .rdrDayNumber {
     border-radius: 2rem;
-    box-shadow: inset 0 0 0 2px ${p => p.theme.active};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.border.accent};
   }
 
   .rdrDayNumber span:after {
-    background-color: ${p => p.theme.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
     font-variant-numeric: tabular-nums;
   }
 
@@ -74,11 +74,11 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrInRange {
-    background: ${p => p.theme.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayInPreview {
-    background: ${p => p.theme.hover};
+    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   }
 
   .rdrMonth {
@@ -101,16 +101,15 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayEndPreview,
   .rdrDayInPreview {
     border: 0;
-    background: ${p => p.theme.headingColor};
-    opacity: 0.08;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
     z-index: -1;
   }
 
   .rdrDayStartOfMonth {
     .rdrInRange,
     .rdrDayInPreview {
-      border-top-left-radius: ${p => p.theme.borderRadius};
-      border-bottom-left-radius: ${p => p.theme.borderRadius};
+      border-top-left-radius: ${p => p.theme.radius.md};
+      border-bottom-left-radius: ${p => p.theme.radius.md};
     }
   }
 
@@ -121,16 +120,16 @@ const CalendarStylesWrapper = styled('div')`
     /* Adjust radii on last hovered day, unless it's also the start of a selected range */
     .rdrDayEndPreview:not(.rdrDayStartPreview):first-child,
     :not(.rdrStartEdge) ~ .rdrDayEndPreview:not(.rdrDayStartPreview) {
-      border-top-left-radius: ${p => p.theme.borderRadius};
-      border-bottom-left-radius: ${p => p.theme.borderRadius};
+      border-top-left-radius: ${p => p.theme.radius.md};
+      border-bottom-left-radius: ${p => p.theme.radius.md};
     }
   }
 
   .rdrDayEndOfMonth {
     .rdrInRange,
     .rdrDayInPreview {
-      border-top-right-radius: ${p => p.theme.borderRadius};
-      border-bottom-right-radius: ${p => p.theme.borderRadius};
+      border-top-right-radius: ${p => p.theme.radius.md};
+      border-bottom-right-radius: ${p => p.theme.radius.md};
     }
   }
 
@@ -141,8 +140,8 @@ const CalendarStylesWrapper = styled('div')`
     /* Adjust radii on first hovered day, unless it's also the end of a selected range */
     .rdrDayStartPreview:not(.rdrDayEndPreview):first-child,
     :not(.rdrEndEdge) ~ .rdrDayStartPreview:not(.rdrDayEndPreview) {
-      border-top-right-radius: ${p => p.theme.borderRadius};
-      border-bottom-right-radius: ${p => p.theme.borderRadius};
+      border-top-right-radius: ${p => p.theme.radius.md};
+      border-bottom-right-radius: ${p => p.theme.radius.md};
     }
   }
 
@@ -180,9 +179,9 @@ const CalendarStylesWrapper = styled('div')`
   .rdrMonthPicker select,
   .rdrYearPicker select {
     background: none;
-    color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeight.normal};
-    font-size: ${p => p.theme.fontSize.lg};
+    color: ${p => p.theme.tokens.content.primary};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    font-size: ${p => p.theme.font.size.lg};
     padding: ${space(0.25)} ${space(1)};
   }
 
@@ -215,8 +214,8 @@ const CalendarStylesWrapper = styled('div')`
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: ${p => p.theme.borderRadius};
-      background: ${p => p.theme.headingColor};
+      border-radius: ${p => p.theme.radius.md};
+      background: ${p => p.theme.tokens.background.primary};
       opacity: 0.08;
       z-index: -1;
     }
@@ -236,12 +235,12 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.textColor};
+    border-right-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.textColor};
+    border-left-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 

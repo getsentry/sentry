@@ -1,13 +1,14 @@
 import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
-import Crumb from './crumb';
 import Divider from './divider';
 import {OrganizationCrumb} from './organizationCrumb';
 import ProjectCrumb from './projectCrumb';
@@ -31,8 +32,18 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
+  function onSettingsBreadcrumbLinkClick() {
+    trackAnalytics('breadcrumbs.link.clicked', {organization: null});
+  }
+
   return (
-    <Breadcrumbs aria-label={t('Settings Breadcrumbs')} className={className}>
+    <Flex
+      as="nav"
+      align="center"
+      gap="sm"
+      aria-label={t('Settings Breadcrumbs')}
+      className={className}
+    >
       {routes.map((route, i) => {
         if (!route.name) {
           return null;
@@ -53,37 +64,32 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
           );
         }
         return (
-          <Crumb key={`${route.name}:${route.path}`}>
-            <CrumbLink to={recreateRoute(route, {routes, params})}>
+          <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
+            <CrumbLink
+              to={recreateRoute(route, {routes, params})}
+              onClick={onSettingsBreadcrumbLinkClick}
+            >
               {pathTitle || route.name}
             </CrumbLink>
             {isLast ? null : <Divider />}
-          </Crumb>
+          </Flex>
         );
       })}
-    </Breadcrumbs>
+    </Flex>
   );
 }
 
 // Uses Link directly from react-router-dom to avoid the URL normalization
-// that happens in the internal Link component. It is unncessary because we
+// that happens in the internal Link component. It is unnecessary because we
 // get routes from the router, and will actually cause issues because the
 // routes do not have organization information.
-const CrumbLink = styled(RouterLink)`
+export const CrumbLink = styled(RouterLink)`
   display: block;
 
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-const Breadcrumbs = styled('nav')`
-  display: flex;
-  gap: ${space(0.75)};
-  align-items: center;
-`;
-
-export {CrumbLink};
 
 export default SettingsBreadcrumb;

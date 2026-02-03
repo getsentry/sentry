@@ -37,12 +37,11 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -102,6 +101,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.OK.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
 
@@ -127,6 +128,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
+            config={},
+            data_sources=[],
             alert_id=self.alert_rule.id,
         )
         self.group, self.event, self.group_event = self.create_group_event(
@@ -139,6 +142,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
 
         self.group.priority = PriorityLevel.HIGH.value
         self.group.save()
+        self.create_detector_group(detector=self.detector, group=self.group)
         self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
             group=self.group,
             project=self.project,
@@ -294,7 +298,15 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError):
-            self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+            notification_uuid = str(uuid.uuid4())
+
+            invocation = ActionInvocation(
+                event_data=self.event_data,
+                action=self.action,
+                detector=self.detector,
+                notification_uuid=notification_uuid,
+            )
+            self.handler.invoke_legacy_registry(invocation)
 
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
@@ -414,7 +426,14 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -472,33 +491,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             )
 
     @mock.patch.object(TestHandler, "send_alert")
-    def test_invoke_legacy_registry_with_activity_ff_not_enabled(
-        self, mock_send_alert: mock.MagicMock
-    ) -> None:
-        # Create an Activity instance with evidence data and priority
-        activity_data = asdict(self.evidence_data)
-
-        activity = Activity(
-            project=self.project,
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            data=activity_data,
-        )
-        activity.save()
-
-        # Create event data with Activity instead of GroupEvent
-        event_data_with_activity = WorkflowEventData(
-            event=activity,
-            workflow_env=self.workflow.environment,
-            group=self.group,
-        )
-
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
-
-        assert mock_send_alert.call_count == 0
-
-    @mock.patch.object(TestHandler, "send_alert")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.evidence_data)
@@ -518,7 +510,14 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -564,7 +563,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert isinstance(notification_uuid, str)
 
     @mock.patch.object(TestHandler, "send_alert")
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_with_activity_anomaly_detection(
         self, mock_send_alert: mock.MagicMock
     ) -> None:
@@ -586,7 +584,14 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
 
@@ -632,7 +637,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_invoke_legacy_registry_activity_missing_data(self) -> None:
         # Test with Activity that has no data field
         activity = Activity.objects.create(
@@ -649,11 +653,16 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         with pytest.raises(ValueError, match="Activity data is required for alert context"):
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity, self.action, self.detector
-            )
+            notification_uuid = str(uuid.uuid4())
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+            invocation = ActionInvocation(
+                event_data=event_data_with_activity,
+                action=self.action,
+                detector=self.detector,
+                notification_uuid=notification_uuid,
+            )
+            self.handler.invoke_legacy_registry(invocation)
+
     def test_invoke_legacy_registry_activity_empty_data(self) -> None:
         # Test with Activity that has non-empty but insufficient data for MetricIssueEvidenceData
         activity = Activity(
@@ -673,6 +682,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         with pytest.raises(
             TypeError
         ):  # MetricIssueEvidenceData will raise TypeError for missing args
-            self.handler.invoke_legacy_registry(
-                event_data_with_activity, self.action, self.detector
+            notification_uuid = str(uuid.uuid4())
+
+            invocation = ActionInvocation(
+                event_data=event_data_with_activity,
+                action=self.action,
+                detector=self.detector,
+                notification_uuid=notification_uuid,
             )
+            self.handler.invoke_legacy_registry(invocation)

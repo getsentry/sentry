@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -30,6 +33,7 @@ export type FormattedQueryProps = {
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
 type TokenProps = {
@@ -54,17 +58,13 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilder();
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
   const label = useMemo(
     () =>
       getOperatorInfo({
         filterToken: token,
-        hasWildcardOperators,
         fieldDefinition: getFieldDefinition(token.key.text),
       }).label,
-    [hasWildcardOperators, token, getFieldDefinition]
+    [token, getFieldDefinition]
   );
 
   return (
@@ -74,6 +74,27 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
         <FilterValueText token={token} />
       </FilterValue>
     </FilterWrapper>
+  );
+}
+
+function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  const hasConditionalsSelect = useOrganization().features.includes(
+    'search-query-builder-add-boolean-operator-select'
+  );
+
+  if (hasConditionalsSelect) {
+    const label = token.text.toUpperCase();
+    return (
+      <FilterWrapper aria-label={label}>
+        <Text variant="muted">{label}</Text>
+      </FilterWrapper>
+    );
+  }
+
+  return (
+    <Flex align="center">
+      <Text variant="muted">{token.text}</Text>
+    </Flex>
   );
 }
 
@@ -89,12 +110,12 @@ function QueryToken({token}: TokenProps) {
     case Token.L_PAREN:
     case Token.R_PAREN:
       return (
-        <Boolean>
+        <Paren>
           <SearchQueryBuilderParenIcon token={token} />
-        </Boolean>
+        </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <Boolean token={token} />;
     default:
       return null;
   }
@@ -149,6 +170,7 @@ export function ProvidedFormattedQuery({
   fieldDefinitionGetter = defaultGetFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  getFilterTokenWarning,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -157,6 +179,7 @@ export function ProvidedFormattedQuery({
       getTagValues={() => Promise.resolve([])}
       initialQuery={query}
       searchSource="formatted_query"
+      getFilterTokenWarning={getFilterTokenWarning}
     >
       <FormattedQuery
         className={className}
@@ -181,24 +204,27 @@ export const FilterWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.25)} ${space(0.5)};
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.md};
   height: 24px;
   white-space: nowrap;
   overflow: hidden;
 `;
 
 const FilterValue = styled('div')`
-  width: 100%;
   max-width: 300px;
-  color: ${p => p.theme.purple400};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.accent};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-const Boolean = styled('div')`
+const Paren = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

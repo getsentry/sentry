@@ -10,21 +10,21 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, similarity, tsdb
+from sentry import analytics, similarity, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -202,7 +202,6 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    update_open_periods(source, destination)
     logger.info("migrate_events.migrate", extra={**extra, "destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
@@ -248,33 +247,6 @@ def migrate_events(
     return (destination.id, eventstream_state)
 
 
-def update_open_periods(source: Group, destination: Group) -> None:
-    # For groups that are not resolved, the open period created on group creation should have the necessary information
-    if destination.status != GroupStatus.RESOLVED:
-        return
-
-    try:
-        dest_open_period = GroupOpenPeriod.objects.get(group=destination)
-    except GroupOpenPeriod.DoesNotExist:
-        logger.exception("No open period found for group", extra={"group_id": destination.id})
-
-    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
-    if not source_open_period:
-        logger.error("No open period found for group", extra={"group_id": destination.id})
-        return
-
-    if source_open_period.date_ended is None:
-        return
-
-    # If the destination group is resolved, set the open period fields to match the source's open period.
-    dest_open_period.update(
-        date_started=source_open_period.date_started,
-        date_ended=source_open_period.date_ended,
-        resolution_activity=source_open_period.resolution_activity,
-        user_id=source_open_period.user_id,
-    )
-
-
 def truncate_denormalizations(project: Project, group: Group) -> None:
     GroupRelease.objects.filter(group_id=group.id).delete()
 
@@ -300,7 +272,9 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         [str(group.id)],
     )
 
-    similarity.delete(project, group)
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not project.get_option("sentry:similarity_backfill_completed"):
+        similarity.delete(project, group)
 
 
 def collect_group_environment_data(
@@ -486,8 +460,10 @@ def repair_denormalizations(
     repair_group_release_data(caches, project, events)
     repair_tsdb_data(caches, project, events)
 
-    for event in events:
-        similarity.record(project, [event])
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not project.get_option("sentry:similarity_backfill_completed"):
+        for event in events:
+            similarity.record(project, [event])
 
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
@@ -518,7 +494,7 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=300,
     silo_mode=SiloMode.REGION,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:

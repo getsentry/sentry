@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
+import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -17,46 +18,24 @@ describe('FilterSelector', () => {
     },
     value: '',
   };
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
 
-    // Mock tags endpoint
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
-
-    // Mock custom measurements endpoint
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/measurements-meta/',
-      body: {},
-    });
-
-    // Mock tag values endpoint
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/tags/${mockGlobalFilter.tag.key}/values/`,
-      body: [
-        {name: 'chrome', value: 'chrome', count: 100},
-        {name: 'firefox', value: 'firefox', count: 50},
-        {name: 'safari', value: 'safari', count: 25},
-      ],
-    });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  const mockSearchBarData: SearchBarData = {
+    getFilterKeySections: () => [],
+    getFilterKeys: () => ({}),
+    getTagValues: () => Promise.resolve(['chrome', 'firefox', 'safari']),
+  };
 
   it('renders all filter values', async () => {
     render(
       <FilterSelector
         globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
         onUpdateFilter={mockOnUpdateFilter}
         onRemoveFilter={mockOnRemoveFilter}
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     expect(screen.getByText('chrome')).toBeInTheDocument();
@@ -68,12 +47,13 @@ describe('FilterSelector', () => {
     render(
       <FilterSelector
         globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
         onUpdateFilter={mockOnUpdateFilter}
         onRemoveFilter={mockOnRemoveFilter}
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
@@ -90,7 +70,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:[chrome]',
+      value: 'browser:chrome',
     });
   });
 
@@ -98,12 +78,13 @@ describe('FilterSelector', () => {
     render(
       <FilterSelector
         globalFilter={{...mockGlobalFilter, value: 'browser:[firefox,chrome]'}}
+        searchBarData={mockSearchBarData}
         onUpdateFilter={mockOnUpdateFilter}
         onRemoveFilter={mockOnRemoveFilter}
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
 
     expect(screen.getByRole('checkbox', {name: 'Select firefox'})).toBeChecked();
@@ -114,12 +95,13 @@ describe('FilterSelector', () => {
     render(
       <FilterSelector
         globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
         onUpdateFilter={mockOnUpdateFilter}
         onRemoveFilter={mockOnRemoveFilter}
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ':'});
+    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 

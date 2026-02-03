@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import random
 import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
+    analytics,
     audit_log,
     eventstore,
     eventstream,
@@ -32,7 +34,8 @@ from sentry import (
     reprocessing2,
     tsdb,
 )
-from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
+from sentry.attachments import CachedAttachment, MissingAttachmentChunks
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -45,7 +48,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
 from sentry.eventstream.base import GroupState
-from sentry.eventtypes import EventType
+from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
@@ -65,7 +68,10 @@ from sentry.grouping.ingest.hashing import (
     run_primary_grouping,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.grouping.ingest.seer import (
+    maybe_check_seer_for_matching_grouphash,
+    maybe_send_seer_for_new_model_training,
+)
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_group_creation_load_shed,
@@ -143,7 +149,10 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.processors.detector import associate_new_group_with_detector
+from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
+    ensure_association_with_detector,
+)
 
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
@@ -329,6 +338,14 @@ ProjectsMapping = Mapping[int, Project]
 Job = MutableMapping[str, Any]
 
 
+def resolve_project(project_id: int) -> Project:
+    project = Project.objects.get_from_cache(id=project_id)
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    return project
+
+
 class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -416,16 +433,17 @@ class EventManager:
     def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.trace
     def save(
         self,
-        project_id: int | None,
+        project_id: int | None = None,
+        project: Project | None = None,
         raw: bool = False,
         assume_normalized: bool = False,
         start_time: float | None = None,
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
-        has_attachments: bool = False,
+        attachments: list[CachedAttachment] | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -445,18 +463,16 @@ class EventManager:
         (that do not hit cache first).
         """
 
+        if project is None:
+            assert project_id is not None
+            project = resolve_project(project_id)
+        projects = {project.id: project}
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
-                self.normalize(project_id=project_id)
+                self.normalize(project_id=project.id)
             self._normalized = True
-
-        project = Project.objects.get_from_cache(id=project_id)
-        project.set_cached_field_value(
-            "organization", Organization.objects.get_from_cache(id=project.organization_id)
-        )
-
-        projects = {project.id: project}
 
         job: dict[str, Any] = {
             "data": self._data,
@@ -494,13 +510,7 @@ class EventManager:
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
                 return self.save_error_events(
-                    project,
-                    job,
-                    projects,
-                    metric_tags,
-                    raw,
-                    cache_key,
-                    has_attachments=has_attachments,
+                    project, job, projects, metric_tags, attachments or [], raw, cache_key
                 )
 
     @sentry_sdk.tracing.trace
@@ -510,9 +520,9 @@ class EventManager:
         job: Job,
         projects: ProjectsMapping,
         metric_tags: MutableTags,
+        attachments: list[CachedAttachment],
         raw: bool = False,
         cache_key: str | None = None,
-        has_attachments: bool = False,
     ) -> Event:
         jobs = [job]
 
@@ -532,15 +542,6 @@ class EventManager:
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure. Also wait for grouping to remove attachments
-        # based on the group counter.
-        if has_attachments:
-            attachments = get_attachments(cache_key, job)
-        else:
-            attachments = []
-
         try:
             group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
 
@@ -549,7 +550,6 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
-            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -568,7 +568,6 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
-            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -1121,6 +1120,31 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
+        # Record processing errors to analytics at 1% sample rate
+        processing_errors = job["data"].get("errors", [])
+        event = job["event"]
+        if (
+            processing_errors
+            and features.has("organizations:processing-error-analytics", event.project.organization)
+            and random.random() < 0.01
+        ):
+            group_id = job["groups"][0].group.id if job["groups"] else None
+            for error in processing_errors:
+                error_type = error.get("type", "unknown")
+                try:
+                    analytics.record(
+                        EventProcessingErrorRecorded(
+                            organization_id=event.project.organization_id,
+                            project_id=event.project_id,
+                            event_id=event.event_id,
+                            group_id=group_id,
+                            error_type=error_type,
+                            platform=job["data"].get("platform"),
+                        )
+                    )
+                except Exception:
+                    logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
+
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
@@ -1297,6 +1321,7 @@ def assign_event_to_group(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
+        maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
@@ -1308,6 +1333,9 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
+            maybe_send_seer_for_new_model_training(
+                event, secondary.existing_grouphash, secondary.variants
+            )
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
@@ -1436,6 +1464,9 @@ def handle_existing_grouphash(
         incoming_group_values=_get_group_processing_kwargs(job),
         release=job["release"],
     )
+
+    # Ensure the group has a DetectorGroup association for existing groups
+    ensure_association_with_detector(group)
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
@@ -1597,7 +1628,7 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    create_open_period(group=group, start_time=group.first_seen)
+    create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
 
     return group
 
@@ -1809,7 +1840,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime, event.event_id)
 
     return is_regression
 
@@ -1915,7 +1946,7 @@ def _process_existing_aggregate(
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value
     times_seen = 1
-    if group.project.id in options.get("issues.client_error_sampling.project_allowlist"):
+    if group.project_id in options.get("issues.client_error_sampling.project_allowlist"):
         times_seen = _get_error_weighted_times_seen(event)
 
     buffer_incr(Group, {"times_seen": times_seen}, {"id": group.id}, updated_group_values)
@@ -2253,32 +2284,6 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
 
 
 @sentry_sdk.tracing.trace
-def get_attachments(cache_key: str | None, job: Job) -> list[Attachment]:
-    """
-    Retrieves the list of attachments for this event.
-
-    This method skips attachments that have been marked for rate limiting by
-    earlier ingestion pipeline.
-
-    :param cache_key: The cache key at which the event payload is stored in the
-                      cache. This is used to retrieve attachments.
-    :param job:       The job context container.
-    """
-    if cache_key is None:
-        return []
-
-    project = job["event"].project
-    if not features.has("organizations:event-attachments", project.organization, actor=None):
-        return []
-
-    attachments = list(attachment_cache.get(cache_key))
-    if not attachments:
-        return []
-
-    return [attachment for attachment in attachments if not attachment.rate_limited]
-
-
-@sentry_sdk.tracing.trace
 def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> list[Attachment]:
     """
     Removes crash reports exceeding the group-limit.
@@ -2343,6 +2348,9 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
 
                 # Quotas are counted with at least ``1`` for attachments.
                 refund_quantity += attachment.size or 1
+                # this instructs the attachment to be removed from storage:
+                attachment.rate_limited = True
+
                 continue
             stored_reports += 1
 
@@ -2403,7 +2411,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.stored_id or attachment.data
+        attachment.stored_id or attachment.load_data(project)
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2572,7 +2580,6 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.VITAL: "has_insights_vitals",
     InsightModules.CACHE: "has_insights_caches",
     InsightModules.QUEUE: "has_insights_queues",
-    InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
     InsightModules.AGENTS: "has_insights_agent_monitoring",
     InsightModules.MCP: "has_insights_mcp",
 }

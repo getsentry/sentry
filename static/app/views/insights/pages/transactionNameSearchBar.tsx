@@ -139,12 +139,13 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
           {
             key: SpanFields.TRANSACTION,
             name: SpanFields.TRANSACTION,
+            kind: undefined,
           },
           query
         );
 
         const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item) => {
+          (searchGroup: SearchGroup, item: string) => {
             searchGroup.children.push({
               value: item,
               title: item,

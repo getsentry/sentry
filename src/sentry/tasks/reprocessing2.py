@@ -5,9 +5,10 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 
-from sentry import eventstore, eventstream, nodestore
+from sentry import eventstream, nodestore
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -244,6 +245,15 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
         new_group = Group.objects.get(id=new_group_id)
 
+        # Remove the marker that indicates that the new group is currently being reprocessed to.
+        # Thus making it re-processable.
+        try:
+            del new_group.data["_reprocessing_old_group_id"]
+        except Exception as e:
+            from sentry.reprocessing2 import logger
+
+            logger.exception(str(e))
+
         # Any sort of success message will be shown at the *new* group ID's URL
         GroupRedirect.objects.create(
             organization_id=new_group.project.organization_id,
@@ -254,6 +264,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
+        new_group.save()
 
     # Tombstone unwanted events that should be dropped after new group
     # is generated after reprocessing
@@ -265,6 +276,8 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
 
     eventstream.backend.exclude_groups(project_id, [group_id])
 
-    from sentry import similarity
+    # Don't do MinHash work if we use embeddings-based similarity.
+    if not group.project.get_option("sentry:similarity_backfill_completed"):
+        from sentry import similarity
 
-    similarity.delete(None, group)
+        similarity.delete(None, group)

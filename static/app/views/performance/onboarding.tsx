@@ -9,6 +9,8 @@ import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -16,9 +18,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
@@ -28,15 +27,7 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import type {
-  Configuration,
-  ContentBlock,
-  DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
   StepType,
@@ -344,45 +335,6 @@ const ButtonList = styled(ButtonBar)`
   margin-bottom: 16px;
 `;
 
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {configuration.code ? (
-        Array.isArray(configuration.code) ? (
-          <TabbedCodeSnippet tabs={configuration.code} />
-        ) : (
-          <OnboardingCodeSnippet language={configuration.language}>
-            {configuration.code}
-          </OnboardingCodeSnippet>
-        )
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
-  );
-}
-
-function RenderBlocksOrFallback({
-  contentBlocks,
-  children,
-}: {
-  children: React.ReactNode;
-  contentBlocks?: ContentBlock[];
-}) {
-  if (contentBlocks && contentBlocks.length > 0) {
-    return <ContentBlocksRenderer spacing={space(1)} contentBlocks={contentBlocks} />;
-  }
-  return children;
-}
-
 function OnboardingPanel({
   project,
   children,
@@ -582,6 +534,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
@@ -637,9 +590,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
             <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <RenderBlocksOrFallback contentBlocks={step.content}>
-                <ConfigurationRenderer configuration={step} />
-              </RenderBlocksOrFallback>
+              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
               {index === steps.length - 1 ? (
                 <Fragment>
                   {eventWaitingIndicator}
@@ -699,8 +650,8 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   position: relative;
   z-index: 10;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.pink400};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.colors.pink500};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -717,8 +668,8 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.successText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const SubTitle = styled('div')`
@@ -727,7 +678,7 @@ const SubTitle = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BulletList = styled('ul')`
@@ -744,7 +695,7 @@ const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(3)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(4)};
 `;
 
@@ -765,7 +716,7 @@ const Setup = styled('div')`
     right: 50%;
     top: 2.5%;
     height: 95%;
-    border-right: 1px ${p => p.theme.border} solid;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
 `;
 
@@ -798,7 +749,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
   margin-bottom: 0;
@@ -810,39 +761,4 @@ const Arcade = styled('iframe')`
   margin-top: ${space(3)};
   height: 522px;
   border: 0;
-`;
-
-const CONTENT_SPACING = space(1);
-
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${CONTENT_SPACING};
-`;
-
-const DescriptionWrapper = styled('div')`
-  code:not([class*='language-']) {
-    color: ${p => p.theme.pink400};
-  }
-
-  :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
-  }
-
-  && > h4,
-  && > h5,
-  && > h6 {
-    font-size: ${p => p.theme.fontSize.xl};
-    font-weight: ${p => p.theme.fontWeight.bold};
-    line-height: 34px;
-  }
-
-  && > * {
-    margin: 0;
-    &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
-    }
-  }
-`;
-
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${CONTENT_SPACING};
 `;

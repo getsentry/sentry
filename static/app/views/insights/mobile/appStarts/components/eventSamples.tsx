@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -8,12 +7,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/insights/common/components/releaseSelector';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -29,7 +23,6 @@ type Props = {
   transaction: string;
   footerAlignedPagination?: boolean;
   release?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 export function EventSamples({
@@ -37,12 +30,10 @@ export function EventSamples({
   transaction,
   release,
   sortKey,
-  showDeviceClassSelector,
   footerAlignedPagination,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
-  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]) ?? '';
@@ -51,7 +42,7 @@ export function EventSamples({
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
-    `release:${release}`,
+    ...(release ? [`release:${release}`] : []),
     ...(startType ? [`${SpanFields.APP_START_TYPE}:${startType}`] : []),
     ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
@@ -65,10 +56,7 @@ export function EventSamples({
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.span_id': t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    'transaction.span_id': t('Event ID'),
     profile_id: t('Profile'),
     'span.duration': t('Duration'),
   };
@@ -96,8 +84,8 @@ export function EventSamples({
     {
       search: searchQuery.formatString(),
       cursor,
-      limit: 4,
-      enabled: defined(release),
+      limit: 10,
+      enabled: true,
       fields: [
         SpanFields.ID,
         SpanFields.TRACE,
@@ -117,12 +105,11 @@ export function EventSamples({
       cursorName={cursorName}
       eventIdKey={SpanFields.TRANSACTION_SPAN_ID}
       eventView={eventView}
-      isLoading={defined(release) && isPending}
+      isLoading={isPending}
       profileIdKey="profile_id"
       sortKey={sortKey}
       data={{data, meta}}
       pageLinks={pageLinks}
-      showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
       footerAlignedPagination={footerAlignedPagination}

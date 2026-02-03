@@ -14,14 +14,14 @@ from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 
-class RetryError(Exception):
+class RetryTaskError(Exception):
     """
     Exception that tasks can raise to indicate that the current task activation
     should be retried.
     """
 
 
-class NoRetriesRemainingError(RetryError):
+class NoRetriesRemainingError(RetryTaskError):
     """
     Exception that is raised by retry helper methods to signal to tasks that
     the current attempt is terminal and there won't be any further retries.
@@ -53,7 +53,7 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
             raise NoRetriesRemainingError()
         else:
             return
-    raise RetryError()
+    raise RetryTaskError()
 
 
 class Retry:
@@ -84,8 +84,8 @@ class Retry:
         if self.max_attempts_reached(state):
             return False
 
-        # Explicit RetryError with attempts left.
-        if isinstance(exc, RetryError):
+        # Explicit RetryTaskError with attempts left.
+        if isinstance(exc, RetryTaskError):
             return True
 
         # No retries for types on the ignore list

@@ -1,8 +1,9 @@
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Input} from 'sentry/components/core/input';
 import HelpSearch from 'sentry/components/helpSearch';
 import Hook from 'sentry/components/hook';
 import {t} from 'sentry/locale';
@@ -35,7 +36,7 @@ function HelpSearchModal({
                 border-top-right-radius: 0;
                 position: initial;
                 box-shadow: none;
-                border-top: 1px solid ${theme.border};
+                border-top: 1px solid ${theme.tokens.border.primary};
               `}
             renderInput={({getInputProps}) => (
               <InputWithoutFocusStyles

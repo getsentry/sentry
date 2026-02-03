@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
@@ -13,7 +14,7 @@ import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 const HEADER_HEIGHT = 52;
@@ -51,14 +52,14 @@ export default function DebugNotificationsIndex() {
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
-                    <Tag type="success">{selectedRegistration.category}</Tag>
+                    <Tag variant="success">{selectedRegistration.category}</Tag>
                   </Flex>
                 </Heading>
-                <Grid columns="1fr 300px" gap="2xl" position="relative">
+                <Grid columns={{md: '1fr', lg: '1fr auto'}} gap="2xl" position="relative">
                   <Flex
                     direction="column"
                     position="relative"
-                    minWidth="0"
+                    minWidth="400px"
                     justify="start"
                   >
                     <EmailPreview registration={selectedRegistration} />
@@ -99,7 +100,8 @@ const SidebarContainer = styled('nav')`
   max-height: calc(100dvh - ${HEADER_HEIGHT}px);
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
+  scrollbar-color: ${p => p.theme.tokens.border.primary}
+    ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
 `;
@@ -107,6 +109,8 @@ const SidebarContainer = styled('nav')`
 const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  max-width: 375px;
   align-self: flex-start;
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    max-width: 450px;
+  }
 `;

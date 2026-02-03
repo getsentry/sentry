@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
@@ -7,12 +9,14 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 export default function JsonViewer(props: ViewerProps) {
   const query = useApiQuery(
-    [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
+    [
+      getAttachmentUrl(props),
+      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
+    ],
     {
       staleTime: Infinity,
       retry: false,
@@ -21,9 +25,9 @@ export default function JsonViewer(props: ViewerProps) {
 
   if (query.isPending) {
     return (
-      <LoadingContainer>
+      <Flex align="center" padding="md">
         <LoadingIndicator mini />
-      </LoadingContainer>
+      </Flex>
     );
   }
 
@@ -53,12 +57,6 @@ export default function JsonViewer(props: ViewerProps) {
     </PreviewPanelItem>
   );
 }
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)};
-`;
 
 const StyledJsonData = styled(JsonEventData)`
   margin-bottom: 0;

@@ -1,6 +1,10 @@
+import type {Location} from 'history';
+
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -8,13 +12,24 @@ import {
   isVisualize,
   Visualize,
   VisualizeFunction,
-  type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
   name: string;
   type: string;
+}
+
+function isTraceMetric(value: unknown): value is TraceMetric {
+  if (value === null || !defined(value) || typeof value !== 'object') {
+    return false;
+  }
+
+  return (
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'type' in value &&
+    typeof value.type === 'string'
+  );
 }
 
 export interface BaseMetricQuery {
@@ -23,11 +38,15 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
+export function decodeMetricsQueryParams(
+  value: string,
+  multiVisualize = false
+): BaseMetricQuery | null {
   let json: any;
   try {
     json = JSON.parse(value);
@@ -35,47 +54,36 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  if (!isTraceMetric(json.metric)) {
+    return null;
+  }
+
   const metric = json.metric;
-  if (typeof metric !== 'object' || !metric.name || !metric.type) {
-    return null;
-  }
-
-  const query = json.query;
-  if (typeof query !== 'string') {
-    return null;
-  }
-
-  const rawAggregateFields = json.aggregateFields;
-  if (!Array.isArray(rawAggregateFields)) {
-    return null;
-  }
-
-  const visualizes = rawAggregateFields
-    .filter<BaseVisualize>(isBaseVisualize)
-    .flatMap(vis => Visualize.fromJSON(vis));
+  const query = parseQuery(json.query);
+  const visualizes = parseVisualizes(json.aggregateFields, multiVisualize);
 
   if (!visualizes.length) {
     return null;
   }
 
-  const groupBys = rawAggregateFields.filter<GroupBy>(isGroupBy);
-
+  const groupBys = parseGroupBys(json.aggregateFields);
   const aggregateFields = [...visualizes, ...groupBys];
+  const aggregateSortBys = parseAggregateSortBys(json.aggregateSortBys, aggregateFields);
 
   return {
     metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: json.mode,
       query,
 
       cursor: '',
       fields: defaultFields(),
-      sortBys: defaultSortBys(),
+      sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
       aggregateFields,
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateSortBys,
     }),
   };
 }
@@ -92,6 +100,8 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
       // Keep Group By as-is
       return field;
     }),
+    aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
+    mode: metricQuery.queryParams.mode,
   });
 }
 
@@ -100,16 +110,16 @@ export function defaultMetricQuery(): BaseMetricQuery {
     metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: Mode.SAMPLES,
       query: defaultQuery(),
 
       cursor: '',
       fields: defaultFields(),
-      sortBys: defaultSortBys(),
+      sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
       aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
     }),
   };
 }
@@ -118,18 +128,101 @@ export function defaultQuery(): string {
   return '';
 }
 
-function defaultFields(): string[] {
+export function defaultFields(): string[] {
   return ['id', 'timestamp'];
 }
 
-function defaultSortBys(): Sort[] {
-  return [{field: 'timestamp', kind: 'desc'}];
+export function defaultSortBys(fields: string[]): Sort[] {
+  if (fields.includes('timestamp')) {
+    return [
+      {
+        field: 'timestamp',
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  if (fields.length) {
+    return [
+      {
+        field: fields[0]!,
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  return [];
 }
 
-function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
+function defaultVisualize(): Visualize {
+  return new VisualizeFunction('per_second(value)');
 }
 
-function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'sum(value)', kind: 'desc'}];
+function defaultGroupBys(): GroupBy[] {
+  return [];
+}
+
+export function defaultAggregateFields(): AggregateField[] {
+  return [defaultVisualize(), ...defaultGroupBys()];
+}
+
+export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
+  const visualize = aggregateFields.find(isVisualize);
+  if (!defined(visualize)) {
+    return [];
+  }
+  return [{field: visualize.yAxis, kind: 'desc'}];
+}
+
+export function stripMetricParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  for (const key in ReadableQueryParams.prototype) {
+    delete target.query[key];
+  }
+  // Metric context
+  delete target.query.metric;
+
+  return target;
+}
+
+function parseQuery(value: unknown): string {
+  return typeof value === 'string' ? value : defaultQuery();
+}
+
+function parseVisualizes(value: unknown, multiVisualize = false): Visualize[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  if (multiVisualize) {
+    return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
+  }
+
+  const baseVisualize = value.find(isBaseVisualize);
+  return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
+}
+
+function parseGroupBys(value: unknown): GroupBy[] {
+  if (!Array.isArray(value)) {
+    return defaultGroupBys();
+  }
+
+  return value.filter<GroupBy>(isGroupBy);
+}
+
+function parseAggregateSortBys(
+  value: unknown,
+  aggregateFields: AggregateField[]
+): Sort[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return defaultAggregateSortBys(aggregateFields);
+  }
+
+  if (value.length > 0) {
+    if (value.some(v => !validateAggregateSort(v, aggregateFields))) {
+      return defaultAggregateSortBys(aggregateFields);
+    }
+  }
+
+  return value;
 }

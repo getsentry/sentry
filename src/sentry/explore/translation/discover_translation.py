@@ -65,13 +65,12 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
             converted_orderby = columns[index]
             break
 
-    if converted_orderby is not None:
-        if is_negated:
-            converted_orderby = f"-{converted_orderby}"
-        return converted_orderby
-    # if the orderby item is not in the columns, it should be dropped anyways
-    else:
-        return None
+    if converted_orderby is None:
+        # If it's not in the selected fields, just pass it down as is
+        converted_orderby = orderby
+    if is_negated:
+        converted_orderby = f"-{converted_orderby}"
+    return converted_orderby
 
 
 def _format_orderby_for_translation(orderby, columns):

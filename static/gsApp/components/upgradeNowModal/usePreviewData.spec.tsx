@@ -21,6 +21,11 @@ const mockReservations: Reservations = {
   reservedProfileDuration: 0,
   reservedProfileDurationUI: 0,
   reservedLogBytes: 5,
+  reservedSpans: undefined,
+  reservedSeerAutofix: 0,
+  reservedSeerScanner: 0,
+  reservedSeerUsers: 0,
+  reservedSizeAnalyses: 100,
 };
 
 const mockPreview = PreviewDataFixture({});

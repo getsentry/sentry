@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
@@ -21,6 +22,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
@@ -50,6 +52,13 @@ type BaggageMaker = (
   meta: TabularMeta
 ) => RenderFunctionBaggage;
 
+type GetAllowedCellActionsFn = (cellInfo: {
+  column: TabularColumn;
+  columnIndex: number;
+  dataRow: TabularRow;
+  rowIndex: number;
+}) => Actions[];
+
 interface TableWidgetVisualizationProps {
   /**
    * The object that contains all the data needed to render the table
@@ -62,7 +71,7 @@ interface TableWidgetVisualizationProps {
   /**
    * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
    */
-  allowedCellActions?: Actions[];
+  allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -156,6 +165,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const navigate = useNavigate();
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
@@ -175,6 +185,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       theme,
       location,
       unit,
+      projects,
     };
   };
 
@@ -269,6 +280,15 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const cell = valueRenderer(dataRow, baggage);
 
           const column = columnOrder[columnIndex]!;
+          const cellAllowedActions =
+            typeof allowedCellActions === 'function'
+              ? allowedCellActions({
+                  column,
+                  dataRow,
+                  columnIndex,
+                  rowIndex,
+                })
+              : allowedCellActions;
           const formattedColumn = {
             key: column.key,
             name: column.key,
@@ -295,7 +315,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                     break;
                 }
               }}
-              allowActions={allowedCellActions}
+              allowActions={cellAllowedActions}
             >
               {cell}
             </CellAction>

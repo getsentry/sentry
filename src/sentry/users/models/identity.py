@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -19,8 +19,10 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.manager.base import BaseManager
-from sentry.demo_mode.utils import is_demo_user
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.types.region import find_all_region_names
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -90,17 +92,6 @@ class IdentityManager(BaseManager["Identity"]):
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
-        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
-        if is_demo_user(user) and options.get(
-            "identity.prevent-link-identity-for-demo-users.enabled"
-        ):
-            logger.warning(
-                "Preventing link identity for demo user",
-                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
-                stack_info=True,
-            )
-            return None
-
         from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
 
         defaults = {
@@ -146,17 +137,6 @@ class IdentityManager(BaseManager["Identity"]):
         user: User | RpcUser,
         defaults: Mapping[str, Any],
     ) -> Identity | None:
-        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
-        if is_demo_user(user) and options.get(
-            "identity.prevent-link-identity-for-demo-users.enabled"
-        ):
-            logger.warning(
-                "Preventing creating identity for demo user",
-                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
-                stack_info=True,
-            )
-            return None
-
         identity_model = self.create(
             idp_id=idp.id, user_id=user.id, external_id=external_id, **defaults
         )
@@ -182,16 +162,6 @@ class IdentityManager(BaseManager["Identity"]):
         Removes identities under `idp` associated with either `external_id` or `user`
         and creates a new identity linking them.
         """
-        if is_demo_user(user) and options.get(
-            "identity.prevent-link-identity-for-demo-users.enabled"
-        ):
-            logger.warning(
-                "Preventing reattaching identity for demo user",
-                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
-                stack_info=True,
-            )
-            return None
-
         self.delete_identity(user=user, idp=idp, external_id=external_id)
         return self.create_identity(user=user, idp=idp, external_id=external_id, defaults=defaults)
 
@@ -206,17 +176,6 @@ class IdentityManager(BaseManager["Identity"]):
         Updates the identity object for a given user and identity provider
         with the new external id and other fields related to the identity status
         """
-        # NOTE(vgrozdanic): temporary fix for #inc-1373 to stop the bleed
-        if is_demo_user(user) and options.get(
-            "identity.prevent-link-identity-for-demo-users.enabled"
-        ):
-            logger.warning(
-                "Preventing updating identity for demo user",
-                extra={"user_id": user.id, "idp_id": idp.id, "external_id": external_id},
-                stack_info=True,
-            )
-            return None
-
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
         identity_model = query.get()
@@ -255,6 +214,20 @@ class Identity(Model):
         app_label = "sentry"
         db_table = "sentry_identity"
         unique_together = (("idp", "external_id"), ("idp", "user"))
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        with outbox_context(transaction.atomic(router.db_for_write(Identity))):
+            # Fan out to all regions to ensure HybridCloudForeignKey cascade works even without org memberships
+            region_names = find_all_region_names()
+            for region_name in region_names:
+                ControlOutbox(
+                    shard_scope=OutboxScope.USER_SCOPE,
+                    shard_identifier=self.user_id,
+                    object_identifier=self.id,
+                    category=OutboxCategory.IDENTITY_UPDATE,
+                    region_name=region_name,
+                ).save()
+            return super().delete(*args, **kwargs)
 
     def get_provider(self) -> Provider:
         from sentry.identity import get

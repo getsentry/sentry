@@ -1,12 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,25 +21,22 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 
-interface TeamProjectsProps extends RouteComponentProps<{teamId: string}> {
-  team: Team;
-}
-
-function TeamProjects({team, location, params}: TeamProjectsProps) {
+export default function TeamProjects() {
+  const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const [query, setQuery] = useState<string>('');
-  const teamId = params.teamId;
+  const {team} = useTeamDetailsOutlet();
   const {
     data: linkedProjects,
     isError: linkedProjectsError,
@@ -49,7 +48,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
       `/organizations/${organization.slug}/projects/`,
       {
         query: {
-          query: `team:${teamId}`,
+          query: `team:${team.slug}`,
           cursor: location.query.cursor,
         },
       },
@@ -64,14 +63,14 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
     [
       `/organizations/${organization.slug}/projects/`,
       {
-        query: {query: query ? `!team:${teamId} ${query}` : `!team:${teamId}`},
+        query: {query: query ? `!team:${team.slug} ${query}` : `!team:${team.slug}`},
       },
     ],
     {staleTime: 0}
   );
 
   const handleLinkProject = (project: Project, action: string) => {
-    api.request(`/projects/${organization.slug}/${project.slug}/teams/${teamId}/`, {
+    api.request(`/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
       success: resp => {
         refetchLinkedProjects();
@@ -127,7 +126,11 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
                 }
               }}
               menuTitle={t('Projects')}
-              triggerProps={{children: t('Add Project')}}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {t('Add Project')}
+                </OverlayTrigger.Button>
+              )}
               searchPlaceholder={t('Search Projects')}
               emptyMessage={t('No projects')}
               loading={loadingUnlinkedProjects}
@@ -156,7 +159,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
                   <Button
                     size="sm"
                     disabled={!hasWriteAccess}
-                    icon={<IconSubtract isCircled />}
+                    icon={<IconSubtract />}
                     aria-label={t('Remove')}
                     onClick={() => {
                       handleLinkProject(project, 'remove');
@@ -168,7 +171,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
               </StyledPanelItem>
             ))
           ) : linkedProjectsLoading ? null : (
-            <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
+            <EmptyMessage size="lg" icon={<IconFlag />}>
               {t("This team doesn't have access to any projects.")}
             </EmptyMessage>
           )}
@@ -186,5 +189,3 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${space(2)};
   max-width: 100%;
 `;
-
-export default TeamProjects;

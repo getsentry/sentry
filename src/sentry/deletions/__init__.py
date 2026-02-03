@@ -33,13 +33,14 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.incidents import models as incidents
     from sentry.integrations import models as integrations
     from sentry.monitors import models as monitors
+    from sentry.preprod import models as preprod
     from sentry.sentry_apps import models as sentry_apps
     from sentry.snuba import models as snuba
     from sentry.uptime import models as uptime
     from sentry.workflow_engine import models as workflow_engine
 
     from . import defaults
-    from .base import BulkModelDeletionTask
+    from .base import BulkModelDeletionTask, ModelDeletionTask
 
     # fmt: off
     manager.register(models.Activity, BulkModelDeletionTask)
@@ -64,7 +65,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
+    manager.register(models.GroupHistory, BulkModelDeletionTask)
     manager.register(models.GroupLink, BulkModelDeletionTask)
     manager.register(models.GroupMeta, BulkModelDeletionTask)
     manager.register(models.GroupRedirect, BulkModelDeletionTask)
@@ -78,6 +79,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.Organization, defaults.OrganizationDeletionTask)
     manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
+    manager.register(preprod.PreprodArtifact, defaults.PreprodArtifactDeletionTask)
     manager.register(models.Project, defaults.ProjectDeletionTask)
     manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     manager.register(models.ProjectKey, BulkModelDeletionTask)
@@ -106,6 +108,9 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
     manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
+    manager.register(monitors.MonitorCheckIn, defaults.MonitorCheckInDeletionTask)
+    manager.register(monitors.MonitorIncident, defaults.MonitorIncidentDeletionTask)
+    manager.register(monitors.MonitorEnvBrokenDetection, BulkModelDeletionTask)
     manager.register(sentry_apps.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
     manager.register(sentry_apps.SentryApp, defaults.SentryAppDeletionTask)
     manager.register(sentry_apps.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
@@ -116,6 +121,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(workflow_engine.Detector, defaults.DetectorDeletionTask)
     manager.register(workflow_engine.Workflow, defaults.WorkflowDeletionTask)
     manager.register(uptime.UptimeSubscription, defaults.UptimeSubscriptionDeletionTask)
+    manager.register(uptime.UptimeResponseCapture, ModelDeletionTask)
     # fmt: on
 
 

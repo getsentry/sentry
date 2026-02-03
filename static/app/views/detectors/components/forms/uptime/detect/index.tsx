@@ -1,7 +1,5 @@
-import styled from '@emotion/styled';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -13,8 +11,13 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
-import {UPTIME_DEFAULT_DOWNTIME_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {
+  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  useUptimeDetectorFormField,
+} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
@@ -32,11 +35,35 @@ function methodHasBody(model: FormModel) {
   return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
 }
 
+function ConnectedHttpSnippet() {
+  const url = useUptimeDetectorFormField('url');
+  const method = useUptimeDetectorFormField('method');
+  const headers = useUptimeDetectorFormField('headers');
+  const body = useUptimeDetectorFormField('body');
+  const traceSampling = useUptimeDetectorFormField('traceSampling');
+
+  if (!url || !method) {
+    return null;
+  }
+
+  const shouldIncludeBody = !HTTP_METHODS_NO_BODY.includes(method);
+
+  return (
+    <HTTPSnippet
+      url={url}
+      method={method}
+      headers={headers ?? []}
+      body={shouldIncludeBody ? (body ?? null) : null}
+      traceSampling={traceSampling ?? false}
+    />
+  );
+}
+
 export function UptimeDetectorFormDetectSection() {
   return (
     <Container>
       <Section title={t('Detect')}>
-        <ConfigurationFieldsContainer>
+        <UptimeSectionGrid>
           <SelectField
             options={VALID_INTERVALS_SEC.map(value => ({
               value,
@@ -151,35 +178,9 @@ export function UptimeDetectorFormDetectSection() {
             label={t('Failure Threshold')}
             flexibleControlStateSize
           />
-        </ConfigurationFieldsContainer>
+        </UptimeSectionGrid>
+        <ConnectedHttpSnippet />
       </Section>
     </Container>
   );
 }
-
-const ConfigurationFieldsContainer = styled('div')`
-  display: grid;
-  gap: 0 ${p => p.theme.space.xl};
-  grid-template-columns: fit-content(250px) 1fr;
-  align-items: center;
-
-  ${FieldWrapper} {
-    display: grid;
-    grid-template-columns: subgrid;
-    grid-column: 1 / -1;
-    padding-left: 0;
-
-    label {
-      width: auto;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    ${FieldWrapper} {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: ${p => p.theme.space.md};
-    }
-  }
-`;

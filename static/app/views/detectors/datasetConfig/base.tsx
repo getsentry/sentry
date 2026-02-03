@@ -10,7 +10,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -24,6 +28,7 @@ export interface DetectorSearchBarProps {
   onSearch: (query: string) => void;
   projectIds: number[];
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
 }
 
 interface DetectorSeriesQueryOptions {
@@ -48,18 +53,19 @@ interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
+  end?: string | null;
   /**
    * Extra query parameters to pass
    */
   extra?: {
     useOnDemandMetrics: 'true';
   };
-  start?: string;
+  extrapolationMode?: ExtrapolationMode;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 /**
@@ -107,6 +113,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   getTimePeriods: (
     interval: MetricDetectorInterval
   ) => readonly MetricDetectorTimePeriod[];
+  name: string;
   /**
    * Extracts event types from the query string
    */
@@ -137,4 +144,12 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     data: SeriesResponse | undefined,
     aggregate: string
   ) => Series[];
+
+  /**
+   * When automatically generating a detector name, this function will be called to format the aggregate function.
+   * If this function is not provided, the aggregate function will be used as is.
+   *
+   * e.g. For the errors dataset, count() will be formatted as 'Number of errors'
+   */
+  formatAggregateForTitle?: (aggregate: string) => string;
 }

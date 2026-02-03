@@ -6,14 +6,19 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Radio} from '@sentry/scraps/radio';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {Button} from 'sentry/components/core/button';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
+import {
+  useCreateProjectAndRulesError,
+  useIsCreatingProjectAndRules,
+} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
@@ -83,7 +88,6 @@ const topDotNetFrameworks: PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'dotnet-uwp',
   'dotnet-gcpfunctions',
   'dotnet-awslambda',
 ];
@@ -136,6 +140,7 @@ export function FrameworkSuggestionModal({
   newOrg,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+  const createProjectAndRulesError = useCreateProjectAndRulesError();
 
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
@@ -280,6 +285,7 @@ export function FrameworkSuggestionModal({
         <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
+        <ProjectCreationErrorAlert error={createProjectAndRulesError} />
         <StyledPanel>
           <StyledPanelBody>
             <CollapsePanel
@@ -407,7 +413,7 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`
@@ -464,12 +470,12 @@ const PlatformListItem = styled(ListItem)`
   text-align: left;
   cursor: pointer;
   :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const PlatformListItemIcon = styled(PlatformIcon)`
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RadioLabel = styled(RadioLineItem)`

@@ -10,6 +10,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -40,16 +41,21 @@ type Props = {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
+  isEmbedded?: boolean;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
+  useTimeseriesVisualization?: boolean;
   windowWidth?: number;
 };
 
 function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);
-  const [tableWidths, setTableWidths] = useState<number[]>();
+  const [tableWidths, setTableWidths] = useState<number[]>(
+    props.widget.tableWidths ?? []
+  );
   const [queries, setQueries] = useState<WidgetQuery[]>();
   const {
     widget,
@@ -59,6 +65,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
+    isEmbedded,
     isPreview,
     isMobile,
     windowWidth,
@@ -69,18 +76,23 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
+    useTimeseriesVisualization,
+    isPrebuiltDashboard = false,
   } = props;
 
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasEditAccess = checkUserHasEditAccess(
-    currentUser,
-    userTeams,
-    organization,
-    dashboardPermissions,
-    dashboardCreator
-  );
+  const hasEditAccess =
+    checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    ) && !isPrebuiltDashboard;
+
+  const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget);
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
@@ -118,7 +130,7 @@ function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     onSetTransactionsDataset,
-    showContextMenu: true,
+    showContextMenu: !isEmbedded || isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,
@@ -126,7 +138,7 @@ function SortableWidget(props: Props) {
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (
-          <PanelAlert type="error">{errorMessage}</PanelAlert>
+          <PanelAlert variant="danger">{errorMessage}</PanelAlert>
         )
       );
     },
@@ -135,10 +147,16 @@ function SortableWidget(props: Props) {
     tableItemLimit: TABLE_ITEM_LIMIT,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    useTimeseriesVisualization,
   };
 
   return (
-    <GridWidgetWrapper ref={widgetRef}>
+    <GridWidgetWrapper
+      ref={widgetRef}
+      onClick={onWidgetClick}
+      isClickable={hasSlideout}
+      data-test-id="sortable-widget"
+    >
       <DashboardsMEPProvider>
         <LazyRender containerHeight={200} withoutContainer>
           <WidgetCard {...widgetProps} />
@@ -163,6 +181,7 @@ function SortableWidget(props: Props) {
 
 export default SortableWidget;
 
-const GridWidgetWrapper = styled('div')`
+const GridWidgetWrapper = styled('div')<{isClickable: boolean}>`
   height: 100%;
+  cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 `;

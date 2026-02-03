@@ -4,15 +4,13 @@ from datetime import timedelta
 
 import sentry_sdk
 from django import forms
-from django.conf import settings
 from django.db import router, transaction
 from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -31,8 +29,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
@@ -77,7 +77,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
     aggregate = serializers.CharField(required=True, min_length=1)
 
     # This will be set to required=True once the frontend starts sending it.
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     description = serializers.CharField(required=False, allow_blank=True)
     sensitivity = serializers.CharField(required=False, allow_null=True)
@@ -141,6 +141,16 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
         return aggregate
 
+    def validate_eap_rule(self, data):
+        """
+        Validate EAP rule data.
+        """
+        event_types = data.get("event_types", [])
+
+        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            aggregate = data.get("aggregate")
+            validate_trace_metrics_aggregate(aggregate)
+
     def validate(self, data):
         """
         Performs validation on an alert rule's data.
@@ -150,6 +160,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         > or < the value depends on threshold type).
         """
         data = super().validate(data)
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            self.validate_eap_rule(data)
 
         triggers = data.get("triggers", [])
         if not triggers:
@@ -265,9 +277,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             ),
         ).count()
 
-        if org_subscription_count >= settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG:
+        organization = self.context["organization"]
+        max_subscriptions = get_max_metric_alert_subscriptions(organization)
+        if org_subscription_count >= max_subscriptions:
             raise serializers.ValidationError(
-                f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
+                f"You may not exceed {max_subscriptions} metric alerts per organization"
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
@@ -298,15 +312,12 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             self._handle_triggers(alert_rule, triggers)
 
-            should_dual_write = features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-            )
-            if should_dual_write:
-                try:
-                    dual_write_alert_rule(alert_rule, user)
-                except Exception:
-                    sentry_sdk.capture_exception()
-                    raise BadRequest(message="Error when creating alert rule")
+            try:
+                dual_write_alert_rule(alert_rule, user)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when creating alert rule")
+
             return alert_rule
 
     def _apply_error_upsampling_if_needed(self, validated_data):
@@ -358,6 +369,10 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except Exception:
                 sentry_sdk.capture_exception()
                 raise BadRequest(message="Error when updating alert rule")
+
+            # Mark that this alert was updated by a user
+            self._mark_query_as_user_updated(alert_rule.snuba_query)
+
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
@@ -407,3 +422,15 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     raise serializers.ValidationError(trigger_serializer.errors)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error
+
+    def _mark_query_as_user_updated(self, snuba_query):
+        """
+        Mark the snuba query as user-updated in the query_snapshot field.
+        This is used to skip automatic migrations for queries that users have already modified.
+        Only marks queries that already have a snapshot (i.e., were previously migrated).
+        """
+        snuba_query.refresh_from_db()
+        if snuba_query.query_snapshot is None:
+            return
+        snuba_query.query_snapshot["user_updated"] = True
+        snuba_query.save()

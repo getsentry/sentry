@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 type Props = {
   className?: string;
@@ -16,7 +16,7 @@ function NotAvailable({tooltip, className}: Props) {
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.colors.gray200};
 `;
 
 export default NotAvailable;

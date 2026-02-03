@@ -111,6 +111,8 @@ export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
       result += ':' + frame.lineNo;
     }
     result += ')';
+  } else if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += '(:' + frame.lineNo + ')';
   }
   return result;
 }
@@ -258,23 +260,28 @@ function getDefaultFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
-export function getJavaExceptionSummary(exception: ExceptionValue): string {
-  let result = `${exception.type}: ${exception.value}`;
-  if (exception.module) {
-    result = `${exception.module}.${result}`;
-  }
-  return result;
-}
-
 function getExceptionSummary(
   exception: ExceptionValue,
-  platform: string | undefined
+  platform: string | undefined,
+  isMinified?: boolean
 ): string {
+  const exceptionValue = isMinified
+    ? exception.rawValue || exception.value
+    : exception.value;
+  const exceptionType = isMinified ? exception.rawType || exception.type : exception.type;
+  const exceptionModule = isMinified
+    ? exception.rawModule || exception.module
+    : exception.module;
   switch (platform) {
-    case 'java':
-      return getJavaExceptionSummary(exception);
+    case 'java': {
+      let result = `${exceptionType}: ${exceptionValue}`;
+      if (exceptionModule) {
+        result = `${exceptionModule}.${result}`;
+      }
+      return result;
+    }
     default:
-      return exception.type + ': ' + exception.value;
+      return `${exceptionType}: ${exceptionValue}`;
   }
 }
 
@@ -333,6 +340,8 @@ type DisplayRawContentArgs = {
   includeJSContext?: boolean;
   /** Whether to include location (e.g. line number, column number) in stack trace frames. */
   includeLocation?: boolean;
+  /** Whether the stack trace is minified. */
+  isMinified?: boolean;
   /** Whether to display the frames from newest to oldest. */
   newestFirst?: boolean;
   // If true, the generated stack trace will be in the default format for the platform.
@@ -353,6 +362,7 @@ export default function displayRawContent({
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   rawTrace = true,
+  isMinified = false,
   newestFirst = true,
   includeJSContext = false,
 }: DisplayRawContentArgs) {
@@ -376,7 +386,7 @@ export default function displayRawContent({
   );
 
   if (exception) {
-    frames.push(getExceptionSummary(exception, platform));
+    frames.push(getExceptionSummary(exception, platform, isMinified));
   }
 
   // For the raw stacktrace view on the issue details page, ignore newestFirst and order frames based on default platform behavior

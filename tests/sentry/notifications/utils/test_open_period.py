@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.notifications.utils.open_period import open_period_start_for_group
@@ -10,7 +11,7 @@ from sentry.types.activity import ActivityType
 
 class OpenPeriodTestCase(TestCase):
     def setUp(self) -> None:
-        self.group = self.create_group()
+        self.group = self.create_group(type=MetricIssue.type_id)
 
     def test_new_group_returns_first_seen(self) -> None:
         """Test that a new group returns first_seen as the open period start"""

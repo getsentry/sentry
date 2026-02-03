@@ -22,6 +22,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
@@ -72,19 +73,6 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     has_alert: bool
     has_escalated: bool
-
-
-def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-
-    cache_key = f"servicehooks:1:{project_id}"
-    result = cache.get(cache_key)
-
-    if result is None:
-        hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
-        result = [(h.id, h.events) for h in hooks]
-        cache.set(cache_key, result, 60)
-    return result
 
 
 def _should_send_error_created_hooks(project):
@@ -241,6 +229,7 @@ def handle_owner_assignment(job):
         ASSIGNEE_EXISTS_KEY,
         ISSUE_OWNERS_DEBOUNCE_DURATION,
         ISSUE_OWNERS_DEBOUNCE_KEY,
+        GroupOwner,
     )
     from sentry.models.projectownership import ProjectOwnership
 
@@ -248,25 +237,38 @@ def handle_owner_assignment(job):
     project, group = event.project, event.group
 
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignees_exists = cache.get(assignee_key)
-    if assignees_exists is None:
-        assignees_exists = group.assignee_set.exists()
+    assignee_cache_value = cache.get(assignee_key)
+
+    # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
+    assignee_exists = None
+    if assignee_cache_value is not None:
+        # Cache stores (value, timestamp) tuple for timestamp-based invalidation
+        cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+            assignee_exists = cached_assignee_exists
+
+    if assignee_exists is None:
+        assignee_exists = group.assignee_set.exists()
         cache.set(
             assignee_key,
-            assignees_exists,
-            (ASSIGNEE_EXISTS_DURATION if assignees_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
+            (assignee_exists, timezone.now().timestamp()),
+            (ASSIGNEE_EXISTS_DURATION if assignee_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
         )
 
-    if assignees_exists:
+    if assignee_exists:
         metrics.incr("sentry.task.post_process.handle_owner_assignment.assignee_exists")
         return
 
     issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
-    debounce_issue_owners = cache.get(issue_owners_key)
+    issue_owners_debounce_time = cache.get(issue_owners_key)
 
-    if debounce_issue_owners:
-        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
-        return
+    # Debounce if ownership rules haven't changed since the last evaluation of issue owners
+    if issue_owners_debounce_time is not None:
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
+            metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
+            return
 
     if should_issue_owners_ratelimit(
         project_id=project.id,
@@ -298,7 +300,7 @@ def handle_owner_assignment(job):
         issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
         cache.set(
             issue_owners_key,
-            True,
+            timezone.now().timestamp(),
             ISSUE_OWNERS_DEBOUNCE_DURATION,
         )
 
@@ -659,32 +661,6 @@ def post_process_group(
             tags=metric_tags,
         )
 
-        if not is_reprocessed:
-            received_at = event.data.get("received")
-            saved_at = event.data.get("nodestore_insert")
-            post_processed_at = time()
-
-            if saved_at:
-                metrics.timing(
-                    "events.saved_to_post_processed",
-                    post_processed_at - saved_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-            else:
-                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
-
-            if received_at:
-                metrics.timing(
-                    "events.time-to-post-process",
-                    post_processed_at - received_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-            else:
-                metrics.incr("events.missing_received", tags=metric_tags)
-
 
 def run_post_process_job(job: PostProcessJob) -> None:
     group_event = job["event"]
@@ -1001,7 +977,6 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     try:
         process_workflows_event.apply_async(
             kwargs=dict(
-                project_id=job["event"].project_id,
                 event_id=job["event"].event_id,
                 occurrence_id=job["event"].occurrence_id,
                 group_id=job["event"].group_id,
@@ -1044,13 +1019,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
     Call for process_workflow_engine for metric alerts
     """
     if job["is_reprocessed"]:
-        return
-
-    org = job["event"].project.organization
-    if not (
-        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
-        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
-    ):
         return
 
     process_workflow_engine(job)
@@ -1183,6 +1151,7 @@ def process_commits(job: PostProcessJob) -> None:
                             IntegrationProviderSlug.GITHUB.value,
                             IntegrationProviderSlug.GITLAB.value,
                             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                            IntegrationProviderSlug.PERFORCE.value,
                         ],
                     )
                     has_integrations = len(org_integrations) > 0
@@ -1243,26 +1212,19 @@ def process_service_hooks(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.sentry_apps.tasks.service_hooks import process_service_hook
+    if _should_single_process_event(job):
+        # we will kick off service hooks in the workflow engine task
+        return
 
-    event, has_alert = job["event"], job["has_alert"]
+    from sentry.sentry_apps.tasks.service_hooks import kick_off_service_hooks
 
-    if features.has("projects:servicehooks", project=event.project):
-        allowed_events = {"event.created"}
-        if has_alert:
-            allowed_events.add("event.alert")
-
-        for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-            if any(e in allowed_events for e in events):
-                process_service_hook.delay(
-                    servicehook_id=servicehook_id,
-                    project_id=event.project_id,
-                    group_id=event.group_id,
-                    event_id=event.event_id,
-                )
+    kick_off_service_hooks(job["event"], job["has_alert"])
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
+    if not should_process_resource_change_bounds(job):
+        return
+
     if job["is_reprocessed"]:
         return
 
@@ -1282,6 +1244,69 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+
+    supported_group_categories = [
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
+    return True
+
+
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
+    if not features.has("organizations:data-forwarding", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.data_forwarding.base import BaseDataForwarder
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            forwarder: type[BaseDataForwarder] = FORWARDER_REGISTRY[provider]
+            forwarder().post_process(event, data_forwarder_project)
+            metrics.incr(
+                "data_forwarding.post_process",
+                tags={"provider": provider},
+            )
+        except Exception:
+            metrics.incr(
+                "data_forwarding.post_process.error",
+                tags={"provider": provider},
+            )
+            logger.exception(
+                "data_forwarding.post_process.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1546,10 +1571,10 @@ def detect_new_escalation(job: PostProcessJob):
 
 
 def detect_base_urls_for_uptime(job: PostProcessJob):
-    from sentry.uptime.detectors.detector import detect_base_url_for_project
+    from sentry.uptime.autodetect.detector import autodetect_base_url_for_project
 
     url = get_path(job["event"].data, "request", "url")
-    detect_base_url_for_project(job["event"].project, url)
+    autodetect_base_url_for_project(job["event"].project, url)
 
 
 def check_if_flags_sent(job: PostProcessJob) -> None:
@@ -1567,70 +1592,110 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
-    from sentry.tasks.autofix import start_seer_automation
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
+    from sentry.seer.autofix.utils import (
+        is_issue_eligible_for_seer_automation,
+        is_seer_scanner_rate_limited,
+        is_seer_seat_based_tier_enabled,
+    )
+    from sentry.tasks.autofix import (
+        generate_issue_summary_only,
+        generate_summary_and_run_automation,
+        run_automation_only_task,
+    )
 
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
-    if group.seer_fixability_score is not None:
-        return
+    # Default behaviour
+    if not is_seer_seat_based_tier_enabled(group.organization):
+        # Only run on issues with no existing scan
+        if group.seer_fixability_score is not None:
+            return
 
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
-        GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
-        GroupCategory.MOBILE,
-        GroupCategory.FRONTEND,
-        GroupCategory.DB_QUERY,
-        GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
-        return
+        if not is_issue_eligible_for_seer_automation(group):
+            return
 
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return
+        # Don't run if there's already a task in progress for this issue
+        lock_key, lock_name = get_issue_summary_lock_key(group.id)
+        lock = locks.get(lock_key, duration=1, name=lock_name)
+        if lock.locked():
+            return
 
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return
+        if is_seer_scanner_rate_limited(group.project, group.organization):
+            return
 
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return
+        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
+    else:
+        # Triage signals V0 behaviour
+        # If event count < 10, only generate summary (no automation)
+        if group.times_seen_with_pending < 10:
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                return
 
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
-    if not seer_enabled:
-        return
+            # Atomically set cache to prevent duplicate summary generation
+            summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
+            if not cache.add(summary_dispatch_cache_key, True, timeout=30):
+                return  # Another process already dispatched summary generation
 
-    from sentry import quotas
-    from sentry.constants import DataCategory
+            # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
+            if is_seer_scanner_rate_limited(group.project, group.organization):
+                return
 
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return
+            generate_issue_summary_only.delay(group.id)
+        else:
+            # Event count >= 10: run automation
+            # Long-term check to avoid re-running
+            if group.seer_autofix_last_triggered is not None:
+                return
 
-    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
+            # Triage signals will not run issues if they are not fixable at MEDIUM threshold
+            if group.seer_fixability_score is not None:
+                if (
+                    group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value
+                    and not group.issue_type.always_trigger_seer_automation
+                ):
+                    return
 
-    if is_seer_scanner_rate_limited(project, group.organization):
-        return
+            # Early returns for eligibility checks (cheap checks first)
+            if not is_issue_eligible_for_seer_automation(group):
+                return
 
-    start_seer_automation.delay(group.id)
+            # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
+            automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
+            if not cache.add(automation_dispatch_cache_key, True, timeout=300):
+                return  # Another process already dispatched automation
+
+            # Check if project has connected repositories - requirement for new pricing
+            # which triggers Django model loading before apps are ready
+            from sentry.seer.autofix.utils import has_project_connected_repos
+
+            if not has_project_connected_repos(group.organization.id, group.project.id):
+                return
+
+            # Check if summary exists in cache
+            cache_key = get_issue_summary_cache_key(group.id)
+            if cache.get(cache_key) is not None:
+                # Summary exists, run automation directly
+                run_automation_only_task.delay(group.id)
+            else:
+                # Rate limit check before generating summary
+                if is_seer_scanner_rate_limited(group.project, group.organization):
+                    return
+
+                # No summary yet, generate summary + run automation in one go
+                generate_summary_and_run_automation.delay(
+                    group.id, trigger_path="seat_based_seer_automation"
+                )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
@@ -1647,6 +1712,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1662,6 +1728,8 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_workflow_engine_issue_alerts),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1673,4 +1741,7 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_workflow_engine_issue_alerts,
+    process_resource_change_bounds,
+    process_data_forwarding,
 ]

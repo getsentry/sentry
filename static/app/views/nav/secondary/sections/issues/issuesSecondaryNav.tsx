@@ -2,10 +2,9 @@ import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -17,8 +16,7 @@ export function IssuesSecondaryNav() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
-
-  const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
 
   return (
     <Fragment>
@@ -26,46 +24,45 @@ export function IssuesSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        {!hasIssueTaxonomy && (
-          <SecondaryNav.Section id="issues-feed">
-            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-              {t('Feed')}
-            </SecondaryNav.Item>
+        <SecondaryNav.Section id="issues-feed">
+          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+            {t('Feed')}
+          </SecondaryNav.Item>
+          {hasTopIssuesUI && (
             <SecondaryNav.Item
-              to={`${baseUrl}/feedback/`}
-              analyticsItemName="issues_feedback"
+              to={`${baseUrl}/dynamic-groups/`}
+              analyticsItemName="issues_dynamic_groups"
             >
-              {t('User Feedback')}
+              {t('Top Issues')}
             </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        )}
-        {hasIssueTaxonomy && (
-          <Fragment>
-            <SecondaryNav.Section id="issues-feed">
-              <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-                {t('Feed')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-            <SecondaryNav.Section id="issues-types">
-              {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-                <SecondaryNav.Item
-                  key={key}
-                  to={`${baseUrl}/${key}/`}
-                  end
-                  analyticsItemName={`issues_types_${key}`}
-                >
-                  {label}
-                </SecondaryNav.Item>
-              ))}
-              <SecondaryNav.Item
-                to={`${baseUrl}/feedback/`}
-                analyticsItemName="issues_feedback"
-              >
-                {t('User Feedback')}
-              </SecondaryNav.Item>
-            </SecondaryNav.Section>
-          </Fragment>
-        )}
+          )}
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="issues-types">
+          {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
+            <SecondaryNav.Item
+              key={key}
+              to={`${baseUrl}/${key}/`}
+              end
+              analyticsItemName={`issues_types_${key}`}
+            >
+              {label}
+            </SecondaryNav.Item>
+          ))}
+          <SecondaryNav.Item
+            to={`${baseUrl}/feedback/`}
+            analyticsItemName="issues_feedback"
+          >
+            {t('User Feedback')}
+          </SecondaryNav.Item>
+          {organization.features.includes('seer-autopilot') && (
+            <SecondaryNav.Item
+              to={`${baseUrl}/instrumentation/`}
+              analyticsItemName="issues_instrumentation"
+            >
+              {t('Instrumentation')}
+            </SecondaryNav.Item>
+          )}
+        </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-views-all">
           <SecondaryNav.Item
             to={`${baseUrl}/views/`}
@@ -83,10 +80,19 @@ export function IssuesSecondaryNav() {
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const organization = useOrganization();
   const {layout} = useNavContext();
-  const hasWorkflowEngine = useWorkflowEngineFeatureGate();
-
   const isSticky = layout === NavLayout.SIDEBAR;
+
+  const hasRedirectOptOut = organization.features.includes(
+    'workflow-engine-redirect-opt-out'
+  );
+  const shouldRedirectToWorkflowEngineUI =
+    !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+
+  const alertsLink = shouldRedirectToWorkflowEngineUI
+    ? `${makeMonitorBasePathname(organization.slug)}?alertsRedirect=true`
+    : `${baseUrl}/alerts/rules/`;
 
   return (
     <StickyBottomSection
@@ -95,39 +101,13 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       collapsible={false}
       isSticky={isSticky}
     >
-      {hasWorkflowEngine ? (
-        <Fragment>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/monitors/`}
-            activeTo={`${baseUrl}/monitors`}
-          >
-            {t('Monitors')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            trailingItems={<FeatureBadge type="alpha" />}
-            to={`${baseUrl}/automations/`}
-            activeTo={`${baseUrl}/automations`}
-          >
-            {t('Automations')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            to={`${baseUrl}/alerts/rules/`}
-            activeTo={`${baseUrl}/alerts/`}
-            analyticsItemName="issues_alerts"
-          >
-            {t('Alerts')}
-          </SecondaryNav.Item>
-        </Fragment>
-      ) : (
-        <SecondaryNav.Item
-          to={`${baseUrl}/alerts/rules/`}
-          activeTo={`${baseUrl}/alerts/`}
-          analyticsItemName="issues_alerts"
-        >
-          {t('Alerts')}
-        </SecondaryNav.Item>
-      )}
+      <SecondaryNav.Item
+        to={alertsLink}
+        {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
+        analyticsItemName="issues_alerts"
+      >
+        {t('Alerts')}
+      </SecondaryNav.Item>
     </StickyBottomSection>
   );
 }
@@ -141,6 +121,6 @@ const StickyBottomSection = styled(SecondaryNav.Section, {
       position: sticky;
       bottom: 0;
       z-index: 1;
-      background: ${p.theme.isChonk ? p.theme.background : p.theme.surface200};
+      background: ${p.theme.tokens.background.secondary};
     `}
 `;

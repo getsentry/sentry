@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -10,16 +9,13 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks = {
@@ -35,30 +31,13 @@ const requestMocks = {
 describe('CacheLandingPage', () => {
   const organization = OrganizationFixture({features: ['insight-modules']});
 
-  jest.mocked(usePageFilters).mockReturnValue(
-    PageFilterStateFixture({
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    })
-  );
-
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/insights/backend/caches/`,
+      query: {statsPeriod: '10d', project: '1'},
+    },
+    route: `/organizations/:orgId/insights/backend/caches/`,
+  };
 
   ProjectsStore.loadInitialData([
     ProjectFixture({
@@ -80,16 +59,22 @@ describe('CacheLandingPage', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '10d', start: null, end: null, utc: false},
+    });
+
     jest.clearAllMocks();
     setRequestMocks(organization);
   });
 
-  afterAll(() => {
-    jest.resetAllMocks();
-  });
-
   it('fetches module data', async () => {
-    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<CacheLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -110,6 +95,7 @@ describe('CacheLandingPage', () => {
           referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
+          caseInsensitive: undefined,
         },
       })
     );
@@ -196,7 +182,10 @@ describe('CacheLandingPage', () => {
       },
     });
 
-    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<CacheLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -221,7 +210,10 @@ describe('CacheLandingPage', () => {
   });
 
   it('renders a list of transactions', async () => {
-    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<CacheLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
@@ -277,7 +269,10 @@ describe('CacheLandingPage', () => {
       }),
     ]);
 
-    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
+    render(<CacheLandingPage />, {
+      organization,
+      initialRouterConfig,
+    });
 
     await waitFor(() => {
       expect(

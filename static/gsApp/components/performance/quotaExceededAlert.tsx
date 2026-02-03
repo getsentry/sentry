@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -79,7 +80,7 @@ function useQuotaExceededAlertMessage(
   const billingPageLink = (
     <Link
       to={{
-        pathname: `/settings/billing/checkout/?referrer=${referrer}`,
+        pathname: `/checkout/?referrer=${referrer}`,
         query: {
           skipBundles: true,
         },
@@ -201,7 +202,7 @@ export function QuotaExceededAlert(props: Props) {
 
   return (
     <Alert.Container>
-      <Alert type="warning">{message}</Alert>
+      <Alert variant="warning">{message}</Alert>
     </Alert.Container>
   );
 }

@@ -1,16 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import {
-  isGroupBy as isLegacyGroupBy,
-  isVisualize as isLegacyVisualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useInvalidateSavedQueries,
@@ -22,11 +18,23 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
-// Request payload type that matches the backend ExploreSavedQuerySerializer
+export type ExploreQueryChangedReason = {
+  columns: string[];
+  equations: Array<{
+    equation: string;
+    reason: string | string[];
+  }> | null;
+  orderby: Array<{
+    orderby: string;
+    reason: string | string[];
+  }> | null;
+};
+
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
+  changedReason?: ExploreQueryChangedReason;
   end?: DateString;
   environment?: string[];
   interval?: string;
@@ -34,6 +42,7 @@ type ExploreSavedQueryRequest = {
     mode: Mode;
     aggregateField?: Array<{groupBy: string} | {yAxes: string[]; chartType?: number}>;
     aggregateOrderby?: string;
+    caseInsensitive?: '1';
     fields?: string[];
     groupby?: string[];
     orderby?: string;
@@ -47,22 +56,25 @@ type ExploreSavedQueryRequest = {
   start?: DateString;
 };
 
-export function useSpansSaveQuery() {
+function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const exploreParams = useExplorePageParams();
-  const {id, title} = exploreParams;
+  const queryParams = useQueryParams();
+  const {id, title} = queryParams;
 
+  const [caseInsensitive] = useCaseInsensitivity();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertExplorePageParamsToRequest(
-      exploreParams,
+    return convertQueryParamsToRequest({
+      dataset,
+      queryParams,
       pageFilters,
       interval,
-      title ?? ''
-    );
-  }, [exploreParams, pageFilters, interval, title]);
+      title: title ?? '',
+      caseInsensitive: caseInsensitive ? '1' : undefined,
+    });
+  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
@@ -111,7 +123,10 @@ function useCreateOrUpdateSavedQuery(id?: string) {
         `/organizations/${organization.slug}/explore/saved/${id}/`,
         {
           method: 'PUT',
-          data,
+          data: {
+            ...data,
+            dataset: data.dataset === 'segment_spans' ? 'spans' : data.dataset,
+          },
         }
       );
       invalidateSavedQueries();
@@ -140,6 +155,9 @@ export function useFromSavedQuery() {
           method: 'POST',
           data: {
             ...savedQuery,
+            // we want to make sure no new queries are saved with the segment_spans dataset
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
@@ -157,6 +175,9 @@ export function useFromSavedQuery() {
           method: 'PUT',
           data: {
             ...savedQuery,
+            // we want to make sure queries are locked in as spans once they're updated
+            dataset:
+              savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
           },
         }
       );
@@ -169,100 +190,32 @@ export function useFromSavedQuery() {
   return {saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
+export function useSpansSaveQuery() {
+  return useSavedQueryForDataset('spans');
+}
+
 export function useLogsSaveQuery() {
-  const pageFilters = usePageFilters();
-  const [interval] = useChartInterval();
-  const queryParams = useQueryParams();
-  const {id, title} = queryParams;
-
-  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
-
-  const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertLogsPageParamsToRequest({
-      queryParams,
-      pageFilters,
-      interval,
-      title: title ?? '',
-    });
-  }, [queryParams, pageFilters, interval, title]);
-
-  const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
-
-  const saveQuery = useCallback(
-    (newTitle: string, starred = true) => {
-      return saveQueryApi({...requestData, name: newTitle}, starred);
-    },
-    [saveQueryApi, requestData]
-  );
-
-  const updateQuery = useCallback(() => {
-    return updateQueryApi(requestData);
-  }, [updateQueryApi, requestData]);
-
-  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
+  return useSavedQueryForDataset('logs');
 }
 
-function convertExplorePageParamsToRequest(
-  exploreParams: ReturnType<typeof useExplorePageParams>,
-  pageFilters: ReturnType<typeof usePageFilters>,
-  interval: string,
-  title: string
-): ExploreSavedQueryRequest {
-  const {selection} = pageFilters;
-  const {datetime, projects, environments} = selection;
-  const {start, end, period} = datetime;
-
-  const {aggregateFields, sortBys, fields, query, mode} = exploreParams;
-
-  const transformedAggregateFields = aggregateFields
-    .filter(aggregateField => {
-      if (isLegacyGroupBy(aggregateField)) {
-        return aggregateField.groupBy !== '';
-      }
-      return true;
-    })
-    .map(aggregateField => {
-      if (isLegacyVisualize(aggregateField)) {
-        const json = aggregateField.toJSON();
-        return {
-          ...json,
-          yAxes: [...json.yAxes],
-        };
-      }
-      return {groupBy: aggregateField.groupBy};
-    });
-
-  return {
-    name: title,
-    projects,
-    dataset: 'spans',
-    start,
-    end,
-    range: period ?? undefined,
-    environment: environments,
-    interval,
-    query: [
-      {
-        fields,
-        orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-        query: query ?? '',
-        aggregateField: transformedAggregateFields,
-        mode,
-      },
-    ],
-  };
+export function useReplaySaveQuery() {
+  return useSavedQueryForDataset('replays');
 }
 
-function convertLogsPageParamsToRequest({
+function convertQueryParamsToRequest({
+  dataset,
   queryParams,
   pageFilters,
   interval,
   title,
+  caseInsensitive,
 }: {
+  dataset: 'spans' | 'logs' | 'replays';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;
   title: string;
+  caseInsensitive?: '1';
 }): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
@@ -297,7 +250,7 @@ function convertLogsPageParamsToRequest({
   return {
     name: title,
     projects,
-    dataset: 'logs',
+    dataset,
     start,
     end,
     range: period ?? undefined,
@@ -310,6 +263,7 @@ function convertLogsPageParamsToRequest({
         query,
         mode,
         aggregateField: aggregateFields,
+        caseInsensitive,
       },
     ],
   };

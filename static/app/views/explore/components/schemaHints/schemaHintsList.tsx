@@ -5,7 +5,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -115,6 +117,8 @@ export function parseTagKey(tagKey: string) {
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.AI_GENERATIONS]: SPANS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
 };
 
 function getFilterKeySections(source: SchemaHintsSources) {
@@ -427,19 +431,19 @@ function SchemaHintsList({
     }
 
     return (
-      <HintTextContainer>
+      <Flex gap="xs">
         <HintName>{formatHintName(hint)}</HintName>
         <HintOperator>{formatHintOperator(hint)}</HintOperator>
         <HintValue>...</HintValue>
-      </HintTextContainer>
+      </Flex>
     );
   };
 
   if (isLoading) {
     return (
-      <SchemaHintsLoadingContainer>
+      <Flex justify="center" align="center" height="24px">
         <LoadingIndicator mini />
-      </SchemaHintsLoadingContainer>
+      </Flex>
     );
   }
 
@@ -475,13 +479,6 @@ const SchemaHintsContainer = styled('div')`
   }
 `;
 
-const SchemaHintsLoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 24px;
-`;
-
 const SchemaHintOption = styled(Button)`
   /* Ensures that filters do not grow outside of the container */
   min-width: fit-content;
@@ -502,23 +499,17 @@ export const SchemaHintsSection = styled('div')`
   }
 `;
 
-const HintTextContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-`;
-
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.purple400};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.accent};
 `;

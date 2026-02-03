@@ -11,11 +11,13 @@ from sentry.api.helpers.group_index import update_groups, validate_search_filter
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
     get_group_list,
+    greatest_semver_release,
     handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
     handle_is_subscribed,
+    most_recent_release,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
@@ -28,11 +30,11 @@ from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -130,11 +132,6 @@ class UpdateGroupsTest(TestCase):
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
-        open_period = GroupOpenPeriod.objects.filter(
-            group=unresolved_group, date_ended__isnull=True
-        ).first()
-        assert open_period is not None
-        assert open_period.date_ended is None
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
@@ -149,30 +146,6 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
-        open_period.refresh_from_db()
-        assert open_period.date_ended is not None
-
-    @patch("sentry.signals.issue_resolved.send_robust")
-    def test_resolving_unresolved_group_without_open_period(self, send_robust: Mock) -> None:
-        unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
-        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
-        assert unresolved_group.status == GroupStatus.UNRESOLVED
-        GroupOpenPeriod.objects.all().delete()
-
-        request = self.make_request(user=self.user, method="GET")
-        request.user = self.user
-        request.data = {"status": "resolved", "substatus": None}
-        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
-
-        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        update_groups(request, group_list)
-
-        unresolved_group.refresh_from_db()
-
-        assert unresolved_group.status == GroupStatus.RESOLVED
-        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
-        assert send_robust.called
-        assert GroupOpenPeriod.objects.filter(group=unresolved_group).count() == 0
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -309,7 +282,6 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
-        assert GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=True).exists()
 
         request = self.make_request(
             user=self.user,
@@ -392,6 +364,48 @@ class UpdateGroupsTest(TestCase):
         assert serialized["status"] == "resolved"
         assert "inCommit" not in serialized["statusDetails"]
         assert serialized["statusDetails"] == {}
+
+    def test_resolve_in_next_release(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    def test_resolve_in_next_release_ignores_archived_releases(self) -> None:
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@2.0.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolvedInNextRelease"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        resolution = group.groupresolution_set.get()
+        assert resolution.release == open_release
 
 
 class MergeGroupsTest(TestCase):
@@ -1172,3 +1186,30 @@ class DeleteGroupsTest(TestCase):
         mock_delete_seer_grouping_records_by_hash.assert_called_with(
             args=[self.project.id, hashes, 0]
         )
+
+
+class TestHandleReleases(TestCase):
+    def test_excludes_archived_releases_from_helpers(self) -> None:
+        """archived releases should not be selected as the most recent release."""
+        open_release = self.create_release(
+            project=self.project,
+            version="test@1.0.0.0",
+            date_added=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+        self.create_release(
+            project=self.project,
+            version="test@1.1.0.0",
+            date_added=datetime(2024, 1, 2, tzinfo=UTC),
+            status=ReleaseStatus.ARCHIVED,
+        )
+
+        assert most_recent_release(self.project) == open_release
+        assert greatest_semver_release(self.project) == open_release
+
+        new_release = self.create_release(
+            project=self.project,
+            version="test@1.2.0.0",
+            date_added=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+        assert most_recent_release(self.project) == new_release
+        assert greatest_semver_release(self.project) == new_release

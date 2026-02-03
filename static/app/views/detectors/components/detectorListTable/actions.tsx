@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -19,6 +20,7 @@ interface DetectorsTableActionsProps {
   allResultsVisible: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
+  hasSystemCreatedDetectors: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
@@ -36,10 +38,13 @@ export function DetectorsTableActions({
   showEnable,
   showDisable,
   canEdit,
+  hasSystemCreatedDetectors,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
+
+  const canDelete = canEdit && !hasSystemCreatedDetectors;
 
   const {selection} = usePageFilters();
   const {query} = useLocationQuery({
@@ -156,7 +161,7 @@ export function DetectorsTableActions({
   return (
     <Fragment>
       <SimpleTable.Header>
-        <ActionsBarWrapper>
+        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
           <Checkbox
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             onChange={s => {
@@ -199,22 +204,26 @@ export function DetectorsTableActions({
             </Tooltip>
           )}
           <Tooltip
-            title={t('You do not have permission to delete the selected monitors.')}
-            disabled={canEdit}
+            title={
+              hasSystemCreatedDetectors
+                ? t('Monitors managed by Sentry cannot be deleted.')
+                : t('You do not have permission to delete the selected monitors.')
+            }
+            disabled={canDelete}
           >
             <Button
               size="xs"
               priority="danger"
               onClick={handleDelete}
-              disabled={isDeleting || !canEdit}
+              disabled={isDeleting || !canDelete}
             >
               {t('Delete')}
             </Button>
           </Tooltip>
-        </ActionsBarWrapper>
+        </Flex>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" showIcon={false}>
+        <FullWidthAlert variant="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] monitors that match this search query.', {
@@ -242,14 +251,5 @@ export function DetectorsTableActions({
 }
 
 const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
-
-const ActionsBarWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: 0 ${p => p.theme.space.xl};
-  width: 100%;
   grid-column: 1 / -1;
 `;

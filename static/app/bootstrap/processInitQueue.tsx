@@ -4,7 +4,10 @@ import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 import {
@@ -109,9 +112,19 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            * and so we dont know which theme to pick.
            */
           <QueryClientProvider client={queryClient}>
-            <ThemeAndStyleProvider>
-              <SimpleRouter element={<Component {...props} />} />
-            </ThemeAndStyleProvider>
+            <DocumentTitleManager>
+              <ThemeAndStyleProvider>
+                <CommandPaletteProvider>
+                  <SimpleRouter
+                    element={
+                      <ScrapsProviders>
+                        <Component {...props} />
+                      </ScrapsProviders>
+                    }
+                  />
+                </CommandPaletteProvider>
+              </ThemeAndStyleProvider>
+            </DocumentTitleManager>
           </QueryClientProvider>
         ),
         initConfig.container,

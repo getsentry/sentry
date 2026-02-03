@@ -4,7 +4,6 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
@@ -15,11 +14,7 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <PageParamsProvider>{children}</PageParamsProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 jest.mock('sentry/actionCreators/modal');
@@ -54,23 +49,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['count(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['count(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -116,23 +113,25 @@ describe('AddToDashboardButton', () => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           // For Add + Stay on Page
-          widget: {
-            title: 'Custom Widget',
-            displayType: expectedDisplayType,
-            interval: undefined,
-            limit: undefined,
-            widgetType: WidgetType.SPANS,
-            queries: [
-              {
-                aggregates: ['max(span.duration)'],
-                columns: [],
-                fields: [],
-                conditions: '',
-                orderby: '',
-                name: '',
-              },
-            ],
-          },
+          widgets: [
+            {
+              title: 'Custom Widget',
+              displayType: expectedDisplayType,
+              interval: undefined,
+              limit: undefined,
+              widgetType: WidgetType.SPANS,
+              queries: [
+                {
+                  aggregates: ['max(span.duration)'],
+                  columns: [],
+                  fields: [],
+                  conditions: '',
+                  orderby: '',
+                  name: '',
+                },
+              ],
+            },
+          ],
         })
       );
     }
@@ -164,23 +163,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.LINE,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['max(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.LINE,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['max(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -199,23 +200,25 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: ['count(span.duration)'],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '-count(span.duration)',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: ['count(span.duration)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '-count(span.duration)',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -247,26 +250,28 @@ describe('AddToDashboardButton', () => {
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
         // For Add + Stay on Page
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.LINE,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.SPANS,
-          queries: [
-            {
-              aggregates: [
-                // because the visualizes get flattend, we only take the first y axis
-                'avg(span.duration)',
-              ],
-              columns: [],
-              fields: [],
-              conditions: '',
-              orderby: '-avg(span.duration)',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.LINE,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                aggregates: [
+                  // because the visualizes get flattend, we only take the first y axis
+                  'avg(span.duration)',
+                ],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '-avg(span.duration)',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });

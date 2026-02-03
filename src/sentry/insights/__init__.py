@@ -14,6 +14,7 @@ class FilterSpan(NamedTuple):
     category: str | None
     description: str | None
     transaction_op: str | None
+    gen_ai_op_name: str | None
 
     @classmethod
     def from_span_v1(cls, span: dict[str, Any]) -> "FilterSpan":
@@ -23,6 +24,7 @@ class FilterSpan(NamedTuple):
             category=span.get("sentry_tags", {}).get("category"),
             description=span.get("description"),
             transaction_op=span.get("sentry_tags", {}).get("transaction.op"),
+            gen_ai_op_name=None,
         )
 
     @classmethod
@@ -33,6 +35,7 @@ class FilterSpan(NamedTuple):
             category=(attributes.get("sentry.category") or {}).get("value"),
             description=(attributes.get("sentry.description") or {}).get("value"),
             transaction_op=(attributes.get("sentry.transaction_op") or {}).get("value"),
+            gen_ai_op_name=(attributes.get("gen_ai.operation.name") or {}).get("value"),
         )
 
 
@@ -68,12 +71,8 @@ def is_queue(span: FilterSpan) -> bool:
     return span.op in ["queue.process", "queue.publish"]
 
 
-def is_llm_monitoring(span: FilterSpan) -> bool:
-    return span.op is not None and span.op.startswith("ai.pipeline")
-
-
 def is_agents(span: FilterSpan) -> bool:
-    return span.op is not None and span.op.startswith("gen_ai.")
+    return span.gen_ai_op_name is not None or (span.op is not None and span.op.startswith("gen_ai"))
 
 
 def is_mcp(span: FilterSpan) -> bool:
@@ -89,7 +88,6 @@ INSIGHT_MODULE_FILTERS = {
     InsightModules.VITAL: is_vital,
     InsightModules.CACHE: is_cache,
     InsightModules.QUEUE: is_queue,
-    InsightModules.LLM_MONITORING: is_llm_monitoring,
     InsightModules.AGENTS: is_agents,
     InsightModules.MCP: is_mcp,
 }

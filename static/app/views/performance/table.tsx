@@ -1,13 +1,14 @@
 import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
@@ -362,13 +363,17 @@ class _Table extends Component<Props, State> {
                 'Transactions are grouped together until we receive enough data to identify parameter patterns.'
               )}
             >
-              <UnparameterizedTooltipWrapper data-test-id="unparameterized-indicator">
+              <Flex
+                justify="center"
+                align="center"
+                data-test-id="unparameterized-indicator"
+              >
                 <LoadingIndicator
                   mini
                   size={16}
                   style={{margin: 0, width: 16, height: 16}}
                 />
-              </UnparameterizedTooltipWrapper>
+              </Flex>
             </Tooltip>
           );
         }
@@ -528,14 +533,12 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <TeamKeyTransactionWrapper>
-              <IconStar
-                key="keyTransaction"
-                color="yellow300"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </TeamKeyTransactionWrapper>
+            <IconStar
+              key="keyTransaction"
+              variant="warning"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
           );
           return [
             this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
@@ -671,17 +674,5 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
     />
   );
 }
-
-// Align the contained IconStar with the IconStar buttons in individual table
-// rows, which have 2px padding + 1px border.
-const TeamKeyTransactionWrapper = styled('div')`
-  padding: 3px;
-`;
-
-const UnparameterizedTooltipWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 export default Table;

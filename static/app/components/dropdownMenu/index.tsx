@@ -4,9 +4,11 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
+import type {LocationDescriptor} from 'history';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -15,6 +17,17 @@ import type {DropdownMenuListProps} from './list';
 import DropdownMenuList, {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
+
+// react-aria uses the href prop on item state to determine if the item is a link
+// and will navigate there when selected
+function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
+  if (item.to) {
+    // This matches the behavior of the Link component
+    return normalizeUrl(item.to);
+  }
+
+  return item.externalHref;
+}
 
 /**
  * Recursively removes hidden items, including those nested in submenus
@@ -25,8 +38,7 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
     .filter(item => !item.hidden)
     .map(item => ({
       ...item,
-      // react-aria uses the href prop on item state to determine if the item is a link
-      href: item.to ?? item.externalHref,
+      href: makeItemHref(item),
       ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
     }));
 }
@@ -35,11 +47,12 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
  * Recursively finds and returns disabled items
  */
 function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
-  return source.reduce<string[]>((acc, cur) => {
+  return source.reduce<Array<MenuItemProps['key']>>((acc, cur) => {
     if (cur.disabled) {
       // If an item is disabled, then its children will be inaccessible, so we
       // can skip them and just return the parent item
-      return acc.concat([cur.key]);
+      acc.push(cur.key);
+      return acc;
     }
 
     if (cur.children) {
@@ -124,7 +137,7 @@ export interface DropdownMenuProps
    * not been provided), then `triggerProps` will be passed on to the button
    * component.
    */
-  triggerProps?: DropdownButtonProps;
+  triggerProps?: Partial<DropdownButtonProps>;
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -293,4 +306,7 @@ export {DropdownMenu};
 const DropdownMenuWrap = styled('div')`
   display: contents;
   list-style-type: none;
+  > :first-child {
+    margin-left: -1px;
+  }
 `;

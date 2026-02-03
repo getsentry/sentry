@@ -2,6 +2,10 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {
@@ -9,9 +13,6 @@ import {
   getBootstrapOrganizationQueryOptions,
   getBootstrapProjectsQueryOptions,
 } from 'sentry/bootstrap/bootstrapRequests';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -22,6 +23,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -107,13 +109,21 @@ function SudoModal({
   // authenticator will always produce a new challenge. We don't want to render
   // the WebAuthnAssert and then re-render with a different challenge, causing
   // the prompt to trigger twice.
-  const {data: authenticators = [], isFetchedAfterMount: authenticatorsLoaded} =
-    useApiQuery<Authenticator[]>(['/authenticators/'], {
-      // Fetch authenticators after preload requests to avoid overwriting session cookie
-      enabled: !bootstrapIsPending,
-      staleTime: 0,
-      retry: false,
-    });
+  const {
+    data: authenticators = [],
+    isFetching: authenticatorsFetching,
+    isFetchedAfterMount: authenticatorsLoaded,
+  } = useApiQuery<Authenticator[]>([getApiUrl('/authenticators/')], {
+    // Fetch authenticators after preload requests to avoid overwriting session cookie
+    enabled: !bootstrapIsPending,
+    staleTime: 0,
+    retry: false,
+    // Immeditealy refetch authenticators on window / tab focus. If a user had
+    // multiple tabs open and required authentication in any other tabs we may
+    // have stomped the session state the request sets, and will need to reload
+    // session state immediately.
+    refetchOnWindowFocus: true,
+  });
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -257,7 +267,7 @@ function SudoModal({
       return null;
     }
 
-    if (!authenticatorsLoaded || bootstrapIsPending) {
+    if (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending) {
       return <LoadingIndicator />;
     }
 
@@ -274,7 +284,7 @@ function SudoModal({
                 )
               : t('You will need to reauthenticate to continue')}
           </StyledTextBlock>
-          {error && <Alert type="error">{errorType}</Alert>}
+          {error && <Alert variant="danger">{errorType}</Alert>}
           {isSuperuser ? (
             <Form
               apiMethod="PUT"
@@ -285,17 +295,17 @@ function SudoModal({
               onSubmitError={handleError}
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
-                <BackWrapper>
+                <Flex align="center" margin="0 3xl">
                   {showAccessForms ? (
                     <Button type="submit" onClick={handleSubmitCOPS}>
                       {t('COPS/CSM')}
                     </Button>
                   ) : (
-                    <Button borderless size="sm" onClick={handleChangeReason}>
+                    <Button priority="transparent" size="sm" onClick={handleChangeReason}>
                       {t('Change reason')}
                     </Button>
                   )}
-                </BackWrapper>
+                </Flex>
               }
               resetOnError
             >
@@ -329,7 +339,7 @@ function SudoModal({
             : t('Help us keep your account safe by confirming your identity.')}
         </StyledTextBlock>
 
-        {error && <Alert type="error">{errorType}</Alert>}
+        {error && <Alert variant="danger">{errorType}</Alert>}
 
         <Form
           apiMethod="PUT"
@@ -376,10 +386,4 @@ export default SudoModal;
 
 const StyledTextBlock = styled(TextBlock)`
   margin-bottom: ${space(1)};
-`;
-
-const BackWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: 0 ${space(4)};
 `;

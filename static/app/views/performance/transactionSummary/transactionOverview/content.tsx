@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,6 +18,7 @@ import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunction
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
@@ -32,6 +34,8 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
@@ -83,7 +87,7 @@ type Props = {
   eventView: EventView;
   isLoading: boolean;
   location: Location;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];
@@ -227,6 +231,11 @@ function OTelSummaryContentInner({
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   function renderSearchBar() {
     return (
       <TransactionSearchQueryBuilder
@@ -247,7 +256,7 @@ function OTelSummaryContentInner({
           <SpanCategoryFilter serviceEntrySpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
@@ -261,7 +270,6 @@ function OTelSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
-            supportsInvestigationRule
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
@@ -537,6 +545,11 @@ function SummaryContent({
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   function renderSearchBar() {
     return (
       <TransactionSearchQueryBuilder
@@ -562,7 +575,7 @@ function SummaryContent({
           />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
@@ -606,7 +619,6 @@ function SummaryContent({
             domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
-            supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
         <TagExplorer
@@ -757,7 +769,7 @@ function MetricsWarningIcon() {
       <StyledIconWarning
         data-test-id="search-metrics-fallback-warning"
         size="sm"
-        color="warningText"
+        variant="warning"
       />
     </Tooltip>
   );

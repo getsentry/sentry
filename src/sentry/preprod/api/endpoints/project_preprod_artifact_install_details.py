@@ -1,10 +1,9 @@
+from __future__ import annotations
+
 import logging
 from typing import Any
 
 import sentry_sdk
-from django.db.models import Sum
-from django.http import JsonResponse
-from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,13 +11,17 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     platform_from_artifact_type,
 )
-from sentry.preprod.build_distribution_utils import get_download_url_for_artifact
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.build_distribution_utils import (
+    get_download_count_for_artifact,
+    get_download_url_for_artifact,
+)
+from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +33,20 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, head_artifact_id, head_artifact) -> HttpResponseBase:
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         try:
             analytics.record(
                 PreprodArtifactApiInstallDetailsEvent(
                     organization_id=project.organization_id,
                     project_id=project.id,
                     user_id=request.user.id,
-                    artifact_id=head_artifact_id,
+                    artifact_id=str(head_artifact_id),
                 )
             )
         except Exception as e:
@@ -49,7 +58,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                 not head_artifact.extras
                 or head_artifact.extras.get("is_code_signature_valid") is not True
             ):
-                return JsonResponse(
+                return Response(
                     {
                         "is_code_signature_valid": False,
                         "code_signature_errors": (
@@ -66,13 +75,7 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
 
         installable_url = get_download_url_for_artifact(head_artifact)
 
-        # Calculate total download count from all InstallablePreprodArtifact instances
-        total_download_count = (
-            InstallablePreprodArtifact.objects.filter(preprod_artifact=head_artifact).aggregate(
-                total_downloads=Sum("download_count")
-            )["total_downloads"]
-            or 0
-        )
+        total_download_count = get_download_count_for_artifact(head_artifact)
 
         # Build response based on artifact type
         response_data: dict[str, Any] = {
@@ -81,6 +84,9 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
             "download_count": total_download_count,
             "release_notes": (
                 head_artifact.extras.get("release_notes") if head_artifact.extras else None
+            ),
+            "install_groups": (
+                head_artifact.extras.get("install_groups") if head_artifact.extras else None
             ),
         }
 
@@ -102,5 +108,5 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
-        response = JsonResponse(response_data)
+        response = Response(response_data)
         return response

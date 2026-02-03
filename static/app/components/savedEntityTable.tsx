@@ -2,10 +2,11 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -93,14 +94,14 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
   height: 40px;
 
   &:last-child {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   }
 
   ${p =>
     !p.disableHover &&
     css`
       &:hover {
-        background-color: ${p.theme.backgroundSecondary};
+        background-color: ${p.theme.tokens.background.secondary};
       }
     `}
 `;
@@ -130,8 +131,8 @@ SavedEntityTable.CellStar = function CellStar({
   return (
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
-      borderless
-      icon={<IconStar isSolid={isStarred} color={isStarred ? 'yellow300' : 'subText'} />}
+      priority="transparent"
+      icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
     />
@@ -139,10 +140,14 @@ SavedEntityTable.CellStar = function CellStar({
 };
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.border};
-  ${p => p.theme.overflowEllipsis};
+  text-decoration-color: ${p => p.theme.tokens.border.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -203,14 +208,15 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
-          borderless
-          icon={<IconEllipsis compact />}
+          priority="transparent"
+          icon={<IconEllipsis />}
           data-test-id="menu-trigger"
         />
       )}
       items={items}
       position="bottom-end"
       size="sm"
+      strategy="fixed"
     />
   );
 };
@@ -270,7 +276,14 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
   return <TimeSince date={date} unitStyle="short" />;
 };
 
-SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser | null}) {
+  if (!user) {
+    return (
+      <SavedEntityTable.CellTextContent>
+        {t('Unknown User')}
+      </SavedEntityTable.CellTextContent>
+    );
+  }
   return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
@@ -296,5 +309,9 @@ const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
 `;
 
 const OverflowEllipsis = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

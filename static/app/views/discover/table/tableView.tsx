@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
@@ -16,7 +17,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -46,6 +46,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -102,8 +103,9 @@ type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-function TableView(props: TableViewProps) {
+export default function TableView(props: TableViewProps) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const routes = useRoutes();
   const replayLinkGenerator = generateReplayLink(routes);
@@ -185,8 +187,7 @@ function TableView(props: TableViewProps) {
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -322,8 +323,7 @@ function TableView(props: TableViewProps) {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link.
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -544,7 +544,7 @@ function TableView(props: TableViewProps) {
             return project.slug === dataRow.project;
           });
 
-          browserHistory.push(
+          navigate(
             normalizeUrl({
               pathname: makeReleasesPathname({
                 organization,
@@ -572,7 +572,7 @@ function TableView(props: TableViewProps) {
             function: ['count', '', undefined, undefined],
           });
 
-          browserHistory.push(
+          navigate(
             normalizeUrl(
               nextView.getResultsViewUrlTarget(
                 organization,
@@ -610,7 +610,7 @@ function TableView(props: TableViewProps) {
       );
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
-      browserHistory.push(normalizeUrl(target));
+      navigate(normalizeUrl(target));
     };
   }
 
@@ -633,7 +633,7 @@ function TableView(props: TableViewProps) {
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
       nextView.getYAxisOptions().find(({value}) => value === yAxis)
     );
-    browserHistory.push(normalizeUrl(resultsViewUrlTarget));
+    navigate(normalizeUrl(resultsViewUrlTarget));
   }
 
   function renderHeaderButtons() {
@@ -662,7 +662,6 @@ function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
-        supportsInvestigationRule
         queryDataset={queryDataset}
       />
     );
@@ -704,7 +703,7 @@ function TableView(props: TableViewProps) {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -719,11 +718,13 @@ const StyledLink = styled(Link)`
 `;
 
 export const TransactionLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
-
-export default TableView;

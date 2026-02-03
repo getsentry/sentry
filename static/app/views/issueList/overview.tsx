@@ -176,6 +176,12 @@ function IssueListOverview({
   );
 
   useEffect(() => {
+    // Either cleanup or reuse the poller to prevent a resource leak.
+    if (pollerRef.current) {
+      pollerRef.current.setEndpoint(parseLinkHeader(pageLinks)?.previous?.href!);
+      return;
+    }
+
     pollerRef.current = new CursorPoller({
       linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href!,
       success: onRealtimePoll,
@@ -921,7 +927,7 @@ function IssueListOverview({
 export default Sentry.withProfiler(IssueListOverview);
 
 const StyledBody = styled('div')`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex: 1;
 `;
 

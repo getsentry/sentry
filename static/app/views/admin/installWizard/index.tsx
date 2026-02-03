@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -43,7 +44,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert variant="danger">
           {t(
             'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
           )}
@@ -150,8 +151,8 @@ const Pattern = styled('div')`
     content: '';
     background-image: linear-gradient(
       to right,
-      ${p => p.theme.purple200} 0%,
-      ${p => p.theme.purple300} 100%
+      ${p => p.theme.tokens.background.transparent.accent.muted} 0%,
+      ${p => p.theme.tokens.background.accent.vibrant} 100%
     );
     background-repeat: repeat-y;
   }
@@ -174,13 +175,13 @@ const Heading = styled('h1')`
 `;
 
 const Version = styled('small')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: inherit;
 `;
 
 const SetupWizard = styled('div')`
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: 40px 40px 20px;
   max-width: 1000px;

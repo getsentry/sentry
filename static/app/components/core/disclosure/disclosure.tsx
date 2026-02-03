@@ -1,5 +1,4 @@
 import {createContext, useContext, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   useDisclosure,
@@ -9,10 +8,10 @@ import {
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 
 interface DisclosureProps
@@ -68,14 +67,7 @@ function DisclosureComponent({
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex
-        data-disclosure
-        direction="column"
-        align="start"
-        flex="1 1 100%"
-        ref={ref}
-        {...props}
-      >
+      <Flex data-disclosure direction="column" align="start" ref={ref} {...props}>
         {children}
       </Flex>
     </DisclosureContext.Provider>
@@ -94,7 +86,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
   const {pressProps} = usePress({...restProps});
 
   return (
-    <HoverStyleFlex
+    <Flex
       justify="start"
       gap={context.size}
       align="center"
@@ -113,40 +105,14 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
         {children}
       </StretchedButton>
       {trailingItems ?? null}
-    </HoverStyleFlex>
+    </Flex>
   );
 }
-
-const HoverStyleFlex = styled(Flex)`
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
-
-  &:hover {
-    background-color: transparent;
-  }
-
-  ${p =>
-    p.theme.isChonk
-      ? ''
-      : css`
-          display: flex;
-          box-shadow: none;
-
-          &:hover {
-            background-color: transparent;
-          }
-
-          ${InteractionStateLayer} {
-            display: none;
-          }
-        `}
 `;
 
 interface DisclosureContentProps {

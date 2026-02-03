@@ -12,7 +12,7 @@ import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -233,11 +233,9 @@ function SimilarStackTrace({project}: Props) {
           items={items.similar}
           filteredItems={items.filtered}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
@@ -246,11 +244,9 @@ function SimilarStackTrace({project}: Props) {
           items={items.similar.concat(items.filtered)}
           filteredItems={[]}
           onMerge={handleMerge}
-          orgId={organization.slug}
           project={project}
           groupId={params.groupId}
           pageLinks={items.pageLinks}
-          location={location}
           hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
@@ -262,7 +258,7 @@ function SimilarStackTrace({project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -270,6 +266,6 @@ const HeaderWrapper = styled('div')`
   margin-bottom: ${space(2)};
 
   small {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

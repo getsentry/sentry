@@ -1,8 +1,9 @@
-import {cloneElement} from 'react';
+import {cloneElement, memo} from 'react';
 import styled from '@emotion/styled';
 
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
@@ -101,4 +102,4 @@ const StyledLink = styled(Link)`
   }
 `;
 
-export default ProjectBadge;
+export default memo(ProjectBadge);

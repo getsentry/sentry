@@ -6,6 +6,7 @@ import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/ta
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -35,6 +36,22 @@ const EXCLUDED_TAGS: string[] = [
   'os',
   'user',
   FieldKey.PLATFORM,
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
 ];
 
 const NON_TAG_FIELDS: string[] = [
@@ -227,8 +244,8 @@ export default function FeedbackSearch() {
     return getFilterKeySections(issuePlatformTags);
   }, [issuePlatformTags]);
 
-  const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string): Promise<string[]> => {
+  const getTagValues = useCallback<GetTagValues>(
+    (tag, searchQuery) => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't

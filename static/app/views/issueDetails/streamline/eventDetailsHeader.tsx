@@ -2,11 +2,15 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -61,6 +65,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
+  const shouldShowSinceFirstSeenOption = issueTypeConfig.defaultTimePeriod.sinceFirstSeen;
   const period = hasSetStatsPeriod
     ? getPeriod({
         start: location.query.start as string,
@@ -94,7 +99,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
-  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+  const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -109,18 +114,18 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             id={IssueDetailsTour.FILTERS}
             title={t('Narrow your focus')}
             description={t(
-              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
+              'Filter to a specific environment, timeframe, tag value, or user to speed up debugging.'
             )}
             position="bottom-start"
           >
-            <Flex>
+            <Flex direction={{xs: 'column', md: 'row'}} gap="sm">
               <Grid
                 width="100%"
                 gap="sm"
-                columns="auto minmax(100px, 1fr) auto"
+                columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
-                <FilterBar>
+                <PageFilterBar>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
                     menuTitle={t('Filter Time Range')}
@@ -132,7 +137,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       return {
                         ...props.arbitraryOptions,
                         // Always display arbitrary issue open period
-                        ...(defaultStatsPeriod?.statsPeriod
+                        ...(defaultStatsPeriod?.statsPeriod &&
+                        shouldShowSinceFirstSeenOption
                           ? {
                               [defaultStatsPeriod.statsPeriod]: t(
                                 '%s (since first seen)',
@@ -159,34 +165,40 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerProps={{
-                      children:
-                        period === defaultStatsPeriod &&
-                        !defaultStatsPeriod.isMaxRetention
+                    trigger={triggerProps => (
+                      <TimeRangeSelectTrigger
+                        {...triggerProps}
+                        style={{
+                          padding: `${theme.space.md} ${theme.space.lg}`,
+                        }}
+                      >
+                        {period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention &&
+                        shouldShowSinceFirstSeenOption
                           ? t('Since First Seen')
-                          : undefined,
-                      style: {
-                        padding: `${theme.space.md} ${theme.space.lg}`,
-                      },
+                          : triggerProps.children}
+                      </TimeRangeSelectTrigger>
+                    )}
+                  />
+                </PageFilterBar>
+                {searchBarEnabled && (
+                  <EventSearch
+                    group={group}
+                    handleSearch={query => {
+                      navigate(
+                        {...location, query: {...location.query, query}},
+                        {replace: true}
+                      );
+                    }}
+                    environments={environments}
+                    query={searchQuery}
+                    queryBuilderProps={{
+                      disallowFreeText: true,
+                      placeholder: searchText,
+                      label: searchText,
                     }}
                   />
-                </FilterBar>
-                <EventSearch
-                  group={group}
-                  handleSearch={query => {
-                    navigate(
-                      {...location, query: {...location.query, query}},
-                      {replace: true}
-                    );
-                  }}
-                  environments={environments}
-                  query={searchQuery}
-                  queryBuilderProps={{
-                    disallowFreeText: true,
-                    placeholder: searchText,
-                    label: searchText,
-                  }}
-                />
+                )}
               </Grid>
               <ToggleSidebar />
             </Flex>
@@ -203,7 +215,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} />
+              <MetricIssueChart group={group} event={event} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />
@@ -258,41 +270,42 @@ const DetailsContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding-left: ${p => p.theme.space['2xl']};
   padding-right: ${p => p.theme.space['2xl']};
   padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.translucentBorder};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.sm};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    gap: ${p => p.theme.space.lg};
+  }
+
   & > * {
-    background: ${p => p.theme.background};
-    border-radius: ${p => p.theme.borderRadius};
-    border: 1px solid ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.background.primary};
+    border-radius: ${p => p.theme.radius.md};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.lg};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 0px solid ${p => p.theme.translucentBorder};
+  border: 0px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-width: 0 1px 1px 0;
   border-radius: 0;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};

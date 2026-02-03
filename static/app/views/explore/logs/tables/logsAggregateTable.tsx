@@ -2,8 +2,10 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
@@ -24,7 +26,7 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   getLogSeverityLevel,
   viewLogsSamplesTarget,
@@ -44,7 +46,7 @@ import {
 export function LogsAggregateTable({
   aggregatesTableResult,
 }: {
-  aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+  aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
 }) {
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
@@ -81,7 +83,7 @@ export function LogsAggregateTable({
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
-    <TableContainer>
+    <Stack>
       <GridEditable
         aria-label={t('Aggregates')}
         isLoading={isLoading}
@@ -224,14 +226,9 @@ export function LogsAggregateTable({
         }}
       />
       <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
-    </TableContainer>
+    </Stack>
   );
 }
-
-const TableContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const TopResultsIndicator = styled('div')<{color: string}>`
   position: absolute;

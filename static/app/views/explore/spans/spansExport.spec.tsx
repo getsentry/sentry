@@ -1,12 +1,19 @@
+import type {ReactNode} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {SpansExport} from 'sentry/views/explore/spans/spansExport';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 jest.mock('sentry/views/discover/utils', () => ({
   downloadAsCsv: jest.fn(),
 }));
+
+function Wrapper({children}: {children: ReactNode}) {
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
+}
 
 describe('SpansExport', () => {
   const {organization} = initializeOrg({
@@ -49,7 +56,7 @@ describe('SpansExport', () => {
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
-      {organization}
+      {organization, additionalWrapper: Wrapper}
     );
     expect(screen.getByText('Export')).toBeInTheDocument();
   });
@@ -62,7 +69,7 @@ describe('SpansExport', () => {
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
-      {organization}
+      {organization, additionalWrapper: Wrapper}
     );
 
     const exportButton = screen.getByText('Export');
@@ -91,9 +98,7 @@ describe('SpansExport', () => {
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
-      {
-        organization,
-      }
+      {organization, additionalWrapper: Wrapper}
     );
 
     const exportButton = screen.getByText('Export');
@@ -115,7 +120,7 @@ describe('SpansExport', () => {
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
-      {organization}
+      {organization, additionalWrapper: Wrapper}
     );
 
     const exportButton = screen.getByText('Export');
@@ -146,7 +151,7 @@ describe('SpansExport', () => {
         aggregatesTableResult={aggregatesTableResult}
         spansTableResult={spansTableResult}
       />,
-      {organization}
+      {organization, additionalWrapper: Wrapper}
     );
 
     const exportButton = screen.getByText('Export');

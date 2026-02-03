@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -30,7 +31,23 @@ const ColoredLine = styled('span')<Props>`
   display: inline-block;
   flex-shrink: 0;
   height: 1em;
-  background-color: ${p => (p.level ? p.theme.level[p.level] : p.theme.level.error)};
+  background-color: ${p => {
+    switch (p.level) {
+      case 'sample':
+      case 'info':
+        return p.theme.tokens.dataviz.semantic.accent;
+      case 'warning':
+        return p.theme.tokens.dataviz.semantic.meh;
+      case 'error':
+        return p.theme.level.orange;
+      case 'fatal':
+        return p.theme.tokens.dataviz.semantic.bad;
+      case 'unknown':
+        return p.theme.tokens.dataviz.semantic.other;
+      default:
+        return p.theme.colors.red400;
+    }
+  }};
 `;
 
 export default ErrorLevel;

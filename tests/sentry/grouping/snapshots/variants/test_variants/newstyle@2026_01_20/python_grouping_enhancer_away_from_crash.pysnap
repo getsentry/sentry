@@ -1,0 +1,208 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "4ec09a051686463f01ce05bffbcf3f89"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+        stacktrace*
+          frame (marked out of app by the client)
+            module*
+              "django.core.handlers.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "get_response"
+            context_line*
+              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+          frame (marked out of app by the client)
+            module*
+              "django.views.generic.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context_line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame (marked out of app by the client)
+            module*
+              "django.utils.decorators"
+            filename (ignored because module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context_line*
+              "return bound_func(*args, **kwargs)"
+          frame (marked out of app by the client)
+            module*
+              "django.views.decorators.csrf"
+            filename (ignored because module takes precedence)
+              "csrf.py"
+            function*
+              "wrapped_view"
+            context_line*
+              "return view_func(*args, **kwargs)"
+          frame (marked out of app by the client)
+            module*
+              "django.utils.decorators"
+            filename (ignored because module takes precedence)
+              "decorators.py"
+            function*
+              "bound_func"
+            context_line*
+              "return func(self, *args2, **kwargs2)"
+          frame (marked in-app by the client but ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (ignored because module takes precedence)
+              "release_webhook.py"
+            function*
+              "dispatch"
+            context_line*
+              "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+          frame (marked out of app by the client)
+            module*
+              "django.views.generic.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "dispatch"
+            context_line*
+              "return handler(request, *args, **kwargs)"
+          frame* (marked in-app by the client)
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (ignored because module takes precedence)
+              "release_webhook.py"
+            function*
+              "post"
+            context_line*
+              "hook.handle(request)"
+          frame* (marked in-app by the client)
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (ignored because module takes precedence)
+              "plugin.py"
+            function*
+              "handle"
+            context_line*
+              "email = request.POST['user']"
+          frame (marked out of app by the client)
+            module*
+              "django.utils.datastructures"
+            filename (ignored because module takes precedence)
+              "datastructures.py"
+            function*
+              "__getitem__"
+            context_line*
+              "raise MultiValueDictKeyError(repr(key))"
+--------------------------------------------------------------------------
+system:
+  hash: "b19423b06ce0a7e46ae8b00e12804378"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+        stacktrace*
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.core.handlers.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "get_response"
+            context_line*
+              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.generic.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context_line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.utils.decorators"
+            filename (ignored because module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context_line*
+              "return bound_func(*args, **kwargs)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.decorators.csrf"
+            filename (ignored because module takes precedence)
+              "csrf.py"
+            function*
+              "wrapped_view"
+            context_line*
+              "return view_func(*args, **kwargs)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.utils.decorators"
+            filename (ignored because module takes precedence)
+              "decorators.py"
+            function*
+              "bound_func"
+            context_line*
+              "return func(self, *args2, **kwargs2)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (ignored because module takes precedence)
+              "release_webhook.py"
+            function*
+              "dispatch"
+            context_line*
+              "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
+          frame (ignored by custom stack trace rule (path:**/release_webhook.py v-group))
+            module*
+              "django.views.generic.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "dispatch"
+            context_line*
+              "return handler(request, *args, **kwargs)"
+          frame*
+            module*
+              "sentry.web.frontend.release_webhook"
+            filename (ignored because module takes precedence)
+              "release_webhook.py"
+            function*
+              "post"
+            context_line*
+              "hook.handle(request)"
+          frame*
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (ignored because module takes precedence)
+              "plugin.py"
+            function*
+              "handle"
+            context_line*
+              "email = request.POST['user']"
+          frame*
+            module*
+              "django.utils.datastructures"
+            filename (ignored because module takes precedence)
+              "datastructures.py"
+            function*
+              "__getitem__"
+            context_line*
+              "raise MultiValueDictKeyError(repr(key))"

@@ -4,8 +4,9 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
@@ -46,10 +47,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * Whether to omit the blurring window.
-   */
-  omitBlur?: boolean;
-  /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
   onEndTour?: () => void;
@@ -76,7 +73,6 @@ export function TourContextProvider<T extends TourEnumType>({
   isCompleted,
   tourKey,
   TourContext,
-  omitBlur,
   orderedStepIds,
   onEndTour,
   onStartTour,
@@ -137,7 +133,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <TourContext value={tourContextValue}>
-      {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
+      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </TourContext>
   );
@@ -418,7 +414,6 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
-                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -429,7 +424,11 @@ export function TourGuide({
                         )}
                         {title && <TitleRow>{title}</TitleRow>}
                         {description && <DescriptionRow>{description}</DescriptionRow>}
-                        {actions && <ActionRow>{actions}</ActionRow>}
+                        {actions && (
+                          <Flex justify="end" marginTop="md">
+                            {actions}
+                          </Flex>
+                        )}
                       </TourBody>
                     </TourOverlay>
                   )}
@@ -454,7 +453,7 @@ const TourBody = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   padding: ${space(1.5)} ${space(2)};
   color: ${p => p.theme.tokens.content.primary};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: 360px;
   a {
     color: ${p => p.theme.tokens.content.primary};
@@ -471,39 +470,33 @@ const TopRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: ${p => p.theme.tokens.content.muted};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.4;
   white-space: wrap;
 `;
 
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
-`;
-
-const ActionRow = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(1)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" borderless />;
+  return <Button {...props} priority="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`
@@ -526,8 +519,8 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
       position: absolute;
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
-      border-radius: ${p => p.theme.borderRadius};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
+      border-radius: ${p => p.theme.radius.md};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent.vibrant};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }

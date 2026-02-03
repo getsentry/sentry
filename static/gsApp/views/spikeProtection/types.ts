@@ -3,7 +3,7 @@ import type {DataCategoryInfo} from 'sentry/types/core';
 export interface SpikeDetails {
   dataCategory: DataCategoryInfo['name'];
   start: string;
-  threshold: number;
+  threshold: number | null;
   dropped?: number;
   duration?: number | null;
   end?: string;

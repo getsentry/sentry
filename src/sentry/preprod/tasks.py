@@ -10,16 +10,24 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry import features
+from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.preprod.eap.write import (
+    produce_preprod_build_distribution_to_eap,
+    produce_preprod_size_metric_to_eap,
+)
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
 )
-from sentry.preprod.producer import produce_preprod_artifact_to_kafka
+from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quotas import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -33,8 +41,10 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import attachments_tasks, preprod_tasks
+from sentry.taskworker.namespaces import preprod_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -43,7 +53,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
@@ -122,16 +132,24 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
         return
 
     try:
+        # Note: requested_features is no longer used for filtering - all features are
+        # requested here, and the actual quota/filter checks happen in the update endpoint
+        # (project_preprod_artifact_update.py) after preprocessing completes.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
+            requested_features=[
+                PreprodFeature.SIZE_ANALYSIS,
+                PreprodFeature.BUILD_DISTRIBUTION,
+            ],
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -153,6 +171,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -163,30 +182,50 @@ def assemble_preprod_artifact(
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
             "organization_id": org_id,
+            "organization_slug": organization.slug,
             "checksum": checksum,
         },
     )
 
 
 def create_preprod_artifact(
-    org_id,
-    project_id,
-    checksum,
-    build_configuration=None,
-    release_notes=None,
-    head_sha=None,
-    base_sha=None,
-    provider=None,
-    head_repo_name=None,
-    base_repo_name=None,
-    head_ref=None,
-    base_ref=None,
-    pr_number=None,
+    org_id: int,
+    project_id: int,
+    checksum: str,
+    build_configuration_name: str | None = None,
+    release_notes: str | None = None,
+    install_groups: list[str] | None = None,
+    head_sha: str | None = None,
+    base_sha: str | None = None,
+    provider: str | None = None,
+    head_repo_name: str | None = None,
+    base_repo_name: str | None = None,
+    head_ref: str | None = None,
+    base_ref: str | None = None,
+    pr_number: int | None = None,
 ) -> PreprodArtifact | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
+
+        # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
+        org_has_size_quota = has_size_quota(organization)
+        org_has_installable_quota = has_installable_quota(organization)
+        if not org_has_size_quota and not org_has_installable_quota:
+            logger.info(
+                "No quota available for preprod artifact creation",
+                extra={
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                    "has_size_quota": org_has_size_quota,
+                    "has_installable_quota": org_has_installable_quota,
+                },
+            )
+            raise NoPreprodQuota(
+                "Organization does not have quota for preprod features (SIZE_ANALYSIS or INSTALLABLE_BUILD)"
+            )
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
             # Create CommitComparison if git information is provided
@@ -194,14 +233,16 @@ def create_preprod_artifact(
             if head_sha and head_repo_name and provider and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
+                    head_repo_name=head_repo_name,
                     head_sha=head_sha,
                     base_sha=base_sha,
-                    provider=provider,
-                    head_repo_name=head_repo_name,
-                    base_repo_name=base_repo_name,
-                    head_ref=head_ref,
-                    base_ref=base_ref,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": base_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
                 )
             else:
                 logger.info(
@@ -221,16 +262,20 @@ def create_preprod_artifact(
                 )
 
             build_config = None
-            if build_configuration:
+            if build_configuration_name:
                 build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
                     project=project,
-                    name=build_configuration,
+                    name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
-            extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            # Prepare extras data if release_notes, install_groups is provided
+            extras: dict[str, str | list[str]] | None = None
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
@@ -240,7 +285,6 @@ def create_preprod_artifact(
                 extras=extras,
             )
 
-            # TODO(preprod): add gating to only create if has quota
             PreprodArtifactSizeMetrics.objects.get_or_create(
                 preprod_artifact=preprod_artifact,
                 metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -261,6 +305,8 @@ def create_preprod_artifact(
 
             return preprod_artifact
 
+    except NoPreprodQuota:
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
@@ -281,7 +327,7 @@ def _assemble_preprod_artifact_file(
     checksum: str,
     chunks: Any,
     callback: Callable[[AssembleResult, Any], None],
-):
+) -> None:
     logger.info(
         "Starting preprod file assembly",
         extra={
@@ -350,11 +396,18 @@ def _assemble_preprod_artifact_file(
 
 
 def _assemble_preprod_artifact_size_analysis(
-    assemble_result: AssembleResult, project, artifact_id: int, org_id: int
-):
+    assemble_result: AssembleResult, project: Project, artifact_id: int | None, org_id: int
+) -> None:
+    if artifact_id is None:
+        logger.error(
+            "PreprodArtifact artifact_id is None in size analysis assembly",
+            extra={"project_id": project.id, "organization_id": org_id},
+        )
+        return
+
     preprod_artifact = None
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -379,35 +432,133 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
+    size_metrics_updated: list[PreprodArtifactSizeMetrics] = []
+    # Track whether the metrics transaction completed successfully. Once metrics are
+    # committed as COMPLETED, they should NOT be changed to FAILED even if subsequent
+    # operations fail - the analysis data is valid.
+    metrics_committed_successfully = False
     try:
         size_analysis_results = SizeAnalysisResults.parse_raw(
             assemble_result.bundle_temp_file.read()
         )
+        was_created = False
 
+        # Build list inside transaction, only assign to size_metrics_updated after
+        # transaction commits. If the transaction rolls back, we don't want stale
+        # references to objects that don't exist in the database.
+        metrics_in_transaction: list[PreprodArtifactSizeMetrics] = []
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            # TODO(preprod): parse this from the treemap json and handle other artifact types
-            size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
-                preprod_artifact=preprod_artifact,
-                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                defaults={
-                    "analysis_file_id": assemble_result.bundle.id,
-                    "min_install_size": None,  # No min value at this time
-                    "max_install_size": size_analysis_results.install_size,
-                    "min_download_size": None,  # No min value at this time
-                    "max_download_size": size_analysis_results.download_size,
-                    "processing_version": size_analysis_results.analysis_version,
-                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            app_components = size_analysis_results.app_components or []
+
+            if not app_components:
+                # No components in results - fall back to top-level sizes for backwards compatibility
+                # Don't include identifier in lookup to match old behavior and find any existing
+                # MAIN_ARTIFACT regardless of identifier value
+                size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                    preprod_artifact=preprod_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    defaults={
+                        "identifier": None,
+                        "analysis_file_id": assemble_result.bundle.id,
+                        "min_install_size": None,
+                        "max_install_size": size_analysis_results.install_size,
+                        "min_download_size": None,
+                        "max_download_size": size_analysis_results.download_size,
+                        "processing_version": size_analysis_results.analysis_version,
+                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    },
+                )
+                was_created = created
+                metrics_in_transaction.append(size_metrics)
+            else:
+                for app_component in app_components:
+                    # MAIN_ARTIFACT uses NULL identifier for backwards compatibility
+                    # Other types use identifier to differentiate multiple components
+                    identifier = (
+                        None
+                        if app_component.component_type
+                        == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                        else app_component.app_id
+                    )
+
+                    size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=app_component.component_type,
+                        identifier=identifier,
+                        defaults={
+                            "analysis_file_id": assemble_result.bundle.id,
+                            "min_install_size": None,  # No min value at this time
+                            "max_install_size": app_component.install_size,
+                            "min_download_size": None,  # No min value at this time
+                            "max_download_size": app_component.download_size,
+                            "processing_version": size_analysis_results.analysis_version,
+                            "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                        },
+                    )
+                    was_created = created or was_created
+                    metrics_in_transaction.append(size_metrics)
+
+            # Delete any stale metrics that are no longer in the current analysis results.
+            # This prevents inconsistent analysis_file_id values when components are removed
+            # between analysis runs, which would otherwise cause a 409 error on download.
+            current_metric_ids = [m.id for m in metrics_in_transaction]
+            PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact).exclude(
+                id__in=current_metric_ids
+            ).delete()
+
+        # Transaction committed - metrics are now COMPLETED and valid. Any subsequent
+        # failures should NOT invalidate these metrics.
+        metrics_committed_successfully = True
+        size_metrics_updated = metrics_in_transaction
+
+        try:
+            organization = preprod_artifact.project.organization
+            if features.has("organizations:preprod-size-metrics-eap-write", organization):
+                for size_metric in size_metrics_updated:
+                    produce_preprod_size_metric_to_eap(
+                        size_metric=size_metric,
+                        organization_id=org_id,
+                        project_id=project.id,
+                    )
+                logger.info(
+                    "Successfully wrote preprod size metrics to EAP",
+                    extra={
+                        "preprod_artifact_id": preprod_artifact.id,
+                        "size_metrics_ids": [m.id for m in size_metrics_updated],
+                        "organization_id": org_id,
+                        "project_id": project.id,
+                    },
+                )
+        except Exception as eap_error:
+            logger.exception(
+                "Failed to write preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                    "error": str(eap_error),
                 },
             )
+
+        if size_analysis_results.analysis_duration is not None:
+            with transaction.atomic(router.db_for_write(PreprodArtifact)):
+                preprod_artifact.refresh_from_db()
+                if preprod_artifact.extras is None:
+                    preprod_artifact.extras = {}
+                preprod_artifact.extras.update(
+                    {"analysis_duration": size_analysis_results.analysis_duration}
+                )
+                preprod_artifact.save(update_fields=["extras"])
 
         # Trigger size analysis comparison if eligible
         logger.info(
             "Created or updated preprod artifact size metrics with analysis file",
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
-                "size_metrics_id": size_metrics.id,
+                "size_metrics_ids": [size_metrics.id for size_metrics in size_metrics_updated],
                 "analysis_file_id": assemble_result.bundle.id,
-                "was_created": created,
+                "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -423,35 +574,97 @@ def _assemble_preprod_artifact_size_analysis(
             },
         )
 
-        with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
-            try:
-                PreprodArtifactSizeMetrics.objects.update_or_create(
-                    preprod_artifact=preprod_artifact,
-                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-                    defaults={
-                        "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
-                        "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
-                        "error_message": str(e),
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to update preprod artifact size metrics",
-                    extra={
-                        "preprod_artifact_id": artifact_id,
-                        "project_id": project.id,
-                        "organization_id": org_id,
-                    },
-                )
+        # Only mark metrics as FAILED if the metrics transaction didn't complete.
+        # If metrics were successfully committed as COMPLETED, they contain valid
+        # analysis data and should not be overwritten due to subsequent failures
+        # (like extras update).
+        if not metrics_committed_successfully:
+            with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
+                try:
+                    # Mark the PENDING MAIN_ARTIFACT as FAILED to avoid leaving it stuck.
+                    # Note: We always update MAIN_ARTIFACT here because that's what gets
+                    # created initially in PENDING state when the artifact is uploaded.
+                    PreprodArtifactSizeMetrics.objects.update_or_create(
+                        preprod_artifact=preprod_artifact,
+                        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                        defaults={
+                            "identifier": None,
+                            "state": PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                            "error_code": PreprodArtifactSizeMetrics.ErrorCode.PROCESSING_ERROR,
+                            "error_message": str(e),
+                        },
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to update preprod artifact size metrics",
+                        extra={
+                            "preprod_artifact_id": artifact_id,
+                            "project_id": project.id,
+                            "organization_id": org_id,
+                        },
+                    )
 
         # Re-raise to trigger further error handling if needed
         raise
+    finally:
+        # Ensure the temp file is closed to avoid resource leaks
+        try:
+            assemble_result.bundle_temp_file.close()
+        except Exception:
+            pass
 
-    # Always trigger status check update (success or failure)
-    create_preprod_status_check_task.apply_async(
-        kwargs={
-            "preprod_artifact_id": artifact_id,
-        }
+        time_now = timezone.now()
+        e2e_size_analysis_duration = time_now - preprod_artifact.date_added
+        artifact_type_name = "unknown"
+        if preprod_artifact.artifact_type is not None:
+            try:
+                artifact_type_name = PreprodArtifact.ArtifactType(
+                    preprod_artifact.artifact_type
+                ).name.lower()
+            except (ValueError, AttributeError):
+                artifact_type_name = "unknown"
+
+        # TODO: Remove project_id_value once this metric's volume get too big to avoid high cardinality cost issues
+        metrics.distribution(
+            "preprod.size_analysis.results_e2e",
+            e2e_size_analysis_duration.total_seconds(),
+            sample_rate=1.0,
+            tags={
+                "project_id_value": project.id,
+                "organization_id_value": org_id,
+                "artifact_type": artifact_type_name,
+            },
+        )
+
+        # Always trigger status check update (success or failure)
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
+            }
+        )
+
+    # Ideally we want to report an outcome at most once per
+    # preprod_artifact. This isn't yet robust to:
+    # - multiple calls to assemble_file racing
+    # - multiple reprocessed builds
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        quantity=1,
+        category=DataCategory.SIZE_ANALYSIS,
+        # If None this defaults to the current time. This seems
+        # better than the time of the upload (which could have
+        # been long before the analysis runs).
+        timestamp=None,
+        # We have neither of the below since size analysis is
+        # not triggered by an event or reported via a DSN.
+        # The id of the event.
+        event_id=None,
+        # The id of the DSN.
+        key_id=None,
     )
 
     # Trigger size analysis comparison if eligible
@@ -466,17 +679,17 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact_size_analysis(
-    org_id,
-    project_id,
-    checksum,
-    chunks,
-    artifact_id=None,
-    **kwargs,
+    org_id: int,
+    project_id: int,
+    checksum: str,
+    chunks: Any,
+    artifact_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Creates a size analysis file for a preprod artifact from uploaded chunks.
@@ -494,10 +707,10 @@ def assemble_preprod_artifact_size_analysis(
 
 
 def _assemble_preprod_artifact_installable_app(
-    assemble_result: AssembleResult, project, artifact_id, org_id
-):
+    assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
+) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -527,16 +740,65 @@ def _assemble_preprod_artifact_installable_app(
         preprod_artifact.installable_app_file_id = assemble_result.bundle.id
         preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
 
+    try:
+        organization = preprod_artifact.project.organization
+        if features.has("organizations:preprod-build-distribution-eap-write", organization):
+            produce_preprod_build_distribution_to_eap(
+                artifact=preprod_artifact,
+                organization_id=org_id,
+                project_id=project.id,
+            )
+            logger.info(
+                "Successfully wrote preprod build distribution to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                },
+            )
+    except Exception:
+        logger.exception(
+            "Failed to write preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
+
+    # Ideally we want to report an outcome at most once per
+    # preprod_artifact. This isn't yet robust to:
+    # - multiple calls to assemble_file racing
+    # - multiple reprocessed builds
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        quantity=1,
+        category=DataCategory.INSTALLABLE_BUILD,
+        # If None this defaults to the current time. This seems
+        # better than the time of the upload (which could have
+        # been long before the analysis runs).
+        timestamp=None,
+        # We have neither of the below since size analysis is
+        # not triggered by an event or reported via a DSN.
+        # The id of the event.
+        event_id=None,
+        # The id of the DSN.
+        key_id=None,
+    )
+
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=attachments_tasks,
+    namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
 )
 def assemble_preprod_artifact_installable_app(
-    org_id, project_id, checksum, chunks, artifact_id, **kwargs
-):
+    org_id: int, project_id: int, checksum: str, chunks: Any, artifact_id: int, **kwargs: Any
+) -> None:
     _assemble_preprod_artifact_file(
         AssembleTask.PREPROD_ARTIFACT_INSTALLABLE_APP,
         project_id,
@@ -555,7 +817,7 @@ def assemble_preprod_artifact_installable_app(
     processing_deadline_duration=60,
     silo_mode=SiloMode.REGION,
 )
-def detect_expired_preprod_artifacts():
+def detect_expired_preprod_artifacts() -> None:
     """
     Detects PreprodArtifacts and related entities that have been processing for more than 30 minutes
     and updates their state to errored.
@@ -612,9 +874,16 @@ def detect_expired_preprod_artifacts():
 
     if updated_artifact_ids:
         for artifact_id in updated_artifact_ids:
+            sentry_sdk.capture_message(
+                "PreprodArtifact expired",
+                level="error",
+                extras={
+                    "artifact_id": artifact_id,
+                },
+            )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(

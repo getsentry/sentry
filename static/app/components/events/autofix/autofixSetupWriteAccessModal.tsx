@@ -1,11 +1,10 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
@@ -20,7 +19,7 @@ function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}
       <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
         {repo.owner}/{repo.name}
       </ExternalLink>
-      {repo.ok && <IconCheckmark color="success" size="sm" />}
+      {repo.ok && <IconCheckmark variant="success" size="sm" />}
     </RepoItem>
   );
 }
@@ -49,7 +48,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   if (canCreatePullRequests) {
     return (
       <DoneWrapper>
-        <DoneIcon color="success" size="2xl" isCircled />
+        <DoneIcon variant="success" size="2xl" />
         <p>{t("You've successfully configured write access!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}
@@ -148,7 +147,7 @@ const DoneWrapper = styled('div')`
   justify-content: center;
   flex-direction: column;
   padding: 40px;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const DoneIcon = styled(IconCheckmark)`
@@ -169,6 +168,6 @@ const RepoItem = styled('li')<{isOk?: boolean}>`
   gap: ${space(2)};
   padding: ${space(1)};
   margin-bottom: ${space(0.5)};
-  background-color: ${p => (p.isOk ? p.theme.green100 : 'transparent')};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => (p.isOk ? p.theme.colors.green100 : 'transparent')};
+  border-radius: ${p => p.theme.radius.md};
 `;

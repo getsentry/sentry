@@ -162,9 +162,10 @@ export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
-export type EchartBrushAreas = Array<{
-  coordRange: number[][];
-  range: number[][];
+type EchartBrushAreas = Array<{
+  coordRange: number[] | number[][];
+  panelId: string;
+  range: number[] | number[][];
 }>;
 
 export type EChartBrushStartHandler = EChartEventHandler<{

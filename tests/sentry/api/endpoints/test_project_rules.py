@@ -21,7 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.actor import Actor
 from sentry.users.models.user import User
 
 
@@ -525,7 +524,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
     def test_team_owner(self) -> None:
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, members=[self.user])
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -543,6 +542,95 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
+
+    def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(member_user)
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=f"team:{team.id}",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert "owner" in response.data
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
+
+    def test_team_owner_not_member_with_team_admin_scope(self) -> None:
+        """Test that users with team:admin scope can assign a team they're not a member of as the owner"""
+        team = self.create_team(organization=self.organization)
+        # Create a manager user who has team:admin scope
+        manager_user = self.create_user()
+        self.create_member(
+            user=manager_user,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.login_as(manager_user)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=f"team:{team.id}",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+        )
+        assert response.status_code == 200
+        assert response.data["owner"] == f"team:{team.id}"
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+    def test_user_owner_another_member(self) -> None:
+        """Test that a user can assign another organization member as the rule owner.
+
+        Unlike team ownership (which requires team membership), user ownership
+        only requires the target user to be an organization member.
+        """
+        # XXX(oioki): this behavior could be updated in the future iterations of the rule ownership feature
+        other_user = self.create_user()
+        self.create_member(
+            user=other_user,
+            organization=self.organization,
+            role="member",
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=f"user:{other_user.id}",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+        )
+        assert response.status_code == 200
+        assert response.data["owner"] == f"user:{other_user.id}"
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_user_id == other_user.id
+        assert rule.owner_team_id is None
 
     def test_frequency_percent_validation(self) -> None:
         condition = {
@@ -751,7 +839,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
-            "owner": Actor.from_id(user_id=self.user.id),
+            "owner": f"user:{self.user.id}",
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]

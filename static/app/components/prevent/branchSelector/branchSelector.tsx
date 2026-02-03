@@ -2,11 +2,12 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconBranch} from 'sentry/icons/iconBranch';
@@ -101,7 +102,7 @@ export function BranchSelector() {
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset to all branches')}
         </ResetButton>
@@ -142,22 +143,21 @@ export function BranchSelector() {
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
       closeOnSelect
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <OverlayTrigger.Button
             data-test-id="page-filter-branch-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" maxWidth="200px" position="relative">
               <Flex align="center" gap="sm">
-                <IconContainer>
+                <Container flex="1 0 14px" height="14px">
                   <IconBranch />
-                </IconContainer>
+                </Container>
                 <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
-            </TriggerLabelWrap>
-          </DropdownButton>
+            </Container>
+          </OverlayTrigger.Button>
         );
       }}
       menuWidth="22em"
@@ -165,14 +165,11 @@ export function BranchSelector() {
   );
 }
 
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-  max-width: 200px;
-`;
-
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -185,18 +182,10 @@ const OptionLabel = styled('span')`
   }
 `;
 
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
-`;
-
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
-  margin: ${p =>
-    p.theme.isChonk
-      ? `-${space(0.5)} -${space(0.5)}`
-      : `-${space(0.25)} -${space(0.25)}`};
+  margin: -${space(0.5)} -${space(0.5)};
 `;

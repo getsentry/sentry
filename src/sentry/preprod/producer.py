@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from confluent_kafka import KafkaException
 from django.conf import settings
 
@@ -21,7 +21,7 @@ class PreprodFeature(Enum):
     BUILD_DISTRIBUTION = "build_distribution"
 
 
-def _get_preprod_producer():
+def _get_preprod_producer() -> KafkaProducer:
     return get_arroyo_producer(
         "sentry.preprod.producer",
         Topic.PREPROD_ARTIFACT_EVENTS,
@@ -41,11 +41,7 @@ def produce_preprod_artifact_to_kafka(
     requested_features: list[PreprodFeature] | None = None,
 ) -> None:
     if requested_features is None:
-        # TODO(preprod): wire up to quota system and remove this default
-        requested_features = [
-            PreprodFeature.SIZE_ANALYSIS,
-            PreprodFeature.BUILD_DISTRIBUTION,
-        ]
+        requested_features = []
     payload_data = {
         "artifact_id": str(artifact_id),
         "project_id": str(project_id),

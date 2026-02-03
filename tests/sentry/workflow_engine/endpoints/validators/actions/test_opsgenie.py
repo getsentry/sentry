@@ -39,7 +39,7 @@ class TestOpsgenieActionValidator(TestCase):
             "integrationId": self.integration.id,
         }
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},
@@ -49,7 +49,7 @@ class TestOpsgenieActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__invalid_team(self):
+    def test_validate__invalid_team(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,

@@ -1,15 +1,17 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -73,7 +75,7 @@ function QueuesLandingPage() {
     <Fragment>
       <ModuleFeature moduleName={ModuleName.QUEUE}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
@@ -86,14 +88,14 @@ function QueuesLandingPage() {
                   <QueuesLandingThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
-                  <Flex>
+                  <Stack gap="xl">
                     <SearchBar
                       query={query.destination}
                       placeholder={t('Search for more destinations')}
                       onSearch={handleSearch}
                     />
                     <QueuesTable sort={sort} destination={wildCardDestinationFilter} />
-                  </Flex>
+                  </Stack>
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>
@@ -105,17 +107,19 @@ function QueuesLandingPage() {
 }
 
 function PageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+
   return (
-    <ModulePageProviders moduleName="queue" analyticEventName="insight.page_loads.queue">
+    <ModulePageProviders
+      moduleName="queue"
+      analyticEventName="insight.page_loads.queue"
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <QueuesLandingPage />
     </ModulePageProviders>
   );
 }
 
 export default PageWithProviders;
-
-const Flex = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;

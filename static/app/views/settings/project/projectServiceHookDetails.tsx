@@ -1,12 +1,13 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -85,10 +86,9 @@ function HookStats() {
       <PanelHeader>{t('Events in the last 30 days (by day)')}</PanelHeader>
       <PanelBody withPadding>
         {emptyStats ? (
-          <EmptyMessage
-            title={t('Nothing recorded in the last 30 days.')}
-            description={t('Total webhooks fired for this configuration.')}
-          />
+          <EmptyMessage title={t('Nothing recorded in the last 30 days.')}>
+            {t('Total webhooks fired for this configuration.')}
+          </EmptyMessage>
         ) : (
           <MiniBarChart
             isGroupedByDate
@@ -174,7 +174,7 @@ export default function ProjectServiceHookDetails() {
       <Panel>
         <PanelHeader>{t('Event Validation')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="info">
+          <PanelAlert variant="info">
             Sentry will send the <code>X-ServiceHook-Signature</code> header built using{' '}
             <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify this
             signature before trusting the information provided in the webhook.

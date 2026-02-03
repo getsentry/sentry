@@ -84,6 +84,12 @@ class ProjectReleasePermission(ProjectPermission):
     }
 
 
+class ProjectDistributionPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:distribution"],
+    }
+
+
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],

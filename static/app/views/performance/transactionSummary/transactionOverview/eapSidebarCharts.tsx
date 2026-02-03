@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,18 +25,12 @@ const REFERRER = 'eap-sidebar-charts';
 
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
-    <ChartContainer>
+    <Stack gap="md">
       {hasWebVitals && <Widget Title={t('Web Vitals')} />}
       <FailureRateWidget transactionName={transactionName} />
-    </ChartContainer>
+    </Stack>
   );
 }
-
-const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 type FailureRateWidgetProps = {
   transactionName: string;
@@ -77,7 +72,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     }
 
     return (
-      <Tag key="failure-rate-value" type="error">
+      <Tag key="failure-rate-value" variant="danger">
         {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );
@@ -94,7 +89,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   }
 
   const plottables = failureRateSeriesData.timeSeries.map(
-    ts => new Line(ts, {color: theme.red300})
+    ts => new Line(ts, {color: theme.colors.red400})
   );
 
   return (
@@ -117,5 +112,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

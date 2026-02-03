@@ -2,13 +2,14 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
-import color from 'color';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
-import {Text} from 'sentry/components/core/text';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
@@ -17,12 +18,17 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {
+  isMDXStory,
+  useStoriesLoader,
+  useStoryBookFiles,
+} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 type TraceElement = HTMLElement | SVGElement;
 
@@ -37,7 +43,6 @@ export function SentryComponentInspector() {
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef<boolean>(false);
 
-  const user: ReturnType<typeof useUser> | null = useUser();
   const organization = useOrganization({allowNull: true});
   const [state, setState] = useState<{
     enabled: null | 'inspector' | 'context-menu';
@@ -46,6 +51,21 @@ export function SentryComponentInspector() {
     enabled: null,
     trace: [],
   });
+
+  useHotkeys([
+    {
+      match: 'command+i',
+      callback: () => {
+        if (NODE_ENV !== 'development') {
+          return;
+        }
+        setState(prev => ({
+          ...prev,
+          enabled: prev.enabled === 'inspector' ? null : 'inspector',
+        }));
+      },
+    },
+  ]);
 
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);
@@ -78,7 +98,7 @@ export function SentryComponentInspector() {
   stateRef.current = state;
 
   useLayoutEffect(() => {
-    if (!user || !user.isSuperuser || NODE_ENV !== 'development') {
+    if (NODE_ENV !== 'development') {
       return () => {};
     }
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
@@ -255,7 +275,7 @@ export function SentryComponentInspector() {
       document.body.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, [state.enabled, contextMenu, user, organization]);
+  }, [state.enabled, contextMenu, organization]);
 
   const tracePreview = useMemo(() => {
     return state.trace?.slice(0, 3) ?? [];
@@ -282,7 +302,20 @@ export function SentryComponentInspector() {
     [contextMenuRef]
   );
 
-  if (NODE_ENV !== 'development' || !user?.isSuperuser) {
+  const storybookFiles = useStoryBookFiles();
+  const storybookFilesLookup = useMemo(
+    () =>
+      storybookFiles.reduce(
+        (acc, file) => {
+          acc[file] = file;
+          return acc;
+        },
+        {} as Record<string, string>
+      ),
+    [storybookFiles]
+  );
+
+  if (NODE_ENV !== 'development') {
     return null;
   }
 
@@ -316,10 +349,15 @@ export function SentryComponentInspector() {
                         <Text size="sm" bold monospace>
                           {getComponentName(el)}
                         </Text>
-                        <ComponentTag el={el} />
+                        <Flex direction="row" gap="xs" align="center">
+                          {getComponentStorybookFile(el, storybookFilesLookup) ? (
+                            <IconDocs size="xs" />
+                          ) : null}
+                          <ComponentTag el={el} />
+                        </Flex>
                       </Flex>
                       <Text size="xs" variant="muted" ellipsis monospace>
-                        ...
+                        .../
                         {getSourcePath(el)}
                       </Text>
                     </Fragment>
@@ -371,6 +409,8 @@ export function SentryComponentInspector() {
                           componentName={componentName}
                           sourcePath={sourcePath}
                           el={el}
+                          fullTrace={contextMenuTrace}
+                          storybook={getComponentStorybookFile(el, storybookFilesLookup)}
                           onAction={() => {
                             contextMenu.setOpen(false);
                             setState(prev => ({
@@ -409,13 +449,13 @@ export function SentryComponentInspector() {
           }
 
           [data-sentry-component-trace][data-sentry-source-path]:not([data-inspector-skip]) {
-            box-shadow: 0 0 0 1px ${theme.tokens.border.success} !important;
-            background-color: ${color(theme.tokens.border.success).fade(0.95).toString()} !important;
+            box-shadow: 0 0 0 1px ${theme.tokens.border.success.vibrant} !important;
+            background-color: ${theme.tokens.border.success.muted} !important;
           }
 
           [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
-            box-shadow: 0 0 0 1px ${theme.tokens.border.accent} !important;
-            background-color: ${color(theme.tokens.border.accent).fade(0.6).toString()} !important;
+            box-shadow: 0 0 0 1px ${theme.tokens.border.accent.vibrant} !important;
+            background-color: ${theme.tokens.border.accent.muted} !important;
           }
 
           [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
@@ -435,10 +475,19 @@ function MenuItem(props: {
   contextMenu: ReturnType<typeof useContextMenu>;
   copyToClipboard: (text: string) => void;
   el: TraceElement;
+  fullTrace: TraceElement[];
   onAction: () => void;
   sourcePath: string;
+  storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  // Load story to check for Figma link if it's an MDX file
+  const storyQuery = useStoriesLoader({
+    files: props.storybook?.endsWith('.mdx') ? [props.storybook] : [],
+  });
+
+  const story = storyQuery.data?.[0];
+
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -513,10 +562,13 @@ function MenuItem(props: {
               <Text size="sm" monospace bold>
                 {props.componentName}
               </Text>
-              <ComponentTag el={props.el} />
+              <Flex direction="row" gap="xs" align="center">
+                {props.storybook ? <IconDocs size="xs" /> : null}
+                <ComponentTag el={props.el} />
+              </Flex>
             </Flex>
             <Text size="xs" variant="muted" ellipsis align="left" monospace>
-              ...{props.sourcePath}
+              .../{props.sourcePath}
             </Text>
           </Stack>
           <Flex align="center" justify="center" paddingLeft="md">
@@ -536,6 +588,48 @@ function MenuItem(props: {
           >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Actions')}</ProfilingContextMenuHeading>
+              {props.storybook ? (
+                <ProfilingContextMenuItemButton
+                  {...props.contextMenu.getMenuItemProps({
+                    onClick: () => {
+                      window.open(`/stories/?name=${props.storybook}`, '_blank');
+                      props.onAction();
+                    },
+                  })}
+                  icon={<IconLink size="xs" />}
+                >
+                  {t('View Storybook')}
+                </ProfilingContextMenuItemButton>
+              ) : null}
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    if (
+                      story &&
+                      isMDXStory(story) &&
+                      story.exports.frontmatter?.resources?.figma
+                    ) {
+                      window.open(story.exports.frontmatter?.resources?.figma, '_blank');
+                      props.onAction();
+                    }
+                  },
+                })}
+                disabled={
+                  storyQuery.isLoading ||
+                  !story ||
+                  !isMDXStory(story) ||
+                  !story.exports.frontmatter?.resources?.figma
+                }
+                icon={
+                  storyQuery.isLoading ? (
+                    <LoadingIndicator mini size={12} />
+                  ) : (
+                    <IconOpen size="xs" />
+                  )
+                }
+              >
+                {t('Open in Figma')}
+              </ProfilingContextMenuItemButton>
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
@@ -560,6 +654,19 @@ function MenuItem(props: {
               >
                 {t('Copy Component Path')}
               </ProfilingContextMenuItemButton>
+              <ProfilingContextMenuItemButton
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => {
+                    const llmPrompt = serializeTraceForLLM(props.fullTrace, props.el);
+                    props.copyToClipboard(llmPrompt);
+                    addSuccessMessage(t('LLM prompt copied to clipboard'));
+                    props.onAction();
+                  },
+                })}
+                icon={<IconCopy size="xs" />}
+              >
+                {t('Copy LLM Prompt')}
+              </ProfilingContextMenuItemButton>
             </ProfilingContextMenuGroup>
           </ProfilingContextMenu>,
           props.subMenuPortalRef
@@ -571,7 +678,7 @@ function MenuItem(props: {
 function ComponentTag({el}: {el: TraceElement}) {
   if (isCoreComponent(el)) {
     return (
-      <Tag type="success">
+      <Tag variant="success">
         <Text size="sm" monospace>
           CORE
         </Text>
@@ -581,7 +688,7 @@ function ComponentTag({el}: {el: TraceElement}) {
 
   if (isViewComponent(el)) {
     return (
-      <Tag type="highlight">
+      <Tag variant="info">
         <Text size="sm" monospace>
           VIEW
         </Text>
@@ -590,7 +697,7 @@ function ComponentTag({el}: {el: TraceElement}) {
   }
 
   return (
-    <Tag type="warning">
+    <Tag variant="warning">
       <Text size="sm" monospace>
         SHARED
       </Text>
@@ -630,7 +737,35 @@ function getComponentName(el: unknown): string {
 
 function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) return 'unknown path';
-  return el.dataset.sentrySourcePath?.split(/static/)[1] || 'unknown path';
+  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+}
+
+const getFileName = (path: string) => {
+  return (path.split('/').pop()?.toLowerCase() || '')
+    .replace(/\.stories\.tsx$/, '')
+    .replace(/\.tsx$/, '')
+    .replace(/\.mdx$/, '');
+};
+
+function getComponentStorybookFile(
+  el: unknown,
+  stories: Record<string, string>
+): string | null {
+  const sourcePath = getSourcePath(el);
+  if (!sourcePath) return null;
+
+  const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
+
+  if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
+    return mdxSourcePath;
+  }
+
+  const tsxSourcePath = sourcePath.replace(/\.tsx$/, '.stories.tsx');
+  if (stories[tsxSourcePath] && getFileName(tsxSourcePath) === getFileName(sourcePath)) {
+    return tsxSourcePath;
+  }
+
+  return stories[sourcePath] || null;
 }
 
 function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
@@ -668,4 +803,55 @@ function isCoreComponent(el: unknown): boolean {
 function isViewComponent(el: unknown): boolean {
   if (!isTraceElement(el)) return false;
   return el.dataset.sentrySourcePath?.includes('app/views') ?? false;
+}
+
+export function serializeTraceForLLM(
+  trace: TraceElement[],
+  targetElement: TraceElement
+): string {
+  // Reverse the trace array to show root to leaf (trace is leaf to root)
+  const reversedTrace = [...trace].reverse();
+  const targetIndex = reversedTrace.indexOf(targetElement);
+
+  // Only include components up to and including the target
+  const relevantTrace = reversedTrace.slice(0, targetIndex + 1);
+
+  const lines = relevantTrace.map((el, index) => {
+    const componentName = getComponentName(el);
+    const sourcePath = getSourcePath(el);
+    const isLast = index === relevantTrace.length - 1;
+
+    // Use tree-style box-drawing characters
+    let prefix = '';
+    if (index === 0) {
+      prefix = '┌─';
+    } else if (isLast) {
+      prefix = '└─';
+    } else {
+      prefix = '├─';
+    }
+
+    const suffix = isLast ? ' ◄' : '';
+
+    return `${prefix} ${componentName} (file: ${sourcePath})${suffix}`;
+  });
+
+  const prompt = `# Component Trace
+
+The following is a component hierarchy trace from a React application. This trace represents the DOM hierarchy, not the React component tree. The last component in the hierarchy (marked with ◄) is the target component that should be modified.
+
+${lines.join('\n')}
+
+## Instructions
+
+1. Locate the target component by searching for the component name in the specified file path
+2. If you cannot find an exact match for the component name, consider these alternatives:
+   - The component may be wrapped with \`styled()\`, such as \`styled(ComponentName)\` or \`const StyledComponent = styled(ComponentName)\`
+   - The component may be exported with a different name or wrapped in HOCs
+3. If the target component cannot be found in its file, work up the component tree (towards the root) to find the nearest component that exists
+4. Once located, make the necessary modifications to the target component
+
+Please locate the target component in the codebase and make the necessary modifications.`;
+
+  return prompt;
 }

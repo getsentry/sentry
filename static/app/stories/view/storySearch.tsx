@@ -6,107 +6,85 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {Badge} from 'sentry/components/core/badge';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Badge} from '@sentry/scraps/badge';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
+
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
+import {
+  COMPONENT_SUBCATEGORY_CONFIG,
+  inferComponentSubcategory,
+  SECTION_CONFIG,
+  SECTION_ORDER,
+  useStoryHierarchy,
+} from 'sentry/stories/view/storyTree';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import {useStoryBookFilesByCategory} from './storySidebar';
-
-interface StorySection {
+interface SearchSection {
   key: string;
   label: string;
   options: StoryTreeNode[];
 }
 
-function isStorySection(item: StoryTreeNode | StorySection): item is StorySection {
+function isSearchSection(item: StoryTreeNode | SearchSection): item is SearchSection {
   return 'options' in item;
 }
 
 export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const {
-    foundations: foundationsTree,
-    core: coreTree,
-    product: productTree,
-    typography: typographyTree,
-    layout: layoutTree,
-    shared: sharedTree,
-  } = useStoryBookFilesByCategory();
-  const foundations = useMemo(
-    () => foundationsTree.flatMap(tree => tree.flat()),
-    [foundationsTree]
-  );
-  const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
-  const product = useMemo(() => productTree.flatMap(tree => tree.flat()), [productTree]);
-  const typography = useMemo(
-    () => typographyTree.flatMap(tree => tree.flat()),
-    [typographyTree]
-  );
-  const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
-  const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const hierarchy = useStoryHierarchy();
   useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
-    const sections: StorySection[] = [];
+    const sections: SearchSection[] = [];
 
-    if (foundations.length > 0) {
-      sections.push({
-        key: 'foundations',
-        label: 'Foundations',
-        options: foundations,
-      });
-    }
+    for (const section of SECTION_ORDER) {
+      const data = hierarchy.get(section);
+      if (!data) {
+        continue;
+      }
 
-    if (typography.length > 0) {
-      sections.push({
-        key: 'typography',
-        label: 'Typography',
-        options: typography,
-      });
-    }
+      // For components section, consolidate all subcategories into a single section
+      if (section === 'core') {
+        const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
+          Object.values(subcategoryFolder.children)
+        );
 
-    if (layout.length > 0) {
-      sections.push({
-        key: 'layout',
-        label: 'Layout',
-        options: layout,
-      });
-    }
-
-    if (core.length > 0) {
-      sections.push({
-        key: 'components',
-        label: 'Components',
-        options: core,
-      });
-    }
-
-    if (product.length > 0) {
-      sections.push({
-        key: 'product',
-        label: 'Product',
-        options: product,
-      });
-    }
-
-    if (shared.length > 0) {
-      sections.push({
-        key: 'shared',
-        label: 'Shared',
-        options: shared,
-      });
+        if (allCoreNodes.length > 0) {
+          sections.push({
+            key: section,
+            label: SECTION_CONFIG[section].label,
+            options: allCoreNodes,
+          });
+        }
+      } else if (section === 'product' && data.stories.length > 0) {
+        const flattenedStories = data.stories.flatMap(tree => tree.flat());
+        sections.push({
+          key: section,
+          label: SECTION_CONFIG[section].label,
+          options: flattenedStories,
+        });
+      } else if (data.stories.length > 0) {
+        // Other sections (principles, patterns) don't need flattening
+        sections.push({
+          key: section,
+          label: SECTION_CONFIG[section].label,
+          options: data.stories,
+        });
+      }
     }
 
     return sections;
-  }, [foundations, core, product, layout, typography, shared]);
+  }, [hierarchy]);
 
   return (
     <SearchComboBox
@@ -116,16 +94,41 @@ export function StorySearch() {
       defaultItems={sectionedItems}
     >
       {item => {
-        if (isStorySection(item)) {
+        if (isSearchSection(item)) {
           return (
-            <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
-              {item.options.map(storyItem => (
-                <Item
-                  key={storyItem.filesystemPath}
-                  textValue={storyItem.label}
-                  {...({label: storyItem.label, hideCheck: true} as any)}
-                />
-              ))}
+            <Section
+              key={item.key}
+              title={
+                <Text size="xs" uppercase>
+                  {item.label}
+                </Text>
+              }
+            >
+              {item.options.map(storyItem => {
+                const subcategoryKey =
+                  item.key === 'core'
+                    ? inferComponentSubcategory(storyItem.name.toLowerCase())
+                    : undefined;
+                const subcategoryLabel = subcategoryKey
+                  ? COMPONENT_SUBCATEGORY_CONFIG[subcategoryKey].label
+                  : undefined;
+
+                return (
+                  <Item
+                    key={storyItem.filesystemPath}
+                    textValue={storyItem.label}
+                    {...({
+                      label: storyItem.label,
+                      trailingItems: subcategoryLabel ? (
+                        <Text size="xs" variant="muted" ellipsis>
+                          {subcategoryLabel}
+                        </Text>
+                      ) : undefined,
+                      hideCheck: true,
+                    } as any)}
+                  />
+                );
+              })}
             </Section>
           );
         }
@@ -148,19 +151,19 @@ function SearchInput(
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
 
   return (
-    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
+    <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
         <IconSearch />
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge type="internal">/</Badge>
+        <Badge variant="internal">/</Badge>
       </InputGroup.TrailingItems>
     </InputGroup>
   );
 }
 
-type SearchComboBoxItem<T extends StoryTreeNode> = T | StorySection;
+type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
 
 interface SearchComboBoxProps
   extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
@@ -182,6 +185,8 @@ function SearchComboBox(props: SearchComboBoxProps) {
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+
+  const organization = useOrganization();
   const handleSelectionChange = (key: Key | null) => {
     if (!key) {
       return;
@@ -190,8 +195,11 @@ function SearchComboBox(props: SearchComboBoxProps) {
     if (!node) {
       return;
     }
-    const {state, ...to} = node.location;
-    navigate(to, {replace: true, state});
+    navigate({
+      pathname: normalizeUrl(
+        `/organizations/${organization.slug}/stories/${node.category}/${node.slug}/`
+      ),
+    });
   };
 
   const state = useComboBoxState({
@@ -225,13 +233,13 @@ function SearchComboBox(props: SearchComboBoxProps) {
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
           <ListBox
+            size="sm"
+            virtualized
             listState={state}
             hasSearch={!!state.inputValue}
-            hiddenOptions={new Set([])}
-            keyDownHandler={() => false}
             overlayIsOpen={state.isOpen}
-            size="sm"
             {...listBoxProps}
+            style={{maxHeight: 320, minHeight: 132}}
           >
             {props.children}
           </ListBox>
@@ -246,32 +254,27 @@ const StorySearchContainer = styled('div')`
   width: 320px;
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
-  padding: ${p => p.theme.space.md};
-  padding-right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  margin-left: -${p => p.theme.space['2xl']};
+  margin-left: -${p => p.theme.space.xl};
 `;
 
 const StyledOverlay = styled(Overlay)`
+  overflow: hidden;
   position: fixed;
   top: 48px;
   left: 256px;
   width: 320px;
-  max-height: calc(100dvh - 128px);
-  overflow-y: auto;
+
+  max-height: 320px;
+  min-height: 132px;
+  > div {
+    max-height: 320px !important;
+    min-height: 132px !important;
+  }
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const SectionTitle = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-weight: 600;
-  text-transform: uppercase;
 `;
 
 function getStoryTreeNodeFromKey(
@@ -279,7 +282,7 @@ function getStoryTreeNodeFromKey(
   props: SearchComboBoxProps
 ): StoryTreeNode | undefined {
   for (const category of props.defaultItems) {
-    if (isStorySection(category)) {
+    if (isSearchSection(category)) {
       for (const node of category.options) {
         const match = node.find(item => item.filesystemPath === key);
         if (match) {

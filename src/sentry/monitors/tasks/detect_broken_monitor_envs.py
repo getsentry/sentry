@@ -151,7 +151,6 @@ def build_open_incidents_queryset():
         resolving_checkin=None,
         starting_timestamp__lte=(current_time - timedelta(days=NUM_DAYS_BROKEN_PERIOD)),
         monitor__status=ObjectStatus.ACTIVE,
-        monitor__is_muted=False,
         monitor_environment__is_muted=False,
         monitorenvbrokendetection__env_muted_timestamp=None,
     )

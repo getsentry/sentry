@@ -1,13 +1,14 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import documentation from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -71,7 +72,7 @@ const releases = [
 ].filter(hasTimestamp);
 
 export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
-  APIReference(types.TimeSeriesWidgetVisualization);
+  APIReference(documentation.props?.TimeSeriesWidgetVisualization);
 
   story('Getting Started', () => {
     return (
@@ -819,18 +820,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
         <Storybook.SideBySide>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Line(timeSeries, {color: theme.error})]}
+              plottables={[new Line(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Area(timeSeries, {color: theme.error})]}
+              plottables={[new Area(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
 
           <SmallWidget>
             <TimeSeriesWidgetVisualization
-              plottables={[new Bars(timeSeries, {color: theme.error})]}
+              plottables={[new Bars(timeSeries, {color: theme.tokens.content.danger})]}
             />
           </SmallWidget>
         </Storybook.SideBySide>

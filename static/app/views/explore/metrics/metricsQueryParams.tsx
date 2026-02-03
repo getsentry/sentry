@@ -4,6 +4,11 @@ import {useCallback, useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  MetricsFrozenContextProvider,
+  type MetricsFrozenForTracesProviderProps,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {MetricsStateQueryParamsProvider} from 'sentry/views/explore/metrics/metricsStateQueryParamsProvider';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -20,6 +25,8 @@ import {
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface TraceMetricContextValue {
+  metric: TraceMetric;
+  removeMetric: () => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
@@ -31,8 +38,12 @@ const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
   queryParams: ReadableQueryParams;
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
+  traceMetric: TraceMetric;
+  freeze?: MetricsFrozenForTracesProviderProps;
+  isStateBased?: boolean;
 }
 
 export function MetricsQueryParamsProvider({
@@ -40,12 +51,18 @@ export function MetricsQueryParamsProvider({
   queryParams,
   setQueryParams,
   setTraceMetric,
+  removeMetric,
+  traceMetric,
+  freeze,
+  isStateBased,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
       const newQueryParams = updateQueryParams(queryParams, {
         query: getUpdatedValue(writableQueryParams.query, defaultQuery),
         aggregateFields: writableQueryParams.aggregateFields,
+        aggregateSortBys: writableQueryParams.aggregateSortBys,
+        mode: writableQueryParams.mode,
       });
 
       setQueryParams(newQueryParams);
@@ -55,21 +72,32 @@ export function MetricsQueryParamsProvider({
 
   const traceMetricContextValue = useMemo(
     () => ({
+      metric: traceMetric,
       setTraceMetric,
+      removeMetric,
     }),
-    [setTraceMetric]
+    [setTraceMetric, removeMetric, traceMetric]
   );
+
+  const QueryContextProvider = isStateBased
+    ? MetricsStateQueryParamsProvider
+    : QueryParamsContextProvider;
 
   return (
     <TraceMetricContext value={traceMetricContextValue}>
-      <QueryParamsContextProvider
-        queryParams={queryParams}
-        setQueryParams={setWritableQueryParams}
-        isUsingDefaultFields
-        shouldManageFields={false}
+      <MetricsFrozenContextProvider
+        traceIds={freeze?.traceIds ?? []}
+        tracePeriod={freeze?.tracePeriod}
       >
-        {children}
-      </QueryParamsContextProvider>
+        <QueryContextProvider
+          queryParams={queryParams}
+          setQueryParams={setWritableQueryParams}
+          isUsingDefaultFields
+          shouldManageFields={false}
+        >
+          {children}
+        </QueryContextProvider>
+      </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
 }
@@ -91,15 +119,49 @@ function getUpdatedValue<T>(
 
 export function useMetricVisualize(): VisualizeFunction {
   const visualizes = useQueryParamsVisualizes();
-  if (visualizes.length === 1 && isVisualizeFunction(visualizes[0]!)) {
+  if (visualizes.length > 0 && isVisualizeFunction(visualizes[0]!)) {
     return visualizes[0];
   }
-  throw new Error('Only 1 visualize per metric allowed');
+  throw new Error('No visualize found');
+}
+
+export function useMetricVisualizes(): readonly VisualizeFunction[] {
+  const visualizes = useQueryParamsVisualizes();
+  if (visualizes.length > 0 && visualizes.every(isVisualizeFunction)) {
+    return visualizes;
+  }
+  throw new Error('Only visualize functions are allowed');
+}
+
+export function useMetricName(): string {
+  const {metric} = useTraceMetricContext();
+  return metric.name;
+}
+
+export function useMetricLabel(): string {
+  const visualize = useMetricVisualize();
+  const {metric} = useTraceMetricContext();
+
+  if (!visualize.parsedFunction) {
+    return metric.name;
+  }
+
+  return `${visualize.parsedFunction.name}(${metric.name})`;
+}
+
+export function useTraceMetric(): TraceMetric {
+  const {metric} = useTraceMetricContext();
+  return metric;
 }
 
 export function useSetTraceMetric() {
   const {setTraceMetric} = useTraceMetricContext();
   return setTraceMetric;
+}
+
+export function useRemoveMetric() {
+  const {removeMetric} = useTraceMetricContext();
+  return removeMetric;
 }
 
 export function useSetMetricVisualize() {
@@ -111,6 +173,17 @@ export function useSetMetricVisualize() {
     [setVisualizes]
   );
   return setVisualize;
+}
+
+export function useSetMetricVisualizes() {
+  const setVisualizes = useSetQueryParamsVisualizes();
+  const setMetricVisualizes = useCallback(
+    (newVisualizes: VisualizeFunction[]) => {
+      setVisualizes(newVisualizes.map(v => v.serialize()));
+    },
+    [setVisualizes]
+  );
+  return setMetricVisualizes;
 }
 
 function updateQueryParams(

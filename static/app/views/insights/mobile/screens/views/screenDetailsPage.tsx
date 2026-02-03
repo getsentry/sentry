@@ -1,11 +1,10 @@
 import type React from 'react';
 import {useState} from 'react';
+import omit from 'lodash/omit';
 
-import {
-  FeatureBadge,
-  type FeatureBadgeProps,
-} from 'sentry/components/core/badge/featureBadge';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -90,12 +89,12 @@ function ScreenDetailsPage() {
 
     navigate({
       pathname: location.pathname,
-      query: newQuery,
+      query: omit(newQuery, 'field', 'query', 'referrer', 'sampling', 'sort', 'span.op'),
     });
   }
 
   const tabList = (
-    <TabList hideBorder>
+    <TabList>
       {tabs.map(tab => {
         const visible =
           tab.feature === undefined || organization.features.includes(tab.feature);
@@ -132,7 +131,7 @@ function ScreenDetailsPage() {
               ]}
             />
             <Layout.Body>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <PageAlert />
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>

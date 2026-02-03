@@ -4,10 +4,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {
@@ -93,6 +95,7 @@ describe('EventReplay', () => {
     useHaveSelectedProjectsSentAnyReplayEvents
   );
 
+  const user = UserFixture({id: '1'});
   const organization = OrganizationFixture({
     features: ['session-replay'],
   });
@@ -110,6 +113,7 @@ describe('EventReplay', () => {
   };
 
   beforeEach(() => {
+    ConfigStore.set('user', user);
     const project = ProjectFixture({platform: 'javascript'});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -184,5 +188,37 @@ describe('EventReplay', () => {
     );
 
     expect(await screen.findByTestId('replay-clip')).toBeInTheDocument();
+  });
+
+  it('should not render replay when user does not have granular replay permissions', () => {
+    const orgWithGranularPermissions = OrganizationFixture({
+      features: ['session-replay', 'granular-replay-permissions'],
+      hasGranularReplayPermissions: true,
+      replayAccessMembers: [999], // User ID 1 is not in this list
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithGranularPermissions.slug}/replay-count/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
+      activateSidebar: jest.fn(),
+    });
+
+    render(
+      <EventReplay
+        {...defaultProps}
+        event={EventFixture({
+          entries: [],
+          tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+          platform: 'javascript',
+        })}
+      />,
+      {organization: orgWithGranularPermissions}
+    );
+
+    expect(screen.queryByTestId('replay-clip')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -32,14 +32,14 @@ export function getAutomationActionsWarning(
   if (totalCount === 0) {
     return {
       color: 'danger' as const,
-      message: t('You must add an action for this automation to run.'),
+      message: t('You must add an action for this alert to run.'),
     };
   }
   if (inactiveCount === totalCount) {
     return {
       color: 'danger' as const,
       message: t(
-        'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+        'Alert is invalid because no actions can run. Actions need to be reconfigured.'
       ),
     };
   }
@@ -154,6 +154,7 @@ export function findConflictingConditions(
 
 const conflictingTriggers = new Set<DataConditionType>([
   DataConditionType.FIRST_SEEN_EVENT,
+  DataConditionType.ISSUE_RESOLVED_TRIGGER,
   DataConditionType.REGRESSION_EVENT,
   DataConditionType.REAPPEARED_EVENT,
 ]);

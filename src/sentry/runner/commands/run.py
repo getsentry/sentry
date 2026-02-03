@@ -539,10 +539,16 @@ def taskbroker_send_tasks(
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
 @click.option(
-    "--shutdown-strategy-before-consumer",
+    "--profile-consumer-join",
     is_flag=True,
     default=False,
-    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
+    help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
+)
+@click.option(
+    "--arroyo-arg",
+    "arroyo_args",
+    multiple=True,
+    help="Override StreamProcessor arguments. Format: --arroyo-arg='key:value'. Example: --arroyo-arg='join_timeout:60'",
 )
 @configuration
 def basic_consumer(
@@ -551,6 +557,7 @@ def basic_consumer(
     topic: str | None,
     kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
+    arroyo_args: tuple[str, ...],
     **options: Any,
 ) -> None:
     """
@@ -580,14 +587,21 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
-        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+        set_sentry_tags=True,
+        tags={
+            "kafka_topic": topic,
+            "consumer_group": options["group_id"],
+            "kafka_slice_id": kafka_slice_id,
+        },
     )
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,
         topic=topic,
         kafka_slice_id=kafka_slice_id,
         add_global_tags=True,
+        arroyo_args=arroyo_args,
         **options,
     )
 
@@ -633,6 +647,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
+            profile_consumer_join=False,
         )
         for consumer_name in consumer_names
     ]

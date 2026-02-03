@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
@@ -54,7 +55,7 @@ function PerformanceIssueAlert({
 
   return (
     <Alert.Container>
-      <Alert type="info">{children}</Alert>
+      <Alert variant="info">{children}</Alert>
     </Alert.Container>
   );
 }

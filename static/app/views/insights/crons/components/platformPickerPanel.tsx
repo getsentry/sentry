@@ -3,44 +3,15 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {NewMonitorButton} from './newMonitorButton';
-
-export type SupportedPlatform =
-  | 'python-celery'
-  | 'php'
-  | 'php-laravel'
-  | 'python'
-  | 'node'
-  | 'go'
-  | 'java'
-  | 'java-spring-boot'
-  | 'ruby'
-  | 'ruby-rails'
-  | 'dotnet';
-
-interface SDKPlatformInfo {
-  label: string;
-  platform: SupportedPlatform;
-}
-
-export const CRON_SDK_PLATFORMS: SDKPlatformInfo[] = [
-  {platform: 'python-celery', label: 'Celery'},
-  {platform: 'php', label: 'PHP'},
-  {platform: 'php-laravel', label: 'Laravel'},
-  {platform: 'python', label: 'Python'},
-  {platform: 'node', label: 'Node'},
-  {platform: 'go', label: 'Go'},
-  {platform: 'java', label: 'Java'},
-  {platform: 'java-spring-boot', label: 'Spring Boot'},
-  {platform: 'ruby', label: 'Ruby'},
-  {platform: 'ruby-rails', label: 'Rails'},
-  {platform: 'dotnet', label: '.NET'},
-];
+import {platformGuides, type SupportedPlatform} from './upsertPlatformGuides';
 
 interface Props {
   onSelect: (platform: SupportedPlatform | null) => void;
@@ -56,29 +27,31 @@ export function PlatformPickerPanel({onSelect}: Props) {
         )}
       </p>
       <SectionTitle>{t('Platforms')}</SectionTitle>
-      <Actions>
-        {CRON_SDK_PLATFORMS.map(({platform, label}) => (
-          <PlatformOption key={platform}>
-            <PlatformButton
-              priority="default"
-              onClick={() => onSelect(platform)}
-              aria-label={t('Create %s Monitor', platform)}
-            >
-              <PlatformIcon platform={platform} format="lg" size="100%" />
-            </PlatformButton>
-            <div>{label}</div>
-          </PlatformOption>
-        ))}
-      </Actions>
+      <Flex wrap="wrap" gap="xl">
+        {platformGuides
+          .filter(({platform}) => !['cli', 'http'].includes(platform))
+          .map(({platform, label}) => (
+            <PlatformOption key={platform}>
+              <PlatformButton
+                priority="default"
+                onClick={() => onSelect(platform)}
+                aria-label={t('Create %s Monitor', platform)}
+              >
+                <PlatformIcon platform={platform} format="lg" size="100%" />
+              </PlatformButton>
+              <div>{label}</div>
+            </PlatformOption>
+          ))}
+      </Flex>
       <SectionTitle>{t('Generic')}</SectionTitle>
-      <Actions>
-        <NewMonitorButton size="sm" priority="default">
+      <Flex wrap="wrap" gap="xl">
+        <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
           Sentry CLI
-        </NewMonitorButton>
-        <NewMonitorButton size="sm" priority="default">
+        </Button>
+        <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
           HTTP (cURL)
-        </NewMonitorButton>
-      </Actions>
+        </Button>
+      </Flex>
     </OnboardingPanel>
   );
 }
@@ -88,17 +61,11 @@ const OnboardingTitle = styled('h3')`
 `;
 
 const SectionTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
   margin-top: ${space(4)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  flex-wrap: wrap;
 `;
 
 const PlatformButton = styled(Button)`
@@ -112,5 +79,5 @@ const PlatformOption = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -25,7 +25,9 @@ const getRow = (orgId: string, region: string, row: any) => [
     {row.channel || 'n/a'}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : 'warning'}>{row.isPaid ? 'Paid' : 'Pending'}</Tag>
+    <Tag variant={row.isPaid ? 'success' : row.isClosed ? 'danger' : 'warning'}>
+      {row.isPaid ? 'Paid' : row.isClosed ? 'Closed' : 'Pending'}
+    </Tag>
   </td>,
   <td key="amount" style={{textAlign: 'right'}}>
     ${(row.amount / 100).toLocaleString()}

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.demo_mode.utils import is_demo_mode_enabled
 from sentry.utils.marketo_client import MarketoClient
@@ -17,7 +17,7 @@ class EmailCaptureSerializer(CamelSnakeSerializer):
     email = serializers.EmailField(required=True)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class EmailCaptureEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,

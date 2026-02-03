@@ -74,7 +74,7 @@ export function formatRootCauseWithEvent(
     return rootCauseText;
   }
 
-  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event, undefined);
   return rootCauseText + eventText;
 }
 
@@ -95,7 +95,7 @@ export function formatSolutionWithEvent(
   combinedText += solutionText;
 
   if (event) {
-    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event, undefined);
     combinedText += eventText;
   }
 
@@ -172,12 +172,24 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
 
-const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
-
-export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {
-  if (!provider) {
+export function hasPullRequest(autofixData: AutofixData | null | undefined): boolean {
+  if (!autofixData) {
     return false;
   }
+
+  const changesStep = autofixData.steps?.find(
+    step => step.type === AutofixStepType.CHANGES
+  );
+
+  return Boolean(changesStep?.changes?.some(change => change.pull_request));
+}
+
+const supportedProviders = [
+  'github',
+  'integrations:github',
+  'integrations:github_enterprise',
+];
+export const isSupportedAutofixProvider = (provider: {id: string; name: string}) => {
   return supportedProviders.includes(provider.id);
 };
 

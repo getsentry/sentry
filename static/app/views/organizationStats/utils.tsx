@@ -154,10 +154,3 @@ export function getPaginationPageLink({
     nextOffset < numRows
   }"; cursor="0:${nextOffset}:0"`;
 }
-
-export function isContinuousProfiling(dataCategory: DataCategory | string) {
-  return (
-    dataCategory === DataCategory.PROFILE_DURATION ||
-    dataCategory === DataCategory.PROFILE_DURATION_UI
-  );
-}

@@ -1,5 +1,6 @@
-import type {InputProps} from 'sentry/components/core/input/inputGroup';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import type {InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -49,7 +50,7 @@ function defaultField({
     <InputGroup>
       <InputGroup.Input
         onBlur={e => onBlur(e.target.value, e)}
-        onKeyDown={e => onKeyDown((e.target as any).value, e)}
+        onKeyDown={e => onKeyDown((e.target as HTMLInputElement).value, e)}
         onChange={e => onChange(e.target.value, e)}
         name={name}
         {...rest}

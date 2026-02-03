@@ -23,7 +23,7 @@ export function DetectorTypeCell({
 }
 
 const Type = styled('div')<{disabled: boolean}>`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
   gap: ${space(0.5)};
@@ -31,6 +31,6 @@ const Type = styled('div')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     `
-    color: ${p.theme.disabled};
+    color: ${p.theme.tokens.content.disabled};
   `}
 `;

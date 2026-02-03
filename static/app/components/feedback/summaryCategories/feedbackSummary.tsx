@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -81,11 +82,11 @@ export default function FeedbackSummary() {
 const LoadingPlaceholder = styled(Placeholder)`
   height: 48px;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const SummaryContent = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;

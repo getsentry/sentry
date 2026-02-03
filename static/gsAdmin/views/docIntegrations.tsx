@@ -1,28 +1,24 @@
-import styled from '@emotion/styled';
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import DocIntegrationModal from 'admin/components/docIntegrationModal';
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
-type Props = RouteComponentProps<unknown, unknown>;
-
 const getRow = (doc: DocIntegration) => [
   <td key="name" style={{textAlign: 'left'}}>
-    <IntegrationName>
+    <Flex align="center" gap="md">
       <DocIntegrationAvatar size={16} docIntegration={doc} />
       <strong>
         <Link to={`/_admin/doc-integrations/${doc.slug}/`}>{doc.name}</Link>
       </strong>
-    </IntegrationName>
+    </Flex>
   </td>,
 
   <td key="author" style={{textAlign: 'center'}}>
@@ -32,13 +28,13 @@ const getRow = (doc: DocIntegration) => [
     {doc.popularity}
   </td>,
   <td key="status" style={{textAlign: 'right'}}>
-    <Tag type={doc.isDraft === true ? 'warning' : 'success'}>
+    <Tag variant={doc.isDraft === true ? 'warning' : 'success'}>
       {doc.isDraft === false ? 'published' : 'draft'}
     </Tag>
   </td>,
 ];
 
-function DocIntegrations(props: Props) {
+export default function DocIntegrations() {
   return (
     <div>
       <PageHeader title="Document Integrations">
@@ -71,16 +67,7 @@ function DocIntegrations(props: Props) {
           </th>,
         ]}
         columnsForRow={getRow}
-        {...props}
       />
     </div>
   );
 }
-
-const IntegrationName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-export default DocIntegrations;

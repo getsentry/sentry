@@ -44,7 +44,7 @@ export function determineSeriesSampleCountAndIsSampled(
       }
 
       const sampleRate = data[i]!.values[j]!.sampleRate;
-      if (sampleRate === 1) {
+      if (defined(sampleRate) && sampleRate >= 1) {
         hasUnsampledInterval = true;
       } else if (defined(sampleRate) && sampleRate < 1) {
         hasSampledInterval = true;

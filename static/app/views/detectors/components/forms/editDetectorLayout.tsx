@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
@@ -22,6 +24,8 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
+  environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
@@ -37,7 +41,12 @@ export function EditDetectorLayout<
   formDataToEndpointPayload,
   savedDetectorToFormData,
   mapFormErrors,
+  environment,
+  extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.xl;
+
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
     formDataToEndpointPayload,
@@ -55,27 +64,33 @@ export function EditDetectorLayout<
 
   return (
     <EditLayout formProps={formProps}>
-      <EditLayout.Header>
+      <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
           <EditDetectorBreadcrumbs detector={detector} />
         </EditLayout.HeaderContent>
 
-        <EditLayout.Actions>
-          <MonitorFeedbackButton />
-          <DisableDetectorAction detector={detector} />
-          <DeleteDetectorAction detector={detector} />
-          <Button type="submit" priority="primary" size="sm">
-            {t('Save')}
-          </Button>
-        </EditLayout.Actions>
+        <div>
+          <EditLayout.Actions>
+            <MonitorFeedbackButton />
+          </EditLayout.Actions>
+        </div>
 
         <EditLayout.HeaderFields>
-          <DetectorBaseFields />
+          <DetectorBaseFields environment={environment} />
           {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 
-      <EditLayout.Body>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+
+      <EditLayout.Footer maxWidth={maxWidth}>
+        <DisableDetectorAction detector={detector} />
+        <DeleteDetectorAction detector={detector} />
+        {extraFooterButton}
+        <Button type="submit" priority="primary" size="sm">
+          {t('Save')}
+        </Button>
+      </EditLayout.Footer>
     </EditLayout>
   );
 }

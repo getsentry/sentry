@@ -1,8 +1,7 @@
-import styled from '@emotion/styled';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
 import {useAffectsSelection} from 'sentry/views/insights/mobile/screenload/data/useAffectsSelection';
 
@@ -22,9 +21,10 @@ export function AffectSelector({transaction}: {transaction?: string}) {
   options.push({value: 'NONE', label: t('None')});
 
   return (
-    <StyledCompactSelect
-      disallowEmptySelection
-      triggerProps={{prefix: t('Affects'), size: 'xs'}}
+    <CompactSelect
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Affects')} size="md" />
+      )}
       value={value}
       options={options}
       onChange={newValue => {
@@ -33,7 +33,3 @@ export function AffectSelector({transaction}: {transaction?: string}) {
     />
   );
 }
-
-const StyledCompactSelect = styled(CompactSelect)`
-  margin-bottom: ${space(1)};
-`;

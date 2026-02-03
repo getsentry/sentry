@@ -186,7 +186,6 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    debug: bool = False,
     *,
     referrer: str,
 ) -> EventsResponse:
@@ -261,7 +260,7 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
-    if debug:
+    if snuba_params.debug:
         result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
@@ -405,7 +404,7 @@ def create_result_key(
     groupby = create_groupby_dict(result_row, fields, issues)
     groupby_values: list[str] = []
     for value in groupby:
-        groupby_values.append(value["value"])
+        groupby_values.append(str(value["value"]))
     result = ",".join(groupby_values)
     # If the result would be identical to the other key, include the field name
     # only need the first field since this would only happen with a single field
@@ -415,7 +414,10 @@ def create_result_key(
 
 
 def create_groupby_dict(
-    result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
+    result_row: SnubaRow,
+    fields: list[str],
+    issues: Mapping[int, str | None],
+    stringify_none: bool = True,
 ) -> list[GroupBy]:
     values = []
     for field in fields:
@@ -439,7 +441,10 @@ def create_groupby_dict(
                     value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""
-            values.append(GroupBy(key=field, value=str(value)))
+            if stringify_none:
+                values.append(GroupBy(key=field, value=str(value)))
+            else:
+                values.append(GroupBy(key=field, value=str(value) if value is not None else None))
     return values
 
 

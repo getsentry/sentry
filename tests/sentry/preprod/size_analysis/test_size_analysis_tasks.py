@@ -1,8 +1,6 @@
 from io import BytesIO
 from unittest.mock import patch
 
-import pytest
-
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -17,6 +15,7 @@ from sentry.preprod.size_analysis.tasks import (
     manual_size_analysis_comparison,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.utils import json
 
 
@@ -68,7 +67,12 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
+        with (
+            patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger,
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+            ) as mock_status_check_task,
+        ):
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
@@ -79,6 +83,9 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             call_args = mock_logger.info.call_args
             assert "preprod.size_analysis.compare.artifact_no_commit_comparison" in call_args[0]
             assert call_args[1]["extra"]["artifact_id"] == artifact.id
+
+            # Should not call create_preprod_status_check_task when there's no commit comparison
+            mock_status_check_task.apply_async.assert_not_called()
 
     def test_compare_preprod_artifact_size_analysis_success_as_head(self):
         """Test compare_preprod_artifact_size_analysis with artifact as head."""
@@ -101,7 +108,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -109,7 +116,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -120,6 +127,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
         # Create size analysis data
         head_analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -144,6 +152,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             },
         }
         base_analysis_data = {
+            "analysis_duration": 0.4,
             "download_size": 800,
             "install_size": 1500,
             "treemap": {
@@ -169,26 +178,44 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         }
 
         # Create size metrics
-        self._create_size_metrics_with_analysis_file(head_artifact, head_analysis_data)
-        self._create_size_metrics_with_analysis_file(base_artifact, base_analysis_data)
+        head_size_metrics = self._create_size_metrics_with_analysis_file(
+            head_artifact, head_analysis_data
+        )
+        base_size_metrics = self._create_size_metrics_with_analysis_file(
+            base_artifact, base_analysis_data
+        )
+
+        # Verify no comparison exists before the test
+        initial_comparisons = PreprodArtifactSizeComparison.objects.filter(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+        )
+        assert len(initial_comparisons) == 0
 
         with patch(
-            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-        ) as mock_run_comparison:
+            "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+        ) as mock_status_check_task:
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
                 artifact_id=head_artifact.id,
             )
 
-            # Should call _run_size_analysis_comparison with head and base metrics
-            mock_run_comparison.assert_called_once()
-            call_args = mock_run_comparison.call_args[0]
-            # Verify that the call was made with the correct parameters
-            assert call_args[0] == self.project.id
-            assert call_args[1] == self.organization.id
-            assert call_args[2].preprod_artifact.id == head_artifact.id
-            assert call_args[3].preprod_artifact.id == base_artifact.id
+            # Verify comparison was created
+            comparisons = PreprodArtifactSizeComparison.objects.filter(
+                head_size_analysis=head_size_metrics,
+                base_size_analysis=base_size_metrics,
+            )
+            assert len(comparisons) == 1
+            comparison = comparisons[0]
+            assert comparison.state == PreprodArtifactSizeComparison.State.SUCCESS
+            assert comparison.organization_id == self.organization.id
+            assert comparison.file_id is not None
+
+            # Should call create_preprod_status_check_task for the head artifact
+            mock_status_check_task.apply_async.assert_called_once_with(
+                kwargs={"preprod_artifact_id": head_artifact.id, "caller": "compare_completion"}
+            )
 
     def test_compare_preprod_artifact_size_analysis_success_as_base(self):
         """Test compare_preprod_artifact_size_analysis with artifact as base."""
@@ -211,7 +238,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -219,7 +246,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -230,6 +257,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
         # Create size analysis data
         analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -255,26 +283,42 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         }
 
         # Create size metrics
-        self._create_size_metrics_with_analysis_file(base_artifact, analysis_data)
-        self._create_size_metrics_with_analysis_file(head_artifact, analysis_data)
+        base_size_metrics = self._create_size_metrics_with_analysis_file(
+            base_artifact, analysis_data
+        )
+        head_size_metrics = self._create_size_metrics_with_analysis_file(
+            head_artifact, analysis_data
+        )
 
         with patch(
-            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-        ) as mock_run_comparison:
+            "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+        ) as mock_status_check_task:
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
                 artifact_id=base_artifact.id,
             )
 
-            # Should call _run_size_analysis_comparison with head and base metrics
-            mock_run_comparison.assert_called_once()
-            call_args = mock_run_comparison.call_args[0]
-            # Verify that the call was made with the correct parameters
-            assert call_args[0] == self.project.id
-            assert call_args[1] == self.organization.id
-            assert call_args[2].preprod_artifact.id == head_artifact.id
-            assert call_args[3].preprod_artifact.id == base_artifact.id
+            # Verify comparison was created
+            comparisons = PreprodArtifactSizeComparison.objects.filter(
+                head_size_analysis=head_size_metrics,
+                base_size_analysis=base_size_metrics,
+            )
+            assert len(comparisons) == 1
+            comparison = comparisons[0]
+            assert comparison.state == PreprodArtifactSizeComparison.State.SUCCESS
+            assert comparison.organization_id == self.organization.id
+            assert comparison.file_id is not None
+
+            # Should call create_preprod_status_check_task twice:
+            # 1. For the base artifact (current artifact)
+            # 2. For the head artifact (since should_update_status_check is True)
+            assert mock_status_check_task.apply_async.call_count == 2
+            calls = mock_status_check_task.apply_async.call_args_list
+            # First call should be for the base artifact
+            assert calls[0][1]["kwargs"]["preprod_artifact_id"] == base_artifact.id
+            # Second call should be for the head artifact
+            assert calls[1][1]["kwargs"]["preprod_artifact_id"] == head_artifact.id
 
     def test_compare_preprod_artifact_size_analysis_no_matching_artifacts(self):
         """Test compare_preprod_artifact_size_analysis with no matching artifacts."""
@@ -289,7 +333,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifact
-        artifact = PreprodArtifact.objects.create(
+        artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=commit,
             app_id="com.example.app",
@@ -298,9 +342,14 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        with patch(
-            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-        ) as mock_run_comparison:
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+            ) as mock_status_check_task,
+        ):
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
@@ -309,6 +358,11 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
             # Should not call _run_size_analysis_comparison
             mock_run_comparison.assert_not_called()
+
+            # Should still call create_preprod_status_check_task once for the artifact
+            mock_status_check_task.apply_async.assert_called_once_with(
+                kwargs={"preprod_artifact_id": artifact.id, "caller": "compare_completion"}
+            )
 
     def test_compare_preprod_artifact_size_analysis_cannot_compare_metrics(self):
         """Test compare_preprod_artifact_size_analysis when metrics cannot be compared."""
@@ -331,7 +385,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -339,7 +393,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_number=1,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -360,9 +414,14 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
         )
 
-        with patch(
-            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-        ) as mock_run_comparison:
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+            ) as mock_status_check_task,
+        ):
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
@@ -371,6 +430,11 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
             # Should not call _run_size_analysis_comparison due to incompatible metrics
             mock_run_comparison.assert_not_called()
+
+            # Should still call create_preprod_status_check_task once for the head artifact
+            mock_status_check_task.apply_async.assert_called_once_with(
+                kwargs={"preprod_artifact_id": head_artifact.id, "caller": "compare_completion"}
+            )
 
     def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_head(self):
         """Test compare_preprod_artifact_size_analysis with different build configurations when artifact is head."""
@@ -396,7 +460,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             project=self.project, name="release"
         )
 
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -405,7 +469,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_configuration=debug_config,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        PreprodArtifact.objects.create(
+        Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -415,9 +479,14 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        with patch(
-            "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
-        ) as mock_run_comparison:
+        with (
+            patch(
+                "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
+            ) as mock_run_comparison,
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+            ) as mock_status_check_task,
+        ):
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
                 org_id=self.organization.id,
@@ -425,6 +494,14 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             )
 
             mock_run_comparison.assert_not_called()
+
+            # Should still call create_preprod_status_check_task once for the head artifact
+            mock_status_check_task.apply_async.assert_called_once_with(
+                kwargs={
+                    "preprod_artifact_id": head_artifact.id,
+                    "caller": "compare_completion",
+                }
+            )
 
     def test_compare_preprod_artifact_size_analysis_different_build_configurations_as_base(self):
         """Test compare_preprod_artifact_size_analysis with different build configurations when artifact is base."""
@@ -453,7 +530,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
         )
 
         # Create artifacts with different build configurations
-        base_artifact = PreprodArtifact.objects.create(
+        base_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=base_commit,
             app_id="com.example.app",
@@ -462,7 +539,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             build_configuration=debug_config,
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
-        head_artifact = PreprodArtifact.objects.create(
+        head_artifact = Factories.create_preprod_artifact(
             project=self.project,
             commit_comparison=head_commit,
             app_id="com.example.app",
@@ -477,6 +554,9 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
                 "sentry.preprod.size_analysis.tasks._run_size_analysis_comparison"
             ) as mock_run_comparison,
             patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger,
+            patch(
+                "sentry.preprod.size_analysis.tasks.create_preprod_status_check_task"
+            ) as mock_status_check_task,
         ):
             compare_preprod_artifact_size_analysis(
                 project_id=self.project.id,
@@ -491,6 +571,12 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             )
             mock_run_comparison.assert_not_called()
 
+            # Should still call create_preprod_status_check_task once for the base artifact
+            # but not for the head artifact (since should_update_status_check remains False)
+            mock_status_check_task.apply_async.assert_called_once_with(
+                kwargs={"preprod_artifact_id": base_artifact.id, "caller": "compare_completion"}
+            )
+
 
 class ManualSizeAnalysisComparisonTest(TestCase):
     def setUp(self):
@@ -500,7 +586,7 @@ class ManualSizeAnalysisComparisonTest(TestCase):
 
     def _create_size_metrics(self, **kwargs):
         """Helper to create PreprodArtifactSizeMetrics."""
-        artifact = PreprodArtifact.objects.create(
+        artifact = Factories.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -528,7 +614,6 @@ class ManualSizeAnalysisComparisonTest(TestCase):
             )
 
             mock_run_comparison.assert_called_once_with(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -605,6 +690,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
         """Test _run_size_analysis_comparison with successful comparison."""
         # Create analysis data
         head_analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -629,6 +715,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
             },
         }
         base_analysis_data = {
+            "analysis_duration": 0.4,
             "download_size": 800,
             "install_size": 1500,
             "treemap": {
@@ -657,9 +744,16 @@ class RunSizeAnalysisComparisonTest(TestCase):
         head_size_metrics = self._create_size_metrics_with_analysis_file(head_analysis_data)
         base_size_metrics = self._create_size_metrics_with_analysis_file(base_analysis_data)
 
+        # Create existing comparison in PENDING state
+        PreprodArtifactSizeComparison.objects.create(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+            organization_id=self.organization.id,
+            state=PreprodArtifactSizeComparison.State.PENDING,
+        )
+
         # Run comparison
         _run_size_analysis_comparison(
-            self.project.id,
             self.organization.id,
             head_size_metrics,
             base_size_metrics,
@@ -686,14 +780,82 @@ class RunSizeAnalysisComparisonTest(TestCase):
         assert "diff_items" in file_content
         assert "size_metric_diff_item" in file_content
 
+    def test_run_size_analysis_comparison_preserves_apple_insights(self):
+        """Test _run_size_analysis_comparison with Apple-only insights."""
+        head_analysis_data = {
+            "analysis_duration": 0.5,
+            "download_size": 1000,
+            "install_size": 2000,
+            "insights": {
+                "platform": "apple",
+                "image_optimization": {
+                    "total_savings": 1200,
+                    "optimizable_files": [
+                        {
+                            "file_path": "Assets/foo.png",
+                            "current_size": 2000,
+                            "minify_savings": 1200,
+                            "minified_size": 800,
+                            "conversion_savings": 0,
+                            "heic_size": None,
+                        }
+                    ],
+                },
+                "strip_binary": {
+                    "total_savings": 500,
+                    "files": [
+                        {
+                            "file_path": "HackerNews",
+                            "debug_sections_savings": 300,
+                            "symbol_table_savings": 200,
+                            "total_savings": 500,
+                        }
+                    ],
+                    "total_debug_sections_savings": 300,
+                    "total_symbol_table_savings": 200,
+                },
+            },
+        }
+        base_analysis_data = {
+            "analysis_duration": 0.4,
+            "download_size": 800,
+            "install_size": 1500,
+        }
+
+        head_size_metrics = self._create_size_metrics_with_analysis_file(head_analysis_data)
+        base_size_metrics = self._create_size_metrics_with_analysis_file(base_analysis_data)
+
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.PENDING,
+        )
+
+        _run_size_analysis_comparison(
+            self.organization.id,
+            head_size_metrics,
+            base_size_metrics,
+        )
+
+        comparison = PreprodArtifactSizeComparison.objects.get(
+            head_size_analysis=head_size_metrics,
+            base_size_analysis=base_size_metrics,
+        )
+        comparison_file = File.objects.get(id=comparison.file_id)
+        file_content = json.loads(comparison_file.getfile().read().decode())
+        insight_types = [item["insight_type"] for item in file_content["insight_diff_items"]]
+        assert "image_optimization" in insight_types
+        assert "strip_binary" in insight_types
+
     def test_run_size_analysis_comparison_existing_comparison_processing(self):
         """Test _run_size_analysis_comparison with existing processing comparison."""
         # Create size metrics
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
         # Create existing comparison in processing state
@@ -706,7 +868,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -729,10 +890,10 @@ class RunSizeAnalysisComparisonTest(TestCase):
         """Test _run_size_analysis_comparison with existing successful comparison."""
         # Create size metrics
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
         # Create existing comparison in success state
@@ -745,7 +906,6 @@ class RunSizeAnalysisComparisonTest(TestCase):
 
         with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
             _run_size_analysis_comparison(
-                self.project.id,
                 self.organization.id,
                 head_size_metrics,
                 base_size_metrics,
@@ -780,32 +940,27 @@ class RunSizeAnalysisComparisonTest(TestCase):
         )
 
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
-        with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
-            _run_size_analysis_comparison(
-                self.project.id,
-                self.organization.id,
-                head_size_metrics,
-                base_size_metrics,
-            )
+        _run_size_analysis_comparison(
+            self.organization.id,
+            head_size_metrics,
+            base_size_metrics,
+        )
 
-            mock_logger.exception.assert_called_once()
-            call_args = mock_logger.exception.call_args
-            assert "preprod.size_analysis.compare.head_analysis_file_not_found" in call_args[0]
-
-        # Verify no comparison was created
+        # Verify failed comparison was created
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
 
     def test_run_size_analysis_comparison_missing_base_analysis_file(self):
         """Test _run_size_analysis_comparison with missing base analysis file."""
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
 
         # Create size metrics without analysis file
@@ -821,24 +976,19 @@ class RunSizeAnalysisComparisonTest(TestCase):
             analysis_file_id=99999,  # Nonexistent file
         )
 
-        with patch("sentry.preprod.size_analysis.tasks.logger") as mock_logger:
-            _run_size_analysis_comparison(
-                self.project.id,
-                self.organization.id,
-                head_size_metrics,
-                base_size_metrics,
-            )
+        _run_size_analysis_comparison(
+            self.organization.id,
+            head_size_metrics,
+            base_size_metrics,
+        )
 
-            mock_logger.exception.assert_called_once()
-            call_args = mock_logger.exception.call_args
-            assert "preprod.size_analysis.compare.base_analysis_file_not_found" in call_args[0]
-
-        # Verify no comparison was created
+        # Verify failed comparison was created
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED
 
     def test_run_size_analysis_comparison_invalid_json(self):
         """Test _run_size_analysis_comparison with invalid JSON in analysis files."""
@@ -882,18 +1032,16 @@ class RunSizeAnalysisComparisonTest(TestCase):
             analysis_file_id=base_analysis_file.id,
         )
 
-        # Should raise an exception due to invalid JSON
-        with pytest.raises(Exception):
-            _run_size_analysis_comparison(
-                self.project.id,
-                self.organization.id,
-                head_size_metrics,
-                base_size_metrics,
-            )
+        _run_size_analysis_comparison(
+            self.organization.id,
+            head_size_metrics,
+            base_size_metrics,
+        )
 
-        # Verify no comparison was created
+        # Verify failed comparison was created
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis=head_size_metrics,
             base_size_analysis=base_size_metrics,
         )
-        assert len(comparisons) == 0
+        assert len(comparisons) == 1
+        assert comparisons[0].state == PreprodArtifactSizeComparison.State.FAILED

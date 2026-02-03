@@ -1,5 +1,6 @@
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
@@ -75,7 +76,7 @@ function TargetIdentifierField() {
     <AutomationBuilderInput
       name={`${actionId}.config.targetIdentifier`}
       placeholder={t('channel ID or URL')}
-      value={action.config.targetIdentifier}
+      value={action.config.targetIdentifier ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           config: {...action.config, targetIdentifier: e.target.value},

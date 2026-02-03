@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -12,20 +10,21 @@ import type {ReprocessEventModalOptions} from 'sentry/components/modals/reproces
 import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
-import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
-import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
+import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
+type ModalRenderPropKeys = keyof ModalRenderProps;
 
 /**
  * Show a modal
@@ -67,16 +66,13 @@ export async function openEmailVerification({
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-type OpenDiffModalOptions = {
-  baseIssueId: Group['id'];
-  location: Location;
-  orgId: Organization['id'];
+interface OpenDiffModalOptions
+  extends Omit<
+    React.ComponentProps<typeof import('sentry/components/modals/diffModal').default>,
+    ModalRenderPropKeys
+  > {
   project: Project;
-  targetIssueId: string;
-  baseEventId?: Event['id'];
-  shouldBeGrouped?: string;
-  targetEventId?: string;
-};
+}
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
   const {default: Modal, modalCss} = await import('sentry/components/modals/diffModal');
@@ -156,9 +152,17 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
   });
 }
 
+export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
+  const {default: Modal, modalCss} = await import(
+    'sentry/components/modals/deprecatedCommandPalette'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
 export async function openCommandPalette(options: ModalOptions = {}) {
   const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/commandPalette'
+    'sentry/components/commandPalette/ui/modal'
   );
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
@@ -255,19 +259,6 @@ export async function openInviteMissingMembersModal({
   });
 }
 
-export async function openWidgetBuilderOverwriteModal(
-  options: OverwriteWidgetModalProps
-) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/widgetBuilder/overwriteWidgetModal'
-  );
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
-    modalCss,
-  });
-}
-
 export async function openAddToDashboardModal(options: AddToDashboardModalProps) {
   const {default: Modal, modalCss} = await import(
     'sentry/components/modals/widgetBuilder/addToDashboardModal'
@@ -320,7 +311,7 @@ export async function demoSignupModal(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type DemoEndModalOptions = {
+type DemoEndModalOptions = {
   tour: string;
 };
 
@@ -381,7 +372,7 @@ export async function openCreateReleaseIntegration(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export type NavigateToExternalLinkModalOptions = {
+type NavigateToExternalLinkModalOptions = {
   linkText: string;
 };
 
@@ -429,11 +420,15 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/insightChartModal'
-  );
+  const {
+    default: Modal,
+    modalCss,
+    fullscreenModalCss,
+  } = await import('sentry/components/modals/insightChartModal');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalCss: options.fullscreen ? fullscreenModalCss : modalCss,
+  });
 }
 
 export async function openAddTempestCredentialsModal(options: {
@@ -474,4 +469,27 @@ export async function openPrivateGamingSdkAccessModal(
   );
 
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
+}
+
+type InsightInfoModalOptions = {
+  children: React.ReactNode;
+  title: string;
+};
+
+export async function openInsightInfoModal(options: InsightInfoModalOptions) {
+  const {InsightInfoModal} = await import(
+    'sentry/views/preprod/buildDetails/main/insights/insightInfoModal'
+  );
+
+  openModal(deps => <InsightInfoModal {...deps} {...options} />);
+}
+
+export async function openAttributeBreakdownViewerModal(
+  options: AttributeBreakdownViewerModalOptions
+) {
+  const {default: Modal, modalCss} = await import(
+    'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

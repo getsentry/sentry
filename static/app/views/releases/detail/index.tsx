@@ -1,8 +1,10 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
+import {Outlet} from 'react-router-dom';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,6 +23,7 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -69,9 +72,18 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-    params.release
-  )}/`;
+  const releasePath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
+  const deploysPath = getApiUrl(
+    '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
+    {
+      path: {organizationIdOrSlug: organization.slug, version: params.release},
+    }
+  );
 
   const {
     data: release,
@@ -96,10 +108,10 @@ function ReleasesDetail({
     refetch: refetchDeploys,
     isPending: isDeploysPending,
     error: deploysError,
-  } = useApiQuery<Deploy[]>(
-    [`${releasePath}deploys/`, {query: {project: location.query.project}}],
-    {staleTime: Infinity, enabled: isDeploysEnabled}
-  );
+  } = useApiQuery<Deploy[]>([deploysPath, {query: {project: location.query.project}}], {
+    staleTime: Infinity,
+    enabled: isDeploysEnabled,
+  });
 
   const {
     data: sessions = null,
@@ -108,7 +120,9 @@ function ReleasesDetail({
     error: sessionsError,
   } = useApiQuery<SessionApiResponse>(
     [
-      `/organizations/${organization.slug}/sessions/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: location.query.project,
@@ -148,7 +162,7 @@ function ReleasesDetail({
         <SentryDocumentTitle title={pageTitle}>
           <Layout.Page>
             <Alert.Container>
-              <Alert type="error">
+              <Alert variant="danger">
                 {possiblyWrongProject
                   ? t('This release may not be in your selected project.')
                   : t('There was an error loading the release details')}
@@ -224,7 +238,7 @@ function ReleasesDetail({
 // ========================================================================
 // RELEASE DETAIL CONTAINER
 // ========================================================================
-function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
+function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -264,7 +278,7 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error">{t('This release could not be found.')}</Alert>
+          <Alert variant="danger">{t('This release could not be found.')}</Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -308,7 +322,9 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
       }
       specificProjectSlugs={projects.map((p: ReleaseProject) => p.slug)}
     >
-      <ReleasesDetail releaseMeta={releaseMeta}>{children}</ReleasesDetail>
+      <ReleasesDetail releaseMeta={releaseMeta}>
+        <Outlet />
+      </ReleasesDetail>
     </PageFiltersContainer>
   );
 }

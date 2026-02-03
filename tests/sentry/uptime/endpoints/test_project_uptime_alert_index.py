@@ -2,7 +2,6 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import get_uptime_subscription
 from sentry.uptime.types import (
@@ -10,6 +9,7 @@ from sentry.uptime.types import (
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
+from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import Detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -303,10 +303,10 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             )
 
     @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.RATE_LIMITED,
     )
-    def test_no_seat_assignment(self, _mock_check_assign_seat: mock.MagicMock) -> None:
+    def test_no_seat_assignment(self, _mock_assign_seat: mock.MagicMock) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -342,3 +342,123 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
                 )
             ]
         }
+
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            owner=f"team:{other_team.id}",
+            status_code=400,
+        )
+        assert resp.data == {
+            "owner": [
+                ErrorDetail(
+                    string="You can only assign teams you are a member of",
+                    code="invalid",
+                )
+            ]
+        }
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            owner=f"team:{self.team.id}",
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_team_id == self.team.id
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            owner=f"team:{other_team.id}",
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_team_id == other_team.id
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            owner=f"team:{other_team.id}",
+        )
+        detector = Detector.objects.get(id=resp.data["id"])
+        assert detector.owner_team_id == other_team.id

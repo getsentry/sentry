@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -197,6 +198,12 @@ function makeCellActions({
     return null;
   }
 
+  // Starred transaction has it's own action on click
+  // so we don't want it to collide with the context menu
+  if (column.name === 'is_starred_transaction') {
+    return null;
+  }
+
   let value = dataRow[column.name];
 
   // error.handled is a strange field where null = true.
@@ -328,11 +335,13 @@ export enum ActionTriggerType {
 
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
+  usePortalOnDropdown?: boolean;
 };
 
 function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
+  usePortalOnDropdown,
   ...props
 }: Props) {
   const organization = useOrganization();
@@ -364,6 +373,7 @@ function CellAction({
       >
         {cellActions?.length ? (
           <DropdownMenu
+            usePortal={usePortalOnDropdown}
             items={cellActions}
             strategy="fixed"
             size="sm"
@@ -398,6 +408,12 @@ function CellAction({
                     e.preventDefault();
                   }
                 }}
+                hasLinks={
+                  // TODO - hack, ideally we don't directly access the DOM and use a ref instead, ideally we can determin if the cell type has a link
+                  !!document
+                    .getElementById(triggerProps.id ?? '')
+                    ?.getElementsByTagName('a')?.[0]
+                }
               >
                 {children}
               </ActionMenuTriggerV2>
@@ -434,7 +450,6 @@ function CellAction({
           trigger={triggerProps => (
             <ActionMenuTrigger
               {...triggerProps}
-              translucentBorder
               aria-label={t('Actions')}
               icon={<IconEllipsis size="xs" />}
               size="zero"
@@ -476,10 +491,13 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')`
+const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
   a,
   span {
-    color: ${p => p.theme.textColor};
+    color: ${p =>
+      p.hasLinks
+        ? p.theme.tokens.interactive.link.accent.rest
+        : p.theme.tokens.content.primary};
   }
   :hover {
     cursor: pointer;

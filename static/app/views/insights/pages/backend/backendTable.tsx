@@ -1,5 +1,4 @@
 import {useTheme, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -9,7 +8,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -80,21 +78,25 @@ const COLUMN_ORDER: Column[] = [
     key: 'epm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.tpm,
   },
   {
     key: `p50(span.duration)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p50,
   },
   {
     key: 'p95(span.duration)',
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.p95,
   },
   {
     key: 'failure_rate()',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
+    tooltip: SPAN_HEADER_TOOLTIPS.failureRate,
   },
   {
     key: 'count_unique(user)',
@@ -197,7 +199,7 @@ export function BackendOverviewTable({response, sort}: Props) {
 
 function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   if (isHeader) {
-    return [<StyledIconStar key="star" color="yellow300" isSolid />];
+    return [<IconStar key="star" variant="warning" isSolid />];
   }
 
   if (!row) {
@@ -229,7 +231,8 @@ function renderBodyCell(
     // In eap, blank transaction ops are set to `default` but not in non-eap.
     // The transaction summary is not eap yet, so we should exclude the `default` transaction.op filter
     const spanOp =
-      row['span.op'].toLowerCase() === 'default' ? undefined : row['span.op'];
+      row['span.op']?.toLowerCase() === 'default' ? undefined : row['span.op'];
+
     return (
       <TransactionCell
         project={row.project}
@@ -248,7 +251,3 @@ function renderBodyCell(
     theme,
   });
 }
-
-export const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.25)};
-`;

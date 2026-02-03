@@ -5,7 +5,8 @@ from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.replays.models import ReplayDeletionJobModel
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.replays.models import OrganizationMemberReplayAccess, ReplayDeletionJobModel
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -342,6 +343,133 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             )
         assert response.status_code == 201
 
+    def test_granular_permissions_without_replay_access(self) -> None:
+        """Test that users without replay access cannot access endpoints even with project:write"""
+        with self.feature("organizations:granular-replay-permissions"):
+            # Enable granular permissions org option
+            OrganizationOption.objects.set_value(
+                organization=self.organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            # Create another user with replay access
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access, organization=self.organization, role="admin"
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+            # Login as user without replay access (but has project:write via admin role)
+            user_without_access = self.create_user()
+            self.create_member(
+                user=user_without_access, organization=self.organization, role="admin"
+            )
+            self.login_as(user=user_without_access)
+
+            # GET should return 403
+            self.get_error_response(self.organization.slug, self.project.slug, status_code=403)
+
+            # POST should return 403
+            data = {
+                "data": {
+                    "rangeStart": "2023-01-01T00:00:00Z",
+                    "rangeEnd": "2023-01-02T00:00:00Z",
+                    "environments": ["production"],
+                    "query": "test query",
+                }
+            }
+            self.get_error_response(
+                self.organization.slug, self.project.slug, method="post", **data, status_code=403
+            )
+
+    def test_granular_permissions_with_replay_access(self) -> None:
+        """Test that users with replay access can access endpoints with project:write"""
+        with self.feature("organizations:granular-replay-permissions"):
+            # Enable granular permissions org option
+            OrganizationOption.objects.set_value(
+                organization=self.organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            # Create user with replay access (admin role gives project:write)
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access, organization=self.organization, role="admin"
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+            self.login_as(user=user_with_access)
+
+            # GET should succeed
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert response.data == {"data": []}
+
+            # POST should succeed
+            data = {
+                "data": {
+                    "rangeStart": "2023-01-01T00:00:00Z",
+                    "rangeEnd": "2023-01-02T00:00:00Z",
+                    "environments": ["production"],
+                    "query": "test query",
+                }
+            }
+            with patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay"):
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    **data,
+                    status_code=201,
+                )
+            assert "data" in response.data
+
+    def test_granular_permissions_feature_disabled_allows_all(self) -> None:
+        """Test that when feature flag is disabled, all users with project:write can access"""
+        # Enable org option but disable feature flag
+        OrganizationOption.objects.set_value(
+            organization=self.organization,
+            key="sentry:granular-replay-permissions",
+            value=True,
+        )
+
+        # Create user with replay access
+        user_with_access = self.create_user()
+        member_with_access = self.create_member(
+            user=user_with_access, organization=self.organization, role="admin"
+        )
+        OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+        # Login as user without replay access (admin role gives project:write)
+        user_without_access = self.create_user()
+        self.create_member(user=user_without_access, organization=self.organization, role="admin")
+        self.login_as(user=user_without_access)
+
+        # GET should succeed (feature flag is OFF)
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        assert response.data == {"data": []}
+
+    def test_granular_permissions_org_option_disabled_allows_all(self) -> None:
+        """Test that when org option is disabled, all users with project:write can access"""
+        with self.feature("organizations:granular-replay-permissions"):
+            # Create user with replay access
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access, organization=self.organization, role="admin"
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+            # Login as user without replay access (org option is NOT enabled, admin role gives project:write)
+            user_without_access = self.create_user()
+            self.create_member(
+                user=user_without_access, organization=self.organization, role="admin"
+            )
+            self.login_as(user=user_without_access)
+
+            # GET should succeed (org option is OFF)
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert response.data == {"data": []}
+
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
     def test_post_has_seer_data(self, mock_task: MagicMock) -> None:
         """Test POST with summaries enabled schedules task with has_seer_data=True."""
@@ -375,7 +503,8 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.organization)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.other_project = self.create_project()  # Different organization
 
     def test_get_success(self) -> None:
@@ -390,19 +519,20 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
             status="in-progress",
         )
 
-        response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+        with self.feature("organizations:session-replay"):
+            response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
 
-        assert "data" in response.data
-        job_data = response.data["data"]
-        assert job_data["id"] == job.id
-        assert job_data["status"] == "in-progress"
-        assert job_data["environments"] == ["prod", "staging"]
-        assert job_data["query"] == "test query"
-        assert job_data["countDeleted"] == 0  # Default offset value
-        assert "dateCreated" in job_data
-        assert "dateUpdated" in job_data
-        assert "rangeStart" in job_data
-        assert "rangeEnd" in job_data
+            assert "data" in response.data
+            job_data = response.data["data"]
+            assert job_data["id"] == job.id
+            assert job_data["status"] == "in-progress"
+            assert job_data["environments"] == ["prod", "staging"]
+            assert job_data["query"] == "test query"
+            assert job_data["countDeleted"] == 0  # Default offset value
+            assert "dateCreated" in job_data
+            assert "dateUpdated" in job_data
+            assert "rangeStart" in job_data
+            assert "rangeEnd" in job_data
 
     def test_get_count_deleted_reflects_offset(self) -> None:
         """Test that countDeleted field correctly reflects the offset value"""
@@ -417,12 +547,13 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
             offset=123,  # Set specific offset value
         )
 
-        response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+        with self.feature("organizations:session-replay"):
+            response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
 
-        assert "data" in response.data
-        job_data = response.data["data"]
-        assert job_data["id"] == job.id
-        assert job_data["countDeleted"] == 123
+            assert "data" in response.data
+            job_data = response.data["data"]
+            assert job_data["id"] == job.id
+            assert job_data["countDeleted"] == 123
 
     def test_get_nonexistent_job(self) -> None:
         """Test GET for non-existent job returns 404"""
@@ -523,13 +654,14 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
             token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
 
         # GET should succeed
-        response = self.client.get(
-            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token.token}",
-            format="json",
-        )
-        assert response.status_code == 200
-        assert response.data["data"]["id"] == job.id
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(
+                f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                format="json",
+            )
+            assert response.status_code == 200
+            assert response.data["data"]["id"] == job.id
 
     def test_permission_granted_with_project_admin(self) -> None:
         """Test that users with project:admin permissions can access endpoint"""
@@ -548,10 +680,178 @@ class ProjectReplayDeletionJobDetailTest(APITestCase):
             token = ApiToken.objects.create(user=self.user, scope_list=["project:admin"])
 
         # GET should succeed
-        response = self.client.get(
-            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token.token}",
-            format="json",
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(
+                f"/api/0/projects/{self.organization.slug}/{self.project.slug}/replays/jobs/delete/{job.id}/",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                format="json",
+            )
+            assert response.status_code == 200
+            assert response.data["data"]["id"] == job.id
+
+    def test_granular_permissions_without_replay_access(self) -> None:
+        """Test that users without replay access cannot access endpoint even with project:write"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
         )
-        assert response.status_code == 200
-        assert response.data["data"]["id"] == job.id
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            # Enable granular permissions org option
+            OrganizationOption.objects.set_value(
+                organization=self.organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            # Create another user with replay access
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+            # Login as user without replay access (but has project:write via admin role)
+            user_without_access = self.create_user()
+            self.create_member(
+                user=user_without_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            self.login_as(user=user_without_access)
+
+            # GET should return 403
+            self.get_error_response(
+                self.organization.slug, self.project.slug, job.id, status_code=403
+            )
+
+    def test_granular_permissions_with_replay_access(self) -> None:
+        """Test that users with replay access can access endpoint with project:write"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            # Enable granular permissions org option
+            OrganizationOption.objects.set_value(
+                organization=self.organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            # Create user with replay access (admin role gives project:write)
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+            self.login_as(user=user_with_access)
+
+            # GET should succeed
+            response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+            assert response.data["data"]["id"] == job.id
+
+    def test_granular_permissions_feature_disabled_allows_all(self) -> None:
+        """Test that when feature flag is disabled, all users with project:write can access"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        # Enable session-replay and org option but disable granular-replay-permissions feature flag
+        with self.feature("organizations:session-replay"):
+            OrganizationOption.objects.set_value(
+                organization=self.organization,
+                key="sentry:granular-replay-permissions",
+                value=True,
+            )
+
+            # Create user with replay access
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+            # Login as user without replay access (admin role gives project:write)
+            user_without_access = self.create_user()
+            self.create_member(
+                user=user_without_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            self.login_as(user=user_without_access)
+
+            # GET should succeed (feature flag is OFF)
+            response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+            assert response.data["data"]["id"] == job.id
+
+    def test_granular_permissions_org_option_disabled_allows_all(self) -> None:
+        """Test that when org option is disabled, all users with project:write can access"""
+        job = ReplayDeletionJobModel.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            range_start=datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC),
+            range_end=datetime.datetime(2023, 1, 2, tzinfo=datetime.UTC),
+            query="test query",
+            environments=[],
+            status="pending",
+        )
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            # Create user with replay access
+            user_with_access = self.create_user()
+            member_with_access = self.create_member(
+                user=user_with_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            OrganizationMemberReplayAccess.objects.create(organizationmember=member_with_access)
+
+            # Login as user without replay access (org option is NOT enabled, admin role gives project:write)
+            user_without_access = self.create_user()
+            self.create_member(
+                user=user_without_access,
+                organization=self.organization,
+                role="admin",
+                teams=[self.team],
+            )
+            self.login_as(user=user_without_access)
+
+            # GET should succeed (org option is OFF)
+            response = self.get_success_response(self.organization.slug, self.project.slug, job.id)
+            assert response.data["data"]["id"] == job.id

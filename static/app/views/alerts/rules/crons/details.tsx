@@ -1,14 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
-import moment from 'moment-timezone';
 
-import {
-  deleteMonitorProcessingErrorByType,
-  updateMonitor,
-} from 'sentry/actionCreators/monitors';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
+import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,42 +16,36 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorHeader} from 'sentry/views/insights/crons/components/monitorHeader';
 import {MonitorIssues} from 'sentry/views/insights/crons/components/monitorIssues';
-import {MonitorStats} from 'sentry/views/insights/crons/components/monitorStats';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
-import type {
-  CheckinProcessingError,
-  Monitor,
-  MonitorBucket,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
+import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-import {getMonitorRefetchInterval} from './utils';
-
-type Props = RouteComponentProps<{monitorSlug: string; projectId: string}>;
+import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
 }
 
-function MonitorDetails({params, location}: Props) {
+export default function MonitorDetails() {
   const api = useApi();
-
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const params = useParams<{monitorSlug: string; projectId: string}>();
+  const location = useLocation();
 
   const queryKey = makeMonitorDetailsQueryKey(
     organization,
@@ -74,49 +65,30 @@ function MonitorDetails({params, location}: Props) {
         return false;
       }
       const [monitorData] = query.state.data;
-      return getMonitorRefetchInterval(monitorData, moment());
+      return getMonitorRefetchInterval(monitorData, new Date());
     },
   });
 
-  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
-    CheckinProcessingError[]
-  >(makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug), {
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+  const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
+    organization,
+    projectId: params.projectId,
+    monitorSlug: params.monitorSlug,
   });
 
-  function onUpdate(data: Monitor) {
-    const updatedMonitor = {
-      ...data,
-      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
-      // which pauses/unpauses a monitor not returning monitor environments
-      // we should reuse the environments retrieved from the initial request
-      environments: monitor?.environments,
-    };
-    setApiQueryData(queryClient, queryKey, updatedMonitor);
+  function onUpdate() {
+    // Invalidate the query to refetch the monitor with updated environment data.
+    // The PUT request doesn't return environments, so we need to refetch to get
+    // the latest environment muting status and other environment data.
+    queryClient.invalidateQueries({queryKey});
   }
 
   const handleUpdate = async (data: Partial<Monitor>) => {
     if (monitor === undefined) {
       return;
     }
-    const resp = await updateMonitor(api, organization.slug, monitor, data);
-
-    if (resp !== null) {
-      onUpdate(resp);
-    }
+    await updateMonitor(api, organization.slug, monitor, data);
+    onUpdate();
   };
-
-  async function handleDismissError(errortype: ProcessingErrorType) {
-    await deleteMonitorProcessingErrorByType(
-      api,
-      organization.slug,
-      params.projectId,
-      params.monitorSlug,
-      errortype
-    );
-    await refetchErrors();
-  }
 
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -146,8 +118,6 @@ function MonitorDetails({params, location}: Props) {
     );
   }
 
-  const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
-
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
@@ -155,7 +125,7 @@ function MonitorDetails({params, location}: Props) {
       <Layout.Body>
         <TimezoneProvider timezone={timezoneOverride}>
           <Layout.Main>
-            <MainActions>
+            <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
                 <DatePageFilter maxPickableDays={30} />
                 <EnvironmentPageFilter />
@@ -165,11 +135,11 @@ function MonitorDetails({params, location}: Props) {
                 userTimezone={userTimezone}
                 onTimezoneSelected={setTimezoneOverride}
               />
-            </MainActions>
+            </Flex>
             {monitor.status === 'disabled' && (
               <Alert.Container>
                 <Alert
-                  type="muted"
+                  variant="muted"
                   trailingItems={
                     <StatusToggleButton
                       monitor={monitor}
@@ -185,17 +155,20 @@ function MonitorDetails({params, location}: Props) {
               </Alert.Container>
             )}
             {!!checkinErrors?.length && (
-              <MonitorProcessingErrors
-                checkinErrors={checkinErrors}
-                onDismiss={handleDismissError}
-              >
-                {t('Errors were encountered while ingesting check-ins for this monitor')}
-              </MonitorProcessingErrors>
+              <Alert.Container>
+                <MonitorProcessingErrors
+                  checkinErrors={checkinErrors}
+                  onDismiss={handleDismissError}
+                >
+                  {t(
+                    'Errors were encountered while ingesting check-ins for this monitor'
+                  )}
+                </MonitorProcessingErrors>
+              </Alert.Container>
             )}
             {hasLastCheckIn(monitor) ? (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
@@ -210,7 +183,7 @@ function MonitorDetails({params, location}: Props) {
           </Layout.Main>
           <Layout.Side>
             <DetailsSidebar
-              monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
+              monitorEnv={getNextCheckInEnv(monitor.environments)}
               monitor={monitor}
               showUnknownLegend={showUnknownLegend}
             />
@@ -221,15 +194,6 @@ function MonitorDetails({params, location}: Props) {
   );
 }
 
-const MainActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
-
-export default MonitorDetails;

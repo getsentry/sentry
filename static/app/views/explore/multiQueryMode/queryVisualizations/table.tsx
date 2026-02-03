@@ -2,8 +2,10 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
@@ -12,7 +14,6 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -114,7 +115,7 @@ function AggregatesTable({
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <Flex align="center" gap="xs" />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -140,7 +141,7 @@ function AggregatesTable({
 
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
+                  <Flex align="center" gap="xs">
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
@@ -156,7 +157,7 @@ function AggregatesTable({
                         }
                       />
                     )}
-                  </TableHeadCellContent>
+                  </Flex>
                 </TableHeadCell>
               );
             })}
@@ -169,7 +170,7 @@ function AggregatesTable({
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
@@ -259,7 +260,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
+                  <Flex align="center" gap="xs">
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
@@ -275,7 +276,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                         }
                       />
                     )}
-                  </TableHeadCellContent>
+                  </Flex>
                 </TableHeadCell>
               );
             })}
@@ -288,7 +289,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
@@ -336,18 +337,12 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   height: 33px;
-`;
-
-const TableHeadCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

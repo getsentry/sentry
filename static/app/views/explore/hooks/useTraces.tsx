@@ -1,6 +1,7 @@
 import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -59,13 +60,17 @@ interface TraceResults {
 
 interface UseTracesOptions
   extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
+  caseInsensitive?: CaseInsensitive;
   cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   keepPreviousData?: boolean;
   limit?: number;
+  logQuery?: string[];
+  metricQuery?: string[];
   query?: string | string[];
   sort?: 'timestamp' | '-timestamp';
+  spanQuery?: string[];
 }
 
 type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'error'> & {
@@ -73,6 +78,7 @@ type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'erro
 };
 
 export function useTraces({
+  caseInsensitive,
   cursor,
   datetime,
   enabled,
@@ -81,6 +87,9 @@ export function useTraces({
   sort,
   keepPreviousData,
   refetchInterval,
+  logQuery,
+  metricQuery,
+  spanQuery,
 }: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -98,6 +107,10 @@ export function useTraces({
       per_page: limit,
       cursor,
       breakdownSlices: BREAKDOWN_SLICES,
+      caseInsensitive: caseInsensitive ? '1' : undefined,
+      ...(Array.isArray(logQuery) && logQuery.length > 0 ? {logQuery} : {}),
+      ...(Array.isArray(metricQuery) && metricQuery.length > 0 ? {metricQuery} : {}),
+      ...(Array.isArray(spanQuery) && spanQuery.length > 0 ? {spanQuery} : {}),
     },
   };
 

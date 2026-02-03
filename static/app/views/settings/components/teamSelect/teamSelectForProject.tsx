@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Panel from 'sentry/components/panels/panel';
@@ -137,7 +138,7 @@ function TeamRow({
         disabled={disabled}
         confirmText="Remove Team"
       >
-        <Button size="xs" icon={<IconSubtract isCircled />} disabled={disabled}>
+        <Button size="xs" icon={<IconSubtract />} disabled={disabled}>
           {t('Remove')}
         </Button>
       </Confirm>

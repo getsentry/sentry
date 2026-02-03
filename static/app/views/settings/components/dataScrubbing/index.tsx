@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -188,7 +188,7 @@ export function DataScrubbing({
       <PanelHeader>
         <div>{t('Advanced Data Scrubbing')}</div>
       </PanelHeader>
-      <PanelAlert type="info">
+      <PanelAlert variant="info">
         {additionalContext}{' '}
         {tct(
           'The new rules will only apply to upcoming events. For more details, see [linkToDocs].',
@@ -211,10 +211,9 @@ export function DataScrubbing({
             disabled={disabled}
           />
         ) : (
-          <EmptyMessage
-            icon={<IconWarning size="xl" />}
-            description={t('You have no data scrubbing rules')}
-          />
+          <EmptyMessage icon={<IconWarning />}>
+            {t('You have no data scrubbing rules')}
+          </EmptyMessage>
         )}
         <PanelAction>
           <LinkButton href={ADVANCED_DATASCRUBBING_LINK} external>
@@ -236,5 +235,5 @@ const PanelAction = styled('div')`
   gap: ${space(1)};
   grid-template-columns: auto auto;
   justify-content: flex-end;
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;

@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {InputProps} from 'sentry/components/core/input/inputGroup';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Button} from '@sentry/scraps/button';
+import type {InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -70,7 +71,7 @@ function SearchBar({
     <FormWrap onSubmit={onSubmit} className={className}>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
-          <IconSearch color="subText" size={size === 'xs' ? 'xs' : 'sm'} />
+          <IconSearch variant="muted" size={size === 'xs' ? 'xs' : 'sm'} />
         </InputGroup.LeadingItems>
         <StyledInput
           {...inputProps}
@@ -88,7 +89,7 @@ function SearchBar({
           {!!query && (
             <SearchBarTrailingButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={clearSearch}
               icon={<IconClose size="xs" />}
               aria-label={t('Clear')}
@@ -110,7 +111,7 @@ const StyledInput = styled(InputGroup.Input)`
 `;
 
 export const SearchBarTrailingButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.5)};
 `;
 

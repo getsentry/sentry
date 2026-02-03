@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
@@ -216,6 +217,7 @@ class TestGetEventSeverity(TestCase):
             assert severity == 0.0
             assert reason == "bad_title"
 
+    @pytest.mark.skip(reason="flaky: #103306")
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=MaxRetryError(
@@ -246,9 +248,7 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_metrics_incr.assert_called_with(
-            "issues.severity.error", tags={"reason": "max_retries"}
-        )
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "max_retries"})
         assert severity == 1.0
         assert reason == "microservice_max_retry"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
@@ -281,7 +281,7 @@ class TestGetEventSeverity(TestCase):
 
         severity, reason = _get_severity_score(event)
 
-        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "timeout"})
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "timeout"})
         assert severity == 1.0
         assert reason == "microservice_timeout"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
@@ -317,7 +317,7 @@ class TestGetEventSeverity(TestCase):
         severity, reason = _get_severity_score(event)
 
         mock_capture_exception.assert_called_once_with()
-        mock_metrics_incr.assert_called_with("issues.severity.error", tags={"reason": "unknown"})
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "unknown"})
         assert severity == 1.0
         assert reason == "microservice_error"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1

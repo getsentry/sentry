@@ -412,7 +412,6 @@ GROUP_EVENT: GroupEventDetailsResponse = {
     "projectID": "5236886",
     "resolvedWith": [],
     "sdkUpdates": [],
-    "userReport": None,
 }
 
 

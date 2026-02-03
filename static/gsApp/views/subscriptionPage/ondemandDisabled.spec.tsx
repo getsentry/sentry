@@ -18,7 +18,7 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
@@ -30,12 +30,12 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 0,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
 
-  it('renders alert for AM1 plan with on-demand terminology', () => {
+  it('renders alert for plan with on-demand terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -43,47 +43,27 @@ describe('OnDemandDisabled', () => {
       planTier: PlanTier.AM1,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
+          'On-Demand billing is disabled for your organization due to an unpaid on-demand invoice.'
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('renders alert for AM2 plan with on-demand terminology', () => {
+  it('renders alert for plan with pay-as-you-go terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
       onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM2,
+      plan: 'am3_team',
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
-
-    expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'On-demand billing is disabled for your organization due to an unpaid on-demand invoice.'
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders alert for AM3 plan with pay-as-you-go terminology', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      onDemandDisabled: true,
-      onDemandMaxSpend: 1000,
-      planTier: PlanTier.AM3,
-    });
-
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(screen.getByTestId('ondemand-disabled-alert')).toBeInTheDocument();
     expect(
@@ -102,11 +82,11 @@ describe('OnDemandDisabled', () => {
       onDemandMaxSpend: 1000,
     });
 
-    render(<OnDemandDisabled subscription={subscription} />);
+    render(<OnDemandDisabled organization={organization} subscription={subscription} />);
 
     expect(
       screen.getByRole('link', {name: 'closed/outstanding invoices'})
-    ).toHaveAttribute('href', '/settings/billing/receipts/');
+    ).toHaveAttribute('href', `/settings/${organization.slug}/billing/receipts/`);
     expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
       'href',
       'mailto:support@sentry.io'

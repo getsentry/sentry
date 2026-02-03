@@ -1,13 +1,15 @@
 import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -22,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 // TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
 // eslint-disable-next-line no-restricted-imports
@@ -47,6 +50,28 @@ import {
 import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
 import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
+
+interface MessageSpanSamplesPanelSearchQueryBuilderProps {
+  handleSearch: (query: string) => void;
+  query: string;
+  selection: PageFilters;
+}
+
+function MessageSpanSamplesPanelSearchQueryBuilder({
+  query,
+  selection,
+  handleSearch,
+}: MessageSpanSamplesPanelSearchQueryBuilderProps) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    searchSource: `${ModuleName.QUEUE}-sample-panel`,
+    initialQuery: query,
+    onSearch: handleSearch,
+    placeholder: t('Search for span attributes'),
+    projects: selection.projects,
+  });
+
+  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+}
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -281,7 +306,7 @@ export function MessageSpanSamplesPanel() {
         <SampleDrawerBody>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <MetricsRibbonContainer>
+              <Flex wrap="wrap" gap="3xl">
                 {messageActorType === MessageActorType.PRODUCER ? (
                   <ProducerMetricsRibbon
                     metrics={transactionMetrics}
@@ -293,31 +318,31 @@ export function MessageSpanSamplesPanel() {
                     isLoading={aretransactionMetricsFetching}
                   />
                 )}
-              </MetricsRibbonContainer>
+              </Flex>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <PanelControls>
+              <Flex gap="xl">
                 <CompactSelect
                   searchable
                   value={query.traceStatus}
                   options={TRACE_STATUS_SELECT_OPTIONS}
                   onChange={handleTraceStatusChange}
-                  triggerProps={{
-                    prefix: t('Status'),
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                  )}
                 />
                 {messageActorType === MessageActorType.CONSUMER && (
                   <CompactSelect
                     value={query.retryCount}
                     options={RETRY_COUNT_SELECT_OPTIONS}
                     onChange={handleRetryCountChange}
-                    triggerProps={{
-                      prefix: t('Retries'),
-                    }}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
+                    )}
                   />
                 )}
-              </PanelControls>
+              </Flex>
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
@@ -333,12 +358,10 @@ export function MessageSpanSamplesPanel() {
             </ModuleLayout.Full>
 
             <ModuleLayout.Full>
-              <EapSpanSearchQueryBuilderWrapper
-                searchSource={`${ModuleName.QUEUE}-sample-panel`}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                projects={selection.projects}
+              <MessageSpanSamplesPanelSearchQueryBuilder
+                selection={selection}
+                handleSearch={handleSearch}
+                query={query.spanSearchQuery}
               />
             </ModuleLayout.Full>
 
@@ -475,14 +498,3 @@ const RETRY_COUNT_SELECT_OPTIONS = [
     };
   }),
 ];
-
-const MetricsRibbonContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
-`;
-
-const PanelControls = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;

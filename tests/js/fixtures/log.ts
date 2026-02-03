@@ -82,6 +82,7 @@ export function LogFixtureMeta(
 interface LogsTestInitOptions {
   isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
+  orgFeatures?: string[];
   organization?: Partial<Organization>;
   ourlogs?: boolean;
   pageFiltersPeriod?: string;
@@ -100,6 +101,7 @@ type LocationConfig = {
  * Standardized initialization for logs tests
  */
 export function initializeLogsTest({
+  orgFeatures = [],
   organization: orgOverrides = {},
   project: projectOverrides,
   ourlogs = true,
@@ -127,7 +129,7 @@ export function initializeLogsTest({
   const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
     organization: {
-      features: baseFeatures,
+      features: [...baseFeatures, ...orgFeatures],
       ...orgOverrides,
     },
     projects: [forcedProject],

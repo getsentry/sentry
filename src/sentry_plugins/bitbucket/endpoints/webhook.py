@@ -11,16 +11,17 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
-from sentry.releases.commits import create_commit
 from sentry.utils import json
 from sentry.utils.email import parse_email
+from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -48,10 +49,6 @@ class PushEventWebhook(Webhook):
             repo.config["name"] = event["repository"]["full_name"]
             repo.save()
 
-        try:
-            organization = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            raise Http404()
         for change in event["push"]["changes"]:
             for commit in change.get("commits", []):
                 if RepositoryProvider.should_ignore_commit(commit["message"]):
@@ -73,9 +70,9 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-                        create_commit(
-                            organization=organization,
-                            repo_id=repo.id,
+                        Commit.objects.create(
+                            repository_id=repo.id,
+                            organization_id=organization_id,
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,
@@ -85,6 +82,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
+@region_silo_view
 class BitbucketPluginWebhookEndpoint(View):
     _handlers = {"repo:push": PushEventWebhook}
 
@@ -98,19 +96,20 @@ class BitbucketPluginWebhookEndpoint(View):
 
         return super().dispatch(request, *args, **kwargs)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-plugins-bitbucket-webhook"])
     def post(self, request: Request, organization_id: int):
         org_exists = organization_service.check_organization_by_id(
             id=organization_id, only_visible=True
         )
         if not org_exists:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
 
         body = bytes(request.body)
         if not body:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.missing-body", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -118,7 +117,7 @@ class BitbucketPluginWebhookEndpoint(View):
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.exception(
+            logger.warning(
                 "bitbucket.webhook.missing-event", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -134,7 +133,7 @@ class BitbucketPluginWebhookEndpoint(View):
                 valid_ip = True
                 break
         if not valid_ip and address_string not in BITBUCKET_IPS:
-            logger.error(
+            logger.warning(
                 "bitbucket.webhook.invalid-ip-range", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=401)
@@ -142,7 +141,7 @@ class BitbucketPluginWebhookEndpoint(View):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.exception(
+            logger.warning(
                 "bitbucket.webhook.invalid-json",
                 extra={"organization_id": organization_id},
             )

@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/project';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -27,18 +28,15 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import KeyRow from './keyRow';
 
-type Props = {
-  project: Project;
-};
-
-function ProjectKeys({project}: Props) {
+export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
-  const {projectId} = params;
   const location = useLocation();
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
   const routes = useRoutes();
 
@@ -52,7 +50,7 @@ function ProjectKeys({project}: Props) {
     getResponseHeader,
   } = useApiQuery<ProjectKey[]>(
     [
-      `/projects/${organization.slug}/${projectId}/keys/`,
+      `/projects/${organization.slug}/${project.slug}/keys/`,
       {
         query: {
           cursor: decodeScalar(location.query.cursor),
@@ -71,7 +69,7 @@ function ProjectKeys({project}: Props) {
   const handleRemoveKeyMutation = useMutation({
     mutationFn: (data: ProjectKey) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/keys/${data.id}/`,
+        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
         {
           method: 'DELETE',
         }
@@ -93,7 +91,7 @@ function ProjectKeys({project}: Props) {
   const handleToggleKeyMutation = useMutation({
     mutationFn: ({isActive, data}: {data: ProjectKey; isActive: boolean}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/keys/${data.id}/`,
+        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
         {
           method: 'PUT',
           data: {isActive},
@@ -126,7 +124,7 @@ function ProjectKeys({project}: Props) {
 
   const handleCreateKeyMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/projects/${organization.slug}/${projectId}/keys/`, {
+      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/keys/`, {
         method: 'POST',
       });
     },
@@ -152,10 +150,9 @@ function ProjectKeys({project}: Props) {
   const renderEmpty = () => {
     return (
       <Panel>
-        <EmptyMessage
-          icon={<IconFlag size="xl" />}
-          description={t('There are no keys active for this project.')}
-        />
+        <EmptyMessage icon={<IconFlag />}>
+          {t('There are no keys active for this project.')}
+        </EmptyMessage>
       </Panel>
     );
   };
@@ -169,7 +166,7 @@ function ProjectKeys({project}: Props) {
           <KeyRow
             hasWriteAccess={hasAccess}
             key={key.id}
-            projectId={projectId}
+            projectId={project.slug}
             project={project}
             organization={organization}
             data={key}
@@ -200,7 +197,7 @@ function ProjectKeys({project}: Props) {
             onClick={() => handleCreateKeyMutation.mutate()}
             size="sm"
             priority="primary"
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
             disabled={!hasAccess}
           >
             {t('Generate New Key')}
@@ -229,5 +226,3 @@ function ProjectKeys({project}: Props) {
     </div>
   );
 }
-
-export default ProjectKeys;

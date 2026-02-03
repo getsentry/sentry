@@ -35,7 +35,7 @@ export default Storybook.story('ClippedBox', story => {
     right: 0;
     bottom: 0;
     padding: ${space(1)};
-    background: ${p => p.theme.background};
+    background: ${p => p.theme.tokens.background.primary};
     text-align: center;
     pointer-events: none;
   `;

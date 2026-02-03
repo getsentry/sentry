@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,7 +52,7 @@ export function WaitingForWizardToConnect({
 
   return finished ? (
     <Flex align="center" gap="2xl">
-      <SuccessCheckmark color="green300" size="xl" isCircled />
+      <SuccessCheckmark variant="success" size="xl" />
       <SuccessHeading>
         {t('Return to your terminal to complete your setup.')}
       </SuccessHeading>

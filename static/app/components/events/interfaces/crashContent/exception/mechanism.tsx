@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import Pill from 'sentry/components/pill';
@@ -98,22 +99,14 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     }
   });
 
-  return (
-    <Wrapper>
-      <StyledPills>{pills}</StyledPills>
-    </Wrapper>
-  );
+  return <StyledPills>{pills}</StyledPills>;
 }
-
-const Wrapper = styled('div')`
-  margin: ${space(2)} 0 ${space(0.5)} 0;
-`;
 
 const iconStyle = (p: {theme: Theme}) => css`
   transition: 0.1s linear color;
-  color: ${p.theme.gray300};
+  color: ${p.theme.colors.gray400};
   :hover {
-    color: ${p.theme.gray500};
+    color: ${p.theme.colors.gray800};
   }
 `;
 

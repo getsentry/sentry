@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict, Union
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    ExtrapolationMode as ProtoExtrapolationMode,
+)
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
 from sentry import features
@@ -17,6 +20,7 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -27,11 +31,12 @@ from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_va
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -65,6 +70,14 @@ ALERT_BLOCKED_FIELDS = {
     "timestamp",
     "timestamp.to_hour",
     "timestamp.to_day",
+}
+
+# Mapping from model ExtrapolationMode to proto ExtrapolationMode
+MODEL_TO_PROTO_EXTRAPOLATION_MODE = {
+    ExtrapolationMode.UNKNOWN: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+    ExtrapolationMode.NONE: ProtoExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+    ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+    ExtrapolationMode.SERVER_WEIGHTED: ProtoExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
 }
 
 
@@ -106,6 +119,7 @@ def apply_dataset_query_conditions(
 
 class _EntitySpecificParams(TypedDict, total=False):
     org_id: int
+    extrapolation_mode: ExtrapolationMode | None
     event_types: list[SnubaQueryEventType.EventType] | None
 
 
@@ -265,9 +279,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         self.aggregate = aggregate
         self.event_types = None
         self.time_window = time_window
+        self.extrapolation_mode = None
         if extra_fields:
             self.org_id = extra_fields.get("org_id")
             self.event_types = extra_fields.get("event_types")
+            self.extrapolation_mode = extra_fields.get("extrapolation_mode")
 
     def build_rpc_request(
         self,
@@ -282,6 +298,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             params = {}
 
         params["project_id"] = project_ids
+        is_trace_metric = (
+            self.event_types
+            and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
+        )
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
         if environment:
@@ -290,6 +310,8 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         dataset_module: type[RPCBase]
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
             dataset_module = OurLogs
+        elif is_trace_metric:
+            dataset_module = TraceMetrics
         else:
             dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
@@ -301,8 +323,31 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
             granularity_secs=self.time_window,
         )
+
+        # Convert model ExtrapolationMode to proto ExtrapolationMode
+        proto_extrapolation_mode = None
+        if self.extrapolation_mode is not None:
+            model_mode = ExtrapolationMode(self.extrapolation_mode)
+            proto_extrapolation_mode = MODEL_TO_PROTO_EXTRAPOLATION_MODE.get(model_mode)
+
+        if is_trace_metric:
+            search_config: SearchResolverConfig = TraceMetricsSearchResolverConfig(
+                metric=None,
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=False,
+                extrapolation_mode=proto_extrapolation_mode,
+                stable_timestamp_quantization=False,
+            )
+        else:
+            search_config = SearchResolverConfig(
+                stable_timestamp_quantization=False,
+                extrapolation_mode=proto_extrapolation_mode,
+            )
+
         search_resolver = dataset_module.get_resolver(
-            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
+            snuba_params,
+            search_config,
         )
 
         rpc_request, _, _ = dataset_module.get_timeseries_query(
@@ -641,6 +686,7 @@ def get_entity_subscription_from_snuba_query(
         extra_fields={
             "org_id": organization_id,
             "event_types": snuba_query.event_types,
+            "extrapolation_mode": ExtrapolationMode(snuba_query.extrapolation_mode),
         },
     )
 

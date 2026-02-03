@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
@@ -17,9 +16,8 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 }));
 
 describe('GroupHeader', () => {
-  const baseUrl = 'BASE_URL/';
+  const baseUrl = '/mock-pathname/';
   const organization = OrganizationFixture();
-  const {router} = initializeOrg();
   const project = ProjectFixture({
     teams: [TeamFixture()],
   });
@@ -53,7 +51,7 @@ describe('GroupHeader', () => {
         },
       });
 
-      render(
+      const {router} = render(
         <GroupHeader
           {...defaultProps}
           organization={orgWithFeatures}
@@ -61,57 +59,39 @@ describe('GroupHeader', () => {
         />,
         {
           organization: orgWithFeatures,
-          router,
-          deprecatedRouterMocks: true,
         }
       );
 
-      await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(router.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({pathname: 'BASE_URL/'})
-      );
+      const expectLocation = (pathname: string) => {
+        expect(router.location.pathname).toBe(pathname);
+        expect(router.location.query).toEqual({});
+      };
+
+      expectLocation(`${baseUrl}`);
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/activity/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}activity/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/feedback/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}feedback/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/attachments/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}attachments/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/distributions/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}distributions/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/events/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}events/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/merged/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}merged/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/replays/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}replays/`);
+
+      await userEvent.click(screen.getByRole('tab', {name: /details/i}));
+      expectLocation(`${baseUrl}`);
 
       expect(screen.getByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
@@ -146,7 +126,7 @@ describe('GroupHeader', () => {
         },
       });
 
-      render(
+      const {router} = render(
         <GroupHeader
           {...defaultProps}
           organization={orgWithFeatures}
@@ -154,16 +134,12 @@ describe('GroupHeader', () => {
         />,
         {
           organization: orgWithFeatures,
-          router,
-          deprecatedRouterMocks: true,
         }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/similar/',
-        query: {},
-      });
+      expect(router.location.pathname).toBe(`${baseUrl}similar/`);
+      expect(router.location.query).toEqual({});
 
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
@@ -198,7 +174,7 @@ describe('GroupHeader', () => {
         },
       });
 
-      render(
+      const {router} = render(
         <GroupHeader
           {...defaultProps}
           organization={orgWithFeatures}
@@ -206,27 +182,21 @@ describe('GroupHeader', () => {
         />,
         {
           organization: orgWithFeatures,
-          router,
-          deprecatedRouterMocks: true,
         }
       );
 
-      await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(router.push).toHaveBeenLastCalledWith(
-        expect.objectContaining({pathname: 'BASE_URL/'})
-      );
+      const expectLocation = (pathname: string) => {
+        expect(router.location.pathname).toBe(pathname);
+        expect(router.location.query).toEqual({});
+      };
+
+      expectLocation(`${baseUrl}`);
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/distributions/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}distributions/`);
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/events/',
-        query: {},
-      });
+      expectLocation(`${baseUrl}events/`);
 
       expect(screen.queryByRole('tab', {name: /user feedback/i})).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /attachments/i})).not.toBeInTheDocument();
@@ -262,10 +232,7 @@ describe('GroupHeader', () => {
           })}
           project={ProjectFixture()}
           event={null}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(await screen.findByText('Priority')).toBeInTheDocument();
@@ -286,10 +253,7 @@ describe('GroupHeader', () => {
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           event={null}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));

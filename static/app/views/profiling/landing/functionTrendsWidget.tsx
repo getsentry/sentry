@@ -5,12 +5,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
@@ -153,7 +154,7 @@ export function FunctionTrendsWidget({
         )}
         {isError && (
           <StatusContainer>
-            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </StatusContainer>
         )}
         {!isError && !isLoading && !hasTrends && (
@@ -331,7 +332,7 @@ function FunctionTrendsEntry({
           aria-label={t('Expand')}
           aria-expanded={isExpanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() => setExpanded()}
         />
         {project && (
@@ -391,7 +392,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const dividingLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'dividing line',
       markLine: {},
     };
@@ -399,7 +400,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       data: [{xAxis: seriesMid}],
       label: {show: false},
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'solid',
         width: 2,
       },
@@ -412,7 +413,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const beforeLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'before line',
       markLine: {},
     };
@@ -426,13 +427,13 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       label: {
         fontSize: 11,
         show: true,
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         silent: true,
         formatter: 'Past',
         position: 'insideStartTop',
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: 1,
       },
@@ -444,7 +445,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 
     const afterLine = {
       data: [],
-      color: theme.textColor,
+      color: theme.tokens.content.primary,
       seriesName: 'after line',
       markLine: {},
     };
@@ -461,13 +462,13 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       label: {
         fontSize: 11,
         show: true,
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         silent: true,
         formatter: 'Present',
         position: 'insideEndBottom',
       },
       lineStyle: {
-        color: theme.textColor,
+        color: theme.tokens.content.primary,
         type: 'dashed',
         width: 1,
       },
@@ -491,7 +492,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       },
       yAxis: {
         axisLabel: {
-          color: theme.chartLabel,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
@@ -502,7 +503,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
       },
     };
-  }, [theme.chartLabel]);
+  }, [theme.tokens.content.secondary]);
 
   return (
     <ChartZoom {...selection.datetime}>
@@ -516,9 +517,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
 function getTrendLineColor(trend: TrendType, theme: Theme) {
   switch (trend) {
     case 'improvement':
-      return theme.green300;
+      return theme.colors.green400;
     case 'regression':
-      return theme.red300;
+      return theme.colors.red400;
     default:
       throw new Error('Unknown trend type');
   }
@@ -549,7 +550,7 @@ const FunctionTrendsChartContainer = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   align-items: center;
   gap: ${space(1)};

@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface CollapsibleTimelineProps {
   children: React.ReactNode;
@@ -18,7 +18,6 @@ interface CollapsibleTimelineProps {
   title: string;
 }
 function CollapsibleTimeline(props: CollapsibleTimelineProps) {
-  const theme = useTheme();
   const flamegraphTheme = useFlamegraphTheme();
   return (
     <Fragment>
@@ -29,7 +28,7 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
       >
         <CollapsibleTimelineLabel>{props.title}</CollapsibleTimelineLabel>
         <StyledButton
-          priority={theme.isChonk ? 'transparent' : undefined}
+          priority="transparent"
           onClick={props.open ? props.onClose : props.onOpen}
           aria-label={props.open ? t('Expand') : t('Collapse')}
           aria-expanded={props.open}
@@ -49,40 +48,13 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
   );
 }
 
-const StyledButton = withChonk(
-  styled(Button)`
-    height: 12px;
-    min-height: 12px;
-    padding: ${space(0.25)} ${space(0.5)};
-    border-radius: 2px;
-    background-color: ${p => p.theme.backgroundSecondary};
-    border: none;
-    box-shadow: none;
-    color: ${p => p.theme.subText};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &[aria-expanded='true'] {
-      color: ${p => p.theme.subText};
-    }
-
-    > span:first-child {
-      display: none;
-    }
-
-    svg {
-      transition: none;
-    }
-  `,
-  Button
-);
+const StyledButton = Button;
 
 export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
   return (
-    <CollapsibleTimelineLoadingIndicatorContainer>
+    <Stack justify="center" width="100%" height="100%" position="absolute">
       <LoadingIndicator size={size ?? 32} />
-    </CollapsibleTimelineLoadingIndicatorContainer>
+    </Stack>
   );
 }
 
@@ -90,15 +62,6 @@ const CollapsibleTimelineContainer = styled('div')<{labelHeight: number}>`
   position: relative;
   width: 100%;
   height: calc(100% - ${p => p.labelHeight}px);
-`;
-
-const CollapsibleTimelineLoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 `;
 
 const CollapsibleTimelineHeader = styled('div')<{
@@ -115,12 +78,12 @@ const CollapsibleTimelineHeader = styled('div')<{
   min-height: ${p => p.labelHeight}px;
   border-top: 1px solid ${p => p.border};
   border-bottom: 1px solid ${p => (p.open ? p.border : 'transparent')};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 export const CollapsibleTimelineLabel = styled('span')`
   padding: 1px ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export const CollapsibleTimelineMessage = styled('p')`
@@ -131,7 +94,7 @@ export const CollapsibleTimelineMessage = styled('p')`
   height: 100%;
   width: 100%;
   position: absolute;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 export {CollapsibleTimeline};

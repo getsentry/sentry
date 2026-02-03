@@ -9,8 +9,6 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Entity, Fu
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.source_code_management.commit_context import OPEN_PR_MAX_RECENT_ISSUES
-from sentry.integrations.source_code_management.language_parsers import stackframe_function_name
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.fetch_issues import utils
@@ -36,6 +34,8 @@ STACKFRAME_COUNT = 20
 The number of stack frames to check for function name and file name matches.
 """
 
+OPEN_PR_MAX_RECENT_ISSUES = 5000
+
 
 class IssueFromSnuba(TypedDict):
     group_id: int
@@ -44,7 +44,14 @@ class IssueFromSnuba(TypedDict):
 
 
 def _simple_function_name_conditions(function_names: list[str], stack_frame_idx: int) -> Condition:
-    return Condition(stackframe_function_name(stack_frame_idx), Op.IN, function_names)
+    return Condition(
+        Function(
+            "arrayElement",
+            (Column("exception_frames.function"), stack_frame_idx),
+        ),
+        Op.IN,
+        function_names,
+    )
 
 
 def _get_issues_for_file(

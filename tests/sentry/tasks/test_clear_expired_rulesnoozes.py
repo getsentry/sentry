@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.tasks.clear_expired_rulesnoozes import clear_expired_rulesnoozes
 from sentry.testutils.cases import APITestCase
@@ -8,9 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 class ClearExpiredRuleSnoozesTest(APITestCase):
     def setUp(self) -> None:
-        self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner_team=self.team
-        )
+        self.issue_alert_rule = self.create_project_rule(name="test rule", owner_team=self.team)
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
         )

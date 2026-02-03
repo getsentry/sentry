@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
+from django.db.models import Q
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -65,6 +66,21 @@ class GroupCategory(IntEnum):
     HTTP_CLIENT = 13
     FRONTEND = 14
     MOBILE = 15
+
+    AI_DETECTED = 16
+
+    """
+    Issues detected from analysis of uploaded artifacts. This covers
+    both issues detected in a single build (e.g. not 16kb page ready)
+    and those detected between builds (e.g. binary size regression).
+    """
+    PREPROD = 17
+
+    """
+    Issues detected by autopilot instrumentation analysis suggesting
+    improvements to product usage and observability coverage.
+    """
+    INSTRUMENTATION = 18
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -145,6 +161,28 @@ class GroupTypeRegistry:
             raise InvalidGroupTypeError(id_)
         return self._registry[id_]
 
+    def get_detector_type_filters(self) -> Q:
+        """
+        Build a Q object that combines all detector type-specific filters.
+
+        For detector types without filters, they're included by default via a NOT IN clause.
+        For detector types with filters, we apply the specific filter condition.
+
+        This optimizes the query since most detector types won't have filters.
+        """
+        types_with_filters = []
+        filtered_type_conditions = Q()
+
+        for group_type in self.all():
+            if group_type.detector_settings and group_type.detector_settings.filter is not None:
+                filter = group_type.detector_settings.filter
+                types_with_filters.append(group_type.slug)
+                filtered_type_conditions |= Q(type=group_type.slug) & filter
+
+        # Include all types that don't have filters (type NOT IN types_with_filters)
+        # OR match the specific filter conditions for types that do have filters
+        return ~Q(type__in=types_with_filters) | filtered_type_conditions
+
 
 registry = GroupTypeRegistry()
 
@@ -219,7 +257,7 @@ class GroupType:
     enable_workflow_notifications = True
 
     # Controls whether users are able to manually update the group's priority.
-    enable_user_priority_changes = True
+    enable_user_status_and_priority_changes = True
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
@@ -618,6 +656,19 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
+class LLMDetectedExperimentalGroupType(GroupType):
+    type_id = 3501
+    slug = "llm_detected_experimental"
+    description = "LLM Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -658,21 +709,7 @@ class FeedbackGroup(GroupType):
 
 
 @dataclass(frozen=True)
-class MetricIssuePOC(GroupType):
-    # DEPRECATED, use metric_issue (8001) instead
-    type_id = 8002
-    slug = "metric_issue_poc"
-    description = "DEPRECATED Metric Issue POC"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
-
-
-@dataclass(frozen=True)
-class WebVitalsGroup(GroupType):
+class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     type_id = 10001
     slug = "web_vitals"
     description = "Web Vitals"
@@ -682,8 +719,9 @@ class WebVitalsGroup(GroupType):
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    # Web Vital issues are always manually created by the user for the purpose of using autofix
+    # Web Vital issues are always triggered for the purpose of using autofix
     always_trigger_seer_automation = True
+    released = True
 
 
 def should_create_group(

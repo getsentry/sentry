@@ -1,4 +1,4 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import type {Subscription} from 'getsentry/types';
 

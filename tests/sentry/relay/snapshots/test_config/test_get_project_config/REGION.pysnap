@@ -1,7 +1,5 @@
 ---
-created: '2025-09-30T21:02:50.335965+00:00'
-creator: sentry
-source: tests/sentry/relay/test_config.py
+source: tests/sentry/relay/test_config.py::test_get_project_config
 ---
 config:
   allowedDomains:
@@ -109,6 +107,26 @@ config:
               - name: ty
                 op: glob
                 value:
+                - ChunkLoadError
+              - name: value
+                op: glob
+                value:
+                - Failed to load chunk *
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - '*Uncaught *'
+              - name: value
+                op: glob
+                value:
+                - 'ChunkLoadError: Failed to load chunk *'
+              op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
                 - Error
               - name: value
                 op: glob
@@ -155,8 +173,8 @@ config:
       - '*/ping{/,}'
       - '*/up{/,}'
   groupingConfig:
-    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyMy0wMS0xMZA
-    id: newstyle:2023-01-11
+    enhancements: KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA
+    id: newstyle:2026-01-20
   performanceScore:
     profiles:
     - condition:
@@ -547,7 +565,6 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
-  retentions: {}
   sessionMetrics:
     version: 1
   trustedRelays: []

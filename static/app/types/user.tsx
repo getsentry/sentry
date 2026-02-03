@@ -51,9 +51,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
-    prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
-    prefersNextjsInsightsOverview: boolean;
     stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
@@ -101,6 +99,12 @@ export type ApiApplication = {
   clientSecret: string | null;
   homepageUrl: string | null;
   id: string;
+  /**
+   * Whether this is a public client (no client_secret).
+   * Public clients are used for CLIs, native apps, and SPAs that
+   * cannot securely store a client secret (RFC 6749 §2.1).
+   */
+  isPublic: boolean;
   name: string;
   privacyUrl: string | null;
   redirectUris: string[];

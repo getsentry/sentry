@@ -3,21 +3,8 @@ import {SvgIcon} from './svgIcon';
 
 export function IconBot(props: SVGIconProps) {
   return (
-    <SvgIcon
-      {...props}
-      kind="path"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 8V4H8" fill="none" />
-      <rect width="16" height="12" x="4" y="8" rx="2" fill="none" />
-      <path d="M2 14h2" fill="none" />
-      <path d="M20 14h2" fill="none" />
-      <path d="M15 13v2" />
-      <path d="M9 13v2" />
+    <SvgIcon {...props}>
+      <path d="M8 0C8.41 0 8.75 0.34 8.75 0.75V3H13.25C14.77 3 16 4.23 16 5.75V13.25C16 14.77 14.77 16 13.25 16H2.75C1.23 16 0 14.77 0 13.25V5.75C0 4.23 1.23 3 2.75 3H7.25V1.5H5.12C4.71 1.5 4.37 1.16 4.37 0.75C4.37 0.34 4.71 0 5.12 0H8ZM2.75 4.5C2.06 4.5 1.5 5.06 1.5 5.75V13.25C1.5 13.94 2.06 14.5 2.75 14.5H13.25C13.94 14.5 14.5 13.94 14.5 13.25V5.75C14.5 5.06 13.94 4.5 13.25 4.5H2.75ZM10.25 11.5C10.66 11.5 11 11.84 11 12.25C11 12.66 10.66 13 10.25 13H5.75C5.34 13 5 12.66 5 12.25C5 11.84 5.34 11.5 5.75 11.5H10.25ZM6.5 7C6.78 7 7 7.22 7 7.5V9.5C7 9.78 6.78 10 6.5 10H4.5C4.22 10 4 9.78 4 9.5V7.5C4 7.22 4.22 7 4.5 7H6.5ZM11.5 7C11.78 7 12 7.22 12 7.5V9.5C12 9.78 11.78 10 11.5 10H9.5C9.22 10 9 9.78 9 9.5V7.5C9 7.22 9.22 7 9.5 7H11.5Z" />
     </SvgIcon>
   );
 }

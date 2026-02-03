@@ -2,8 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {Select} from 'sentry/components/core/select';
+import {Button} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -313,7 +314,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
@@ -326,7 +327,7 @@ const Item = styled('div')`
 `;
 
 const ControlItem = styled(Item)`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RemoveButtonWrapper = styled('div')`

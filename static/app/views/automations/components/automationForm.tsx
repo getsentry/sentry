@@ -1,9 +1,8 @@
 import {useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import type FormModel from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
@@ -12,18 +11,8 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
-
-const FREQUENCY_OPTIONS = [
-  {value: 5, label: t('5 minutes')},
-  {value: 10, label: t('10 minutes')},
-  {value: 30, label: t('30 minutes')},
-  {value: 60, label: t('60 minutes')},
-  {value: 180, label: t('3 hours')},
-  {value: 720, label: t('12 hours')},
-  {value: 1440, label: t('24 hours')},
-  {value: 10080, label: t('1 week')},
-  {value: 43200, label: t('30 days')},
-];
+import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
+import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 export default function AutomationForm({model}: {model: FormModel}) {
   const initialConnectedIds = useFormField<Automation['detectorIds']>('detectorIds');
@@ -39,6 +28,8 @@ export default function AutomationForm({model}: {model: FormModel}) {
     setEnvironment(env);
     model.setValue('environment', env || null);
   };
+
+  useSetAutomaticAutomationName();
 
   return (
     <Flex direction="column" gap="lg">
@@ -61,7 +52,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       </Card>
       <Card>
         <Heading as="h2" size="lg">
-          {t('Automation Builder')}
+          {t('Alert Builder')}
         </Heading>
         <AutomationBuilder />
       </Card>
@@ -74,20 +65,8 @@ export default function AutomationForm({model}: {model: FormModel}) {
             {t('Perform the actions above this often for an issue.')}
           </Text>
         </Flex>
-        <EmbeddedSelectField
-          required
-          name="frequency"
-          inline={false}
-          clearable={false}
-          options={FREQUENCY_OPTIONS}
-        />
+        <ActionIntervalSelectField />
       </Card>
     </Flex>
   );
 }
-
-const EmbeddedSelectField = styled(SelectField)`
-  padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  text-transform: none;
-`;

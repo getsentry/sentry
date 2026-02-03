@@ -41,7 +41,7 @@ describe('AddIntegrationButton', () => {
         onAddIntegration={jest.fn()}
         onExternalClick={jest.fn()}
         externalInstallText={externalInstallText}
-        buttonProps={null}
+        buttonProps={{}}
       />
     </IntegrationContext>
   );

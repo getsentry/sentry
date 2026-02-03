@@ -1,12 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
@@ -52,17 +51,18 @@ class UsageTable extends Component<Props> {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
-          icon={<IconWarning color="gray300" legacySize="48px" />}
+          icon={<IconWarning />}
           title={t(
             "You don't have access to any projects, or your organization has no projects."
           )}
-          description={tct('Learn more about [link:Project Access]', {
+        >
+          {tct('Learn more about [link:Project Access]', {
             link: <ExternalLink href={DOCS_URL} />,
           })}
-        />
+        </EmptyMessage>
       );
     }
-    return <IconWarning color="gray300" legacySize="48px" />;
+    return <IconWarning variant="muted" legacySize="48px" />;
   };
 
   loadProject(projectId: number) {
@@ -205,6 +205,6 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;

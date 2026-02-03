@@ -7,14 +7,16 @@ import type {
   ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import {
+  ActionGroup,
   ActionTarget,
   ActionType,
   SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionGroupLogicType,
+  DataConditionType,
+  type DataCondition,
   type DataConditionGroup,
-  type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
@@ -169,6 +171,8 @@ interface AutomationActions {
 
 export const AutomationBuilderContext = createContext<{
   actions: AutomationActions;
+  // Selector is only shown for existing automations with the "All" logic type
+  showTriggerLogicTypeSelector: boolean;
   state: AutomationBuilderState;
 } | null>(null);
 
@@ -182,16 +186,21 @@ export const useAutomationBuilderContext = () => {
   return context;
 };
 
-export const initialAutomationBuilderState: AutomationBuilderState = {
+const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-    conditions: [],
+    conditions: [
+      createWhenCondition(DataConditionType.FIRST_SEEN_EVENT),
+      createWhenCondition(DataConditionType.ISSUE_RESOLVED_TRIGGER),
+      createWhenCondition(DataConditionType.REAPPEARED_EVENT),
+      createWhenCondition(DataConditionType.REGRESSION_EVENT),
+    ],
   },
   actionFilters: [
     {
       id: '0',
-      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      logicType: DataConditionGroupLogicType.ALL,
       conditions: [],
       actions: [],
     },
@@ -293,6 +302,15 @@ type AutomationBuilderAction =
   | UpdateIfActionAction
   | UpdateIfLogicTypeAction;
 
+function createWhenCondition(conditionType: DataConditionType): DataCondition {
+  return {
+    id: uuid4(),
+    type: conditionType,
+    comparison: true,
+    conditionResult: true,
+  };
+}
+
 function addWhenCondition(
   state: AutomationBuilderState,
   action: AddWhenConditionAction
@@ -303,12 +321,7 @@ function addWhenCondition(
       ...state.triggers,
       conditions: [
         ...state.triggers.conditions,
-        {
-          id: uuid4(),
-          type: action.conditionType,
-          comparison: true,
-          conditionResult: true,
-        },
+        createWhenCondition(action.conditionType),
       ],
     },
   };
@@ -474,15 +487,28 @@ function getActionTargetType(actionType: ActionType): ActionTarget | null {
 
 function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
   const targetType = getActionTargetType(actionHandler.type);
-  const targetIdentifier =
+  const defaultTargetIdentifier =
     actionHandler.sentryApp?.id ??
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
-    actionHandler.services?.[0]?.slug ??
-    '';
+    actionHandler.services?.[0]?.slug;
+
+  // Ticket creation actions require null (per backend schema)
+  // All other actions use empty string
+  const fallbackTargetIdentifier =
+    actionHandler.handlerGroup === ActionGroup.TICKET_CREATION ? null : '';
+
+  const targetIdentifier = defaultTargetIdentifier ?? fallbackTargetIdentifier;
+
+  const targetDisplay =
+    actionHandler.sentryApp?.name ??
+    actionHandler.integrations?.[0]?.services?.[0]?.name ??
+    actionHandler.services?.[0]?.name ??
+    null;
 
   return {
     targetType,
     targetIdentifier,
+    targetDisplay,
     ...(actionHandler.sentryApp?.id && {
       sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),

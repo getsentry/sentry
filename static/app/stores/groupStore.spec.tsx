@@ -3,6 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
+import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -227,6 +228,35 @@ describe('GroupStore', () => {
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+      });
+
+      it('should show generic message when itemIds is undefined', () => {
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        GroupStore.onDeleteSuccess('1337', undefined, {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted selected issues', 'success', {
+          duration: 4000,
+        });
+      });
+
+      it('should show specific count when itemIds is provided', () => {
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        GroupStore.onDeleteSuccess('1337', ['1', '2'], {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted 2 Issues', 'success', {
+          duration: 4000,
+        });
+      });
+
+      it('should show shortId for single issue deletion', () => {
+        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const mockGroup = g('1', {shortId: 'ABC-123'});
+        jest.spyOn(GroupStore, 'get').mockReturnValue(mockGroup);
+        GroupStore.onDeleteSuccess('1337', ['1'], {});
+
+        expect(addMessageSpy).toHaveBeenCalledWith('Deleted ABC-123', 'success', {
+          duration: 4000,
+        });
       });
     });
 

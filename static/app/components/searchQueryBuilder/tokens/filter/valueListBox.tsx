@@ -3,8 +3,9 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactSelect/types';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -57,7 +58,7 @@ function WildcardFooter({
   token: TokenResult<Token.FILTER>;
 }) {
   if (isWildcardOperator(token.operator)) {
-    return null;
+    return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
   }
 
   if (canUseWildcard) {
@@ -174,7 +175,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
-              keyDownHandler={() => true}
               overlayIsOpen={isOpen}
               showSectionHeaders={!filterValue}
               size="sm"
@@ -223,9 +223,9 @@ const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
 
 const FooterContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  color: ${p => p.theme.subText};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xs};

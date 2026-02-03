@@ -2,7 +2,10 @@ import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
   getAutofixRunExists,
@@ -13,6 +16,7 @@ import {
   getSolutionCopyText,
   getSolutionDescription,
   getSolutionIsLoading,
+  hasPullRequest,
 } from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -24,6 +28,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,6 +54,7 @@ interface InsightCardObject {
   copyAnalyticsEventName?: string;
   copyText?: string | null;
   copyTitle?: string | null;
+  feedbackType?: 'root_cause' | 'solution' | 'changes';
   icon?: React.ReactNode;
   insightElement?: React.ReactNode;
   isLoading?: boolean;
@@ -103,6 +109,14 @@ export function GroupSummaryWithAutofix({
     [autofixData]
   );
 
+  // Track autofix features analytics
+  useRouteAnalyticsParams({
+    has_root_cause: Boolean(rootCauseDescription),
+    has_solution: Boolean(solutionDescription),
+    has_coded_solution: Boolean(codeChangesDescription),
+    has_pr: hasPullRequest(autofixData),
+  });
+
   if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
   }
@@ -147,6 +161,7 @@ export function AutofixSummary({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const seerLink = {
     pathname: location.pathname,
@@ -162,6 +177,7 @@ export function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" />,
+      feedbackType: 'root_cause',
       onClick: () => {
         trackAnalytics('autofix.summary_root_cause_clicked', {
           organization,
@@ -189,6 +205,7 @@ export function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
+            feedbackType: 'solution' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_solution_clicked', {
                 organization,
@@ -218,6 +235,7 @@ export function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
+            feedbackType: 'changes' as const,
             onClick: () => {
               trackAnalytics('autofix.summary_code_changes_clicked', {
                 organization,
@@ -238,7 +256,7 @@ export function AutofixSummary({
 
   return (
     <div data-testid="autofix-summary">
-      <Content>
+      <Stack gap="md" position="relative">
         <InsightGrid>
           {insightCards.map(card => {
             if (!card.isLoading && !card.insight) {
@@ -247,25 +265,38 @@ export function AutofixSummary({
 
             return (
               <InsightCardButton key={card.id} onClick={card.onClick} role="button">
-                <InsightCard>
+                <Stack width="100%" overflow="hidden">
                   <CardTitle preview={card.isLoading}>
-                    <CardTitleSpacer>
+                    <Flex align="center" gap="sm">
                       <CardTitleIcon>{card.icon}</CardTitleIcon>
                       <CardTitleText>{card.title}</CardTitleText>
-                    </CardTitleSpacer>
-                    {card.copyText && card.copyTitle && (
-                      <CopyToClipboardButton
-                        size="xs"
-                        text={card.copyText}
-                        borderless
-                        title={card.copyTitle}
-                        onClick={e => {
-                          e.stopPropagation();
-                        }}
-                        analyticsEventName={card.copyAnalyticsEventName}
-                        analyticsEventKey={card.copyAnalyticsEventKey}
-                      />
-                    )}
+                    </Flex>
+                    <Flex align="center" gap="xs">
+                      {!card.isLoading && card.feedbackType && autofixData?.run_id && (
+                        <AutofixStepFeedback
+                          stepType={card.feedbackType}
+                          groupId={group.id}
+                          runId={autofixData.run_id}
+                          buttonSize="zero"
+                          compact
+                          onFeedbackClick={e => e.stopPropagation()}
+                        />
+                      )}
+                      {card.copyText && card.copyTitle && (
+                        <CopyToClipboardButton
+                          aria-label={t('Copy to clipboard')}
+                          size="xs"
+                          text={card.copyText}
+                          priority="transparent"
+                          title={card.copyTitle}
+                          onClick={e => {
+                            e.stopPropagation();
+                          }}
+                          analyticsEventName={card.copyAnalyticsEventName}
+                          analyticsEventKey={card.copyAnalyticsEventKey}
+                        />
+                      )}
+                    </Flex>
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -297,26 +328,19 @@ export function AutofixSummary({
                       </React.Fragment>
                     )}
                   </CardContent>
-                </InsightCard>
+                </Stack>
               </InsightCardButton>
             );
           })}
         </InsightGrid>
-      </Content>
+      </Stack>
     </div>
   );
 }
 
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  position: relative;
-`;
-
 const InsightCardButton = styled(motion.div)`
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   width: 100%;
   min-height: 0;
   position: relative;
@@ -324,14 +348,11 @@ const InsightCardButton = styled(motion.div)`
   cursor: pointer;
   padding: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:active {
-    opacity: 0.8;
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -348,45 +369,31 @@ const InsightGrid = styled('div')`
     top: ${space(4)};
     bottom: ${space(2)};
     width: 1px;
-    background: ${p => p.theme.border};
+    background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
-`;
-
-const InsightCard = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden;
 `;
 
 const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
 
-const CardTitleSpacer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: 1px;
 `;
 
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const CardContent = styled('div')`
@@ -406,7 +413,7 @@ const CardContent = styled('div')`
   }
 
   a {
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     text-decoration: none;
 
     &:hover {

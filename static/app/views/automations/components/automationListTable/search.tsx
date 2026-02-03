@@ -49,7 +49,7 @@ export function AutomationSearch({initialQuery, onSearch}: AutomationSearchProps
   return (
     <SearchQueryBuilder
       initialQuery={initialQuery}
-      placeholder={t('Search for automations')}
+      placeholder={t('Search for alerts')}
       onSearch={onSearch}
       filterKeys={FILTER_KEYS}
       getTagValues={() => Promise.resolve([])}

@@ -1,0 +1,58 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "ef42635ff82b83bc711ed7c65b7cb189"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "log_demo"
+          stacktrace*
+            frame* (marked in-app by custom stack trace rule (family:native function:log_demo::* +app))
+              function*
+                "log_demo::main"
+  system*
+    hash: "68021c81b00bc4f2f983b11f10efbfda"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "log_demo"
+          stacktrace*
+            frame*
+              function*
+                "_main"
+            frame*
+              function*
+                "std::rt::lang_start_internal"
+            frame*
+              function*
+                "std::panicking::try::do_call"
+            frame*
+              function*
+                "log_demo::main"

@@ -24,6 +24,9 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializerResponse,
+)
 
 from ..utils import logger
 
@@ -36,6 +39,7 @@ def send_incident_alert_notification(
     open_period_context: OpenPeriodContext,
     alert_rule_serialized_response: AlertRuleSerializerResponse | None,
     incident_serialized_response: DetailedIncidentSerializerResponse | None,
+    detector_serialized_response: DetectorSerializerResponse | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     chart_url = None
@@ -53,6 +57,7 @@ def send_incident_alert_notification(
                 open_period_context=open_period_context,
                 selected_incident_serialized=incident_serialized_response,
                 subscription=metric_issue_context.subscription,
+                detector_serialized_response=detector_serialized_response,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)

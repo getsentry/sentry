@@ -48,7 +48,7 @@ class SeerMethod(StrEnum):
     UPDATE = "update"
 
 
-def _get_start_index(data: list[TimeSeriesPoint]) -> int:
+def get_start_index(data: list[TimeSeriesPoint]) -> int:
     """
     Helper to return the first data points that has an event count. We can assume that all
     subsequent data points without associated event counts have event counts of zero.
@@ -60,7 +60,7 @@ def _get_start_index(data: list[TimeSeriesPoint]) -> int:
     return -1
 
 
-def handle_send_historical_data_to_seer(
+def handle_send_historical_data_to_seer_legacy(
     alert_rule: AlertRule,
     snuba_query: SnubaQuery,
     project: Project,
@@ -69,7 +69,7 @@ def handle_send_historical_data_to_seer(
 ) -> None:
     event_types_param = event_types or snuba_query.event_types
     try:
-        rule_status = send_historical_data_to_seer(
+        rule_status = send_historical_data_to_seer_legacy(
             alert_rule=alert_rule,
             project=project,
             snuba_query=snuba_query,
@@ -95,7 +95,9 @@ def handle_send_historical_data_to_seer(
 
 def send_new_rule_data(alert_rule: AlertRule, project: Project, snuba_query: SnubaQuery) -> None:
     try:
-        handle_send_historical_data_to_seer(alert_rule, snuba_query, project, SeerMethod.CREATE)
+        handle_send_historical_data_to_seer_legacy(
+            alert_rule, snuba_query, project, SeerMethod.CREATE
+        )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         alert_rule.delete()
         raise
@@ -103,7 +105,7 @@ def send_new_rule_data(alert_rule: AlertRule, project: Project, snuba_query: Snu
         metrics.incr("anomaly_detection_alert.created")
 
 
-def update_rule_data(
+def update_rule_data_legacy(
     alert_rule: AlertRule,
     project: Project,
     snuba_query: SnubaQuery,
@@ -136,7 +138,7 @@ def update_rule_data(
                 continue
             setattr(alert_rule.snuba_query, k, v)
 
-        handle_send_historical_data_to_seer(
+        handle_send_historical_data_to_seer_legacy(
             alert_rule,
             alert_rule.snuba_query,
             project,
@@ -145,7 +147,7 @@ def update_rule_data(
         )
 
 
-def send_historical_data_to_seer(
+def send_historical_data_to_seer_legacy(
     alert_rule: AlertRule,
     project: Project,
     snuba_query: SnubaQuery | None = None,
@@ -292,7 +294,7 @@ def send_historical_data_to_seer(
         )
         raise Exception(message)
 
-    data_start_index = _get_start_index(formatted_data)
+    data_start_index = get_start_index(formatted_data)
     if data_start_index == -1:
         return AlertRuleStatus.NOT_ENOUGH_DATA
 

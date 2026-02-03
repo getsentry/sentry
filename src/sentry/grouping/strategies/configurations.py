@@ -1,3 +1,4 @@
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
     create_strategy_configuration_class,
@@ -50,16 +51,34 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
+# This is the current default config
 register_grouping_config(
-    id="newstyle:2023-01-11",
+    id=WINTER_2023_GROUPING_CONFIG,
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
-    #
-    # There's nothing in the initial context because this config uses all the default values. If we
-    # change grouping behavior in a future config, it should be gated by a config feature, that
-    # feature should be defaulted to False in the base config, and then the `initial_context` in the
-    # new config is where we'd flip it to True.
-    initial_context={},
+    initial_context={
+        # Shim to preserve hash values, since they're order-dependent
+        "use_legacy_exception_subcomponent_order": True,
+        # Preserve a long-standing bug, wherein our "non-URL frame" test actually looks for frames
+        # *with* URLs
+        "handle_js_single_frame_url_origin_backwards": True,
+        # Don't parameterize `spawn_main(tracker_fd=12, pipe_handle=31)`-type context lines
+        "prevent_python_multiprocessing_context_line_parameterization": True,
+        # Ignore rather than flagging unknown fingerprint variables
+        "use_legacy_unknown_variable_handling": True,
+    },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
+)
+
+register_grouping_config(
+    id=FALL_2025_GROUPING_CONFIG,
+    base=WINTER_2023_GROUPING_CONFIG,
+    initial_context={
+        "use_legacy_exception_subcomponent_order": False,
+        "handle_js_single_frame_url_origin_backwards": False,
+        "prevent_python_multiprocessing_context_line_parameterization": False,
+        "use_legacy_unknown_variable_handling": False,
+    },
+    enhancements_base="all-platforms:2026-01-20",
 )

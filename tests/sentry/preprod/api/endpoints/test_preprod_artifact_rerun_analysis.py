@@ -21,7 +21,7 @@ class BaseRerunAnalysisTest(APITestCase):
     def create_artifact_with_metrics(self):
         """Creates an artifact with size metrics and comparisons"""
         main_file = File.objects.create(name="test_artifact.zip", type="application/zip")
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             file_id=main_file.id,
             app_name="test_artifact",
@@ -32,25 +32,25 @@ class BaseRerunAnalysisTest(APITestCase):
         )
 
         analysis_file_1 = File.objects.create(name="analysis1.json", type="application/json")
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact,
             analysis_file_id=analysis_file_1.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
 
         analysis_file_2 = File.objects.create(name="analysis2.json", type="application/json")
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact,
             analysis_file_id=analysis_file_2.id,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="watch_app",
         )
 
         comparison_file = File.objects.create(name="comparison.json", type="application/json")
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_1,
             base_size_analysis=size_metric_2,
-            organization_id=self.organization.id,
+            organization=self.organization,
             file_id=comparison_file.id,
         )
 
@@ -99,7 +99,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         assert File.objects.filter(id=main_file.id).exists()
 
     def test_rerun_analysis_with_no_metrics(self):
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -119,14 +119,14 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
 
     def test_rerun_analysis_cleans_up_base_comparisons(self):
-        artifact1 = PreprodArtifact.objects.create(
+        artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
             build_number=1,
         )
-        artifact2 = PreprodArtifact.objects.create(
+        artifact2 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -134,18 +134,18 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             build_number=2,
         )
 
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact2,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_2,
             base_size_analysis=size_metric_1,
-            organization_id=self.organization.id,
+            organization=self.organization,
         )
 
         self.get_success_response(
@@ -154,6 +154,151 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
 
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         assert PreprodArtifactSizeMetrics.objects.filter(id=size_metric_2.id).exists()
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_filters_size_analysis_by_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis filters SIZE_ANALYSIS based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS not in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_size_analysis_when_query_matches(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes SIZE_ANALYSIS when query matches"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that SHOULD match the artifact
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_filters_distribution_by_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis filters BUILD_DISTRIBUTION based on project query setting"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up a query filter that should NOT match the artifact
+        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called without BUILD_DISTRIBUTION
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.BUILD_DISTRIBUTION not in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_all_features_when_no_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes all features when no query is set"""
+        from sentry.preprod.producer import PreprodFeature
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Don't set any query filters - should include all features
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with both features
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
+    )
+    def test_rerun_analysis_includes_feature_on_invalid_query(self, mock_produce_to_kafka):
+        """Test that rerun analysis includes features when query is invalid"""
+        from sentry.preprod.producer import PreprodFeature
+        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
+
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="MyApp",
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+
+        # Set up an invalid query filter
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "invalid_field:value")
+
+        self.get_success_response(
+            self.organization.slug, self.project.slug, artifact.id, status_code=200
+        )
+
+        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
+        # (invalid query should be skipped, allowing the feature)
+        mock_produce_to_kafka.assert_called_once()
+        call_kwargs = mock_produce_to_kafka.call_args[1]
+        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
 
 
 class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
@@ -187,7 +332,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         assert File.objects.filter(id=main_file.id).exists()
 
     def test_rerun_analysis_with_no_metrics(self):
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -208,14 +353,14 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
 
     def test_rerun_analysis_cleans_up_base_comparisons(self):
-        artifact1 = PreprodArtifact.objects.create(
+        artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
             build_version="1.0.0",
             build_number=1,
         )
-        artifact2 = PreprodArtifact.objects.create(
+        artifact2 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
             app_id="com.test.app",
@@ -223,18 +368,18 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
             build_number=2,
         )
 
-        size_metric_1 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact1,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        size_metric_2 = PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=artifact2,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        size_metric_2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
         )
-        comparison = PreprodArtifactSizeComparison.objects.create(
+        comparison = self.create_preprod_artifact_size_comparison(
             head_size_analysis=size_metric_2,
             base_size_analysis=size_metric_1,
-            organization_id=self.organization.id,
+            organization=self.organization,
         )
 
         response = self.get_success_response(preprod_artifact_id=artifact1.id, status_code=200)

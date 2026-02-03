@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import SelectField from 'sentry/components/forms/fields/selectField';
 
 import type {
@@ -55,7 +56,7 @@ class SponsorshipAction extends Component<Props, State> {
       <Fragment>
         {subscription.isSponsored && (
           <Alert.Container>
-            <Alert type="info">This account is already sponsored.</Alert>
+            <Alert variant="info">This account is already sponsored.</Alert>
           </Alert.Container>
         )}
         <SelectField

@@ -2,12 +2,18 @@ import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
+import {
+  StoryTreeNode,
+  useFlatStoryList,
+  type StoryCategory,
+} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
@@ -16,13 +22,25 @@ import {StoryHeader} from './storyHeader';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
 
-export default function Stories() {
+export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();
-  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+  // Match: /stories/:category/(one/optional/or/more/path/segments)
+  // Handles both /stories/... and /organizations/{org}/stories/...
+  // Supports optional trailing slashes
+  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
+  return {
+    storyCategory: match?.[1] as StoryCategory | undefined,
+    storySlug: match?.[2] ?? undefined,
+  };
 }
 
-function isLandingPage(location: ReturnType<typeof useLocation>) {
-  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) && !location.query.name ? (
+    <StoriesLanding />
+  ) : (
+    <StoryDetail />
+  );
 }
 
 function StoriesLanding() {
@@ -36,27 +54,67 @@ function StoriesLanding() {
 }
 
 function StoryDetail() {
-  useStoryRedirect();
+  const location = useLocation();
+  const {storyCategory, storySlug} = useStoryParams();
+  const stories = useFlatStoryList();
 
-  const location = useLocation<{name: string; query?: string}>();
+  let storyNode = getStoryFromParams(stories, {
+    category: storyCategory,
+    slug: storySlug,
+  });
+
+  // If we don't have a story node, try to find it by the filesystem path
+  if (!storyNode && location.query.name) {
+    const nodes = Object.values(stories).flat();
+    const queue = [...nodes];
+
+    while (queue.length > 0) {
+      const node = queue.pop();
+      if (!node) break;
+
+      if (node.filesystemPath === location.query.name) {
+        storyNode = node;
+        break;
+      }
+
+      for (const key in node.children) {
+        queue.push(node.children[key]!);
+      }
+    }
+  }
+
   const story = useStoriesLoader({
-    files: [location.state?.storyPath ?? location.query.name],
+    files: storyNode ? [storyNode.filesystemPath] : [],
   });
 
   return (
     <StoriesLayout>
       {story.isLoading ? (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <LoadingIndicator />
-        </VerticalScroll>
+        </Container>
       ) : story.isError ? (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <Alert.Container>
-            <Alert type="error">
+            <Alert variant="danger">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
-        </VerticalScroll>
+        </Container>
       ) : story.isSuccess ? (
         <StoryMainContainer>
           {story.data.map(s => {
@@ -64,9 +122,16 @@ function StoryDetail() {
           })}
         </StoryMainContainer>
       ) : (
-        <VerticalScroll>
+        <Container
+          as="main"
+          padding="xl"
+          overflowX="visible"
+          overflowY="auto"
+          row="1"
+          column="2"
+        >
           <strong>The file you selected does not export a story.</strong>
-        </VerticalScroll>
+        </Container>
       )}
     </StoriesLayout>
   );
@@ -89,6 +154,37 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  // Handles both /stories and /organizations/{org}/stories
+  return /\/stories\/?$/.test(location.pathname);
+}
+
+function getStoryFromParams(
+  stories: ReturnType<typeof useFlatStoryList>,
+  context: {category?: StoryCategory; slug?: string}
+): StoryTreeNode | undefined {
+  if (stories.length === 0) {
+    return undefined;
+  }
+
+  const queue = [...stories];
+
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.category === context.category && node.slug === context.slug) {
+      return node;
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
+  }
+
+  return undefined;
 }
 
 function GlobalStoryStyles() {
@@ -151,16 +247,7 @@ const HeaderContainer = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
 `;
 
-const VerticalScroll = styled('main')`
-  overflow-x: visible;
-  overflow-y: auto;
-
-  grid-row: 1;
-  grid-column: 2;
-  padding: ${p => p.theme.space.xl};
-`;
-
-const StoryMainContainer = styled('div')`
+const StoryMainContainer = styled('main')`
   grid-row: 1;
   grid-column: 2;
   color: ${p => p.theme.tokens.content.primary};
@@ -175,93 +262,19 @@ const StoryMainContainer = styled('div')`
   h5,
   h6 {
     scroll-margin-top: 80px;
-    margin: 0;
-  }
-
-  p,
-  pre {
-    margin: 0;
-  }
-
-  code:not([class]):not(pre > code) {
-    background: ${p => p.theme.tokens.background.secondary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-
-  table:not([class]) {
-    margin: 1px;
-    padding: 0;
-    width: calc(100% - 2px);
-    table-layout: auto;
-    border: 0;
-    border-collapse: collapse;
-    border-radius: ${p => p.theme.borderRadius};
-    box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.primary};
-    margin-bottom: ${p => p.theme.space['3xl']};
-
-    & thead {
-      height: 36px;
-      border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-      background: ${p => p.theme.tokens.background.tertiary};
-      border-bottom: 4px solid ${p => p.theme.tokens.border.primary};
-    }
-
-    & th {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.sm};
-
-      &:first-of-type {
-        border-radius: ${p => p.theme.borderRadius} 0 0 0;
-      }
-      &:last-of-type {
-        border-radius: 0 ${p => p.theme.borderRadius} 0 0;
-      }
-    }
-
-    tr:last-child td:first-of-type {
-      border-radius: 0 0 0 ${p => p.theme.borderRadius};
-    }
-    tr:last-child td:last-of-type {
-      border-radius: 0 0 ${p => p.theme.borderRadius} 0;
-    }
-
-    tbody {
-      background: ${p => p.theme.tokens.background.primary};
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-    }
-
-    tr {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.muted};
-      vertical-align: baseline;
-
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
-
-    td:first-child {
-      white-space: nowrap;
-      word-break: break-all;
-      hyphens: none;
-    }
-
-    td {
-      padding-inline: ${p => p.theme.space.xl};
-      padding-block: ${p => p.theme.space.lg};
-    }
   }
 
   div + .expressive-code .frame {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+    border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     pre {
-      border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+      border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
     }
   }
 
   .expressive-code .frame {
-    margin-bottom: ${p => p.theme.space['3xl']};
+    margin: 0;
     box-shadow: none;
-    border: 1px solid #000000;
+    border: none;
     pre {
       background: hsla(254, 18%, 15%, 1);
       border: 0;

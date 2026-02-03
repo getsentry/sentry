@@ -12,6 +12,7 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
@@ -41,6 +42,7 @@ type Options = {
   end?: DateString;
   environment?: readonly string[];
   excludeOther?: boolean;
+  extrapolationMode?: string;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
@@ -50,7 +52,7 @@ type Options = {
   period?: string | null;
   project?: readonly number[];
   query?: string;
-  queryExtras?: Record<string, string | boolean | number>;
+  queryExtras?: Record<string, string | boolean | number | string[]>;
   referrer?: string;
   sampling?: SamplingMode;
   start?: DateString;
@@ -108,6 +110,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
     includeAllArgs,
     dataset,
     sampling,
+    extrapolationMode,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
@@ -135,6 +138,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
       sampling,
+      extrapolationMode,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -239,7 +243,16 @@ const makeFetchEventAttachmentsQueryKey = ({
   projectSlug,
   eventId,
 }: FetchEventAttachmentParameters): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/`,
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug!,
+        eventId,
+      },
+    }
+  ),
 ];
 
 export const useFetchEventAttachments = (
@@ -290,7 +303,17 @@ export const useDeleteEventAttachmentOptimistic = (
     ...incomingOptions,
     mutationFn: ({orgSlug, projectSlug, eventId, attachmentId}) => {
       return api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/events/${eventId}/attachments/${attachmentId}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+          {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              projectIdOrSlug: projectSlug,
+              eventId,
+              attachmentId,
+            },
+          }
+        ),
         {method: 'DELETE'}
       );
     },

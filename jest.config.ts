@@ -253,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -303,6 +303,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.mjs?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -340,9 +341,10 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: CI
-          ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
-          : false,
+        dsn:
+          CI && Boolean(GITHUB_PR_REF)
+            ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
+            : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,

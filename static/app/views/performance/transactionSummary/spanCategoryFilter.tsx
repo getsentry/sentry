@@ -2,8 +2,10 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -69,16 +71,8 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       }))
   );
 
-  if (isError) {
-    return (
-      <Tooltip title={t('Error loading span categories')}>
-        <CompactSelect disabled options={[]} />
-      </Tooltip>
-    );
-  }
-
-  const onChange = (selectedOption: SelectOption<string> | null) => {
-    setSelectedCategory(selectedOption?.value ?? undefined);
+  const onChange = (selectedOption: SelectOption<string> | undefined) => {
+    setSelectedCategory(selectedOption?.value);
 
     navigate({
       ...location,
@@ -89,20 +83,30 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
     });
   };
 
+  if (isError) {
+    return (
+      <Tooltip title={t('Error loading span categories')}>
+        <CompactSelect disabled options={[]} value={undefined} onChange={onChange} />
+      </Tooltip>
+    );
+  }
+
   return (
     <CompactSelect
       clearable
-      disallowEmptySelection={false}
       menuTitle={t('Filter by category')}
-      onClear={() => setSelectedCategory(undefined)}
       options={categoryOptions}
       value={selectedCategory ?? undefined}
       onChange={onChange}
-      triggerProps={{
-        children: selectedCategory ? selectedCategory : t('Filter'),
-        icon: <IconFilter />,
-        'aria-label': t('Filter by category'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconFilter />}
+          aria-label={t('Filter by category')}
+        >
+          {selectedCategory ? selectedCategory : t('Filter')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

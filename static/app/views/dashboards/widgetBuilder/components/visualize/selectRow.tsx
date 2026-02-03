@@ -2,7 +2,9 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +22,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,
   getAggregateValueKey,
@@ -65,7 +68,7 @@ interface SelectRowProps {
   stringFields?: string[];
 }
 
-function renderDropdownMenuFooter() {
+export function renderDropdownMenuFooter() {
   return (
     <FooterWrapper>
       <IconInfo size="xs" />
@@ -116,9 +119,7 @@ export function SelectRow({
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
-  const isChartWidget =
-    state.displayType !== DisplayType.TABLE &&
-    state.displayType !== DisplayType.BIG_NUMBER;
+  const isChartWidget = isChartDisplayType(state.displayType);
 
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
@@ -138,6 +139,19 @@ export function SelectRow({
             label: t('spans'),
             value: DEFAULT_VISUALIZATION_FIELD,
             textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ];
+        return [true, options];
+      }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
           },
         ];
         return [true, options];
@@ -404,9 +418,12 @@ export function SelectRow({
           });
           setError?.({...error, queries: []});
         }}
-        triggerProps={{
-          'aria-label': t('Aggregate Selection'),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            aria-label={t('Aggregate Selection')}
+          />
+        )}
       />
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
@@ -443,9 +460,12 @@ export function SelectRow({
                 organization,
               });
             }}
-            triggerProps={{
-              'aria-label': t('Column Selection'),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                aria-label={t('Column Selection')}
+              />
+            )}
             disabled={disabled || lockOptions}
           />
         </SelectWrapper>
@@ -469,8 +489,8 @@ const FooterWrapper = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SelectWrapper = styled('div')`

@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
-import {space} from 'sentry/styles/space';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
 
 interface WorkflowEngineEditLayoutProps {
@@ -22,7 +20,7 @@ interface WorkflowEngineEditLayoutProps {
 }
 
 /**
- * Precomposed layout for Automations / Monitors edit pages with form handling.
+ * Precomposed layout for Monitors / Alerts edit pages with form handling.
  */
 function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
   return (
@@ -33,24 +31,40 @@ function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
 }
 
 const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
+  flex: unset;
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const StyledBody = styled(Layout.Body)`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
 `;
 
-const FullWidthContent = styled('div')`
-  grid-column: 1 / -1;
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space['2xl']};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+  max-width: ${p => p.maxWidth};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;
 
 interface RequiredChildren {
@@ -61,8 +75,12 @@ interface HeaderProps extends RequiredChildren {
   noActionWrap?: boolean;
 }
 
-function Header({children, noActionWrap}: HeaderProps) {
-  return <StyledLayoutHeader noActionWrap={noActionWrap}>{children}</StyledLayoutHeader>;
+function Header({children, noActionWrap, maxWidth}: HeaderProps & {maxWidth?: string}) {
+  return (
+    <StyledLayoutHeader noActionWrap={noActionWrap}>
+      <HeaderInner maxWidth={maxWidth}>{children}</HeaderInner>
+    </StyledLayoutHeader>
+  );
 }
 
 function HeaderContent({children}: RequiredChildren) {
@@ -87,27 +105,38 @@ function Actions({children}: RequiredChildren) {
 }
 
 function HeaderFields({children}: RequiredChildren) {
-  return <FullWidthContent>{children}</FullWidthContent>;
+  return (
+    <Stack gap="xl" column="1 / -1">
+      {children}
+    </Stack>
+  );
 }
 
-function Body({children}: RequiredChildren) {
+function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
   return (
-    <StyledBody>
-      <Layout.Main fullWidth>{children}</Layout.Main>
+    <StyledBody maxWidth={maxWidth}>
+      <Layout.Main width="full">{children}</Layout.Main>
     </StyledBody>
   );
 }
 
 interface FooterProps extends RequiredChildren {
   label?: string;
+  maxWidth?: string;
 }
 
-function Footer({children, label}: FooterProps) {
+function Footer({children, label, maxWidth}: FooterProps) {
   return (
     <StickyFooter>
-      {label && <StickyFooterLabel>{label}</StickyFooterLabel>}
-      <Flex gap="md" flex={label ? undefined : 1} justify="end">
-        {children}
+      <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+        {label && (
+          <Text variant="muted" size="md">
+            {label}
+          </Text>
+        )}
+        <Flex gap="md" flex={label ? undefined : 1} justify="end">
+          {children}
+        </Flex>
       </Flex>
     </StickyFooter>
   );

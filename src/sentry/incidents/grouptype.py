@@ -214,10 +214,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             )
 
         try:
-            assignee = parse_and_validate_actor(
-                str(self.detector.created_by_id), self.detector.project.organization_id
-            )
+            owner = self.detector.owner.identifier if self.detector.owner else None
+            assignee = parse_and_validate_actor(owner, self.detector.project.organization_id)
         except Exception:
+            logger.exception("Failed to parse assignee for detector id %s", self.detector.id)
             assignee = None
 
         return (
@@ -318,8 +318,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         )
 
 
-# Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
-# like these when we're sending issues as alerts
 @dataclass(frozen=True)
 class MetricIssue(GroupType):
     type_id = 8001
@@ -333,13 +331,13 @@ class MetricIssue(GroupType):
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
-    enable_user_priority_changes = False
+    enable_user_status_and_priority_changes = False
     detector_settings = DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric alert firing",
+            "description": "A representation of a metric detector config dict",
             "type": "object",
             "required": ["detection_type"],
             "properties": {
@@ -354,3 +352,15 @@ class MetricIssue(GroupType):
             },
         },
     )
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def build_visible_feature_name(cls) -> str:
+        return "organizations:workflow-engine-ui"

@@ -7,8 +7,12 @@ import {FieldKind} from 'sentry/utils/fields';
 import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
+  SENTRY_PREPROD_NUMBER_TAGS,
+  SENTRY_PREPROD_STRING_TAGS,
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
+  SENTRY_TRACEMETRIC_NUMBER_TAGS,
+  SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -37,6 +41,8 @@ type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
+  query?: string;
+  search?: string;
 };
 
 type TraceItemAttributeProviderProps = {
@@ -48,11 +54,15 @@ export function TraceItemAttributeProvider({
   traceItemType,
   enabled,
   projects,
+  search,
+  query,
 }: TraceItemAttributeProviderProps) {
   const typedAttributesResult = useTraceItemAttributeConfig({
     traceItemType,
     enabled,
     projects,
+    search,
+    query,
   });
 
   return (
@@ -66,6 +76,8 @@ function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
   projects,
+  search,
+  query,
 }: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
@@ -73,6 +85,8 @@ function useTraceItemAttributeConfig({
       type: 'number',
       traceItemType,
       projects,
+      search,
+      query,
     });
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
@@ -81,6 +95,8 @@ function useTraceItemAttributeConfig({
       type: 'string',
       traceItemType,
       projects,
+      search,
+      query,
     });
 
   const allNumberAttributes = useMemo(() => {
@@ -106,7 +122,6 @@ function useTraceItemAttributeConfig({
       tag,
       {key: tag, name: tag, kind: FieldKind.TAG},
     ]);
-
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(stringAttributes ?? {})
         .flatMap(value => value.secondaryAliases ?? [])
@@ -117,16 +132,26 @@ function useTraceItemAttributeConfig({
       attributes: {...stringAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [traceItemType, stringAttributes]);
+  }, [stringAttributes, traceItemType]);
 
-  return {
-    number: allNumberAttributes.attributes,
-    string: allStringAttributes.attributes,
-    numberSecondaryAliases: allNumberAttributes.secondaryAliases,
-    stringSecondaryAliases: allStringAttributes.secondaryAliases,
-    numberAttributesLoading,
-    stringAttributesLoading,
-  };
+  return useMemo(
+    () => ({
+      number: allNumberAttributes.attributes,
+      string: allStringAttributes.attributes,
+      numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+      stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    }),
+    [
+      allNumberAttributes.attributes,
+      allNumberAttributes.secondaryAliases,
+      allStringAttributes.attributes,
+      allStringAttributes.secondaryAliases,
+      numberAttributesLoading,
+      stringAttributesLoading,
+    ]
+  );
 }
 
 function processTraceItemAttributes(
@@ -184,12 +209,24 @@ function getDefaultStringAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_STRING_TAGS;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_STRING_TAGS;
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SENTRY_TRACEMETRIC_STRING_TAGS;
+  }
   return SENTRY_LOG_STRING_TAGS;
 }
 
 function getDefaultNumberAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_NUMBER_TAGS;
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_NUMBER_TAGS;
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SENTRY_TRACEMETRIC_NUMBER_TAGS;
   }
   return SENTRY_LOG_NUMBER_TAGS;
 }

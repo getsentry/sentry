@@ -9,7 +9,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', () => {
-  const {organization, project, routerProps} = initializeOrg();
+  const {organization, project} = initializeOrg();
   const PROJECT_URL = `/projects/${organization.slug}/${project.slug}/`;
 
   const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;
@@ -20,25 +20,23 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
+  };
+
   function renderComponent() {
-    return render(
-      <ProjectFilters
-        {...routerProps}
-        params={{projectId: project.slug, filterType: ''}}
-        project={project}
-        organization={organization}
-      />,
-      {organization}
-    );
+    return render(<ProjectFilters />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
   }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      body: project,
-    });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: [],
@@ -118,12 +116,12 @@ describe('ProjectFilters', () => {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Safari Version 11 and lower',
+        name: 'Safari Version 15 and lower',
       })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Firefox Version 66 and lower'})
+      screen.getByRole('checkbox', {name: 'Firefox Version 110 and lower'})
     ).not.toBeChecked();
   });
 
@@ -135,7 +133,7 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(
       await screen.findByRole('checkbox', {
-        name: 'Firefox Version 66 and lower',
+        name: 'Firefox Version 110 and lower',
       })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
@@ -148,7 +146,7 @@ describe('ProjectFilters', () => {
 
     // Toggle filter off
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Firefox Version 66 and lower'})
+      await screen.findByRole('checkbox', {name: 'Firefox Version 110 and lower'})
     );
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
   });
@@ -204,17 +202,16 @@ describe('ProjectFilters', () => {
   });
 
   it('has custom inbound filters with flag + can change', async () => {
-    render(
-      <ProjectFilters
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug, filterType: ''}}
-        project={{
+    render(<ProjectFilters />, {
+      organization,
+      outletContext: {
+        project: {
           ...project,
           features: ['custom-inbound-filters'],
-        }}
-      />
-    );
+        },
+      },
+      initialRouterConfig,
+    });
 
     expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeEnabled();
@@ -247,15 +244,11 @@ describe('ProjectFilters', () => {
   });
 
   it('disables configuration for non project:write users', async () => {
-    render(
-      <ProjectFilters
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug, filterType: ''}}
-        project={project}
-      />,
-      {organization: OrganizationFixture({access: []})}
-    );
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({access: []}),
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     const checkboxes = await screen.findAllByRole('checkbox');
     checkboxes.forEach(checkbox => {
@@ -264,20 +257,19 @@ describe('ProjectFilters', () => {
   });
 
   it('shows disclaimer if error message filter is populated', async () => {
-    render(
-      <ProjectFilters
-        {...routerProps}
-        organization={organization}
-        params={{projectId: project.slug, filterType: ''}}
-        project={{
+    render(<ProjectFilters />, {
+      organization,
+      outletContext: {
+        project: {
           ...project,
           features: ['custom-inbound-filters'],
           options: {
             'filters:error_messages': 'test',
           },
-        }}
-      />
-    );
+        },
+      },
+      initialRouterConfig,
+    });
 
     expect(
       await screen.findByText(
@@ -293,18 +285,16 @@ describe('ProjectFilters', () => {
     });
     const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
-    render(
-      <ProjectFilters
-        {...routerProps}
-        organization={organization}
-        params={{
-          projectId: discardProject.slug,
-          filterType: 'discarded-groups',
-        }}
-        project={discardProject}
-      />,
-      {organization: discardOrg}
-    );
+    render(<ProjectFilters />, {
+      organization: discardOrg,
+      outletContext: {project: discardProject},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${discardOrg.slug}/projects/${discardProject.slug}/filters/discarded-groups/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
+      },
+    });
 
     expect(await screen.findByRole('button', {name: 'Undiscard'})).toBeDisabled();
   });

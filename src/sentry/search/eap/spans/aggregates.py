@@ -3,6 +3,7 @@ from typing import Literal, cast
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     StrArray,
 )
@@ -13,24 +14,22 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import count_processor, resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
     ResolvedArguments,
     ValueArgumentDefinition,
+    count_argument_resolver_optimized,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.validator import literal_validator, number_validator
 
-
-def count_processor(count_value: int | None) -> int:
-    if count_value is None:
-        return 0
-    else:
-        return count_value
+SPANS_ALWAYS_PRESENT_ATTRIBUTES = [
+    AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_DOUBLE),
+]
 
 
 def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -47,51 +46,6 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
         )
     )
     return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
-
-
-def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    aggregate_key = cast(AttributeKey, args[0])
-    key = cast(AttributeKey, args[1])
-    operator = cast(str, args[2])
-
-    value = args[3]
-    assert isinstance(
-        value, str
-    ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
-
-    try:
-        if key.type == AttributeKey.TYPE_DOUBLE:
-            attr_value = AttributeValue(val_double=float(value))
-        elif key.type == AttributeKey.TYPE_FLOAT:
-            attr_value = AttributeValue(val_float=float(value))
-        elif key.type == AttributeKey.TYPE_INT:
-            attr_value = AttributeValue(val_int=int(value))
-        else:
-            attr_value = AttributeValue(val_str=value)
-    except ValueError:
-        expected_type = "string"
-        if key.type in [AttributeKey.TYPE_FLOAT, AttributeKey.TYPE_DOUBLE]:
-            expected_type = "number"
-        if key.type == AttributeKey.TYPE_INT:
-            expected_type = "integer"
-        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
-
-    if key.type == AttributeKey.TYPE_BOOLEAN:
-        lower_value = value.lower()
-        if lower_value not in ["true", "false"]:
-            raise InvalidSearchQuery(
-                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
-            )
-        attr_value = AttributeValue(val_bool=value == "true")
-
-    trace_filter = TraceItemFilter(
-        comparison_filter=ComparisonFilter(
-            key=key,
-            op=constants.LITERAL_OPERATOR_MAP[operator],
-            value=attr_value,
-        )
-    )
-    return (aggregate_key, trace_filter)
 
 
 def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -171,7 +125,7 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
     return (attribute, filter)
 
 
-SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
+SPAN_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
@@ -201,6 +155,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     "string",
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     "currency",
                     "boolean",
@@ -218,10 +173,14 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                         "greaterOrEquals",
                         "less",
                         "greater",
+                        "between",
                     ]
                 ),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
+            ValueArgumentDefinition(
+                argument_types={"string"}, default_arg="", validator=number_validator
+            ),  # Second value is only for between, so it must be a number
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
@@ -443,11 +402,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
-}
-
-SPAN_AGGREGATE_DEFINITIONS = {
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="duration",
@@ -500,7 +456,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -521,6 +477,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        attribute_resolver=count_argument_resolver_optimized(SPANS_ALWAYS_PRESENT_ATTRIBUTES),
     ),
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -540,7 +497,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -576,7 +533,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,

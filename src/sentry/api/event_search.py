@@ -148,15 +148,16 @@ explicit_number_flag_key  = "flags" open_bracket escaped_key spaces comma spaces
 explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param                  = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param              = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key
+explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
 
-search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
+search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
@@ -259,7 +260,7 @@ def translate_wildcard_as_clickhouse_pattern(pattern: str) -> str:
         i += 1
         if c == "\\" and i < n:
             c = pattern[i]
-            if c not in {"*"}:
+            if c not in {"*", "\\"}:
                 raise InvalidSearchQuery(f"Unexpected escape character: {c}")
             chars.append(c)
             i += 1
@@ -406,9 +407,37 @@ def add_trailing_wildcard(value: str) -> str:
     return f"{value}*"
 
 
+def handle_backslash(value: str) -> str:
+    # when working with one of the wildcard operators,
+    # we need to ensure we properly handle backslashes
+    # by escaping them
+
+    v = []
+    n = len(value)
+
+    i = 0
+    while i < n:
+        c = value[i]
+        if c == "\\":
+            j = i + 1
+            if j < n and value[j] in {"*", "\\"}:
+                # found an escaped * or \
+                v.append(c)
+                i += 1
+                c = value[i]
+            else:
+                # found just a \
+                v.append("\\")
+        v.append(c)
+        i += 1
+
+    return "".join(v)
+
+
 def gen_wildcard_value(value: str, wildcard_op: str) -> str:
     if value == "" or wildcard_op == "":
         return value
+    value = handle_backslash(value)
     value = re.sub(r"(?<!\\)\*", r"\\*", value)
     if wildcard_op == WILDCARD_OPERATOR_MAP["contains"]:
         value = add_leading_wildcard(value)
@@ -485,6 +514,11 @@ class SearchValue(NamedTuple):
             return f"({"|".join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
+        elif isinstance(self.raw_value, (list, tuple)):
+            # Non-wildcard lists should also have escape sequences translated
+            return [
+                translate_escape_sequences(v) if isinstance(v, str) else v for v in self.raw_value
+            ]
         return self.raw_value
 
     def to_query_string(self) -> str:
@@ -1470,6 +1504,22 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},number]")
+
+    def visit_explicit_boolean_tag_key(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "tags"
+            str,  # '['
+            str,  # escaped_key
+            str,  # ' '
+            Node,  # ','
+            str,  # ' '
+            Node,  # "boolean"
+            str,  # ']'
+        ],
+    ) -> SearchKey:
+        return SearchKey(f"tags[{children[2]},boolean]")
 
     def visit_explicit_flag_key(
         self,

@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCheckmark, IconSubtract} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import type {Policy} from 'getsentry/types';
 
@@ -19,7 +19,9 @@ type StatusIconProps = {
 export function StatusIconWithTooltip({icon, tooltip}: StatusIconProps) {
   return (
     <Tooltip title={tooltip}>
-      <PolicyStatusIcon>{icon}</PolicyStatusIcon>
+      <Flex align="center" padding="md" height="100%">
+        {icon}
+      </Flex>
     </Tooltip>
   );
 }
@@ -29,7 +31,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
     return (
       <StatusIconWithTooltip
         tooltip="Included with all accounts"
-        icon={<IconCheckmark isCircled size="sm" color="success" />}
+        icon={<IconCheckmark size="sm" variant="success" />}
       />
     );
   }
@@ -40,7 +42,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
         tooltip={`Signed by ${policy.consent.userEmail} on ${moment(
           policy.consent.createdAt
         ).format('ll')}`}
-        icon={<IconCheckmark size="sm" isCircled color="success" />}
+        icon={<IconCheckmark size="sm" variant="success" />}
       />
     );
   }
@@ -48,14 +50,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
   return (
     <StatusIconWithTooltip
       tooltip="Optional, not signed"
-      icon={<IconSubtract isCircled color="gray500" size="sm" />}
+      icon={<IconSubtract variant="primary" size="sm" />}
     />
   );
 }
-
-const PolicyStatusIcon = styled('div')`
-  display: flex;
-  height: 100%;
-  align-items: center;
-  padding: ${space(1)};
-`;

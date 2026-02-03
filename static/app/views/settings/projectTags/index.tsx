@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
@@ -30,21 +32,17 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type DeleteTagResponse = unknown;
 type DeleteTagVariables = {key: TagWithTopValues['key']};
 
 export default function ProjectTags() {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {projectId} = useParams<{projectId: string}>();
-
-  const project = projects.find(p => p.slug === projectId);
+  const {project} = useProjectSettingsOutlet();
 
   const api = useApi();
   const queryClient = useQueryClient();
@@ -54,19 +52,19 @@ export default function ProjectTags() {
     isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
-    [`/projects/${organization.slug}/${projectId}/tags/`],
+    [`/projects/${organization.slug}/${project.slug}/tags/`],
     {staleTime: 0}
   );
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
-      api.requestPromise(`/projects/${organization.slug}/${projectId}/tags/${key}/`, {
+      api.requestPromise(`/projects/${organization.slug}/${project.slug}/tags/${key}/`, {
         method: 'DELETE',
       }),
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
-        [`/projects/${organization.slug}/${projectId}/tags/`],
+        [`/projects/${organization.slug}/${project.slug}/tags/`],
         oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
@@ -86,10 +84,12 @@ export default function ProjectTags() {
   const isEmpty = !tags?.length;
   return (
     <Fragment>
-      <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Tags & Context'), project.slug, false)}
+      />
       <SettingsPageHeader title={t('Tags & Context')} />
       <ProjectPermissionAlert project={project} />
-      <HighlightsSettingsForm projectSlug={projectId} />
+      <HighlightsSettingsForm projectSlug={project.slug} />
       <TextBlock>
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
@@ -118,7 +118,7 @@ export default function ProjectTags() {
                   return (
                     <TagPanelItem key={key} data-test-id="tag-row">
                       <TagName>{key}</TagName>
-                      <Actions>
+                      <Flex align="center" padding="xl">
                         <Confirm
                           message={t('Are you sure you want to remove this tag?')}
                           onConfirm={() => mutate({key})}
@@ -138,7 +138,7 @@ export default function ProjectTags() {
                             data-test-id="delete"
                           />
                         </Confirm>
-                      </Actions>
+                      </Flex>
                     </TagPanelItem>
                   );
                 })
@@ -158,11 +158,5 @@ const TagPanelItem = styled(PanelItem)`
 
 const TagName = styled('div')`
   flex: 1;
-  padding: ${space(2)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
   padding: ${space(2)};
 `;

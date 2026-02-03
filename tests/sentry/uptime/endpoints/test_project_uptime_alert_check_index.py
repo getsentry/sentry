@@ -2,9 +2,9 @@ import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeCheckSnubaTestCase, UptimeResultEAPTestCase
+from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
@@ -84,7 +84,9 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 "regionName",
                 "checkStatus",
                 "checkStatusReason",
+                "assertionFailureData",
                 "traceId",
+                "traceItemId",
                 "httpStatusCode",
                 "incidentStatus",
             ]:
@@ -93,6 +95,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert most_recent["uptimeCheckId"]
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
+            assert most_recent["assertionFailureData"] == MOCK_ASSERTION_FAILURE_DATA
 
             assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
             assert any(v for v in response.data if v["checkStatusReason"] is None)
@@ -162,19 +165,6 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data is not None
             assert len(response.data) == 0
 
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
-    )
-    def test_get_with_date_cutoff(self) -> None:
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.detector.id,
-            )
-            assert response.data is not None
-            assert len(response.data) == 0
-
     def test_get_with_none_subscription_id(self) -> None:
         with self.feature(self.features):
             # Create a subscription with None subscription_id
@@ -193,49 +183,10 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
 
 @region_silo_test
 @freeze_time(MOCK_DATETIME)
-class ProjectUptimeAlertCheckIndexEndpoint(
-    ProjectUptimeAlertCheckIndexBaseTest, UptimeCheckSnubaTestCase
-):
-    __test__ = True
-    features = {
-        "organizations:uptime-eap-enabled": False,
-        "organizations:uptime-eap-uptime-results-query": False,
-    }
-
-    def store_uptime_data(
-        self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        http_status=None,
-    ):
-        # if scheduled_check_time is None:
-        #     scheduled_check_time = datetime.now(timezone.utc) - timedelta(hours=12)
-        #
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id,
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-            http_status=http_status,
-            region="default",
-        )
-
-
-@region_silo_test
-@freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
     ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
-
-    def setUp(self) -> None:
-        self.features = {
-            "organizations:uptime-eap-enabled": True,
-            "organizations:uptime-eap-uptime-results-query": True,
-        }
-        super().setUp()
 
     def store_uptime_data(
         self,
@@ -255,6 +206,9 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             "status_reason_type": "failure" if check_status == "failure" else None,
             "region": "default",
             "http_status_code": http_status,
+            "assertion_failure_data": (
+                MOCK_ASSERTION_FAILURE_DATA if check_status == "failure" else None
+            ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
         self.store_uptime_results([uptime_result])

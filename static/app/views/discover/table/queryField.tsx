@@ -1,14 +1,14 @@
-import {Component, createRef} from 'react';
+import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import type {InputProps} from 'sentry/components/core/input';
-import {Input} from 'sentry/components/core/input';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {InputProps} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
@@ -25,7 +25,9 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import ArithmeticInput from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
@@ -102,6 +104,14 @@ type Props = {
   otherColumns?: Column[];
   placeholder?: string;
   /**
+   * A custom tag renderer for indicating the type of the field.
+   */
+  renderTagOverride?: (
+    kind: FieldValueKind,
+    label: string,
+    meta: FieldValue['meta']
+  ) => ReactNode;
+  /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
@@ -127,7 +137,7 @@ class _QueryField extends Component<Props> {
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
-          {data.value && this.renderTag(data.value.kind, data.label)}
+          {data.value && this.renderTag(data.value.kind, data.label, data.value.meta)}
         </components.SingleValue>
       );
     },
@@ -455,8 +465,12 @@ class _QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+          opt.trailingItems = this.renderTag(
+            opt.value.kind,
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            String(opt.label),
+            opt.value.meta
+          );
         });
 
         const portalProps = useMenuPortal
@@ -574,43 +588,26 @@ class _QueryField extends Component<Props> {
     return inputs;
   }
 
-  renderTag(kind: FieldValueKind, label: string) {
-    const {shouldRenderTag} = this.props;
+  renderTag(kind: FieldValueKind, label: string, meta: FieldValue['meta']) {
+    const {shouldRenderTag, renderTagOverride} = this.props;
     if (shouldRenderTag === false) {
       return null;
     }
-    let text: string;
-    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
-    switch (kind) {
-      case FieldValueKind.FUNCTION:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.CUSTOM_MEASUREMENT:
-      case FieldValueKind.MEASUREMENT:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.BREAKDOWN:
-        text = 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.TAG:
-        text = kind;
-        tagType = 'warning';
-        break;
-      case FieldValueKind.NUMERIC_METRICS:
-        text = 'f(x)';
-        tagType = 'success';
-        break;
-      case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
-        break;
-      default:
-        text = kind;
+    if (renderTagOverride) {
+      return renderTagOverride(kind, label, meta);
     }
-    return <Tag type={tagType}>{text}</Tag>;
+
+    const valueType =
+      meta && 'dataType' in meta ? (meta.dataType as FieldValueType) : undefined;
+
+    return (
+      <TypeBadge
+        label={label}
+        valueKind={kind}
+        valueType={valueType}
+        deprecatedFields={DEPRECATED_FIELDS}
+      />
+    );
   }
 
   render() {
@@ -636,8 +633,12 @@ class _QueryField extends Component<Props> {
       : Object.values(fieldOptions);
 
     allFieldOptions.forEach(opt => {
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+      opt.trailingItems = this.renderTag(
+        opt.value.kind,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        String(opt.label),
+        opt.value.meta
+      );
     });
 
     const selectProps: ControlProps<FieldValueOption> = {
@@ -676,7 +677,7 @@ class _QueryField extends Component<Props> {
           />
           {error ? (
             <ArithmeticError title={error}>
-              <IconWarning color="errorText" data-test-id="arithmeticErrorWarning" />
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
             </ArithmeticError>
           ) : null}
         </Container>
@@ -834,21 +835,21 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;

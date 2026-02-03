@@ -34,8 +34,9 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
+            filter: 'excludePrebuilt',
             // We only need to know there are at most the limited # of dashboards.
-            per_page: dashboardsLimit + 1, // +1 to account for the General dashboard
+            per_page: dashboardsLimit,
           },
         },
       ],
@@ -45,18 +46,15 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       }
     );
 
-  // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =
-    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
+    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&
       dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT) ||
     dashboardsLimit === 0;
   const limitMessage = hasReachedDashboardLimit
     ? tct(
         'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
         {
-          link: (
-            <Link to="/settings/billing/checkout/?referrer=dashboards-limit-upsell" />
-          ),
+          link: <Link to="/checkout/?referrer=dashboards-limit-upsell" />,
         }
       )
     : null;

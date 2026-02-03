@@ -1,13 +1,15 @@
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ensureAttributeObject} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
+import {ensureAttributeObject} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 const ARGUMENTS_KEY_PREFIX = 'mcp.request.argument.';
 
@@ -19,7 +21,7 @@ function shortenKey(key: string) {
 }
 
 function getInputAttributes(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ): Array<[string, string | number | boolean]> {
@@ -39,7 +41,7 @@ export function MCPInputSection({
   attributes,
   event,
 }: {
-  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
+  node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {

@@ -1,80 +1,133 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import MinimizedStrip from './minimizedStrip';
-import type {Block, PanelSize} from './types';
+import {IconSeer} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Block, PanelSize} from 'sentry/views/seerExplorer/types';
+import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 interface PanelContainersProps {
-  blocks: Block[];
   children: React.ReactNode;
+  isMinimized: boolean;
   isOpen: boolean;
-  isPolling: boolean;
-  onClear: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onMinSize: () => void;
-  onSubmit: (message: string) => void;
   panelSize: PanelSize;
+  blocks?: Block[];
+  isPolling?: boolean;
+  isSeerDrawerOpen?: boolean;
+  onUnminimize?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
+}
+
+function getStatusText(blocks: Block[]): string {
+  // Find the most recent usable block for status display
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i];
+    if (!block || block.message?.role === 'user') {
+      break;
+    }
+
+    // Check for message content (skip "thinking" blocks)
+    const content = block.message?.content?.trim();
+    if (content && content.toLowerCase() !== 'thinking' && content !== 'thinking...') {
+      return content;
+    }
+
+    // Check for tool calls
+    const toolStrings = getToolsStringFromBlock(block);
+    if (toolStrings.length > 0) {
+      return toolStrings[toolStrings.length - 1] || t('Analyzing...');
+    }
+  }
+
+  return t('Analyzing...');
 }
 
 function PanelContainers({
   isOpen,
+  isMinimized,
   panelSize,
   children,
   blocks,
-  onSubmit,
   isPolling,
-  onMaxSize,
-  onMedSize,
-  onMinSize,
-  onClear,
+  isSeerDrawerOpen,
+  onUnminimize,
+  ref,
 }: PanelContainersProps) {
+  const statusText = blocks && blocks.length > 0 ? getStatusText(blocks) : t('Ready');
+  const showBackdrop = isSeerDrawerOpen && !isMinimized;
+
   return (
     <AnimatePresence>
+      {isOpen && showBackdrop && (
+        <PanelBackdrop
+          initial={{opacity: 0}}
+          animate={{opacity: 0.5}}
+          exit={{opacity: 0}}
+          transition={{duration: 0.2}}
+        />
+      )}
       {isOpen && (
-        <Fragment>
-          {panelSize === 'min' ? (
-            <MinimizedStrip
-              key="minimized"
-              blocks={blocks}
-              onSubmit={onSubmit}
-              isPolling={isPolling}
-              onMaxSize={onMaxSize}
-              onMedSize={onMedSize}
-              onMinSize={onMinSize}
-              onClear={onClear}
-            />
-          ) : (
-            <Fragment>
-              {panelSize === 'max' && (
-                <Backdrop
-                  key="backdrop"
-                  initial={{opacity: 0}}
-                  animate={{opacity: 1}}
-                  exit={{opacity: 0}}
-                  transition={{duration: 0.1}}
-                />
-              )}
-              <PanelContainer
-                panelSize={panelSize}
-                initial={{
-                  opacity: 0,
-                  y: 50,
-                  scale: 0.1,
-                  transformOrigin: 'bottom center',
-                }}
-                animate={{opacity: 1, y: 0, scale: 1, transformOrigin: 'bottom center'}}
-                exit={{opacity: 0, y: 50, scale: 0.1, transformOrigin: 'bottom center'}}
-                transition={{duration: 0.1, ease: 'easeOut'}}
+        <PanelContainer
+          panelSize={panelSize}
+          isMinimized={isMinimized}
+          isSeerDrawerOpen={isSeerDrawerOpen}
+          initial={{
+            opacity: 0,
+            x: 50,
+            y: 50,
+            scale: 0.95,
+            transformOrigin: 'bottom right',
+          }}
+          animate={{
+            opacity: 1,
+            x: isMinimized ? 'calc(100% - 160px)' : 0,
+            y: isMinimized ? 'calc(100% - 160px)' : 0,
+            scale: 1,
+            transformOrigin: 'bottom right',
+          }}
+          exit={{
+            opacity: 0,
+            x: isMinimized ? '100%' : 50,
+            y: isMinimized ? '100%' : 50,
+            scale: 0.95,
+            transformOrigin: 'bottom right',
+          }}
+          transition={{
+            duration: 0.2,
+            ease: [0.4, 0, 0.2, 1],
+          }}
+        >
+          <PanelContent ref={ref} data-seer-explorer-root="">
+            {children}
+            {isMinimized && (
+              <MinimizedOverlay
+                initial={{opacity: 0}}
+                animate={{opacity: 1}}
+                exit={{opacity: 0}}
+                transition={{duration: 0.12, ease: [0.4, 0, 0.2, 1]}}
+                onClick={onUnminimize}
               >
-                <PanelContent data-seer-explorer-root="">{children}</PanelContent>
-              </PanelContainer>
-            </Fragment>
-          )}
-        </Fragment>
+                <MinimizedCorner>
+                  <Flex
+                    direction="column"
+                    align="center"
+                    gap="sm"
+                    style={{width: '100%'}}
+                  >
+                    <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="lg" />
+                    <Text size="xs">{t('Tab ⇥ to continue')}</Text>
+                    <Text size="xs" variant="muted" ellipsis style={{maxWidth: '100%'}}>
+                      {statusText}
+                    </Text>
+                  </Flex>
+                </MinimizedCorner>
+              </MinimizedOverlay>
+            )}
+          </PanelContent>
+        </PanelContainer>
       )}
     </AnimatePresence>
   );
@@ -82,55 +135,107 @@ function PanelContainers({
 
 export default PanelContainers;
 
-const Backdrop = styled(motion.div)`
+const PanelBackdrop = styled(motion.div)`
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  width: calc(50% + 8px);
+  height: 100%;
+  background: ${p => p.theme.colors.black};
   z-index: 9999;
-  pointer-events: auto;
+  pointer-events: none;
 `;
 
-const PanelContainer = styled(motion.div)<{panelSize: 'max' | 'med'}>`
+const PanelContainer = styled(motion.div)<{
+  isMinimized: boolean;
+  panelSize: 'max' | 'med';
+  isSeerDrawerOpen?: boolean;
+}>`
   position: fixed;
-  bottom: ${space(2)};
-  left: 50%;
   z-index: 10000;
   pointer-events: auto;
 
-  ${p =>
-    p.panelSize === 'max'
-      ? `
-      width: calc(100vw - ${space(4)});
-      height: calc(100vh - ${space(4)});
-      margin-left: calc(-50vw + ${space(2)});
-    `
-      : `
-      width: 50vw;
-      height: 50vh;
-      margin-left: -25vw;
-    `}
+  /* Position: shift left when drawer is open (but not when minimized) */
+  bottom: ${p => p.theme.space.sm};
+  right: ${p => {
+    const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
+    return shiftForDrawer ? '50%' : p.theme.space.sm;
+  }};
 
-  transition: all 0.2s ease-in-out;
+  ${p => {
+    const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
+    const width = shiftForDrawer ? 'calc(50vw - 8px)' : '50vw';
+    if (p.panelSize === 'max') {
+      return `
+        width: ${width};
+        height: calc(100vh - ${p.theme.space.lg});
+      `;
+    }
+    return `
+      width: ${width};
+      height: 60vh;
+    `;
+  }}
+
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const PanelContent = styled('div')`
   width: 100%;
   height: 100%;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
   overflow: hidden;
 `;
 
-export const BlocksContainer = styled('div')`
+export const BlocksContainer = styled(Stack)`
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+`;
+
+const MinimizedOverlay = styled(motion.div)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  z-index: 1;
+  cursor: pointer;
+
+  /* Purple tint */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
+  }
+`;
+
+const MinimizedCorner = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 160px;
+  height: 160px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: ${p => p.theme.space.md};
+  text-align: center;
 `;

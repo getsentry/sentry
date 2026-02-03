@@ -1,13 +1,14 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -289,9 +290,13 @@ function OrganizationMembersList() {
   const membersPageLinks = getResponseHeader?.('Link');
 
   // hides other users in demo mode
-  const membersToShow = isDemoModeActive()
-    ? members.filter(({email}) => email === currentUser.email)
-    : members;
+  const membersToShow = useMemo(
+    () =>
+      isDemoModeActive()
+        ? members.filter(m => m).filter(({email}) => email === currentUser.email)
+        : members.filter(m => m),
+    [members, currentUser.email]
+  );
 
   const action = (
     <InviteMembersButtonHook

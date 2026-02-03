@@ -1,11 +1,13 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {TooltipContext} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -24,8 +26,6 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
-import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -38,6 +38,7 @@ import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
+  query,
   errorBeforeReplayStart,
   replayId,
   fullReplayButtonProps,
@@ -56,6 +57,7 @@ export default function ReplayPreviewPlayer({
   handleForwardClick?: () => void;
   overlayContent?: React.ReactNode;
   playPausePriority?: ComponentProps<typeof ReplayPlayPauseButton>['priority'];
+  query?: Query;
   showNextAndPrevious?: boolean;
 }) {
   const routes = useRoutes();
@@ -90,16 +92,20 @@ export default function ReplayPreviewPlayer({
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
-    <PlayerPanel>
+    <Stack flexGrow={1} gap="md" height="100%">
       {errorBeforeReplayStart && (
-        <StyledAlert type="warning">
+        <StyledAlert variant="warning">
           {t(
             'For this event, the replay recording started after the error happened, so the replay below shows the user experience after the error.'
           )}
         </StyledAlert>
       )}
-      <HeaderWrapper>
+      <Flex justify="between" align="center" marginBottom="md" position="relative">
         <ReplaySessionColumn.Component
+          to={{
+            pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+            query,
+          }}
           replay={replayRecord as ReplayListRecord}
           rowIndex={0}
           columnIndex={0}
@@ -117,13 +123,14 @@ export default function ReplayPreviewPlayer({
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
               t: (currentTime + startOffsetMs) / 1000,
               groupId,
+              ...query,
             },
           }}
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
         </ContainedLinkButton>
-      </HeaderWrapper>
+      </Flex>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         <TooltipContext value={{container: fullscreenRef.current}}>
           <PlayerBreadcrumbContainer>
@@ -145,7 +152,7 @@ export default function ReplayPreviewPlayer({
             {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
           </PlayerBreadcrumbContainer>
           <ErrorBoundary mini>
-            <ButtonGrid>
+            <Flex justify="between" align="center" gap="0 md">
               {showNextAndPrevious && (
                 <Button
                   size="sm"
@@ -177,28 +184,19 @@ export default function ReplayPreviewPlayer({
                   analyticsEventKey="replay_preview_player.clicked_next_clip"
                 />
               )}
-              <Container>
+              <Stack justify="center" flex="1 1">
                 <TimelineScaleContextProvider>
                   <TimeAndScrubberGrid />
                 </TimelineScaleContextProvider>
-              </Container>
+              </Stack>
               <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-            </ButtonGrid>
+            </Flex>
           </ErrorBoundary>
         </TooltipContext>
       </PreviewPlayerContainer>
-    </PlayerPanel>
+    </Stack>
   );
 }
-
-const PlayerPanel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
-  height: 100%;
-`;
 
 const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
@@ -206,7 +204,9 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
 
 const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(2)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
+  height: unset;
+  overflow: unset;
 
   :fullscreen {
     padding: ${space(1)};
@@ -227,24 +227,9 @@ const PlayerContextContainer = styled(FluidHeight)`
 `;
 
 const StaticPanel = styled(FluidHeight)`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
-const ButtonGrid = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 0 ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  justify-content: center;
-`;
-
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
@@ -253,23 +238,12 @@ const ContextContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const HeaderWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1)};
-`;
-
 const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
 
-const ContainedLinkButton = withChonk(
-  LinkButton,
-  chonkStyled(LinkButton)`
-    position: absolute;
-    right: 0;
-    top: 3px;
-  `
-);
+const ContainedLinkButton = styled(LinkButton)`
+  position: absolute;
+  right: 0;
+  top: 3px;
+`;

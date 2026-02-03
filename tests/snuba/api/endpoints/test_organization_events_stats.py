@@ -198,6 +198,56 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_dataset_with_environment(self) -> None:
+        environment = self.create_environment(project=self.project)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "environment": environment.name,
+            },
+            project_id=self.project.id,
+        )
+        response = self.do_request(
+            {
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "dataset": "errors",
+                "query": f"environment:{environment.name.split(" ")[0]}*",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 0}]]
+
+    def test_errors_dataset_with_list_environments(self) -> None:
+        environment = self.create_environment(project=self.project)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "environment": environment.name,
+            },
+            project_id=self.project.id,
+        )
+        response = self.do_request(
+            {
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "dataset": "errors",
+                "query": f"environment:[{environment.name.split(" ")[0]}*,*{environment.name.split(" ")[-1]}]",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 0}]]
+
     def test_errors_dataset_no_query(self) -> None:
         response = self.do_request(
             {

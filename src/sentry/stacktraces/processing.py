@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -14,7 +15,7 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute, set_path
+from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -22,12 +23,25 @@ op = "stacktrace_processing"
 if TYPE_CHECKING:
     from sentry.grouping.strategies.base import StrategyConfiguration
 
+# Used to recognize context lines where Python's multiprocessing logic hard-codes variable values,
+# leading to under-grouping. See:
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/spawn.py#L91-L92
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/popen_spawn_posix.py#L55-L56
+#    https://github.com/python/cpython/blob/95259116ecb4346b570b9f87fd825d1d5901c4f1/Lib/multiprocessing/popen_spawn_win32.py#L57-L58
+PYTHON_MULTIPROCESSING_CALL_REGEX = re.compile(
+    r"from multiprocessing\.spawn import spawn_main; spawn_main\("
+    r"(tracker_fd|parent_pid)=\d+, pipe_handle=\d+"  # Posix and Windows use different initial kwargs
+    r"\)"
+)
+
 
 class StacktraceInfo(NamedTuple):
     stacktrace: dict[str, Any]
     container: dict[str, Any]
     platforms: set[str]
     is_exception: bool
+    exception_type: str | None
+    exception_module: str | None
 
     def __hash__(self) -> int:
         return id(self)
@@ -37,6 +51,14 @@ class StacktraceInfo(NamedTuple):
 
     def __ne__(self, other: object) -> bool:
         return self is not other
+
+    def get_exception(self) -> str | None:
+        """Returns the fully qualified exception name (module.type) or None if not an exception."""
+        if self.exception_type is None:
+            return None
+        if self.exception_module:
+            return f"{self.exception_module}.{self.exception_type}"
+        return self.exception_type
 
     def get_frames(self) -> Sequence[dict[str, Any]]:
         return _safe_get_frames(self.stacktrace)
@@ -213,6 +235,10 @@ def find_stacktraces_in_data(
         container: Any = None,
         # Whether or not the container is from `exception.values`
         is_exception: bool = False,
+        # The exception type (e.g., "ValueError") if this stacktrace belongs to an exception
+        exception_type: str | None = None,
+        # The exception module (e.g., "__builtins__") if this stacktrace belongs to an exception
+        exception_module: str | None = None,
         # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
         # stacktraces are always skipped)
         include_empty_exceptions: bool = False,
@@ -232,6 +258,8 @@ def find_stacktraces_in_data(
                 container=container,
                 platforms=platforms,
                 is_exception=is_exception,
+                exception_type=exception_type,
+                exception_module=exception_module,
             )
         )
 
@@ -241,6 +269,8 @@ def find_stacktraces_in_data(
             exc.get("stacktrace"),
             container=exc,
             is_exception=True,
+            exception_type=exc.get("type"),
+            exception_module=exc.get("module"),
             include_empty_exceptions=include_empty_exceptions,
         )
 
@@ -328,7 +358,14 @@ def normalize_stacktraces_for_grouping(
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
-                _update_frame(frame, platform)
+                _trim_function_name(frame, platform)
+
+                # Restore the original in_app value before applying in-app stacktrace rules. This
+                # lets us run grouping enhancers on the stacktrace multiple times, as would happen
+                # during a grouping config transition, for example.
+                orig_in_app = get_path(frame, "data", "orig_in_app")
+                if orig_in_app is not None:
+                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
 
                 # Track the incoming `in_app` value, before we make any changes. This is different
                 # from the `orig_in_app` value which may be set by
@@ -349,6 +386,53 @@ def normalize_stacktraces_for_grouping(
                     # ignore unparsable filenames
                     except Exception:
                         pass
+
+                # Cpython's multiprocessing module generates code with hard-coded variable values
+                # when spawning processes, which then makes our grouping logic see every random pair
+                # of values as a different stacktrace. To fix this, we manually parameterize such
+                # context lines. (See the regex definition above for code references.)
+                #
+                # Note: While it's true that all of the if conditions here make this a bit brittle,
+                # a) Python internals don't change super frequently, and b) we want to make this
+                # case as narrow as possible to avoid the cost of running the regex when we don't
+                # need to, since this code runs on every frame of every event during ingest.
+                context_line = frame.get("context_line")
+                if (
+                    context_line
+                    and platform == "python"
+                    and frame.get("module") == "__main__"
+                    and frame.get("filename") == "<string>"
+                    and frame.get("function") == "<module>"
+                    and PYTHON_MULTIPROCESSING_CALL_REGEX.match(context_line)
+                ):
+                    setdefault_path(frame, "data", "orig_context_line", value=context_line)
+                    # Turn `spawn_main(tracker_fd=11, pipe_handle=21)` into `spawn_main(tracker_fd=<int>, pipe_handle=<int>)`
+                    # and `spawn_main(parent_pid=12, pipe_handle=31)` into `spawn_main(parent_pid=<int>, pipe_handle=<int>)`
+                    frame["context_line"] = re.sub(r"=\d+", "=<int>", context_line)
+                    metrics.incr(
+                        "sentry.grouping.python_multiprocessing_line_parameterized",
+                        tags={"platform": "posix" if "tracker_fd" in context_line else "windows"},
+                    )
+
+                    # TODO: Temporary log to see if other orgs have this problem or if it's just
+                    # us, and to try to find a Windows example of this happening
+                    logger.info(
+                        "grouping.python_multiprocessing_line_parameterized",
+                        extra={
+                            "event_id": data.get("event_id"),
+                            "project_id": data.get("project"),
+                            "orig_line": context_line,
+                            "platform": "posix" if "tracker_fd" in context_line else "windows",
+                        },
+                    )
+
+                    # TODO: This can go away once we're fully transitioned off of the
+                    # `newstyle:2023-01-11` grouping config
+                    if grouping_config and grouping_config.initial_context.get(
+                        "prevent_python_multiprocessing_context_line_parameterization"
+                    ):
+                        frame["context_line"] = context_line
+
         if stripped_querystring:
             # Fires once per event, regardless of how many frames' filenames were stripped
             metrics.incr("sentry.grouping.stripped_filename_querystrings")
@@ -379,24 +463,18 @@ def normalize_stacktraces_for_grouping(
     data["metadata"] = event_metadata
 
 
-def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
-    """Restore the original in_app value before the first grouping
-    enhancers have been run. This allows to re-apply grouping
-    enhancers on the original frame data.
-    """
-    orig_in_app = get_path(frame, "data", "orig_in_app")
-    if orig_in_app is not None:
-        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
+    function = frame.get("function")
+    raw_function = frame.get("raw_function")
 
-    if frame.get("raw_function") is not None:
+    # Nothing to trim or trimming has already been done
+    if not function or raw_function is not None:
         return
-    raw_func = frame.get("function")
-    if not raw_func:
-        return
-    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-    if function_name != raw_func:
-        frame["raw_function"] = raw_func
-        frame["function"] = function_name
+
+    trimmed_function = trim_function_name(function, frame.get("platform", platform))
+    if trimmed_function != function:
+        frame["raw_function"] = function
+        frame["function"] = trimmed_function
 
 
 def should_process_for_stacktraces(data):

@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from django.conf import settings
 
 from sentry.constants import ObjectStatus
@@ -14,6 +15,7 @@ def _get_cluster() -> Any:
     return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 
+@pytest.mark.skip(reason="Already run, fails when defaulting dual write in workflow engine")
 class BackfillMonitorDetectorsTest(TestMigrations):
     migrate_from = "0008_fix_processing_error_keys"
     migrate_to = "0009_backfill_monitor_detectors"

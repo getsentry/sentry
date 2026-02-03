@@ -1,5 +1,7 @@
-import {ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -19,23 +21,16 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import OrganizationContainer from 'sentry/views/organizationContainer';
+import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';
-
-interface Props {
-  children: React.ReactNode;
-}
 
 const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function OrganizationLayout({children}: Props) {
-  useRouteAnalyticsHookSetup();
-  useRegisterDomainViewUsage();
-
+function OrganizationLayout() {
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
@@ -45,9 +40,10 @@ function OrganizationLayout({children}: Props) {
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
+      <GlobalAnalytics />
       <OrganizationContainer>
         <GlobalDrawer>
-          <AppLayout organization={organization}>{children}</AppLayout>
+          <AppLayout organization={organization} />
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
@@ -55,7 +51,7 @@ function OrganizationLayout({children}: Props) {
   );
 }
 
-interface LayoutProps extends Props {
+interface LayoutProps {
   organization: Organization | null;
 }
 
@@ -70,24 +66,37 @@ function AppDrawers() {
   return null;
 }
 
-function AppLayout({children, organization}: LayoutProps) {
+function AppLayout({organization}: LayoutProps) {
   return (
     <NavContextProvider>
       <AppContainer>
         <Nav />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <BodyContainer id="main">
+        <Stack flex="1" minWidth="0" id="main">
           <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
-            <OrganizationDetailsBody>{children}</OrganizationDetailsBody>
+            <OrganizationDetailsBody>
+              <Outlet />
+            </OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
-        </BodyContainer>
+        </Stack>
       </AppContainer>
       {organization ? <AppDrawers /> : null}
     </NavContextProvider>
   );
+}
+
+/**
+ * Pulled into its own component to avoid re-rendering the OrganizationLayout
+ * TODO: figure out why these analytics hooks trigger rerenders
+ */
+function GlobalAnalytics() {
+  useRouteAnalyticsHookSetup();
+  useRegisterDomainViewUsage();
+
+  return null;
 }
 
 const AppContainer = styled('div')`
@@ -99,13 +108,6 @@ const AppContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
-`;
-
-const BodyContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
 `;
 
 export default OrganizationLayout;

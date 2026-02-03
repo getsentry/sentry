@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -163,7 +163,5 @@ export default SnoozeAlert;
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
   border-radius: ${p =>
-    p.hasDropdown
-      ? `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`
-      : p.theme.borderRadius};
+    p.hasDropdown ? `${p.theme.radius.md} 0 0 ${p.theme.radius.md}` : p.theme.radius.md};
 `;

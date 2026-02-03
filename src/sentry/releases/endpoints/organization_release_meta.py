@@ -57,8 +57,10 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         commit_files_changed = (
             CommitFileChange.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-                    "commit_id", flat=True
+                commit_id__in=list(
+                    ReleaseCommit.objects.filter(release=release).values_list(
+                        "commit_id", flat=True
+                    )
                 )
             )
             .values("filename")
@@ -82,7 +84,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         if parsed_version and release_project_ids:
             number_of_preprod_builds = PreprodArtifact.objects.filter(
                 app_id=parsed_version.app_id,
-                build_version=parsed_version.build_version,
+                mobile_app_info__build_version=parsed_version.build_version,
                 project_id__in=release_project_ids,
             ).count()
         else:

@@ -8,6 +8,7 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
@@ -39,6 +40,8 @@ import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import type {FilterKeyItem} from './filterKeyListBox/types';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -137,7 +140,15 @@ function calculateNextFocusForFilter(
 ): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
 
-  let part: FocusOverride['part'] = hasInputChangeFlows ? 'op' : 'value';
+  const isNumericValueType =
+    definition?.valueType === FieldValueType.NUMBER ||
+    definition?.valueType === FieldValueType.INTEGER;
+
+  let part: FocusOverride['part'] =
+    hasInputChangeFlows && (isNumericValueType || areWildcardOperatorsAllowed(definition))
+      ? 'op'
+      : 'value';
+
   if (
     definition &&
     definition.kind === FieldKind.FUNCTION &&
@@ -396,6 +407,24 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
+  const renderItem = useCallback(
+    (keyItem: FilterKeyItem) =>
+      itemIsSection(keyItem) ? (
+        <Section title={keyItem.label} key={keyItem.key}>
+          {keyItem.options.map(child => (
+            <Item {...child} key={child.key}>
+              {child.label}
+            </Item>
+          ))}
+        </Section>
+      ) : (
+        <Item {...keyItem} key={keyItem.key}>
+          {keyItem.label}
+        </Item>
+      ),
+    []
+  );
+
   return (
     <Fragment>
       <HiddenText
@@ -424,6 +453,18 @@ function SearchQueryBuilderInputInternal({
               query: option.value,
               focusOverride: {itemKey: 'end'},
             });
+            return;
+          }
+
+          if (option.type === 'logic-filter') {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_SELECT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+            });
+            resetInputValue();
             return;
           }
 
@@ -662,21 +703,12 @@ function SearchQueryBuilderInputInternal({
           state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
         }
       >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
+        {/* `useComboBoxState` inside the combo box component eagerly iterates
+        `children`, which can be very slow if there are many items. If the combo
+        box is not even open, do not pass any `children`. This prevents the
+        combo box from iterating anything while it's closed, which improves
+        render performance when the combo box is closed. */}
+        {isOpen ? renderItem : null}
       </SearchQueryBuilderCombobox>
     </Fragment>
   );
@@ -730,7 +762,7 @@ const Row = styled('div')`
 
   &[aria-invalid='true'] {
     input {
-      color: ${p => p.theme.red400};
+      color: ${p => p.theme.colors.red500};
     }
   }
 
@@ -742,7 +774,7 @@ const Row = styled('div')`
       right: ${p => p.theme.space.xs};
       top: 0;
       bottom: 0;
-      background-color: ${p => p.theme.gray100};
+      background-color: ${p => p.theme.colors.gray100};
     }
   }
 `;

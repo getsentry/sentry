@@ -1,4 +1,5 @@
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
@@ -55,8 +56,14 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.NORMALIZED_DESCRIPTION,
   SpanFields.RELEASE, // temporary as orgs with >1k keys still want releases
   SpanFields.PROJECT_ID,
+  SpanFields.SDK_NAME,
+  SpanFields.SDK_VERSION,
   SpanFields.SPAN_SYSTEM,
   SpanFields.SPAN_CATEGORY,
+  SpanFields.USER_ID,
+  SpanFields.USER_IP,
+  SpanFields.USER_EMAIL,
+  SpanFields.USER_USERNAME,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
@@ -70,3 +77,46 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
+
+// Preprod default attributes based on src/sentry/preprod/eap/write.py
+export const SENTRY_PREPROD_STRING_TAGS: string[] = [
+  'app_id',
+  'app_name',
+  'build_configuration_name',
+  'build_number',
+  'build_version',
+  'git_base_ref',
+  'git_head_ref',
+  'git_pr_number',
+  'platform_name',
+];
+
+export const SENTRY_PREPROD_NUMBER_TAGS: string[] = [];
+
+export const HIDDEN_PREPROD_ATTRIBUTES = [
+  'min_install_size',
+  'tags[min_install_size,number]',
+  'tags[max_install_size,number]',
+  'min_download_size',
+  'tags[min_download_size,number]',
+  'tags[max_download_size,number]',
+  'size_metric_id',
+  'tags[size_metric_id,number]',
+  'preprod_artifact_id',
+  'tags[preprod_artifact_id,number]',
+  'processing_version',
+  'tags[processing_version,number]',
+  'sub_item_type',
+  'artifact_state',
+  'tags[artifact_state,number]',
+  'tags[artifact_date_built,number]',
+  'tags[build_number,number]',
+];
+
+export const SENTRY_TRACEMETRIC_STRING_TAGS: string[] = [
+  TraceMetricKnownFieldKey.TIMESTAMP,
+];
+
+export const SENTRY_TRACEMETRIC_NUMBER_TAGS: string[] = [];
+
+export const MAX_CROSS_EVENT_QUERIES = 2;

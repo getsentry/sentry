@@ -1,12 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingError from 'sentry/components/loadingError';
@@ -100,7 +102,7 @@ function TeamNotificationSettingsPanel({
   );
 
   return filteredExternalTeams.map(externalTeam => (
-    <FormFieldWrapper key={externalTeam.id}>
+    <Flex key={externalTeam.id} align="center" justify="start">
       <StyledFormField
         disabled
         label={
@@ -140,11 +142,11 @@ function TeamNotificationSettingsPanel({
           </Confirm>
         </Tooltip>
       </DeleteButtonWrapper>
-    </FormFieldWrapper>
+    </Flex>
   ));
 }
 
-function TeamNotificationSettings() {
+export default function TeamNotificationSettings() {
   const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
@@ -235,22 +237,15 @@ function TeamNotificationSettings() {
   );
 }
 
-export default TeamNotificationSettings;
-
 const NotDisabledText = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   line-height: ${space(2)};
 `;
 const NotDisabledSubText = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin-top: ${space(1)};
-`;
-const FormFieldWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
 `;
 const StyledFormField = styled(TextField)`
   flex: 1;

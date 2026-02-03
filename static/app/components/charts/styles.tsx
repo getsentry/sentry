@@ -7,14 +7,14 @@ export const SectionHeading = styled('h4')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: ${space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin-right: ${space(1)};
 `;
 
@@ -30,7 +30,7 @@ export const InlineContainer = styled('div')`
 
 export const ChartControls = styled('div')`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
@@ -46,20 +46,20 @@ export const HeaderTitle = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
 
-  color: ${p => p.theme.headingColor};
+  color: ${p => p.theme.tokens.content.primary};
   align-items: center;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
 // Header element for charts within panels
 // This header can be rendered while the chart is still loading
 export const HeaderTitleLegend = styled(HeaderTitle)`
-  background-color: ${p => p.theme.background};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-bottom-right-radius: ${p => p.theme.radius.md};
   position: absolute;
   z-index: 1;
 `;
@@ -70,11 +70,11 @@ export const HeaderValue = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: baseline;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: 40px;
   z-index: 1;
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export const ChartContainer = styled('div')`

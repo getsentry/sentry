@@ -1,4 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {
   act,
   fireEvent,
@@ -14,21 +17,12 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, projects, router} = initializeOrg({
-  organization: {features: ['open-membership']},
-  projects: [
-    {id: '1', slug: 'project-1', isMember: true},
-    {id: '2', slug: 'project-2', isMember: true},
-    {id: '3', slug: 'project-3', isMember: false},
-  ],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/issues/',
-      query: {},
-    },
-    params: {},
-  },
-});
+const organization = OrganizationFixture({features: ['open-membership']});
+const projects = [
+  ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
+  ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
+  ProjectFixture({id: '3', slug: 'project-3', isMember: false}),
+];
 
 describe('ProjectPageFilter', () => {
   beforeEach(() => {
@@ -48,10 +42,11 @@ describe('ProjectPageFilter', () => {
   afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async () => {
-    render(<ProjectPageFilter />, {
-      router,
+    const {router} = render(<ProjectPageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open menu
@@ -66,16 +61,15 @@ describe('ProjectPageFilter', () => {
 
     // Trigger label & router is updated
     expect(screen.getByRole('button', {name: 'project-1'})).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: [], project: ['1']}})
-    );
+    expect(router.location.query).toEqual({project: '1'});
   });
 
   it('handles multiple selection', async () => {
-    render(<ProjectPageFilter />, {
-      router,
+    const {router} = render(<ProjectPageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open menu
@@ -93,9 +87,7 @@ describe('ProjectPageFilter', () => {
 
     // Trigger button & router are updated
     expect(screen.getByRole('button', {name: 'project-3'})).toBeInTheDocument();
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: {environment: [], project: ['3']}})
-    );
+    expect(router.location.query).toEqual({project: '3'});
   });
 
   it('renders keyboard-accessible trailing items', async () => {
@@ -104,10 +96,11 @@ describe('ProjectPageFilter', () => {
       url: `/projects/${organization.slug}/project-1/`,
     });
 
-    render(<ProjectPageFilter />, {
-      router,
+    const {router} = render(<ProjectPageFilter />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open the menu, search input has focus
@@ -128,10 +121,10 @@ describe('ProjectPageFilter', () => {
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/insights/projects/project-1/',
-      query: {project: '1'},
-    });
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/insights/projects/project-1/'
+    );
+    expect(router.location.query).toEqual({project: '1'});
 
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
@@ -141,7 +134,7 @@ describe('ProjectPageFilter', () => {
 
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
-    expect(router.push).toHaveBeenCalledWith(
+    expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/projects/project-1/`
     );
 
@@ -166,20 +159,17 @@ describe('ProjectPageFilter', () => {
 
   it('handles reset', async () => {
     const onReset = jest.fn();
-    render(<ProjectPageFilter onReset={onReset} />, {
-      router,
+    const {router} = render(<ProjectPageFilter onReset={onReset} />, {
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Open the menu, select project-1
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {environment: [], project: ['1']},
-      })
-    );
+    expect(router.location.query).toEqual({project: '1'});
 
     // Open menu again & click "Reset"
     await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
@@ -191,17 +181,22 @@ describe('ProjectPageFilter', () => {
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {
+    const mockRouter = RouterFixture({
+      location: {pathname: '/organizations/org-slug/issues/', query: {}},
+    });
+
     render(<ProjectPageFilter />, {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
     });
 
     // Confirm initial selection
     expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
-    act(() => updateProjects([2], router));
+    act(() => updateProjects([2], mockRouter));
 
     // <ProjectPageFilter /> is updated
 
@@ -209,22 +204,12 @@ describe('ProjectPageFilter', () => {
   });
 
   it('displays a desynced state message', async () => {
-    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
-      organization: {features: ['open-membership']},
-      projects: [
-        {id: '1', slug: 'project-1', isMember: true},
-        {id: '2', slug: 'project-2', isMember: true},
-        {id: '3', slug: 'project-3', isMember: false},
-      ],
-      router: {
-        location: {
-          pathname: '/organizations/org-slug/issues/',
-          // the project parameter needs to be non-null for desync detection to work
-          query: {project: '1'},
-        },
-        params: {},
-      },
-    });
+    const desyncOrganization = OrganizationFixture({features: ['open-membership']});
+    // the project parameter needs to be non-null for desync detection to work
+    const desyncLocation = {
+      pathname: '/organizations/org-slug/issues/',
+      query: {project: '1'},
+    };
 
     PageFiltersStore.reset();
     initializeUrlState({
@@ -232,13 +217,16 @@ describe('ProjectPageFilter', () => {
       nonMemberProjects: projects.filter(p => !p.isMember),
       organization: desyncOrganization,
       queryParams: {project: ['2']},
-      router: desyncRouter,
+      router: RouterFixture({
+        location: desyncLocation,
+      }),
     });
 
     render(<ProjectPageFilter />, {
-      router: desyncRouter,
       organization: desyncOrganization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: desyncLocation,
+      },
     });
 
     // Open menu

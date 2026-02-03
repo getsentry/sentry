@@ -1,8 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
@@ -131,6 +132,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
       return (
         <Tooltip
           isHoverable
+          showUnderline
           title={
             <span>
               {tct(
@@ -144,7 +146,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
             </span>
           }
         >
-          <OpportunityHeader>{col.name}</OpportunityHeader>
+          {col.name}
         </Tooltip>
       );
     }
@@ -297,10 +299,6 @@ const ChartContainer = styled('div')`
 const AlignCenter = styled('span')`
   text-align: center;
   width: 100%;
-`;
-
-const OpportunityHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;
 
 const TableContainer = styled('div')`

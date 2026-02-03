@@ -1,0 +1,7 @@
+export enum Steps {
+  CONNECT_GITHUB = 1,
+  SETUP_CODE_REVIEW = 2,
+  SETUP_ROOT_CAUSE_ANALYSIS = 3,
+  SETUP_DEFAULTS = 4,
+  WRAP_UP = 5,
+}

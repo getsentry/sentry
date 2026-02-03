@@ -73,7 +73,44 @@ describe('ResolutionBox', () => {
       'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
-  it('handles in next release (semver current_release_version)', () => {
+  it('handles inRelease with semver current_release_version)', () => {
+    const currentReleaseVersion = '1.2.0';
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${currentReleaseVersion}/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/${currentReleaseVersion}/deploys/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {container} = render(
+      <ResolutionBox
+        statusDetails={{
+          inRelease: currentReleaseVersion,
+          actor: UserFixture(),
+        }}
+        project={project}
+        organization={organization}
+        activities={[
+          {
+            id: '1',
+            type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+            data: {
+              current_release_version: currentReleaseVersion,
+            },
+            dateCreated: new Date().toISOString(),
+          },
+        ]}
+      />
+    );
+    expect(container).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in versions greater than 1.2.0'
+    );
+  });
+  it('handles inNextRelease with semver current_release_version)', () => {
     const currentReleaseVersion = '1.2.0';
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${currentReleaseVersion}/`,

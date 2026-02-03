@@ -2,11 +2,13 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useRole} from 'sentry/components/acl/useRole';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -16,7 +18,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -24,6 +25,8 @@ import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
@@ -66,7 +69,9 @@ function ArtifactsTableRow({
   return (
     <Fragment>
       <ArtifactColumn>
-        <Name>{name || `(${t('empty')})`}</Name>
+        <Flex justify="start" align="center">
+          {name || `(${t('empty')})`}
+        </Flex>
         {artifactColumnDetails}
       </ArtifactColumn>
       {type && <TypeColumn>{type}</TypeColumn>}
@@ -100,27 +105,30 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
+type Props = {
+  bundleId: string;
   project: Project;
 };
 
-export function SourceMapsDetails({params, location, router, project}: Props) {
+export function SourceMapsDetails({bundleId, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // query params
   const query = decodeScalar(location.query.query);
-  const cursor = location.query.cursor ?? '';
+  const cursor = decodeScalar(location.query.cursor);
 
   // endpoints
   const artifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
-  }/releases/${encodeURIComponent(params.bundleId)}/files/`;
+  }/releases/${encodeURIComponent(bundleId)}/files/`;
   const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
-  }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
+  }/artifact-bundles/${encodeURIComponent(bundleId)}/files/`;
 
-  const isDebugIdBundle = isUUID(params.bundleId);
+  const isDebugIdBundle = isUUID(bundleId);
 
   const {
     data: artifactsData,
@@ -201,7 +209,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
 
   const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
     onSuccess: () =>
-      router.push(`/settings/${organization.slug}/projects/${project.slug}/source-maps/`),
+      navigate(`/settings/${organization.slug}/projects/${project.slug}/source-maps/`),
   });
 
   const handleDeleteDebugIdBundle = useCallback(() => {
@@ -216,26 +224,24 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      router.push({
+      navigate({
         ...location,
         query: {...location.query, cursor: undefined, query: newQuery},
       });
     },
-    [router, location]
+    [navigate, location]
   );
 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={isDebugIdBundle ? params.bundleId : t('Release Bundle')}
+        title={isDebugIdBundle ? bundleId : t('Release Bundle')}
         action={
           isDebugIdBundle && (
             <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
           )
         }
-        subtitle={
-          !isDebugIdBundle && <VersionAndDetails>{params.bundleId}</VersionAndDetails>
-        }
+        subtitle={!isDebugIdBundle && <VersionAndDetails>{bundleId}</VersionAndDetails>}
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
@@ -275,7 +281,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
+              }/artifact-bundles/${encodeURIComponent(bundleId)}/files/${
                 data.id
               }/?download=1`;
 
@@ -309,9 +315,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           : artifactsData?.map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/releases/${encodeURIComponent(params.bundleId)}/files/${
-                data.id
-              }/?download=1`;
+              }/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`;
 
               return (
                 <ArtifactsTableRow
@@ -321,7 +325,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <TimeAndDistWrapper>
+                    <Flex align="center" marginTop="md" width="100%">
                       <TimeWrapper>
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
@@ -330,11 +334,11 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                         title={data.dist ? undefined : t('No distribution set')}
                         skipWrapper
                       >
-                        <StyledTag type={data.dist ? 'info' : undefined}>
+                        <StyledTag variant={data.dist ? 'info' : 'muted'}>
                           {data.dist ?? t('none')}
                         </StyledTag>
                       </Tooltip>
-                    </TimeAndDistWrapper>
+                    </Flex>
                   }
                 />
               );
@@ -392,18 +396,12 @@ const ArtifactColumn = styled('div')`
   justify-content: center;
 `;
 
-const Name = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-`;
-
 const TypeColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SizeColumn = styled('div')`
@@ -411,23 +409,16 @@ const SizeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const TimeAndDistWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTag = styled(Tag)`
@@ -435,7 +426,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const VersionAndDetails = styled('div')`

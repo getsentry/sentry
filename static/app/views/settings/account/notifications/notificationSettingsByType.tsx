@@ -212,8 +212,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasPreventBilling = organizations.some(organization =>
-      organization.features?.includes('prevent-billing')
+    const hasSeerUserBilling = organizations.some(organization =>
+      organization.features?.includes('seer-user-billing-launch')
+    );
+
+    const hasSizeAnalysisBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-size-analysis')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -222,6 +226,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
+    const includeSizeAnalysis = hasSizeAnalysisBilling;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -236,13 +241,16 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ) {
         return false;
       }
-      if (field.name.startsWith('quotaSeer') && !includeSeer) {
+      if (field.name.startsWith('quotaSeerBudget') && !includeSeer) {
         return false;
       }
       if (field.name.startsWith('quotaLogBytes') && !includeLogs) {
         return false;
       }
-      if (field.name.startsWith('quotaPrevent') && !hasPreventBilling) {
+      if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
+        return false;
+      }
+      if (field.name.startsWith('quotaSize') && !includeSizeAnalysis) {
         return false;
       }
       return true;
@@ -281,7 +289,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
           )
         );
       } else {
-        // TODO(isabella): Once GA, remove this case
         fields.push(
           ...filterCategoryFields(
             QUOTA_FIELDS.map(field => ({
@@ -410,7 +417,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const unlinkedSlackOrgs = getUnlinkedOrgs('slack');
   let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
-  // TODO(isabella): Once GA, remove this
   if (
     notificationType === 'quota' &&
     organizations.some(org => org.features?.includes('spend-visibility-notifications'))

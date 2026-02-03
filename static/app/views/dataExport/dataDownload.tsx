@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,12 +10,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import Layout from 'sentry/views/auth/layout';
+import {AuthLayoutContent as Layout} from 'sentry/views/auth/layout';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -69,7 +70,7 @@ type OtherDownload = BaseDownload & {
 
 type Download = ExploreDownload | OtherDownload;
 
-function DataDownload() {
+export default function DataDownload() {
   const {dataExportId, orgId: orgSlug} = useParams<{
     dataExportId: string;
     orgId: string;
@@ -80,9 +81,16 @@ function DataDownload() {
     isPending,
     isError,
     error,
-  } = useApiQuery<Download>([`/organizations/${orgSlug}/data-export/${dataExportId}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Download>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/data-export/$dataExportId/', {
+        path: {organizationIdOrSlug: orgSlug, dataExportId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const navigate = useNavigate();
 
@@ -371,7 +379,7 @@ function DataDownload() {
 }
 
 const Header = styled('header')`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(3)} 40px 0;
   h3 {
     font-size: 24px;
@@ -390,5 +398,3 @@ const Body = styled('div')`
 const DownloadButton = styled(LinkButton)`
   margin-bottom: ${space(1.5)};
 `;
-
-export default DataDownload;

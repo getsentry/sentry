@@ -7,8 +7,9 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
-from sentry.api.release_search import FINALIZED_KEY
+from sentry.api.release_search import FINALIZED_KEY, RELEASE_CREATED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
@@ -44,6 +45,7 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -1097,6 +1099,45 @@ class OrganizationReleasesStatsTest(APITestCase):
             release_1.version,
         ]
 
+    def test_release_created_filter(self) -> None:
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        one_day_ago = now - timedelta(days=1)
+        one_week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
+
+        release_1 = self.create_release(version="release-1", date_added=two_weeks_ago)
+        release_2 = self.create_release(version="release-2", date_added=one_week_ago)
+        release_3 = self.create_release(version="release-3", date_added=one_day_ago)
+        release_4 = self.create_release(version="release-4", date_added=now)
+
+        # Test relative date filter: releases created in the last 3 days
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:-3d"
+        )
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+        ]
+
+        # Test comparison operator: releases created after a specific date
+        formatted_date = one_week_ago.strftime("%Y-%m-%dT%H:%M:%S")
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:>={formatted_date}"
+        )
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+            release_2.version,
+        ]
+
+        # Test comparison operator: releases created before a specific date
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_CREATED_KEY}:<{formatted_date}"
+        )
+        assert [r["version"] for r in response.data] == [release_1.version]
+
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 
@@ -2101,6 +2142,108 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
+    def test_project_ids_as_strings(self) -> None:
+        """
+        Test that project IDs can be passed as strings (common in JSON payloads).
+        This ensures compatibility with clients that serialize numeric IDs as strings.
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(name="test-project", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        # Create a token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+
+        # Test with project ID as string (common in JSON)
+        response = self.client.post(
+            url,
+            data={"version": "1.0.0", "projects": [str(project.id)]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="1.0.0", organization_id=org.id).exists()
+
+        # Test with project ID as integer
+        response = self.client.post(
+            url,
+            data={"version": "2.0.0", "projects": [project.id]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="2.0.0", organization_id=org.id).exists()
+
+        # Test with project slug
+        response = self.client.post(
+            url,
+            data={"version": "3.0.0", "projects": [project.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="3.0.0", organization_id=org.id).exists()
+
+    def test_user_auth_token_with_project_releases_scope_non_member(self) -> None:
+        """
+        Test that a user with a token that has project:releases scope can create
+        releases for projects they're not a team member of, ensuring consistency
+        with the project releases endpoint behavior.
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(name="project1", organization=org, teams=[team1])
+        project2 = self.create_project(name="project2", organization=org, teams=[team2])
+
+        # Make user a member of the org with team1, but not team2
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        # Create a token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+
+        # Should be able to create release for project1 (team member)
+        response = self.client.post(
+            url,
+            data={"version": "1.0.0", "projects": [project1.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="1.0.0", organization_id=org.id).exists()
+
+        # Should also be able to create release for project2 (not a team member)
+        # This ensures consistency with the project releases endpoint which allows
+        # users with project:releases scope to create releases even if they're not
+        # direct team members
+        response = self.client.post(
+            url,
+            data={"version": "2.0.0", "projects": [project2.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert Release.objects.filter(version="2.0.0", organization_id=org.id).exists()
+
+        # Verify release is properly associated with project2
+        release = Release.objects.get(version="2.0.0", organization_id=org.id)
+        assert ReleaseProject.objects.filter(release=release, project=project2).exists()
+
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self) -> None:
@@ -2793,3 +2936,73 @@ class ReleaseHeadCommitSerializerTest(unittest.TestCase):
             }
         )
         assert not serializer.is_valid()
+
+
+class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
+    """
+    Tests for OrganizationReleasesBaseEndpoint.get_projects() method.
+    """
+
+    @cached_property
+    def endpoint(self) -> OrganizationReleasesBaseEndpoint:
+        return OrganizationReleasesBaseEndpoint()
+
+    def test_api_token_cross_organization_returns_empty(self):
+        """
+        Test that an API token with project:releases scope cannot access
+        projects in an organization where the token owner is not a member.
+
+        This tests the get_projects() method directly, bypassing HTTP dispatch,
+        to verify the method itself correctly restricts cross-org access. As of
+        when this test was written, this permission is enforced by the calling
+        code, but we want to ensure the method itself also enforces this restriction.
+        """
+        # Create two organizations
+        org_a = self.create_organization(name="org-a")
+        org_b = self.create_organization(name="org-b")
+
+        # Create a user who is a member of org_a only
+        user = self.create_user("user@example.com")
+        self.create_member(user=user, organization=org_a)
+        # user is NOT a member of org_b
+
+        # Create projects in both orgs
+        self.create_project(organization=org_a)
+        self.create_project(organization=org_b)
+
+        # Create an API token with project:releases scope
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        # Build a request targeting org_b (where user is NOT a member)
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="POST"))
+        request.access = access.from_request(request, org_b)
+
+        # Call get_projects directly - this should return empty list
+        # because the token owner is not a member of org_b
+        projects = self.endpoint.get_projects(request, org_b)
+
+        # Should return empty list - no cross-org access allowed
+        assert projects == []
+
+    def test_api_token_same_organization_returns_projects(self):
+        """
+        Test that an API token with project:releases scope CAN access
+        projects in an organization where the token owner IS a member.
+        """
+        org = self.create_organization(name="org")
+        user = self.create_user("user@example.com")
+        team = self.create_team(organization=org)
+        self.create_member(user=user, organization=org, teams=[team])
+        project = self.create_project(organization=org, teams=[team])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        request = drf_request_from_request(self.make_request(user=user, auth=token, method="POST"))
+        request.access = access.from_request(request, org)
+
+        projects = self.endpoint.get_projects(request, org)
+
+        # Should return the project since user is a member
+        assert project in projects

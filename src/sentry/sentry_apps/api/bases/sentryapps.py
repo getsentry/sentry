@@ -9,7 +9,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import ClientIdSecretAuthentication
+from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
@@ -22,6 +22,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.sentry_apps.services.region.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
@@ -93,6 +94,17 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 
 
 class IntegrationPlatformEndpoint(Endpoint):
+
+    def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
+        """
+        Surfaces errors from the region-side Sentry App RPC to the client.
+        """
+        response_body = rpc_error.get_public_dict()
+        status_code = rpc_error.status_code or 500
+        response = Response(response_body, status=status_code)
+        response.exception = True
+        return response
+
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
         return self._handle_sentry_app_exception(
             exception=exc
@@ -451,7 +463,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
-    authentication_classes = (ClientIdSecretAuthentication,)
+    authentication_classes = (JWTClientSecretAuthentication, ClientIdSecretAuthentication)
     permission_classes = (SentryAppAuthorizationsPermission,)
 
 

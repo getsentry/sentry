@@ -2,8 +2,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,7 +62,6 @@ function Banner({
       {isDismissable ? (
         <CloseButton
           type="button"
-          borderless
           size="xs"
           priority="link"
           icon={<IconClose />}
@@ -91,7 +90,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-position: center center;
         `
       : css`
-          background-color: ${p.theme.gray500};
+          background-color: ${p.theme.colors.gray800};
         `}
   display: flex;
   overflow: hidden;
@@ -100,9 +99,9 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   position: relative;
   margin-bottom: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   height: 180px;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     height: 220px;
@@ -130,7 +129,7 @@ const BannerSubtitle = styled('div')`
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;
 
@@ -144,7 +143,7 @@ const CloseButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

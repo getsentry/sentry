@@ -32,7 +32,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.uptime.eap_utils import get_columns_for_uptime_trace_item_type
+from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba_rpc import table_rpc
 
@@ -354,7 +354,7 @@ def _uptime_results_query(
                 mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
             ),
         ),
-        columns=get_columns_for_uptime_trace_item_type(TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT),
+        columns=get_columns_for_uptime_result(),
         filter=TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(
@@ -442,12 +442,14 @@ def _serialize_columnar_uptime_item(
     return uptime_check
 
 
+@sentry_sdk.tracing.trace
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
     error_id: str | None = None,
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
+    referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -470,7 +472,7 @@ def query_trace_data(
             Spans.run_trace_query,
             trace_id=trace_id,
             params=snuba_params,
-            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            referrer=referrer.value,
             config=SearchResolverConfig(),
             additional_attributes=additional_attributes,
         )
@@ -538,30 +540,33 @@ def query_trace_data(
                 sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    for span in spans_data:
-        if span["parent_span"] in id_to_span:
-            parent = id_to_span[span["parent_span"]]
-            parent["children"].append(span)
-        elif root_span:
-            span["parent_span"] = root_span.get("event_id", root_span.get("id"))
-            root_span["children"].append(span)
-        else:
-            result.append(span)
-        if span["id"] in id_to_error:
-            errors = id_to_error.pop(span["id"])
-            span["errors"].extend(errors)
-        if span["id"] in id_to_occurrence:
-            span["occurrences"].extend(
-                [
-                    {
-                        "event_type": "occurrence",
-                        "span": span,
-                        "issue_data": occurrence,
-                    }
-                    for occurrence in id_to_occurrence[span["id"]]
-                ]
-            )
-    for errors in id_to_error.values():
-        result.extend(errors)
+    with sentry_sdk.start_span(op="process.trace_data"):
+        for span in spans_data:
+            if span["parent_span"] in id_to_span:
+                parent = id_to_span[span["parent_span"]]
+                parent["children"].append(span)
+            elif root_span:
+                span["parent_span"] = root_span.get("event_id", root_span.get("id"))
+                root_span["children"].append(span)
+            else:
+                result.append(span)
+            if span["id"] in id_to_error:
+                errors = id_to_error.pop(span["id"])
+                span["errors"].extend(errors)
+            if span["id"] in id_to_occurrence:
+                span["occurrences"].extend(
+                    [
+                        {
+                            "event_type": "occurrence",
+                            "span": span,
+                            "issue_data": occurrence,
+                        }
+                        for occurrence in id_to_occurrence[span["id"]]
+                    ]
+                )
+    with sentry_sdk.start_span(op="process.errors_data"):
+        for errors in id_to_error.values():
+            result.extend(errors)
     group_cache: dict[int, Group] = {}
-    return [_serialize_rpc_event(root, group_cache, additional_attributes) for root in result]
+    with sentry_sdk.start_span(op="serializing_data"):
+        return [_serialize_rpc_event(root, group_cache, additional_attributes) for root in result]

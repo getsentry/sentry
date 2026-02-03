@@ -1,29 +1,45 @@
 import logging
-from datetime import timedelta
+import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistributionsRequest,
+    StatsType,
+    TraceItemStatsRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.constants import DOUBLE, INT, STRING
+from sentry import options
+from sentry.models.project import Project
+from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING, SUPPORTED_STATS_TYPES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
+from sentry.search.eap.types import (
+    AdditionalQueries,
+    EAPResponse,
+    SearchResolverConfig,
+    SupportedTraceItemType,
+)
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.discover import zerofill
-from sentry.snuba.rpc_dataset_common import set_debug_meta
-from sentry.utils import snuba_rpc
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils import json, snuba_rpc
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
 class Spans(rpc_dataset_common.RPCBase):
     DEFINITIONS = SPAN_DEFINITIONS
+
+    @classmethod
+    def filter_project(cls, project: Project) -> bool:
+        return project.flags.has_transactions
 
     @classmethod
     @sentry_sdk.trace
@@ -42,6 +58,7 @@ class Spans(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
+        additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -55,103 +72,9 @@ class Spans(rpc_dataset_common.RPCBase):
                 sampling_mode=sampling_mode,
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
+                additional_queries=additional_queries,
             ),
             params.debug,
-        )
-
-    @classmethod
-    @sentry_sdk.trace
-    def run_timeseries_query(
-        cls,
-        *,
-        params: SnubaParams,
-        query_string: str,
-        y_axes: list[str],
-        referrer: str,
-        config: SearchResolverConfig,
-        sampling_mode: SAMPLING_MODES | None,
-        comparison_delta: timedelta | None = None,
-    ) -> SnubaTSResult:
-        """Make the query"""
-        cls.validate_granularity(params)
-        search_resolver = cls.get_resolver(params, config)
-        rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-            search_resolver=search_resolver,
-            params=params,
-            query_string=query_string,
-            y_axes=y_axes,
-            groupby=[],
-            referrer=referrer,
-            sampling_mode=sampling_mode,
-        )
-
-        """Run the query"""
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
-        """Process the results"""
-        result = rpc_dataset_common.ProcessedTimeseries()
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
-        if params.debug:
-            set_debug_meta(final_meta, rpc_response.meta, rpc_request)
-        for resolved_field in aggregates + groupbys:
-            final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
-
-        for timeseries in rpc_response.result_timeseries:
-            processed = cls.process_timeseries_list([timeseries])
-            if len(result.timeseries) == 0:
-                result = processed
-            else:
-                for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
-                    for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
-                        existing.update(new)
-        if len(result.timeseries) == 0:
-            # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
-            result.timeseries = zerofill(
-                [],
-                params.start_date,
-                params.end_date,
-                params.timeseries_granularity_secs,
-                ["time"],
-            )
-
-        if comparison_delta is not None:
-            if len(rpc_request.expressions) != 1:
-                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-
-            comp_query_params = params.copy()
-            assert comp_query_params.start is not None, "start is required"
-            assert comp_query_params.end is not None, "end is required"
-            comp_query_params.start = comp_query_params.start_date - comparison_delta
-            comp_query_params.end = comp_query_params.end_date - comparison_delta
-
-            search_resolver = cls.get_resolver(comp_query_params, config)
-            comp_rpc_request, aggregates, groupbys = cls.get_timeseries_query(
-                search_resolver=search_resolver,
-                params=comp_query_params,
-                query_string=query_string,
-                y_axes=y_axes,
-                groupby=[],
-                referrer=referrer,
-                sampling_mode=sampling_mode,
-            )
-            comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
-
-            if comp_rpc_response.result_timeseries:
-                timeseries = comp_rpc_response.result_timeseries[0]
-                processed = cls.process_timeseries_list([timeseries])
-                for existing, new in zip(result.timeseries, processed.timeseries):
-                    existing["comparisonCount"] = new[timeseries.label]
-            else:
-                for existing in result.timeseries:
-                    existing["comparisonCount"] = 0
-
-        return SnubaTSResult(
-            {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
-            params.start,
-            params.end,
-            params.granularity_secs,
         )
 
     @classmethod
@@ -203,6 +126,8 @@ class Spans(rpc_dataset_common.RPCBase):
         request = GetTraceRequest(
             meta=meta,
             trace_id=trace_id,
+            # when this is None we just get the default limit
+            limit=options.get("performance.traces.pagination.query-limit"),
             items=[
                 GetTraceRequest.TraceItem(
                     item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
@@ -210,31 +135,137 @@ class Spans(rpc_dataset_common.RPCBase):
                 )
             ],
         )
-        response = snuba_rpc.get_trace_rpc(request)
-        spans = []
-        columns_by_name = {col.proto_definition.name: col for col in columns}
-        for item_group in response.item_groups:
-            for span_item in item_group.items:
-                span: dict[str, Any] = {
-                    "id": span_item.id,
-                    "children": [],
-                    "errors": [],
-                    "occurrences": [],
-                    "event_type": "span",
-                }
-                for attribute in span_item.attributes:
-                    resolved_column = columns_by_name[attribute.key.name]
-                    if resolved_column.proto_definition.type == STRING:
-                        span[resolved_column.public_alias] = attribute.value.val_str
-                    elif resolved_column.proto_definition.type == DOUBLE:
-                        span[resolved_column.public_alias] = attribute.value.val_double
-                    elif resolved_column.search_type == "boolean":
-                        span[resolved_column.public_alias] = attribute.value.val_int == 1
-                    elif resolved_column.proto_definition.type == INT:
-                        span[resolved_column.public_alias] = attribute.value.val_int
-                        if resolved_column.public_alias == "project.id":
-                            span["project.slug"] = resolver.params.project_id_map.get(
-                                span[resolved_column.public_alias], "Unknown"
+        spans: list[dict[str, Any]] = []
+        start_time = int(time.time())
+        MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
+        MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
+
+        @sentry_sdk.tracing.trace
+        def process_item_groups(item_groups):
+            for item_group in item_groups:
+                for span_item in item_group.items:
+                    span: dict[str, Any] = {
+                        "id": span_item.id,
+                        "children": [],
+                        "errors": [],
+                        "occurrences": [],
+                        "event_type": "span",
+                    }
+                    for attribute in span_item.attributes:
+                        resolved_column = columns_by_name[attribute.key.name]
+                        if resolved_column.proto_definition.type == STRING:
+                            span[resolved_column.public_alias] = attribute.value.val_str
+                        elif resolved_column.proto_definition.type == DOUBLE:
+                            span[resolved_column.public_alias] = attribute.value.val_double
+                        elif resolved_column.search_type == "boolean":
+                            span[resolved_column.public_alias] = (
+                                attribute.value.val_bool or attribute.value.val_int == 1
                             )
-                spans.append(span)
+                        elif resolved_column.proto_definition.type == BOOLEAN:
+                            span[resolved_column.public_alias] = attribute.value.val_bool
+
+                        elif resolved_column.proto_definition.type == INT:
+                            span[resolved_column.public_alias] = attribute.value.val_int
+                            if resolved_column.public_alias == "project.id":
+                                span["project.slug"] = resolver.params.project_id_map.get(
+                                    span[resolved_column.public_alias], "Unknown"
+                                )
+                    spans.append(span)
+
+        response = snuba_rpc.get_trace_rpc(request)
+        for _ in range(MAX_ITERATIONS):
+            columns_by_name = {col.proto_definition.name: col for col in columns}
+            if response.page_token.end_pagination:
+                # always need to process the last response
+                process_item_groups(response.item_groups)
+                break
+            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                # If timeout is not set then logging this is not helpful
+                rpc_debug_json = json.loads(MessageToJson(request))
+                logger.info(
+                    "running a trace query timed out while paginating",
+                    extra={
+                        "rpc_query": rpc_debug_json,
+                        "referrer": request.meta.referrer,
+                        "trace_item_type": request.meta.trace_item_type,
+                    },
+                )
+                break
+            request.page_token.CopyFrom(response.page_token)
+            # We want to process the spans while querying the next page
+            with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2) as thread_pool:
+                _ = thread_pool.submit(process_item_groups, response.item_groups)
+                response_future = thread_pool.submit(snuba_rpc.get_trace_rpc, request)
+            response = response_future.result()
         return spans
+
+    @classmethod
+    @sentry_sdk.trace
+    def run_stats_query(
+        cls,
+        *,
+        params: SnubaParams,
+        stats_types: set[str],
+        query_string: str,
+        referrer: str,
+        config: SearchResolverConfig,
+        search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
+        skip_translate_internal_to_public_alias: bool = False,
+    ) -> list[dict[str, Any]]:
+        search_resolver = search_resolver or cls.get_resolver(params, config)
+        stats_filter, _, _ = search_resolver.resolve_query(query_string)
+        meta = search_resolver.resolve_meta(
+            referrer=referrer,
+            sampling_mode=params.sampling_mode,
+        )
+        stats_request = TraceItemStatsRequest(
+            filter=stats_filter,
+            meta=meta,
+            stats_types=[],
+        )
+
+        if not set(stats_types).intersection(SUPPORTED_STATS_TYPES):
+            return []
+
+        if "attributeDistributions" in stats_types:
+            stats_request.stats_types.append(
+                StatsType(
+                    attribute_distributions=AttributeDistributionsRequest(
+                        max_buckets=max_buckets,
+                        attributes=attributes,
+                    )
+                )
+            )
+
+        response = snuba_rpc.trace_item_stats_rpc(stats_request)
+        stats = []
+
+        for result in response.results:
+            if "attributeDistributions" in stats_types and result.HasField(
+                "attribute_distributions"
+            ):
+                attrs = defaultdict(list)
+                for attribute in result.attribute_distributions.attributes:
+                    if not can_expose_attribute(
+                        attribute.attribute_name, SupportedTraceItemType.SPANS
+                    ):
+                        continue
+
+                    for bucket in attribute.buckets:
+                        if skip_translate_internal_to_public_alias:
+                            attrs[attribute.attribute_name].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
+                        else:
+                            public_alias, _, _ = translate_internal_to_public_alias(
+                                attribute.attribute_name, "string", SupportedTraceItemType.SPANS
+                            )
+                            public_alias = public_alias or attribute.attribute_name
+                            attrs[public_alias].append(
+                                {"label": bucket.label, "value": bucket.value}
+                            )
+                stats.append({"attribute_distributions": {"data": attrs}})
+
+        return stats

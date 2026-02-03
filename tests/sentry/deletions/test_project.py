@@ -1,6 +1,5 @@
 from unittest import mock
 
-from sentry.constants import DataCategory
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -15,7 +14,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.project import Project
@@ -75,6 +74,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         open_period = GroupOpenPeriod.objects.get(
             group=group,
             project=project,
+        )
+        GroupOpenPeriodActivity.objects.create(
+            group_open_period=open_period, type=OpenPeriodActivityType.OPENED, value=75
         )
         open_period.update(
             date_started=before_now(minutes=1),
@@ -244,7 +246,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Project.objects.filter(id=project.id).exists()
         assert not Detector.objects.filter(id=detector.id).exists()
         assert not UptimeSubscription.objects.filter(id=uptime_subscription.id).exists()
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):

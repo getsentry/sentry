@@ -12,7 +12,6 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
   useDomainViewFilters,
@@ -23,7 +22,9 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import useHasDashboardsPlatformizedMobileSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedMobileSessionHealth';
 import useHasDashboardsPlatformizedSessionHealth from 'sentry/views/insights/sessions/utils/useHasDashboardsPlatformizedSessionHealth';
+import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -37,9 +38,8 @@ function SessionsOverview() {
 
   return (
     <Fragment>
-      <ViewSpecificHeader view={view} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
@@ -62,15 +62,6 @@ function SessionsOverview() {
       </Layout.Body>
     </Fragment>
   );
-}
-
-function ViewSpecificHeader({view}: {view: DomainView | ''}) {
-  switch (view) {
-    case MOBILE_LANDING_SUB_PATH:
-      return <MobileHeader module={ModuleName.SESSIONS} />;
-    default:
-      return null;
-  }
 }
 
 function ViewSpecificCharts({
@@ -141,10 +132,18 @@ function ViewSpecificCharts({
 }
 
 function PageWithProviders() {
+  const {view = ''} = useDomainViewFilters();
   const hasDashboardsPlatformizedSessionHealth =
     useHasDashboardsPlatformizedSessionHealth();
-  if (hasDashboardsPlatformizedSessionHealth) {
+  const hasDashboardsPlatformizedMobileSessionHealth =
+    useHasDashboardsPlatformizedMobileSessionHealth();
+
+  if (hasDashboardsPlatformizedSessionHealth && view === FRONTEND_LANDING_SUB_PATH) {
     return <PlatformizedSessionsOverview />;
+  }
+
+  if (hasDashboardsPlatformizedMobileSessionHealth && view === MOBILE_LANDING_SUB_PATH) {
+    return <PlatformizedMobileSessionsOverview />;
   }
   return (
     <ModulePageProviders moduleName="sessions">

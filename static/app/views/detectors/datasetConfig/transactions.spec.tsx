@@ -5,36 +5,6 @@ import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
 
 describe('DetectorTransactionsConfig', () => {
-  describe('toSnubaQueryString', () => {
-    it('passes through when already contains event.type:transaction', () => {
-      const query = 'event.type:transaction transaction.duration:>0';
-      expect(
-        DetectorTransactionsConfig.toSnubaQueryString({
-          eventTypes: [EventTypes.TRANSACTION],
-          query,
-        })
-      ).toBe(query);
-    });
-
-    it('prefixes event.type:transaction when missing', () => {
-      const query = 'transaction.duration:>0 service:web';
-      expect(
-        DetectorTransactionsConfig.toSnubaQueryString({
-          eventTypes: [EventTypes.TRANSACTION],
-          query,
-        })
-      ).toBe(`event.type:transaction ${query}`);
-    });
-  });
-
-  describe('getDiscoverDataset', () => {
-    it('returns METRICS_ENHANCED for transactions', () => {
-      expect(DetectorTransactionsConfig.getDiscoverDataset()).toBe(
-        DiscoverDatasets.METRICS_ENHANCED
-      );
-    });
-  });
-
   describe('getSeriesQueryOptions', () => {
     const organization = OrganizationFixture();
 
@@ -55,7 +25,7 @@ describe('DetectorTransactionsConfig', () => {
       expect(key[0]).toBe(`/organizations/${organization.slug}/events-stats/`);
       const params = key[1]!.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);
-      expect(params.query).toBe('event.type:transaction transaction.duration:>0');
+      expect(params.query).toBe('transaction.duration:>0');
       expect(params.interval).toBe('1m');
       expect(params.environment).toEqual(['prod']);
       expect(params.project).toEqual(['1']);
@@ -99,7 +69,7 @@ describe('DetectorTransactionsConfig', () => {
 
       const params = key[1]!.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);
-      expect(params.query).toBe('event.type:transaction transaction.duration:>0');
+      expect(params.query).toBe('transaction.duration:>0');
       expect(params.interval).toBe('1m');
     });
   });

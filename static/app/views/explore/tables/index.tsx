@@ -1,15 +1,18 @@
-import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useEffect} from 'react';
+
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -18,6 +21,7 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
@@ -43,6 +47,8 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 export function ExploreTables(props: ExploreTablesProps) {
   const organization = useOrganization();
 
+  const crossEvents = useQueryParamsCrossEvents();
+
   const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
 
@@ -51,6 +57,10 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+
+  const attributeBreakdownsEnabled = organization.features.includes(
+    'performance-spans-suspect-attributes'
+  );
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -82,22 +92,40 @@ export function ExploreTables(props: ExploreTablesProps) {
     );
   }, [aggregateFields, setAggregateFields, stringTags, numberTags]);
 
+  useEffect(() => {
+    if (
+      props.tab === Tab.ATTRIBUTE_BREAKDOWNS &&
+      defined(crossEvents) &&
+      crossEvents.length > 0
+    ) {
+      props.setTab(Tab.SPAN);
+    }
+  }, [crossEvents, props]);
+
   return (
     <Fragment>
-      <SamplesTableHeader>
+      <Flex justify="between" marginBottom="md">
         <Tabs value={props.tab} onChange={props.setTab} size="sm">
-          <TabList hideBorder variant="floating">
+          <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            {attributeBreakdownsEnabled ? (
+              <TabList.Item
+                key={Tab.ATTRIBUTE_BREAKDOWNS}
+                disabled={defined(crossEvents) && crossEvents.length > 0}
+              >
+                {t('Attribute Breakdowns')}
+                <Badge variant="beta">Beta</Badge>
+              </TabList.Item>
+            ) : null}
           </TabList>
         </Tabs>
         {props.tab === Tab.SPAN ? (
           <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
-        ) : props.tab === Mode.AGGREGATE &&
-          organization.features.includes('visibility-explore-aggregate-editor') ? (
+        ) : props.tab === Mode.AGGREGATE ? (
           <Button onClick={openAggregateColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
@@ -114,17 +142,11 @@ export function ExploreTables(props: ExploreTablesProps) {
             </Button>
           </Tooltip>
         )}
-      </SamplesTableHeader>
+      </Flex>
       {props.tab === Tab.SPAN && <SpansTable {...props} />}
       {props.tab === Tab.TRACE && <TracesTable {...props} />}
       {props.tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {props.tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
 }
-
-const SamplesTableHeader = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;

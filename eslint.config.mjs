@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * To get started with this ESLint Configuration list be sure to read at least
  * these sections of the docs:
@@ -9,11 +8,26 @@
  * This is your friend:
  * `npx eslint --inspect-config`
  */
+
+/**
+ * Import Linting Strategy
+ *
+ * This configuration uses two complementary approaches for linting imports:
+ *
+ * 1. `no-restricted-imports` - Applied to 3rd party dependencies
+ *    - Controls which external packages can be imported
+ *    - Enforces consistent usage of third-party libraries across the codebase
+ *    - Examples: restricting @testing-library/react, lodash, marked, etc.
+ *
+ * 2. `plugin/boundaries` - Applied to local module scopes
+ *    - Enforces architectural boundaries between different parts of the codebase
+ *    - Controls which internal modules can import from each other
+ *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
+ */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
@@ -34,6 +48,11 @@ import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
 
+// eslint-disable-next-line boundaries/element-types
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index.mjs';
+// eslint-disable-next-line boundaries/element-types
+import * as sentryPlugin from './static/eslint/eslintPluginSentry/index.mjs';
+
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
@@ -43,6 +62,10 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 // and slowest settings, and for pre-commit, where we want to run the linter
 // faster.
 // Some output is provided to help people toggle these settings locally.
+const IS_PRECOMMIT =
+  process.env.SENTRY_PRECOMMIT !== undefined &&
+  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
+const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
 const enableTypeAwareLinting = (function () {
   // If we ask for something specific, use that.
   if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
@@ -50,11 +73,8 @@ const enableTypeAwareLinting = (function () {
   }
 
   // If we're inside a pre-commit hook, defer to whether we're in CI.
-  if (
-    process.env.SENTRY_PRECOMMIT !== undefined &&
-    Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT))
-  ) {
-    return process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+  if (IS_PRECOMMIT) {
+    return IS_CI;
   }
 
   // By default, enable type-aware linting.
@@ -127,17 +147,27 @@ const restrictedImportPaths = [
   {
     name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsLineChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
   },
   {
     name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
     message:
-      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/?name=app%2Fviews%2Fdashboards%2Fwidgets%2FtimeSeriesWidget%2FtimeSeriesWidgetVisualization.stories.tsx&query=timeseries#deeplinking for more information',
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+  },
+  {
+    name: 'color',
+    message:
+      'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
+  },
+  {
+    name: '@figma/code-connect',
+    message:
+      'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
 ];
 
@@ -221,6 +251,7 @@ export default typescript.config([
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
+    'figma.config.json',
     'fixtures/artifact_bundle/**/*',
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
@@ -299,14 +330,6 @@ export default typescript.config([
         {
           patterns: [
             {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -367,6 +390,7 @@ export default typescript.config([
       'no-self-compare': 'error',
       'no-sequences': 'error',
       'no-throw-literal': 'off', // Disabled in favor of @typescript-eslint/only-throw-error
+      'prefer-promise-reject-errors': 'off', // Disabled in favor of @typescript-eslint/prefer-promise-reject-errors
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
@@ -415,6 +439,22 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/@sentry/sentry',
+    plugins: {'@sentry': sentryPlugin},
+    rules: {
+      '@sentry/no-static-translations': 'error',
+    },
+  },
+  {
+    name: 'plugin/@sentry/scraps',
+    plugins: {'@sentry/scraps': sentryScrapsPlugin},
+    rules: {
+      '@sentry/scraps/no-core-import': 'error',
+      '@sentry/scraps/no-token-import': 'error',
+      '@sentry/scraps/use-semantic-token': 'off',
     },
   },
   {
@@ -501,6 +541,7 @@ export default typescript.config([
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
@@ -584,7 +625,27 @@ export default typescript.config([
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
-      '@typescript-eslint/no-unused-vars': 'off', // disabled in favor of "noUnusedLocals": true in tsconfig
+      '@typescript-eslint/no-unused-vars':
+        // Favor "noUnusedLocals": true in CI, but enable in pre-commit to catch unused imports without running tsc
+        IS_PRECOMMIT && !IS_CI
+          ? [
+              'error',
+              {
+                vars: 'all',
+                args: 'all',
+                caughtErrors: 'none',
+
+                // Ignore vars that start with an underscore
+                // e.g. if you want to omit a property using object spread:
+                //
+                //   const {name: _name, ...props} = this.props;
+                //
+                varsIgnorePattern: '^_',
+                argsIgnorePattern: '^_',
+                destructuredArrayIgnorePattern: '^_',
+              },
+            ]
+          : 'off',
     },
   },
   {
@@ -748,6 +809,20 @@ export default typescript.config([
     },
   },
   {
+    name: 'eslint',
+    files: ['static/eslint/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+
+    rules: {
+      'no-console': 'off',
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
     name: 'files/scripts',
     files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
     languageOptions: {
@@ -802,6 +877,40 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/components-core',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
+          ],
+          // Allow color package only in the components/core directory
+          paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow @figma/code-connect only in *.figma.tsx files
+          paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
+        },
+      ],
+    },
+  },
+  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -810,14 +919,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -870,10 +971,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into gsApp',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
@@ -942,8 +1039,17 @@ export default typescript.config([
       boundaries,
     },
     settings: {
+      // Analyze both static and dynamic imports for boundary checks
+      // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
+      'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
+        // --- figma code connect ---
+        {
+          type: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+          mode: 'full',
+        },
         // --- stories ---
         {
           type: 'story-files',
@@ -986,11 +1092,7 @@ export default typescript.config([
           type: 'test',
           pattern: 'tests/js',
         },
-        // --- specifics ---
-        {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
+        // --- scraps core components ---
         {
           type: 'core',
           pattern: 'static/app/components/core',
@@ -1045,18 +1147,29 @@ export default typescript.config([
           type: 'scripts',
           pattern: 'scripts',
         },
+        // --- eslint ---
+        {
+          type: 'eslint',
+          pattern: 'static/eslint',
+        },
       ],
     },
     rules: {
       ...boundaries.configs.strict.rules,
       'boundaries/no-ignored': 'off',
       'boundaries/no-private': 'off',
+      'boundaries/no-unknown': 'off',
       'boundaries/element-types': [
-        'warn',
+        'error',
         {
           default: 'disallow',
           message: '${file.type} is not allowed to import ${dependency.type}',
           rules: [
+            // --- figma code connect ---
+            {
+              from: ['figma-code-connect'],
+              allow: ['core*'],
+            },
             {
               from: ['sentry*'],
               allow: ['core*', 'sentry*'],
@@ -1118,10 +1231,6 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
@@ -1130,6 +1239,33 @@ export default typescript.config([
           ],
         },
       ],
+      'boundaries/entry-point': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              target: ['core'],
+              allow: [
+                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '**/*.png', // needed for story-files
+              ],
+            },
+            {
+              target: ['!core'],
+              allow: '**/*',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/core-inspector',
+    files: ['static/app/components/core/inspector.tsx'],
+    rules: {
+      'boundaries/element-types': 'off',
     },
   },
 ]);

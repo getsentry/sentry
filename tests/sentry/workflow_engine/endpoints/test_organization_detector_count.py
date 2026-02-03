@@ -21,23 +21,16 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_simple(self) -> None:
         # Create active detectors
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Active Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
-        self.create_detector(
-            project_id=self.project.id,
-            name="Active Detector 2",
-            type=ErrorGroupType.slug,
-            enabled=True,
-            config={},
-        )
 
         # Create inactive detector
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Inactive Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=False,
@@ -51,37 +44,38 @@ class OrganizationDetectorCountTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
 
+        # includes 2 default detectors (error and issue stream)
         assert response.data == {
-            "active": 2,
+            "active": 3,
             "deactive": 1,
-            "total": 3,
+            "total": 4,
         }
 
     def test_filtered_by_type(self) -> None:
         # Create detectors of different types
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 2",
             type=MetricIssue.slug,
             enabled=False,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             type=ErrorGroupType.slug,
             enabled=True,
             config={},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Uptime Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=True,
@@ -135,9 +129,10 @@ class OrganizationDetectorCountTest(APITestCase):
         )
 
         # Test with no project access
+        # Only picks up project default detectors
         response = self.get_success_response(self.organization.slug, qs_params={"project": []})
         assert response.data == {
-            "active": 0,
+            "active": 2,
             "deactive": 0,
-            "total": 0,
+            "total": 2,
         }

@@ -1,9 +1,10 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Container} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
@@ -13,8 +14,9 @@ import {
   IconIssues,
   IconPrevent,
   IconSettings,
+  IconSiren,
 } from 'sentry/icons';
-import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
+import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -32,7 +34,6 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whats
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
 function SidebarBody({
   children,
@@ -65,6 +66,13 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
       </SidebarList>
     </SidebarFooterWrapper>
   );
+}
+
+function showPreventNav(organization: Organization) {
+  // only people with test analytics can see the prevent nav
+  // Legacy Seer and New Seer orgs are getting a Seer Config Reminder icon, which
+  // means that the only Prevent sub-nav item remaining is the Tests item.
+  return organization.features.includes('prevent-test-analytics');
 }
 
 export function PrimaryNavigationItems() {
@@ -145,21 +153,37 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <Feature features={['prevent-ai']}>
-          <Container position="relative" height="100%">
-            <SidebarLink
-              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-              analyticsKey="prevent"
-              group={PrimaryNavGroup.PREVENT}
-              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-            >
-              <IconPrevent />
-            </SidebarLink>
-            <BetaBadge type="beta" />
-          </Container>
+          {showPreventNav(organization) ? (
+            <Container position="relative" height="100%">
+              <SidebarLink
+                to={`/${prefix}/prevent/tests/`}
+                activeTo={`/${prefix}/prevent/`}
+                analyticsKey="prevent"
+                group={PrimaryNavGroup.PREVENT}
+                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+              >
+                <IconPrevent />
+              </SidebarLink>
+              <BetaBadge type="beta" />
+            </Container>
+          ) : null}
         </Feature>
 
         <SeparatorItem />
+
+        <Feature features={['workflow-engine-ui']}>
+          <Container position="relative" height="100%">
+            <SidebarLink
+              to={`/${prefix}/monitors/`}
+              analyticsKey="monitors"
+              group={PrimaryNavGroup.MONITORS}
+              {...makeNavItemProps(PrimaryNavGroup.MONITORS)}
+            >
+              <IconSiren />
+            </SidebarLink>
+            <BetaBadge type="alpha" />
+          </Container>
+        </Feature>
 
         <NavTourElement
           id={StackedNavigationTour.SETTINGS}
@@ -179,7 +203,9 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
-        <ChonkOptInBanner collapsed="never" />
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        </ErrorBoundary>
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationWhatsNew />
@@ -208,7 +234,7 @@ const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   top: -2px;
   right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;
 `;

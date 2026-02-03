@@ -1,6 +1,9 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
@@ -28,51 +31,50 @@ export function ShortIdBreadcrumb({
   group,
 }: ShortIdBreadcrumbProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    text: group.shortId,
-    successMessage: t('Copied Short-ID to clipboard'),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyShortId = useCallback(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI]);
+
   const issueUrl =
     window.location.origin +
     normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`);
 
-  const {onClick: handleCopyUrl} = useCopyToClipboard({
-    text: issueUrl,
-    successMessage: t('Copied Issue URL to clipboard'),
-    onCopy: () => {
+  const handleCopyUrl = useCallback(() => {
+    copy(issueUrl, {successMessage: t('Copied Issue URL to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_url_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
 
-  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
-    text: `[${group.shortId}](${issueUrl})`,
-    successMessage: t('Copied Markdown Issue Link to clipboard'),
-    onCopy: () => {
+  const handleCopyMarkdown = useCallback(() => {
+    copy(`[${group.shortId}](${issueUrl})`, {
+      successMessage: t('Copied Markdown Issue Link to clipboard'),
+    }).then(() => {
       trackAnalytics('issue_details.copy_issue_markdown_link_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
 
   if (!group.shortId) {
     return null;
   }
 
   return (
-    <Wrapper>
+    <Flex align="center" gap="md">
       <ProjectBadge
         project={project}
         avatarSize={16}
@@ -94,7 +96,7 @@ export function ShortIdBreadcrumb({
             'aria-label': t('Issue copy actions'),
             icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
-            borderless: true,
+            priority: 'transparent',
             showChevron: false,
           }}
           position="bottom"
@@ -118,19 +120,13 @@ export function ShortIdBreadcrumb({
           ]}
         />
       </ShortIdCopyable>
-    </Wrapper>
+    </Flex>
   );
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

@@ -1,40 +1,46 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+
+import NotFound from 'sentry/components/errors/notFound';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TESTS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 
 export default function TestAnalyticsPageWrapper() {
   const organization = useOrganization();
 
+  if (!organization.features.includes('prevent-test-analytics')) {
+    return <NotFound />;
+  }
+
   return (
-    <SentryDocumentTitle title={TESTS_PAGE_TITLE} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Test Analytics')} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex justify="between" align="center">
             <Layout.Title>
-              {TESTS_PAGE_TITLE}
+              {t('Test Analytics')}
               <FeatureBadge type="beta" />
             </Layout.Title>
-            <FeedbackWidgetButton
-              optionOverrides={{
+            <FeedbackButton
+              feedbackOptions={{
                 tags: {
                   'feedback.source': 'prevent.tests',
                   'feedback.owner': 'prevent-team',
                 },
               }}
             />
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
         <PreventQueryParamsProvider>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Outlet />
           </Layout.Main>
         </PreventQueryParamsProvider>
@@ -42,10 +48,3 @@ export default function TestAnalyticsPageWrapper() {
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;

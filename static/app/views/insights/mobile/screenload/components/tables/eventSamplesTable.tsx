@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {
@@ -30,10 +31,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Props = {
@@ -48,7 +46,6 @@ type Props = {
   data?: TableData;
   footerAlignedPagination?: boolean;
   pageLinks?: string;
-  showDeviceClassSelector?: boolean;
 };
 
 const ICON_FIELDS = ['profile.id', 'profile_id'];
@@ -57,7 +54,6 @@ const COLUMN_RESIZE_PARAM_NAME = 'spans';
 export function EventSamplesTable({
   cursorName,
   sortKey,
-  showDeviceClassSelector,
   eventView,
   data,
   isLoading,
@@ -207,13 +203,6 @@ export function EventSamplesTable({
     <Fragment>
       {!footerAlignedPagination && (
         <Header>
-          {showDeviceClassSelector && (
-            <StyledControls>
-              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
-              <SubregionSelector size="xs" />
-            </StyledControls>
-          )}
-
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
       )}
@@ -249,11 +238,6 @@ const Header = styled('div')`
   margin-bottom: ${space(1)};
   align-items: center;
   height: 26px;
-`;
-
-const StyledControls = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`

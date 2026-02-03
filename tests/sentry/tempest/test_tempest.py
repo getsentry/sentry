@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
+from sentry.models.organization import Organization
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.tempest.models import MessageType
 from sentry.tempest.tasks import fetch_latest_item_id, poll_tempest, poll_tempest_crashes
@@ -33,8 +34,11 @@ class TempestTasksTest(TestCase):
         fetch_latest_item_id(self.credentials.id)
 
         self.credentials.refresh_from_db()
-        assert self.credentials.message == "No crashes found"
-        assert self.credentials.message_type == MessageType.ERROR
+        assert (
+            self.credentials.message
+            == "Connection successful. No crashes found in the crash report system yet. New crashes will appear here automatically when they occur."
+        )
+        assert self.credentials.message_type == MessageType.WARNING
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
@@ -65,6 +69,25 @@ class TempestTasksTest(TestCase):
 
         self.credentials.refresh_from_db()
         assert self.credentials.message == "Seems like our IP is not allow-listed"
+        assert self.credentials.message_type == MessageType.ERROR
+        assert self.credentials.latest_fetched_item_id is None
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_invalid_scope(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {
+                "type": "invalid_scope",
+                "message": "...",
+            }
+        }
+
+        fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.message == (
+            "Seems like the provided credentials have the wrong scope."
+        )
         assert self.credentials.message_type == MessageType.ERROR
         assert self.credentials.latest_fetched_item_id is None
 
@@ -211,16 +234,6 @@ class TempestTasksTest(TestCase):
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
-    def test_tempest_dump_option(self) -> None:
-        # Default should be False
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-
-        self.project.update_option("sentry:tempest_fetch_dumps", True)
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
-
-        self.project.update_option("sentry:tempest_fetch_dumps", False)
-        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
-
     @patch("sentry.tempest.tasks.schedule_invalidate_project_config")
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_invalidates_config(
@@ -262,7 +275,8 @@ class TempestTasksTest(TestCase):
         credentials_without_access.latest_fetched_item_id = "42"
         credentials_without_access.save()
 
-        def mock_access_check(organization):
+        def mock_access_check(organization: Organization | None) -> bool:
+            assert organization is not None
             return organization.id == org_with_access.id
 
         mock_has_access.side_effect = mock_access_check

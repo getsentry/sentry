@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -149,7 +150,7 @@ class Settings extends DefaultSettings<Props, State> {
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             An unknown error occurred. Need help with this?{' '}
             <a href="https://sentry.io/support/">Contact support</a>
           </Alert>
@@ -188,7 +189,7 @@ class Settings extends DefaultSettings<Props, State> {
         }
       >
         {this.state.errors.__all__ && (
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             <ul>
               <li>{this.state.errors.__all__}</li>
             </ul>

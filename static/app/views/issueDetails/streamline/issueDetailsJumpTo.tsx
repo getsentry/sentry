@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +24,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.LOGS]: t('Logs'),
+  [SectionKey.METRICS]: t('Metrics'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
@@ -41,6 +43,9 @@ export function IssueDetailsJumpTo() {
     }
     if (!features.includes('ourlogs-enabled')) {
       excluded.push(SectionKey.LOGS);
+    }
+    if (!features.includes('tracemetrics-enabled')) {
+      excluded.push(SectionKey.METRICS);
     }
     return excluded;
   }, [organization.features]);
@@ -116,11 +121,11 @@ function JumpToLink({config}: {config: SectionConfig}) {
             ?.scrollIntoView({block: 'start', behavior: 'smooth'});
         });
       }}
-      borderless
+      priority="transparent"
       size="xs"
       css={css`
-        color: ${theme.subText};
-        font-weight: ${theme.fontWeight.normal};
+        color: ${theme.tokens.content.secondary};
+        font-weight: ${theme.font.weight.sans.regular};
       `}
       analyticsEventName="Issue Details: Jump To Clicked"
       analyticsEventKey="issue_details.jump_to_clicked"
@@ -140,8 +145,8 @@ const JumpTo = styled('div')`
   gap: ${p => p.theme.space.xs};
   flex-direction: row;
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   overflow: hidden;
 `;

@@ -34,14 +34,16 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
-        assert len(data[0]["topValues"]) == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 1, "baz": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[1]["key"] == "foo"
         assert len(data[1]["topValues"]) == 2
@@ -53,7 +55,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(data[3]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
-        url = f"/api/0/issues/{event1.group.id}/tags/?key=foo&key=sentry:release"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?key=foo&key=sentry:release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -78,10 +80,11 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             fingerprint="group5",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
@@ -89,7 +92,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
-        assert len(data[0]["topValues"]) == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 1, "baz": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[8]["key"] == "foo"
         assert len(data[8]["topValues"]) == 2
@@ -104,7 +109,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(data[11]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
-        url = f"/api/0/issues/{event.group.id}/tags/?key=foo&key=sentry:release"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?key=foo&key=sentry:release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
@@ -117,10 +122,73 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
 
+    def test_date_range_filtering(self) -> None:
+
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "bar", "biz": "baz"},
+                "release": "releaseme",
+                "timestamp": before_now(days=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"foo": "quux"},
+                "release": "releaseme",
+                "timestamp": before_now(hours=23).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        # group 2 - should be excluded from results
+        self.store_event(
+            data={
+                "fingerprint": ["group-2"],
+                "tags": {"abc": "xyz"},
+                "timestamp": before_now(hours=7).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        # Call endpoint with the date range filter last 1 day. Only tags from event 2 should be returned.
+        start_str = before_now(days=1).isoformat().split("+00:00")[0].strip("Z")
+        end_str = before_now(days=0).isoformat().split("+00:00")[0].strip("Z")
+
+        for query in [f"?start={start_str}&end={end_str}", "?statsPeriod=1d"]:
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/{query}"
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 3
+
+            data = sorted(response.data, key=lambda r: r["key"])
+
+            assert data[0]["key"] == "foo"
+            assert len(data[0]["topValues"]) == 1
+            assert data[0]["topValues"][0]["value"] == "quux"
+
+            assert data[1]["key"] == "level"
+            assert len(data[1]["topValues"]) == 1
+            assert data[2]["key"] == "release"  # Formatted from sentry:release
+            assert len(data[2]["topValues"]) == 1
+
+        # Test a range with no events.
+        start_str = before_now(days=9).isoformat().split("+00:00")[0].strip("Z")
+        end_str = before_now(days=7).isoformat().split("+00:00")[0].strip("Z")
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?start={start_str}&end={end_str}"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
     def test_invalid_env(self) -> None:
         this_group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{this_group.id}/tags/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{this_group.id}/tags/"
         response = self.client.get(url, {"environment": "notreal"}, format="json")
         assert response.status_code == 404
 
@@ -136,7 +204,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         group = event.group
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/tags/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/"
         response = self.client.get(url, {"environment": "prod"}, format="json")
         assert response.status_code == 200
         assert len(response.data) == 4
@@ -166,7 +234,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{event2.group.id}/tags/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event2.group.id}/tags/"
         response = self.client.get(
             f"{url}?environment={env.name}&environment={env2.name}", format="json"
         )
@@ -201,7 +269,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/?readable=true&key=device"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?readable=true&key=device"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -247,7 +315,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/?limit=2&key=os"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?limit=2&key=os"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -290,7 +358,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.group.id}/tags/?limit=3&key=device.class"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?limit=3&key=device.class"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -303,6 +371,67 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert top_values[0]["value"] == "high"
         assert top_values[1]["value"] == "low"
         assert top_values[2]["value"] == "medium"
+
+    def test_include_empty_values_for_specific_key(self) -> None:
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-empty-all"],
+                "tags": {},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-empty-all"],
+                "tags": {"foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?key=foo"
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        values = {v["value"] for v in response.data[0]["topValues"]}
+        assert values == {"", "bar"}
+        assert response.data[0]["topValues"][0]["count"] == 1
+        assert response.data[0]["totalValues"] == 2
+
+    def test_include_empty_values_in_all_tags(self) -> None:
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-empty-all-tags"],
+                "tags": {"foo": ""},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["group-empty-all-tags"],
+                "tags": {"foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?limit=10"
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        foo = next((t for t in response.data if t["key"] == "foo"), None)
+        assert foo is not None
+        assert {v["value"] for v in foo["topValues"]} == {"", "bar"}
+        assert foo["totalValues"] == 2
 
     def test_flags(self) -> None:
         event1 = self.store_event(
@@ -364,7 +493,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?useFlagsBackend=1"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
@@ -372,10 +501,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         data = sorted(response.data, key=lambda r: r["key"])
 
         assert data[0]["key"] == "goodbye"
-        assert len(data[0]["topValues"]) == 1
-        assert data[0]["topValues"][0]["value"] == "false"
-        assert data[0]["topValues"][0]["count"] == 1
-        assert data[0]["totalValues"] == 1
+        counts = {v["value"]: v["count"] for v in data[0]["topValues"]}
+        assert counts == {"": 2, "false": 1}
+        assert data[0]["totalValues"] == sum(counts.values())
 
         assert data[1]["key"] == "hello"
         assert len(data[1]["topValues"]) == 2
@@ -386,13 +514,12 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[1]["totalValues"] == 3
 
         assert data[2]["key"] == "world"
-        assert len(data[2]["topValues"]) == 1
-        assert data[2]["topValues"][0]["value"] == "true"
-        assert data[2]["topValues"][0]["count"] == 1
-        assert data[2]["totalValues"] == 1
+        counts = {v["value"]: v["count"] for v in data[2]["topValues"]}
+        assert counts == {"": 2, "true": 1}
+        assert data[2]["totalValues"] == sum(counts.values())
 
         # Use the key= queryparam to grab results for specific tags
-        url = f"/api/0/issues/{event1.group.id}/tags/?key=hello&key=world&useFlagsBackend=1"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?key=hello&key=world&useFlagsBackend=1"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -462,7 +589,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             )
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{event.group.id}/tags/?useFlagsBackend=1&limit=3"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?useFlagsBackend=1&limit=3"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -492,12 +619,12 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=sentry:release"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=sentry:release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        url = f"/api/0/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=release"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event1.group.id}/tags/?useFlagsBackend=1&key=release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

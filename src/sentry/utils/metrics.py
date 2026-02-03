@@ -30,6 +30,7 @@ __all__ = [
     "timer",
     "timing",
     "gauge",
+    "distribution",
     "backend",
     "MutableTags",
     "ensure_crash_rate_in_bounds",

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Grid} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {DateTime} from 'sentry/components/dateTime';
+import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -26,11 +26,16 @@ export default function ReplayBadge({replay}: Props) {
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
 
+  const {isLive} = useLiveBadge({
+    startedAt: replay.started_at,
+    finishedAt: replay.finished_at,
+  });
+
   if (replay.is_archived) {
     return (
       <Grid columns="24px 1fr" gap="md" align="center" justify="center">
         <Flex align="center" justify="center">
-          <IconDelete color="gray500" size="md" />
+          <IconDelete variant="primary" size="md" />
         </Flex>
 
         <Flex direction="column" gap="xs" justify="center">
@@ -65,10 +70,18 @@ export default function ReplayBadge({replay}: Props) {
         }}
         size={24}
       />
+
       <Flex direction="column" gap="xs" justify="center">
-        <Text size="md" bold ellipsis data-underline-on-hover>
-          {replay.user.display_name || t('Anonymous User')}
-        </Text>
+        <Flex direction="row" align="center" gap="xs">
+          {/* We use div here because the Text component has 100% width and will push live indicator to the far right */}
+          <div>
+            <Text size="md" bold ellipsis data-underline-on-hover>
+              {replay.user.display_name || t('Anonymous User')}
+            </Text>
+          </div>
+          {isLive ? <LiveBadge /> : null}
+        </Flex>
+
         <Flex gap="xs">
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <ProjectAvatar size={12} project={project} /> : null}
@@ -81,7 +94,7 @@ export default function ReplayBadge({replay}: Props) {
             {events.getShortEventId(replay.id)}
           </Text>
           <Flex gap="xs" align="center">
-            <IconCalendar color="gray300" size="xs" />
+            <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted">
               {timestampType === 'absolute' ? (
                 <DateTime year timeZone date={replay.started_at} />

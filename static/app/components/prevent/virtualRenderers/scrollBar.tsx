@@ -31,9 +31,9 @@ const ScrollBarDiv = styled('div')`
   overflow-x: auto;
   overflow-y: hidden;
   background-color: var(--prism-block-background);
-  border-left: 2px solid ${p => p.theme.gray200};
-  border-right: 2px solid ${p => p.theme.gray200};
-  border-bottom: 2px solid ${p => p.theme.gray200};
+  border-left: 2px solid ${p => p.theme.colors.gray200};
+  border-right: 2px solid ${p => p.theme.colors.gray200};
+  border-bottom: 2px solid ${p => p.theme.colors.gray200};
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
 `;

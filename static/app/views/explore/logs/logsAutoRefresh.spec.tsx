@@ -48,7 +48,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        <LogsPageDataProvider allowHighFidelity>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.

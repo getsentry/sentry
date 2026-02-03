@@ -1,13 +1,15 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -20,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import {
   SessionFieldWithOperation,
   SessionStatus,
-  type Organization,
   type SessionApiResponse,
 } from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -36,9 +37,10 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
-import type {Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
@@ -54,7 +56,7 @@ import ReleaseSessionsChart from './releaseSessionsChart';
 export type ReleaseComparisonRow = {
   allReleases: React.ReactNode;
   diff: React.ReactNode;
-  diffColor: Color | null;
+  diffColor: string | null;
   diffDirection: 'up' | 'down' | null;
   drilldown: React.ReactNode;
   role: 'parent' | 'children' | 'default';
@@ -69,8 +71,6 @@ type Props = {
   errored: boolean;
   hasHealthData: boolean;
   loading: boolean;
-  location: Location;
-  organization: Organization;
   platform: PlatformKey;
   project: ReleaseProject;
   release: ReleaseWithHealth;
@@ -98,14 +98,15 @@ export default function ReleaseComparisonChart({
   releaseSessions,
   allSessions,
   platform,
-  location,
   loading,
   reloading,
   errored,
   api,
-  organization,
   hasHealthData,
 }: Props) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
   const navigate = useNavigate();
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
@@ -560,8 +561,8 @@ export default function ReleaseComparisonChart({
         : null,
       diffColor: diffCrashFreeSessions
         ? diffCrashFreeSessions > 0
-          ? 'green300'
-          : 'red300'
+          ? theme.tokens.content.success
+          : theme.tokens.content.danger
         : null,
     });
     if (expanded.has(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)) {
@@ -586,8 +587,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffHealthySessions
             ? diffHealthySessions > 0
-              ? 'green300'
-              : 'red300'
+              ? theme.tokens.content.success
+              : theme.tokens.content.danger
             : null,
         },
         {
@@ -610,8 +611,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffAbnormalSessions
             ? diffAbnormalSessions > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -637,8 +638,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffErroredSessions
             ? diffErroredSessions > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -664,8 +665,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffUnhandledSessions
             ? diffUnhandledSessions > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -691,8 +692,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffCrashedSessions
             ? diffCrashedSessions > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         }
       );
@@ -717,8 +718,8 @@ export default function ReleaseComparisonChart({
       diffDirection: diffCrashFreeUsers ? (diffCrashFreeUsers > 0 ? 'up' : 'down') : null,
       diffColor: diffCrashFreeUsers
         ? diffCrashFreeUsers > 0
-          ? 'green300'
-          : 'red300'
+          ? theme.tokens.content.success
+          : theme.tokens.content.danger
         : null,
     });
     if (expanded.has(ReleaseComparisonChartType.CRASH_FREE_USERS)) {
@@ -739,8 +740,8 @@ export default function ReleaseComparisonChart({
           diffDirection: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffHealthyUsers
             ? diffHealthyUsers > 0
-              ? 'green300'
-              : 'red300'
+              ? theme.tokens.content.success
+              : theme.tokens.content.danger
             : null,
         },
         {
@@ -763,8 +764,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffAbnormalUsers
             ? diffAbnormalUsers > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -783,8 +784,8 @@ export default function ReleaseComparisonChart({
           diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffErroredUsers
             ? diffErroredUsers > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -807,8 +808,8 @@ export default function ReleaseComparisonChart({
             : null,
           diffColor: diffUnhandledUsers
             ? diffUnhandledUsers > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         },
         {
@@ -827,8 +828,8 @@ export default function ReleaseComparisonChart({
           diffDirection: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffCrashedUsers
             ? diffCrashedUsers > 0
-              ? 'red300'
-              : 'green300'
+              ? theme.tokens.content.danger
+              : theme.tokens.content.success
             : null,
         }
       );
@@ -848,7 +849,11 @@ export default function ReleaseComparisonChart({
         : null,
       diff: diffFailure ? formatPercentage(Math.abs(diffFailure)) : null,
       diffDirection: diffFailure ? (diffFailure > 0 ? 'up' : 'down') : null,
-      diffColor: diffFailure ? (diffFailure > 0 ? 'red300' : 'green300') : null,
+      diffColor: diffFailure
+        ? diffFailure > 0
+          ? theme.tokens.content.danger
+          : theme.tokens.content.success
+        : null,
     });
   }
 
@@ -997,7 +1002,7 @@ export default function ReleaseComparisonChart({
     return (
       <Panel>
         <ErrorPanel>
-          <IconWarning color="gray300" size="lg" />
+          <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
       </Panel>
     );
@@ -1095,14 +1100,14 @@ export default function ReleaseComparisonChart({
                 ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
                 : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
             </ShowMoreTitle>
-            <ShowMoreButton>
+            <Flex justify="end" align="center" column="2 / -1">
               <Button
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
                 aria-label={t('Toggle additional charts')}
               />
-            </ShowMoreButton>
+            </Flex>
           </ShowMoreWrapper>
         )}
       </ChartTable>
@@ -1119,7 +1124,11 @@ const ChartPanel = styled(Panel)`
 
 const Cell = styled('div')`
   text-align: right;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DescriptionCell = styled(Cell)`
@@ -1127,9 +1136,9 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-const Change = styled('div')<{color?: Color}>`
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.color && `color: ${p.theme[p.color]}`}
+const Change = styled('div')<{color?: string}>`
+  font-size: ${p => p.theme.font.size.md};
+  ${p => p.color && `color: ${p.color}`}
 `;
 
 const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
@@ -1139,7 +1148,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
       p.withExpanders ? '75px' : ''};
 
   > * {
-    border-bottom: 1px solid ${p => p.theme.border};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
@@ -1163,8 +1172,8 @@ const ShowMoreWrapper = styled('div')`
 `;
 
 const ShowMoreTitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   display: inline-grid;
   grid-template-columns: auto auto;
   gap: 10px;
@@ -1173,11 +1182,4 @@ const ShowMoreTitle = styled('div')`
   svg {
     margin-left: ${space(0.25)};
   }
-`;
-
-const ShowMoreButton = styled('div')`
-  grid-column: 2 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 `;

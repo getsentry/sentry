@@ -24,7 +24,8 @@ jest
     getConfigFromTimeRange(
       startTime,
       new Date(startTime.getTime() + 1000 * 60 * 60),
-      1000
+      1000,
+      'UTC'
     )
   );
 

@@ -36,7 +36,6 @@ describe('useCustomMeasurements', () => {
     const {organization} = initializeOrg({
       organization: {features: ['dashboards-mep']},
       projects: [],
-      router: {},
     });
     const measurementsMetaMock = mockMeasurementsMeta();
     render(

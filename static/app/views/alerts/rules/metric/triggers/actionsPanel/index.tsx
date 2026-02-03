@@ -2,12 +2,13 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -150,7 +151,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'slack') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
@@ -164,7 +165,7 @@ class ActionsPanel extends PureComponent<Props> {
     if (newAction.type === 'discord') {
       return (
         <FooterAlert
-          type="info"
+          variant="info"
           trailingItems={
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
@@ -496,7 +497,7 @@ class ActionsPanel extends PureComponent<Props> {
         <ActionSection>
           <Button
             disabled={disabled || loading}
-            icon={<IconAdd isCircled color="gray300" />}
+            icon={<IconAdd variant="muted" />}
             onClick={this.handleAddAction}
           >
             {t('Add Action')}
@@ -537,17 +538,17 @@ const PanelItemSelects = styled('div')`
 `;
 
 const RuleRowContainer = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px ${p => p.theme.border} solid;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border: 1px ${p => p.theme.tokens.border.primary} solid;
+  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   &:last-child {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`
@@ -556,7 +557,7 @@ const PerformActionsListItem = styled(StyledListItem)`
 `;
 
 const FooterAlert = styled(Alert)`
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;

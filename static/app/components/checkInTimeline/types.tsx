@@ -90,9 +90,14 @@ export interface TimeWindowConfig {
   start: Date;
   /**
    * The width in pixels of the timeline. This value is clamped such that there
-   * may be some underscan. See the RollupConfig for more details.
+   * may be some underscan, this value does not include the width of the
+   * underscan. See the RollupConfig for more details.
    */
   timelineWidth: number;
+  /**
+   * The timezone to use for grid line calculations and date formatting
+   */
+  timezone: string;
 }
 
 interface StatusStyle {

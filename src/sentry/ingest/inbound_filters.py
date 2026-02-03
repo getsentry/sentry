@@ -52,6 +52,7 @@ class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
     LOG_MESSAGES = "log_messages"
+    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def get_filter_key(flt):
@@ -232,11 +233,11 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
 - `ie` - Internet Explorer Version 11 and lower
-- `edge` - Edge Version 18 and lower
-- `safari` - Safari Version 11 and lower
-- `firefox` - Firefox Version 66 and lower
-- `chrome` - Chrome Version 62 and lower
-- `opera` - Opera Version 50 and lower
+- `edge` - Edge Version 110 and lower
+- `safari` - Safari Version 15 and lower
+- `firefox` - Firefox Version 110 and lower
+- `chrome` - Chrome Version 110 and lower
+- `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
 
@@ -346,8 +347,13 @@ def _chunk_load_error_filter() -> RuleCondition:
     https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
     """
     values = [
+        # Webpack
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        # Turbopack
+        ("ChunkLoadError", "Failed to load chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Failed to load chunk *"),
+        # Promise rejections
         ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 
@@ -433,5 +439,20 @@ def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | 
             "op": "glob",
             "name": "log.body",
             "value": log_messages,
+        },
+    }
+
+
+def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
+    if not trace_metric_names:
+        return None
+
+    return {
+        "id": "trace-metric-name",
+        "isEnabled": True,
+        "condition": {
+            "op": "glob",
+            "name": "trace_metric.name",
+            "value": trace_metric_names,
         },
     }

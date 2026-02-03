@@ -39,6 +39,7 @@ export default function analyticsInitUser(user: User) {
   }
 
   Amplitude.init(amplitudeKey, undefined, {
+    logLevel: Amplitude.Types.LogLevel.None,
     minIdLength: 1,
     attribution: {
       disabled: false,

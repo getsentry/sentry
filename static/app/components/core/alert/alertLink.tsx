@@ -2,13 +2,14 @@ import type React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'type'> {}
+  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'variant'> {}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;
@@ -43,7 +44,7 @@ type AlertLinkProps =
 
 export function AlertLink(props: AlertLinkProps): React.ReactNode {
   const alertProps: AlertProps = {
-    type: props.type ?? 'info',
+    variant: props.variant ?? 'info',
     system: props.system,
     trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
   };
@@ -53,7 +54,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
     // @TODO(jonasbadalic): Should we validate that the href is a valid URL?
     return (
       <ExternalLinkWithTextDecoration
-        type={alertProps.type}
+        variant={alertProps.variant}
         href={props.href}
         openInNewTab={props.openInNewTab}
       >
@@ -68,7 +69,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
       // causes the link to render a path to / which probably means that even though a manual link is specified,
       // the user might still be redirected to a path that they dont want to be redirected to?. Should this
       // be a button in this case?
-      <LinkWithTextDecoration type={alertProps.type} to="" onClick={props.onClick}>
+      <LinkWithTextDecoration variant={alertProps.variant} to="" onClick={props.onClick}>
         <Alert {...alertProps}>{props.children}</Alert>
       </LinkWithTextDecoration>
     );
@@ -76,7 +77,7 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
 
   // @TODO(jonasbadalic): we should check for empty to value and report to sentry
   return (
-    <LinkWithTextDecoration type={alertProps.type} to={props.to}>
+    <LinkWithTextDecoration variant={alertProps.variant} to={props.to}>
       <Alert {...alertProps}>{props.children}</Alert>
     </LinkWithTextDecoration>
   );
@@ -84,28 +85,50 @@ export function AlertLink(props: AlertLinkProps): React.ReactNode {
 
 // @TODO(jonasbadalic): the styles here are duplicated...
 const ExternalLinkWithTextDecoration = styled(ExternalLink)<{
-  type: AlertProps['type'];
+  variant: AlertProps['variant'];
 }>`
   display: block;
   cursor: pointer;
-  ${p => textDecorationStyles({type: p.type, theme: p.theme})}
+  ${p => textDecorationStyles({type: p.variant, theme: p.theme})}
 `;
 
-const LinkWithTextDecoration = styled(Link)<{type: AlertProps['type']}>`
+const LinkWithTextDecoration = styled(Link)<{variant: AlertProps['variant']}>`
   display: block;
   cursor: pointer;
-  ${p => textDecorationStyles({type: p.type, theme: p.theme})}
+  ${p => textDecorationStyles({type: p.variant, theme: p.theme})}
 `;
 
-function textDecorationStyles({type, theme}: {theme: Theme; type: AlertProps['type']}) {
+function textDecorationStyles({
+  type,
+  theme,
+}: {
+  theme: Theme;
+  type: AlertProps['variant'];
+}) {
+  const borderColors = {
+    info: theme.colors.blue200,
+    success: theme.colors.green200,
+    muted: theme.tokens.border.primary,
+    warning: theme.colors.yellow200,
+    danger: theme.colors.red200,
+  };
+
+  const hoverColors = {
+    info: theme.colors.blue500,
+    success: theme.colors.green500,
+    muted: 'inherit',
+    warning: theme.colors.yellow500,
+    danger: theme.colors.red500,
+  };
+
   return css`
-    text-decoration-color: ${theme.alert[type].border};
+    text-decoration-color: ${borderColors[type]};
     text-decoration-style: solid;
     text-decoration-line: underline;
     transition: border-color ${theme.motion.smooth.moderate};
 
     &:hover {
-      text-decoration-color: ${theme.alert[type].color};
+      text-decoration-color: ${hoverColors[type]};
       text-decoration-style: solid;
       text-decoration-line: underline;
     }

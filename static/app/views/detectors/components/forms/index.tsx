@@ -1,3 +1,5 @@
+import {Alert} from '@sentry/scraps/alert';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -24,8 +26,8 @@ function PlaceholderForm() {
   return (
     <Layout.Page>
       <Layout.Body>
-        <Layout.Main fullWidth>
-          <LoadingError message={t('This monitor type is not yet implemented')} />
+        <Layout.Main width="full">
+          <LoadingError message={t('This monitor type can not be created')} />
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -42,6 +44,8 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewErrorDetectorForm />;
     case 'monitor_check_in_failure':
       return <NewCronDetectorForm />;
+    case 'issue_stream':
+      return <PlaceholderForm />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;
@@ -59,6 +63,12 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
       return <EditExistingErrorDetectorForm detector={detector} />;
     case 'monitor_check_in_failure':
       return <EditExistingCronDetectorForm detector={detector} />;
+    case 'issue_stream':
+      return (
+        <Alert.Container>
+          <Alert variant="danger">{t('Issue stream monitors can not be edited.')}</Alert>
+        </Alert.Container>
+      );
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

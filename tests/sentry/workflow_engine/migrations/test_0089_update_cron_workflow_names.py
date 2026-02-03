@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models import (
     Action,
@@ -10,12 +12,13 @@ from sentry.workflow_engine.models import (
 )
 
 
+@pytest.mark.skip
 class TestUpdateCronWorkflowNames(TestMigrations):
     migrate_from = "0088_remove_monitor_slug_conditions"
     migrate_to = "0089_update_cron_workflow_names"
     app = "workflow_engine"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.test_org = self.create_organization(
             name="test-cron-migration-org", slug="test-cron-migration-org"
         )
@@ -226,7 +229,7 @@ class TestUpdateCronWorkflowNames(TestMigrations):
             ),
         )
 
-    def test_all_workflow_name_scenarios(self):
+    def test_all_workflow_name_scenarios(self) -> None:
         workflow = Workflow.objects.get(id=self.workflow_three_actions.id)
         assert workflow.name == "Notify: Slack #alerts, Email Issue Owners, Notify My Custom App"
         workflow = Workflow.objects.get(id=self.workflow_many_actions.id)

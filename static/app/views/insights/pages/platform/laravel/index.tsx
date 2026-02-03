@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {type DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -13,6 +15,7 @@ import OverviewCacheMissChartWidget from 'sentry/views/insights/common/component
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
 import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
 import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {CommandsTable} from 'sentry/views/insights/pages/platform/laravel/commandsTable';
 import {JobsTable} from 'sentry/views/insights/pages/platform/laravel/jobsTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
@@ -40,7 +43,11 @@ const decodeTableType = (value: any): TableType => {
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
 
-export function LaravelOverviewPage() {
+interface LaravelOverPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+export function LaravelOverviewPage({datePageFilterProps}: LaravelOverPageProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,12 +73,10 @@ export function LaravelOverviewPage() {
         query: {
           ...location.query,
           // Reset cursors when view changes
-          pathsCursor: undefined,
-          commandsCursor: undefined,
-          jobsCursor: undefined,
+          [TableUrlParams.CURSOR]: undefined,
           // Reset sort parameters when view changes
-          field: undefined,
-          order: undefined,
+          [TableUrlParams.SORT_FIELD]: undefined,
+          [TableUrlParams.SORT_ORDER]: undefined,
           view,
         },
       },
@@ -83,7 +88,7 @@ export function LaravelOverviewPage() {
   }
 
   return (
-    <PlatformLandingPageLayout>
+    <PlatformLandingPageLayout datePageFilterProps={datePageFilterProps}>
       <WidgetGrid>
         <WidgetGrid.Position1>
           <OverviewRequestsChartWidget />

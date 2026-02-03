@@ -10,6 +10,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
     remove_alert_rule,
     update_alert_rule,
 )
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
 @region_silo_endpoint
@@ -21,6 +22,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rule-details")
     def get(self, request: Request, project, alert_rule) -> Response:
         """
         Fetch a metric alert rule. @deprecated. Use OrganizationAlertRuleDetailsEndpoint instead.
@@ -29,6 +31,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         """
         return fetch_alert_rule(request, project.organization, alert_rule)
 
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-alert-rule-details")
     def put(self, request: Request, project, alert_rule) -> Response:
         """
         Update a metric alert rule. @deprecated. Use OrganizationAlertRuleDetailsEndpoint instead.
@@ -37,6 +40,7 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         """
         return update_alert_rule(request, project.organization, alert_rule)
 
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-alert-rule-details")
     def delete(self, request: Request, project, alert_rule) -> Response:
         """
         Delete a metric alert rule. @deprecated. Use OrganizationAlertRuleDetailsEndpoint instead.

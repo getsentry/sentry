@@ -87,12 +87,12 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     )
 
     if len(region_names) > 1:
-        logger.error("region_violation", extra={"regions": region_names, **logger_extra})
+        logger.warning("region_violation", extra={"regions": region_names, **logger_extra})
 
     try:
         mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     except OrganizationMapping.DoesNotExist:
-        logger.exception("mapping_missing", extra=logger_extra)
+        logger.warning("mapping_missing", extra=logger_extra)
         return True
 
     return mapping.region_name not in region_names
@@ -131,7 +131,9 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
         super().initialize()
 
         metrics.incr(
-            "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
+            "sentry.integrations.installation_attempt",
+            tags={"integration_name": self.provider.key},
+            sample_rate=1.0,
         )
 
     def finish_pipeline(self) -> HttpResponseBase:
@@ -199,7 +201,9 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.clear_session()
 
         metrics.incr(
-            "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
+            "sentry.integrations.installation_finished",
+            tags={"integration_name": self.provider.key},
+            sample_rate=1.0,
         )
 
         return response

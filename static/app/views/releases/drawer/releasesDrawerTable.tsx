@@ -2,9 +2,11 @@ import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -21,6 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -75,7 +78,9 @@ export function ReleasesDrawerTable({
   const organization = useOrganization();
   const {data, isLoading, isError, getResponseHeader} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: projects,
@@ -190,10 +195,9 @@ export function ReleasesDrawerTable({
   );
 
   const tableEmptyMessage = (
-    <MessageContainer>
-      <Title>{t('No releases')}</Title>
-      <Subtitle>{t('There are no releases within this timeframe')}</Subtitle>
-    </MessageContainer>
+    <EmptyMessage title={t('No releases')}>
+      {t('There are no releases within this timeframe')}
+    </EmptyMessage>
   );
 
   return (
@@ -224,23 +228,6 @@ export function ReleasesDrawerTable({
     </div>
   );
 }
-
-const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Title = styled('div')`
-  font-size: 24px;
-`;
-
-const MessageContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${space(1)};
-  justify-items: center;
-  text-align: center;
-  padding: ${space(4)};
-`;
 
 const CellWrapper = styled('div')`
   & div {

@@ -2,8 +2,9 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -27,7 +28,7 @@ export default function ReplayProcessingError({className}: Props) {
   }, [sdk]);
 
   return (
-    <StyledAlert type="info" className={className}>
+    <StyledAlert variant="info" className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
       <p>
         {t('The replay you are looking for was not found due to a processing error.')}
@@ -61,7 +62,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

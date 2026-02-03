@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:47.611047+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -24,6 +22,6 @@ system:
   root_component:
     system
       stacktrace (ignored because it contains no contributing frames)
-        frame
+        frame (ignored single non-URL JavaScript frame)
           filename (ignored because frame points to a URL)
             "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"

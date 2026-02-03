@@ -11,13 +11,13 @@ import {
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
@@ -84,6 +84,11 @@ export type FeedbackModalProps<T extends Data> = (
   useNewUserFeedback?: boolean;
 };
 
+/**
+ * A modal that allows users to submit feedback to Sentry (feedbacks project).
+ *
+ * @deprecated Use `<FeedbackButton/>` instead.
+ */
 export function FeedbackModal<T extends Data>({
   Header,
   Body,
@@ -256,7 +261,7 @@ export function FeedbackModal<T extends Data>({
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
             <Alert.Container>
-              <Alert type="info" showIcon={false}>
+              <Alert variant="info" showIcon={false}>
                 {tct(
                   "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
                   {

@@ -2,8 +2,11 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {DateTime} from 'sentry/components/dateTime';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -12,10 +15,12 @@ import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ReleasesSort,
@@ -27,31 +32,41 @@ import {
   useReleaseSelection,
 } from 'sentry/views/insights/common/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
-
-export const PRIMARY_RELEASE_ALIAS = 'R1';
-export const SECONDARY_RELEASE_ALIAS = 'R2';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  selectorKey: string;
+  allOptionDescription: string;
+  allOptionTitle: string;
+  onChange: (selectedOption: SelectOption<SelectKey>) => void;
   sortBy: ReleasesSortByOption;
+  triggerLabel: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabelPrefix?: string;
 };
 
-function ReleaseSelector({
-  selectorKey,
+function SingleReleaseSelector({
+  allOptionDescription,
+  allOptionTitle,
+  onChange,
   selectorValue,
+  triggerLabel,
   triggerLabelPrefix,
   sortBy,
 }: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm, sortBy);
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const {primaryRelease} = useReleaseSelection();
 
   const options: Array<SelectOption<string> & {count?: number}> = [];
+
+  // Add "All" option as the first option
+  options.push({
+    value: '',
+    label: allOptionTitle,
+    details: <div>{allOptionDescription}</div>,
+  });
+
   if (defined(selectorValue)) {
     const index = data?.findIndex(({version}) => version === selectorValue);
     const selectedRelease = defined(index) ? data?.[index] : undefined;
@@ -76,7 +91,7 @@ function ReleaseSelector({
   }
 
   data
-    ?.filter(({version}) => ![primaryRelease, secondaryRelease].includes(version))
+    ?.filter(({version}) => primaryRelease !== version)
     .forEach(release => {
       const option = {
         value: release.version,
@@ -89,28 +104,33 @@ function ReleaseSelector({
       options.push(option);
     });
 
-  const triggerLabelContent = selectorValue
-    ? formatVersionAndCenterTruncate(selectorValue, 16)
-    : selectorValue;
-
   return (
     <StyledCompactSelect
-      triggerProps={{
-        icon: <IconReleases />,
-        title: selectorValue,
-        prefix: triggerLabelPrefix,
-        children: triggerLabelContent,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconReleases />}
+          title={selectorValue}
+          prefix={triggerLabelPrefix}
+          aria-label={t('Filter Release')}
+        >
+          {triggerLabel}
+        </OverlayTrigger.Button>
+      )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
-      value={selectorValue}
+      value={selectorValue || ''}
       options={[
+        {
+          value: '_all_option',
+          options: options.slice(0, 1), // "All" option
+        },
         {
           value: '_selected_release',
           // We do this because the selected/default release might not be sorted,
           // but instead could have been added to the top of options list.
-          options: options.slice(0, 1),
+          options: selectorValue && selectorValue !== '' ? options.slice(1, 2) : [],
         },
         {
           value: '_releases',
@@ -118,21 +138,14 @@ function ReleaseSelector({
             sortBy: SORT_BY_OPTIONS[sortBy].label,
           }),
           // Display other releases sorted by the selected option
-          options: options.slice(1),
+          options:
+            selectorValue && selectorValue !== '' ? options.slice(2) : options.slice(1),
         },
       ]}
       onSearch={debounce(val => {
         setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
-      onChange={newValue => {
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            [selectorKey]: newValue.value,
-          },
-        });
-      }}
+      onChange={onChange}
       onClose={() => {
         setSearchTerm(undefined);
       }}
@@ -147,7 +160,7 @@ type LabelDetailsProps = {
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
-    <DetailsContainer>
+    <Flex justify="between" gap="md" minWidth="200px">
       <div>
         {defined(props.screenCount)
           ? tn('%s event', '%s events', props.screenCount)
@@ -158,7 +171,7 @@ function LabelDetails(props: LabelDetailsProps) {
           <DateTime dateOnly year date={props.dateCreated} />
         )}
       </div>
-    </DetailsContainer>
+    </Flex>
   );
 }
 
@@ -181,11 +194,16 @@ function getReleasesSortBy(
   return ReleasesSortOption.DATE;
 }
 
-export function ReleaseComparisonSelector() {
-  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+type ReleaseSelectorProps = {
+  moduleName: ModuleName;
+};
+
+export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
+  const {primaryRelease} = useReleaseSelection();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   const [localStoragedReleaseBy, setLocalStoragedReleaseBy] =
     useLocalStorageState<ReleasesSortByOption>(
@@ -232,22 +250,37 @@ export function ReleaseComparisonSelector() {
     selection.environments
   );
 
+  const primaryTriggerLabelContent = primaryRelease
+    ? formatVersionAndCenterTruncate(primaryRelease, 16)
+    : 'All';
+
   return (
     <StyledPageSelector condensed>
-      <ReleaseSelector
-        selectorKey="primaryRelease"
+      <SingleReleaseSelector
+        allOptionDescription={t('Show data from all releases.')}
+        allOptionTitle={t('All')}
+        onChange={newValue => {
+          trackAnalytics('insights.release.select_release', {
+            organization,
+            filtered: defined(newValue.value) && newValue.value !== '',
+            moduleName,
+          });
+
+          const updatedQuery: Record<string, string> = {
+            ...location.query,
+            primaryRelease: newValue.value as string,
+          };
+
+          navigate({
+            ...location,
+            query: updatedQuery,
+          });
+        }}
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
-        triggerLabelPrefix={PRIMARY_RELEASE_ALIAS}
-        sortBy={sortReleasesBy}
-      />
-      <ReleaseSelector
-        selectorKey="secondaryRelease"
-        selectorName={t('Release 2')}
-        selectorValue={secondaryRelease}
-        key="secondaryRelease"
-        triggerLabelPrefix={SECONDARY_RELEASE_ALIAS}
+        triggerLabelPrefix={primaryRelease ? t('Release') : t('Releases')}
+        triggerLabel={primaryTriggerLabelContent}
         sortBy={sortReleasesBy}
       />
       <ReleasesSort
@@ -283,12 +316,4 @@ const StyledPageSelector = styled(PageFilterBar)`
       }
     }
   }
-`;
-
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  min-width: 200px;
 `;

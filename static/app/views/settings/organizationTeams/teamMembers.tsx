@@ -2,6 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
@@ -9,10 +15,6 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,19 +36,15 @@ import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import TeamMembersRow, {
   GRID_TEMPLATE,
 } from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import {getButtonHelpText} from './utils';
-
-interface TeamMembersProps {
-  team: Team;
-}
 
 function getTeamMembersQueryKey({
   organization,
@@ -149,6 +147,7 @@ function AddMemberDropdown({
       menuWidth={250}
       options={items}
       onClose={() => setMemberQuery('')}
+      value={undefined}
       onChange={
         canAddMembers
           ? addTeamMember
@@ -172,7 +171,9 @@ function AddMemberDropdown({
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
-      triggerProps={{children: t('Add Member')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>{t('Add Member')}</OverlayTrigger.Button>
+      )}
       searchPlaceholder={t('Search Members')}
       emptyMessage={t('No members')}
       loading={isOrgMembersFetching}
@@ -186,13 +187,13 @@ function AddMemberDropdown({
   );
 }
 
-function TeamMembers({team}: TeamMembersProps) {
+export default function TeamMembers() {
   const user = useUser();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const {teamId} = useParams<{teamId: string}>();
   const location = useLocation();
+  const {team} = useTeamDetailsOutlet();
 
   const {
     data: teamMembers = [],
@@ -201,7 +202,7 @@ function TeamMembers({team}: TeamMembersProps) {
     refetch: refetchTeamMembers,
     getResponseHeader: getTeamMemberResponseHeader,
   } = useApiQuery<TeamMember[]>(
-    getTeamMembersQueryKey({organization, teamId, location}),
+    getTeamMembersQueryKey({organization, teamId: team.slug, location}),
     {
       staleTime: 30_000,
     }
@@ -217,14 +218,14 @@ function TeamMembers({team}: TeamMembersProps) {
     mutationFn: ({memberId}: {memberId: string}) => {
       return leaveTeamPromise(api, {
         orgId: organization.slug,
-        teamId,
+        teamId: team.slug,
         memberId,
       });
     },
     onSuccess: (_data, variables) => {
       setApiQueryData<TeamMember[]>(
         queryClient,
-        getTeamMembersQueryKey({organization, teamId, location}),
+        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
         existingData => {
           if (!existingData) {
             return existingData;
@@ -244,7 +245,7 @@ function TeamMembers({team}: TeamMembersProps) {
   const {mutate: updateTeamMemberRole} = useMutation({
     mutationFn: ({memberId, newRole}: {memberId: string; newRole: string}) => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/members/${memberId}/teams/${teamId}/`,
+        `/organizations/${organization.slug}/members/${memberId}/teams/${team.slug}/`,
         {
           method: 'PUT',
           data: {teamRole: newRole},
@@ -255,7 +256,7 @@ function TeamMembers({team}: TeamMembersProps) {
       addSuccessMessage(t('Successfully changed role for team member.'));
       setApiQueryData<TeamMember[]>(
         queryClient,
-        getTeamMembersQueryKey({organization, teamId, location}),
+        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
         existingData => {
           if (!existingData) {
             return existingData;
@@ -285,14 +286,14 @@ function TeamMembers({team}: TeamMembersProps) {
     mutationFn: ({orgMember}: {orgMember: TeamMember}) => {
       return joinTeamPromise(api, {
         orgId: organization.slug,
-        teamId,
+        teamId: team.slug,
         memberId: orgMember.id,
       });
     },
     onSuccess: (_data, {orgMember}) => {
       setApiQueryData<TeamMember[]>(
         queryClient,
-        getTeamMembersQueryKey({organization, teamId, location}),
+        getTeamMembersQueryKey({organization, teamId: team.slug, location}),
         existingData => {
           if (!existingData) {
             return existingData;
@@ -349,7 +350,7 @@ function TeamMembers({team}: TeamMembersProps) {
       });
     }
     return (
-      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+      <EmptyMessage icon={<IconUser />} size="lg">
         {t('This team has no members')}
       </EmptyMessage>
     );
@@ -375,7 +376,7 @@ function TeamMembers({team}: TeamMembersProps) {
               teamMembers={teamMembers}
               organization={organization}
               team={team}
-              teamId={teamId}
+              teamId={team.slug}
               isTeamAdmin={isTeamAdmin}
               onAddMember={handleAddTeamMember}
             />
@@ -391,5 +392,3 @@ function TeamMembers({team}: TeamMembersProps) {
 const StyledPanelHeader = styled(PanelHeader)`
   ${GRID_TEMPLATE}
 `;
-
-export default TeamMembers;

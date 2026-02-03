@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Grid} from 'sentry/components/core/layout/grid';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
@@ -39,7 +38,7 @@ import {TestSearchBar} from 'sentry/views/prevent/tests/testSearchBar/testSearch
 export function EmptySelectorsMessage() {
   return (
     <MessageContainer>
-      <StyledIconSearch color="subText" size="xl" />
+      <StyledIconSearch variant="muted" size="xl" />
       <Title>{t('It looks like there is nothing to show right now.')}</Title>
       <Subtitle>
         {t('Please select a repository and branch to view Test Analytics data.')}
@@ -63,7 +62,7 @@ export default function TestsPage() {
   const {data: integrations = [], isPending: isIntegrationsPending} =
     useGetActiveIntegratedOrgs({organization});
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage = regionData?.name === 'us';
+  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
 
   let mainContent: React.ReactNode;
   if (isIntegrationsPending) {
@@ -86,7 +85,7 @@ export default function TestsPage() {
 
   return (
     <Grid gap="xl">
-      <ControlsContainer>
+      <Flex gap="xl">
         <PageFilterBar condensed>
           <IntegratedOrgSelector />
           <RepoSelector />
@@ -94,7 +93,7 @@ export default function TestsPage() {
           <DateSelector />
         </PageFilterBar>
         {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
-      </ControlsContainer>
+      </Flex>
       {mainContent}
     </Grid>
   );
@@ -200,25 +199,20 @@ const MessageContainer = styled('div')`
   justify-items: center;
   align-items: center;
   text-align: center;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 14px;
 `;
 
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${p => p.theme.space.md};
-`;
-
-const ControlsContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
 `;

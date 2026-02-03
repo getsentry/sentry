@@ -4,12 +4,10 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
+import {LinkButton} from '@sentry/scraps/button';
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -269,7 +267,7 @@ export function ProjectPageFilter({
         trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconOpen />}
               title={t('Project Details')}
@@ -283,7 +281,7 @@ export function ProjectPageFilter({
               visible={isFocused}
             />
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings />}
               title={t('Project Settings')}
@@ -410,7 +408,7 @@ export function ProjectPageFilter({
             size="xs"
             aria-label={t('Add Project')}
             to={makeProjectsPathname({path: '/new/', organization})}
-            icon={<IconAdd isCircled />}
+            icon={<IconAdd />}
           >
             {t('Project')}
           </LinkButton>
@@ -419,11 +417,9 @@ export function ProjectPageFilter({
       menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
-        ((triggerProps, isOpen) => (
+        (triggerProps => (
           <ProjectPageFilterTrigger
             {...triggerProps}
-            isOpen={isOpen}
-            size={selectProps.size}
             value={value}
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}
@@ -447,7 +443,7 @@ function shouldCloseOnInteractOutside(target: Element) {
 }
 
 const TrailingButton = styled(LinkButton)<{visible: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 

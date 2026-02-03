@@ -152,6 +152,25 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
         assert_outbox_update_message_exists(self.org, 0)
 
+    def test_mark_for_deletion_on_relocation_pending(self) -> None:
+        self.org.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        self.org.save()
+
+        org_before_update = Organization.objects.get(id=self.org.id)
+
+        with outbox_context(flush=False):
+            updated_org = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
+
+        assert updated_org, "Should update the org"
+        self.org.refresh_from_db()
+        assert self.org.status == OrganizationStatus.PENDING_DELETION
+        assert self.org.name == org_before_update.name
+        assert self.org.slug == org_before_update.slug
+
+        assert_outbox_update_message_exists(self.org, 1)
+
 
 class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
     def setUp(self) -> None:

@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
 function LinksCard({organization}: {organization: Organization}) {
   const hasBillingPerms = organization.access?.includes('org:billing');
+  const hasSpendNotifications = hasSpendVisibilityNotificationsFeature(organization);
 
   return (
     <SubscriptionHeaderCard
@@ -22,40 +24,38 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconList />}
-                to="/settings/billing/receipts/"
+                to={`/settings/${organization.slug}/billing/receipts/`}
+                size="xs"
               >
-                <Text size="sm" variant="accent">
-                  {t('View all receipts')}
-                </Text>
+                {t('View all receipts')}
               </LinkButton>
               <LinkButton
                 priority="link"
                 icon={<IconTimer />}
-                to="/settings/billing/usage-log/"
+                to={`/settings/${organization.slug}/billing/activity-logs/`}
+                size="xs"
               >
-                <Text size="sm" variant="accent">
-                  {t('View activity')}
-                </Text>
+                {t('View activity')}
               </LinkButton>
-              <LinkButton
-                priority="link"
-                icon={<IconSubscribed />}
-                to="/settings/billing/notifications/"
-              >
-                <Text size="sm" variant="accent">
+              {hasSpendNotifications && (
+                <LinkButton
+                  priority="link"
+                  icon={<IconSubscribed />}
+                  to={`/settings/${organization.slug}/billing/notifications/`}
+                  size="xs"
+                >
                   {t('Manage spend notifications')}
-                </Text>
-              </LinkButton>
+                </LinkButton>
+              )}
             </Fragment>
           ) : (
             <LinkButton
               priority="link"
               icon={<IconTimer />}
-              to="/settings/billing/usage-log/"
+              to={`/settings/${organization.slug}/billing/activity-logs/`}
+              size="xs"
             >
-              <Text size="sm" variant="accent">
-                {t('View activity')}
-              </Text>
+              {t('View activity')}
             </LinkButton>
           )}
         </Flex>,

@@ -1,23 +1,19 @@
 import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
-import {ThemeProvider, useTheme, type Theme} from '@emotion/react';
+import {ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import heroImg from 'sentry-images/debug/notifications/hero.png';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
 // eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme';
-import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+import {darkTheme} from 'sentry/utils/theme/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {
-  const theme = useTheme();
-  const appliedDarkTheme: Theme = theme.isChonk
-    ? (DO_NOT_USE_darkChonkTheme as any)
-    : darkTheme;
-  return <ThemeProvider theme={appliedDarkTheme}>{props.children}</ThemeProvider>;
+  return <ThemeProvider theme={darkTheme}>{props.children}</ThemeProvider>;
 }
 
 export function DebugNotificationsLanding() {
@@ -79,7 +75,7 @@ function Squiggle() {
 
 const Hero = styled('div')`
   padding: ${p => `80px ${p.theme.space['2xl']}`};
-  gap: ${p => p.theme.fontSize['2xl']};
+  gap: ${p => p.theme.font.size['2xl']};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};

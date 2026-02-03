@@ -11,6 +11,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -271,7 +272,27 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 404, response.content
 
     def test_simple(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+
+    @override_options(
+        {
+            "performance.traces.pagination.max-iterations": 30,
+            "performance.traces.pagination.max-timeout": 15,
+            "performance.traces.pagination.query-limit": 1,
+        }
+    )
+    def test_pagination(self) -> None:
+        """Test is identical to test_simple, but with the limit override, we'll need to make multiple requests to get
+        all of the trace"""
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -282,7 +303,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_ignore_project_param(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
@@ -294,7 +315,7 @@ class OrganizationEventsTraceEndpointTest(
         self.assert_trace_data(data[0])
 
     def test_with_errors_data(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -326,7 +347,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["start_timestamp"] == error_data["timestamp"]
 
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
         error_data = load_data(
             "javascript",
@@ -357,7 +378,7 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event_1["event_id"] != error_event_2["event_id"]
 
     def test_with_performance_issues(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={"timestamp": self.day_ago},
@@ -401,7 +422,7 @@ class OrganizationEventsTraceEndpointTest(
         assert data[0]["event_id"] == error.event_id
 
     def test_with_additional_attributes(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client_get(
                 data={
@@ -467,7 +488,7 @@ class OrganizationEventsTraceEndpointTest(
         assert response.status_code == 400, response.content
 
     def test_orphan_trace(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         orphan_event = self.create_event(
             trace_id=self.trace_id,
             transaction="/transaction/orphan",
@@ -476,7 +497,6 @@ class OrganizationEventsTraceEndpointTest(
             # Random span id so there's no parent
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -584,12 +604,9 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_with_uptime_results(self):
         """Test that uptime results are included when include_uptime=1"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES
         redirect_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
             project=self.project,
@@ -634,7 +651,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_without_uptime_results(self):
         """Test that uptime results are not queried when include_uptime is not set"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
             project=self.project,
@@ -665,7 +682,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_with_orphaned_spans(self):
         """Test that orphaned spans are parented to the final uptime request"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         self.create_event(
             trace_id=self.trace_id,
@@ -674,7 +691,6 @@ class OrganizationEventsTraceEndpointTest(
             project_id=self.project.id,
             parent_span_id=uuid4().hex[:16],
             milliseconds=500,
-            is_eap=True,
         )
         redirect_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -701,10 +717,7 @@ class OrganizationEventsTraceEndpointTest(
             scheduled_check_time=self.day_ago,
         )
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES
 
         self.store_uptime_results([redirect_result, final_result])
 
@@ -724,7 +737,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_uptime_root_tree_without_orphans(self):
         """Test uptime results when there are no orphaned spans"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         uptime_result = self._create_uptime_result_with_original_url(
             organization=self.organization,
@@ -739,10 +752,7 @@ class OrganizationEventsTraceEndpointTest(
             check_duration_us=200000,
         )
 
-        features = self.FEATURES + [
-            "organizations:uptime-eap-enabled",
-            "organizations:uptime-eap-uptime-results-query",
-        ]
+        features = self.FEATURES
 
         self.store_uptime_results([uptime_result])
 

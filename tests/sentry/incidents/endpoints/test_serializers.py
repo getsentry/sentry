@@ -187,37 +187,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
         )
 
-    def test_transactions_dataset_deprecation_validation(self) -> None:
-        """Test that transactions dataset is rejected when discover-saved-queries-deprecation flag is enabled"""
-        params = self.valid_transaction_params.copy()
-
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            self.run_fail_validation_test(
-                params,
-                {
-                    "dataset": [
-                        "The transactions dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
-                    ]
-                },
-            )
-
-    def test_generic_metrics_dataset_deprecation_validation(self) -> None:
-        """Test that generic_metrics dataset is rejected when discover-saved-queries-deprecation flag is enabled"""
-        params = self.valid_params.copy()
-        params["dataset"] = Dataset.PerformanceMetrics.value
-        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-        params["aggregate"] = "p95(transaction.duration)"
-
-        with self.feature("organizations:discover-saved-queries-deprecation"):
-            self.run_fail_validation_test(
-                params,
-                {
-                    "dataset": [
-                        "The generic_metrics dataset is being deprecated. Please use the 'events_analytics_platform' dataset with the `is_transaction:true` filter instead."
-                    ]
-                },
-            )
-
     def test_dataset(self) -> None:
         invalid_values = ["Invalid dataset, valid values are %s" % [item.value for item in Dataset]]
         self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
@@ -840,6 +809,39 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
+    @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
+    def test_enforce_max_subscriptions_with_override(self) -> None:
+        with self.options(
+            {
+                "metric_alerts.extended_max_subscriptions_orgs": [self.organization.id],
+                "metric_alerts.extended_max_subscriptions": 3,
+            }
+        ):
+            serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_2 = self.valid_params.copy()
+            params_2["name"] = "Test Rule 2"
+            serializer = AlertRuleSerializer(context=self.context, data=params_2)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_3 = self.valid_params.copy()
+            params_3["name"] = "Test Rule 3"
+            serializer = AlertRuleSerializer(context=self.context, data=params_3)
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+            params_4 = self.valid_params.copy()
+            params_4["name"] = "Test Rule 4"
+            serializer = AlertRuleSerializer(context=self.context, data=params_4)
+            assert serializer.is_valid(), serializer.errors
+            with pytest.raises(serializers.ValidationError) as excinfo:
+                serializer.save()
+            assert isinstance(excinfo.value.detail, list)
+            assert excinfo.value.detail[0] == "You may not exceed 3 metric alerts per organization"
+
     def test_error_issue_status(self) -> None:
         params = self.valid_params.copy()
         params["query"] = "status:abcd"
@@ -928,6 +930,50 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
 
         # Verify the mock was called with correct project IDs
         mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    def test_update_marks_query_as_user_updated_when_snapshot_exists(self):
+        alert_rule = self.create_alert_rule()
+
+        alert_rule.snuba_query.query_snapshot = {
+            "type": alert_rule.snuba_query.type,
+            "dataset": alert_rule.snuba_query.dataset,
+            "query": alert_rule.snuba_query.query,
+            "aggregate": alert_rule.snuba_query.aggregate,
+        }
+        alert_rule.snuba_query.save()
+
+        params = self.valid_params.copy()
+        params["name"] = "Updated Alert Name"
+
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+
+        updated_alert_rule = serializer.save()
+        updated_alert_rule.snuba_query.refresh_from_db()
+
+        assert updated_alert_rule.snuba_query.query_snapshot is not None
+        assert updated_alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
+    def test_update_does_not_mark_user_updated_when_no_snapshot(self):
+        alert_rule = self.create_alert_rule()
+
+        alert_rule.snuba_query.query_snapshot = None
+        alert_rule.snuba_query.save()
+
+        params = self.valid_params.copy()
+        params["name"] = "Updated Alert Name"
+
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+
+        updated_alert_rule = serializer.save()
+        updated_alert_rule.snuba_query.refresh_from_db()
+
+        assert updated_alert_rule.snuba_query.query_snapshot is None
 
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
@@ -1070,6 +1116,24 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             % ", ".join(STRING_TO_ACTION_TARGET_TYPE.keys())
         ]
         self.run_fail_validation_test({"target_type": 50}, {"targetType": invalid_values})
+
+    def test_target_identifier_must_be_integer_for_user(self) -> None:
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
+                "target_identifier": "not-a-number",
+            },
+            {"targetIdentifier": ["Must be a valid integer for user or team targets"]},
+        )
+
+    def test_target_identifier_must_be_integer_for_team(self) -> None:
+        self.run_fail_validation_test(
+            {
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.TEAM],
+                "target_identifier": "abc123",
+            },
+            {"targetIdentifier": ["Must be a valid integer for user or team targets"]},
+        )
 
     def test_user_perms(self) -> None:
         self.run_fail_validation_test(

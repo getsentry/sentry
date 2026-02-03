@@ -10,8 +10,8 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry import features
+from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -19,6 +19,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.services.eventstore.processing import (
     event_processing_store,
     transaction_processing_store,
@@ -176,14 +177,19 @@ def process_event(
                 if not processing_store.exists(data):
                     return
 
+        attachment_objects = [
+            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+            for attachment in attachments
+        ]
+        if attachment_objects:
+            store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
+
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = processing_store.store(data)
         if consumer_type == ConsumerType.Transactions:
             track_sampled_event(
                 data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
             )
-
-        save_attachments(attachments, cache_key)
 
         try:
             # Records rc-processing usage broken down by
@@ -268,17 +274,6 @@ def process_event(
         if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
             raise
         raise Retriable(exc)
-
-
-def save_attachments(attachments: Any, cache_key: str) -> None:
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
-            assert cache_key is not None
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")

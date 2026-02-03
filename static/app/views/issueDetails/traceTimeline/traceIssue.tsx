@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Link} from '@sentry/scraps/link';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
@@ -126,16 +127,16 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
 const TraceIssueLinkContainer = styled(Link)`
   display: flex;
   gap: ${space(2)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding: ${space(2)} ${space(2)} ${space(2)} ${space(2)};
   margin: ${space(1)} 0 ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:hover {
-    background-color: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.tokens.background.tertiary};
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
@@ -153,11 +154,19 @@ const TraceIssueProjectBadge = styled('div')`
 `;
 
 const TraceIssueDetailsContainer = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const NoOverflowDiv = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TraceIssueEventTitle = styled('span')`
@@ -166,5 +175,5 @@ const TraceIssueEventTitle = styled('span')`
 `;
 
 const TraceIssueEventSubtitle = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

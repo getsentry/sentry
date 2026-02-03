@@ -590,37 +590,45 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
                 logger.error("Add the feature flag to create the spec for this function.")
             return False
 
+    supported_by = _query_supported_by(**kwargs)
+    if (
+        features.has("organizations:on-demand-gen-metrics-deprecation-query-prefill", organization)
+        and supported_by.on_demand_metrics
+    ):
+        return True
+
     return should_use_on_demand_metrics(**kwargs)
 
 
-def _should_use_on_demand_metrics(
+def _query_supported_by(
     dataset: str | Dataset | None,
     aggregate: str,
     query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-) -> bool:
+    prefilling_for_deprecation: bool = False,
+) -> SupportedBy:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
     groupbys = groupbys or []
     supported_datasets = [Dataset.PerformanceMetrics]
     # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
     # metrics that will be needed after a query is converted from using transactions to metrics.
-    if prefilling:
+    if prefilling or prefilling_for_deprecation:
         supported_datasets.append(Dataset.Transactions)
 
     if not dataset or Dataset(dataset) not in supported_datasets:
-        return False
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
 
     components = _extract_aggregate_components(aggregate)
     if components is None:
-        return False
+        return SupportedBy(standard_metrics=False, on_demand_metrics=False)
 
     function, args = components
 
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         # For now, we do not support MRIs in on demand metrics.
-        return False
+        return SupportedBy(standard_metrics=True, on_demand_metrics=False)
 
     aggregate_supported_by = _get_aggregate_supported_by(function, args)
     query_supported_by = _get_query_supported_by(query)
@@ -629,6 +637,30 @@ def _should_use_on_demand_metrics(
     supported_by = SupportedBy.combine(
         aggregate_supported_by, query_supported_by, groupbys_supported_by
     )
+
+    return supported_by
+
+
+def _should_use_on_demand_metrics(
+    dataset: str | Dataset | None,
+    aggregate: str,
+    query: str,
+    groupbys: Sequence[str] | None = None,
+    prefilling: bool = False,
+    prefilling_for_deprecation: bool = False,
+) -> bool:
+    """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
+    supported_by = _query_supported_by(
+        dataset,
+        aggregate,
+        query,
+        groupbys,
+        prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
+    )
+
+    if prefilling_for_deprecation:
+        return supported_by.on_demand_metrics
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
@@ -641,6 +673,7 @@ def should_use_on_demand_metrics(
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
+    prefilling_for_deprecation: bool = False,
 ) -> bool:
     if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
         if organization_bulk_query_cache is None:
@@ -666,13 +699,19 @@ def should_use_on_demand_metrics(
                 query=query,
                 groupbys=groupbys,
                 prefilling=prefilling,
+                prefilling_for_deprecation=prefilling_for_deprecation,
             )
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
             organization_bulk_query_cache[local_cache_digest_chunk][local_cache_key] = result
             return result
 
     return _should_use_on_demand_metrics(
-        dataset=dataset, aggregate=aggregate, query=query, groupbys=groupbys, prefilling=prefilling
+        dataset=dataset,
+        aggregate=aggregate,
+        query=query,
+        groupbys=groupbys,
+        prefilling=prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
 
 

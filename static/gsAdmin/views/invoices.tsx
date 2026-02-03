@@ -1,16 +1,14 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDownload} from 'sentry/icons';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid, {type State as ResultGridState} from 'admin/components/resultGrid';
 import {prettyDate} from 'admin/utils';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   <td key="org">
@@ -60,14 +58,14 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
     <LinkButton
       aria-label="Download Invoice"
       icon={<IconDownload />}
-      href={`${state.region?.url}/api/0/_admin/payments/${row.id}/pdf/`}
+      href={`${state.region?.url}/api/0/_admin/cells/${state.region?.name}/payments/${row.id}/pdf/`}
       size="md"
       title="Download Invoice"
     />
   </td>,
 ];
 
-function Invoices(props: Props) {
+export default function Invoices() {
   return (
     <div>
       <PageHeader title="Invoices" />
@@ -155,10 +153,7 @@ function Invoices(props: Props) {
             ],
           },
         }}
-        {...props}
       />
     </div>
   );
 }
-
-export default Invoices;

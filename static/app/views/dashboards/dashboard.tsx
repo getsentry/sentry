@@ -9,24 +9,28 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
+
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Button} from 'sentry/components/core/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
+import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
 import {
@@ -44,7 +48,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -80,6 +84,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
+  isEmbedded?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
   newlyAddedWidget?: Widget;
@@ -87,6 +92,7 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -102,6 +108,7 @@ function Dashboard({
   onUpdate,
   widgetLegendState,
   widgetLimitReached,
+  isEmbedded,
   isPreview,
   newWidget,
   newlyAddedWidget,
@@ -109,12 +116,14 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
+  useTimeseriesVisualization,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
@@ -153,20 +162,31 @@ function Dashboard({
     );
   }, [api, organization.slug, selection.projects]);
 
+  useEffect(() => {
+    // Always load organization tags on dashboards
+    loadOrganizationTags(api, organization.slug, selection);
+  }, [api, organization.slug, selection]);
+
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
 
     // Get member list data for issue widgets
     fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
-    trackEngagementAnalytics(dashboard.widgets, organization, dashboard.title);
+    trackEngagementAnalytics(
+      dashboard.widgets,
+      organization,
+      dashboard.title,
+      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0
+    );
 
     return () => {
+      if (queue) {
+        queue.abort();
+        queue.clear();
+      }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
       GroupStore.reset();
@@ -375,60 +395,65 @@ function Dashboard({
   const canModifyLayout = !isMobile && isEditingDashboard;
 
   return (
-    <GridLayout
-      breakpoints={BREAKPOINTS(theme)}
-      cols={COLUMNS}
-      rowHeight={ROW_HEIGHT}
-      margin={WIDGET_MARGINS}
-      draggableHandle={`.${DRAG_HANDLE_CLASS}`}
-      draggableCancel={`.${DRAG_RESIZE_CLASS}`}
-      layouts={layouts}
-      onLayoutChange={handleLayoutChange}
-      onBreakpointChange={handleBreakpointChange}
-      isDraggable={canModifyLayout}
-      isResizable={canModifyLayout}
-      resizeHandle={
-        <ResizeHandle
-          aria-label={t('Resize Widget')}
-          data-test-id="custom-resize-handle"
-          className={DRAG_RESIZE_CLASS}
-          size="xs"
-          borderless
-          icon={<IconResize />}
-        />
-      }
-      useCSSTransforms={false}
-      isBounded
-    >
-      {widgetsWithLayout.map((widget, index) => (
-        <div key={constructGridItemKey(widget)} data-grid={widget.layout}>
-          <SortableWidget
-            widget={widget}
-            widgetLegendState={widgetLegendState}
-            isEditingDashboard={isEditingDashboard}
-            widgetLimitReached={widgetLimitReached}
-            onDelete={handleDeleteWidget(widget)}
-            onEdit={handleEditWidget(index)}
-            onDuplicate={handleDuplicateWidget(widget)}
-            onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
-            isPreview={isPreview}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
-            dashboardPermissions={dashboard.permissions}
-            dashboardCreator={dashboard.createdBy}
-            isMobile={isMobile}
-            windowWidth={windowWidth}
-            index={String(index)}
-            newlyAddedWidget={newlyAddedWidget}
-            onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+    <WidgetSyncContextProvider groupName={DASHBOARD_CHART_GROUP}>
+      <GridLayout
+        breakpoints={BREAKPOINTS(theme)}
+        cols={COLUMNS}
+        rowHeight={ROW_HEIGHT}
+        margin={WIDGET_MARGINS}
+        draggableHandle={`.${DRAG_HANDLE_CLASS}`}
+        draggableCancel={`.${DRAG_RESIZE_CLASS}`}
+        layouts={layouts}
+        onLayoutChange={handleLayoutChange}
+        onBreakpointChange={handleBreakpointChange}
+        isDraggable={canModifyLayout}
+        isResizable={canModifyLayout}
+        resizeHandle={
+          <ResizeHandle
+            aria-label={t('Resize Widget')}
+            data-test-id="custom-resize-handle"
+            className={DRAG_RESIZE_CLASS}
+            size="xs"
+            priority="transparent"
+            icon={<IconResize />}
           />
-        </div>
-      ))}
-      {isEditingDashboard && !widgetLimitReached && !isPreview && (
-        <AddWidgetWrapper key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={addWidgetLayout}>
-          <AddWidget onAddWidget={onAddWidget} />
-        </AddWidgetWrapper>
-      )}
-    </GridLayout>
+        }
+        useCSSTransforms={false}
+        isBounded
+      >
+        {widgetsWithLayout.map((widget, index) => (
+          <div key={constructGridItemKey(widget)} data-grid={widget.layout}>
+            <SortableWidget
+              widget={widget}
+              widgetLegendState={widgetLegendState}
+              isEditingDashboard={isEditingDashboard}
+              widgetLimitReached={widgetLimitReached}
+              onDelete={handleDeleteWidget(widget)}
+              onEdit={handleEditWidget(index)}
+              onDuplicate={handleDuplicateWidget(widget)}
+              onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
+              isEmbedded={isEmbedded}
+              isPreview={isPreview}
+              isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+              dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboard.filters}
+              dashboardPermissions={dashboard.permissions}
+              dashboardCreator={dashboard.createdBy}
+              isMobile={isMobile}
+              windowWidth={windowWidth}
+              index={String(index)}
+              newlyAddedWidget={newlyAddedWidget}
+              onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+              useTimeseriesVisualization={useTimeseriesVisualization}
+            />
+          </div>
+        ))}
+        {isEditingDashboard && !widgetLimitReached && !isPreview && (
+          <AddWidgetWrapper key={ADD_WIDGET_BUTTON_DRAG_ID} data-grid={addWidgetLayout}>
+            <AddWidget onAddWidget={onAddWidget} />
+          </AddWidgetWrapper>
+        )}
+      </GridLayout>
+    </WidgetSyncContextProvider>
   );
 }
 
@@ -438,15 +463,15 @@ export default Dashboard;
 // Allow the Add Widget tile to show above widgets when moved
 const AddWidgetWrapper = styled('div')`
   z-index: 5;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${space(2)};
 
   .react-grid-item.react-grid-placeholder {
-    background: ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadius};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
+    border-radius: ${p => p.theme.radius.md};
   }
 `;
 
@@ -455,7 +480,7 @@ const ResizeHandle = styled(Button)`
   z-index: 2;
   bottom: ${space(0.5)};
   right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: nwse-resize;
 
   .react-resizable-hide & {

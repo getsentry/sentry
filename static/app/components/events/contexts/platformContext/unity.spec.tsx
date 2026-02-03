@@ -7,9 +7,11 @@ import {getUnityContextData} from 'sentry/components/events/contexts/platformCon
 
 const MOCK_UNITY_CONTEXT = {
   type: 'unity' as const,
+  active_scene_name: '2_NativeSupport',
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
   editor_version: '2022.1.23f1',
   install_mode: 'Store',
+  is_main_thread: true,
   rendering_threading_mode: 'LegacyJobified',
   target_frame_rate: '-1',
   // Extra data is still valid and preserved
@@ -29,6 +31,11 @@ describe('UnityContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getUnityContextData({data: MOCK_UNITY_CONTEXT})).toEqual([
       {
+        key: 'active_scene_name',
+        subject: 'Active Scene Name',
+        value: '2_NativeSupport',
+      },
+      {
         key: 'copy_texture_support',
         subject: 'Copy Texture Support',
         value: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',
@@ -39,6 +46,7 @@ describe('UnityContext', () => {
         value: '2022.1.23f1',
       },
       {key: 'install_mode', subject: 'Install Mode', value: 'Store'},
+      {key: 'is_main_thread', subject: 'Is Main Thread', value: true},
       {
         key: 'rendering_threading_mode',
         subject: 'Rendering Threading Mode',

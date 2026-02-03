@@ -3,8 +3,9 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,19 +14,21 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   OnDemandExtractionState,
+  WidgetType,
   type ValidateWidgetResponse,
-  type WidgetType,
 } from 'sentry/views/dashboards/types';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {QueryField} from './queryField';
 import {SortableQueryField} from './sortableQueryField';
@@ -148,6 +151,19 @@ export function GroupBySelector({
     }, []);
   }, [columns]);
 
+  // EAP types render their attribute type rather than field/tag/measurement
+  const isEAPType =
+    widgetType &&
+    [WidgetType.SPANS, WidgetType.LOGS, WidgetType.TRACEMETRICS].includes(widgetType);
+  const renderTagOverride = isEAPType
+    ? (_kind: FieldValueKind, _label: string, meta: FieldValue['meta']) => {
+        if (!('dataType' in meta)) {
+          return null;
+        }
+        return <TypeBadge valueType={meta.dataType as FieldValueType} />;
+      }
+    : undefined;
+
   return (
     <Fragment>
       <StyledField inline={false} style={style} flexibleControlStateSize stacked>
@@ -158,6 +174,7 @@ export function GroupBySelector({
             onChange={value => handleSelect(value, 0)}
             canDelete={canDelete}
             disabled={disable}
+            renderTagOverride={renderTagOverride}
           />
         ) : (
           <DndContext
@@ -204,6 +221,7 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
+                    renderTagOverride={renderTagOverride}
                   />
                 ))}
               </SortableQueryFields>
@@ -221,6 +239,7 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
+                    renderTagOverride={renderTagOverride}
                   />
                 </Ghost>
               ) : null}
@@ -256,7 +275,7 @@ function FieldValidationErrors(props: {
     props.validatedWidgetResponse.data?.warnings?.columns[props.column.field ?? ''] ===
       OnDemandExtractionState.DISABLED_HIGH_CARDINALITY ? (
     <OnDemandWarningIcon
-      color="yellow300"
+      variant="warning"
       msg={t('This group has too many unique values to collect metrics for it.')}
     />
   ) : null;
@@ -274,9 +293,9 @@ const SortableQueryFields = styled('div')`
 
 const Ghost = styled('div')`
   position: absolute;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;

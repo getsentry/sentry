@@ -5,6 +5,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {RecursiveStructuredData} from 'sentry/components/structuredEventData/recursiveStructuredData';
 import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export type StructedEventDataConfig = {
@@ -168,7 +169,8 @@ export default function StructuredEventData({
       {children}
       {showCopyButton && (
         <StyledCopyButton
-          borderless
+          aria-label={t('Copy to clipboard')}
+          priority="transparent"
           onCopy={onCopy}
           size="xs"
           text={JSON.stringify(data, null, '\t')}

@@ -18,24 +18,9 @@ describe('SpanOperationTable', () => {
       match: [MockApiClient.matchQuery({referrer: Referrer.SPAN_OPERATION_TABLE})],
     });
 
-    render(
-      <SpanOperationTable
-        transaction="transaction"
-        primaryRelease="foo"
-        secondaryRelease="bar"
-      />
-    );
+    render(<SpanOperationTable transaction="transaction" primaryRelease="foo" />);
 
-    [
-      'Operation',
-      'Span Description',
-      'Slow (R1)',
-      'Slow (R2)',
-      'Frozen (R1)',
-      'Frozen (R2)',
-      'Delay (R1)',
-      'Delay (R2)',
-    ].forEach(header => {
+    ['Operation', 'Span Description', 'Slow', 'Frozen', 'Delay'].forEach(header => {
       expect(screen.getByRole('columnheader', {name: header})).toBeInTheDocument();
     });
 
@@ -50,13 +35,9 @@ describe('SpanOperationTable', () => {
             'span.op',
             'span.group',
             'span.description',
-            'division_if(mobile.slow_frames,mobile.total_frames,release,equals,foo)',
-            'division_if(mobile.slow_frames,mobile.total_frames,release,equals,bar)',
-            'division_if(mobile.frozen_frames,mobile.total_frames,release,equals,foo)',
-            'division_if(mobile.frozen_frames,mobile.total_frames,release,equals,bar)',
-            'avg_if(mobile.frames_delay,release,equals,foo)',
-            'avg_if(mobile.frames_delay,release,equals,bar)',
-            'avg_compare(mobile.frames_delay,release,foo,bar)',
+            'division(mobile.slow_frames,mobile.total_frames)',
+            'division(mobile.frozen_frames,mobile.total_frames)',
+            'avg(mobile.frames_delay)',
           ],
         }),
       })

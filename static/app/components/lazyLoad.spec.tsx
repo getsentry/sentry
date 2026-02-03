@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 
@@ -19,17 +19,22 @@ function BarComponent() {
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
 
 describe('LazyLoad', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
-  it('renders with a loading indicator when promise is not resolved yet', () => {
+  it('renders with a loading indicator when promise is not resolved yet', async () => {
     const importTest = new Promise<ResolvedComponent>(() => {});
     const getComponent = () => importTest;
     render(<LazyLoad LazyComponent={lazy(getComponent)} />);
 
-    // Should be loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
   });
 
   it('renders when given a promise of a "foo" component', async () => {
@@ -41,7 +46,9 @@ describe('LazyLoad', () => {
     render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
 
     // Should be loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
 
     // resolve with foo
     doResolve!({default: FooComponent});
@@ -72,7 +79,9 @@ describe('LazyLoad', () => {
 
     // First render Foo
     const {rerender} = render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
 
     // resolve with foo
     doResolve!({default: FooComponent});

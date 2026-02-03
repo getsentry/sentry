@@ -1,5 +1,4 @@
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
@@ -17,27 +16,27 @@ type TraceSearchAction =
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
-      node: TraceTreeNode<TraceTree.NodeValue> | null;
+      node: BaseNode | null;
       previousNode: {
         resultIndex: number | undefined;
         resultIteratorIndex: number | undefined;
       } | null;
       results: readonly TraceSearchResult[];
-      resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
+      resultsLookup: Map<BaseNode, number>;
       type: 'set results';
       resultIndex?: number;
       resultIteratorIndex?: number;
     };
 
 export type TraceSearchState = {
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  node: BaseNode | null;
   query: string | undefined;
   // Index in the list/tree
   resultIndex: number | null;
   // Index in the results array
   resultIteratorIndex: number | null;
   results: readonly TraceSearchResult[] | null;
-  resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
+  resultsLookup: Map<BaseNode, number>;
   status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
 };
 

@@ -1,44 +1,28 @@
-import {Fragment} from 'react';
+import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
-import {Container} from 'sentry/components/core/layout';
-import type {Organization} from 'sentry/types/organization';
+import {Container} from '@sentry/scraps/layout';
+import type {ContainerProps} from '@sentry/scraps/layout';
 
-import {hasNewBillingUI} from 'getsentry/utils/billing';
-
-function SubscriptionPageContainer({
-  header,
+export default function SubscriptionPageContainer({
   children,
   background,
-  organization,
-  dataTestId,
-}: {
-  children: React.ReactNode;
-  organization: Organization;
-  background?: 'primary' | 'secondary';
-  dataTestId?: string;
-  header?: React.ReactNode;
-}) {
-  const isNewBillingUI = hasNewBillingUI(organization);
-  if (!isNewBillingUI) {
-    if (dataTestId) {
-      return <Container data-test-id={dataTestId}>{children}</Container>;
-    }
-    return <Fragment>{children}</Fragment>;
-  }
+  ...rest
+}: {children: React.ReactNode} & Omit<ContainerProps, 'children'>) {
+  useEffect(() => {
+    // record replays for all usage and billing settings pages
+    Sentry.getReplay()?.start();
+  }, []);
+
   return (
-    <Fragment>
-      {header}
-      <Container
-        padding={{xs: 'xl', md: '3xl'}}
-        background={background}
-        flexGrow={1}
-        data-test-id={dataTestId}
-        borderTop={background === 'secondary' ? 'primary' : undefined}
-      >
-        {children}
-      </Container>
-    </Fragment>
+    <Container
+      background={background}
+      borderTop={background === 'secondary' ? 'primary' : undefined}
+      flexGrow={1}
+      padding={{xs: 'xl', md: '3xl'}}
+      {...rest}
+    >
+      {children}
+    </Container>
   );
 }
-
-export default SubscriptionPageContainer;

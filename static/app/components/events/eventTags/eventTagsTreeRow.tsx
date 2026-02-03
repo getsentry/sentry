@@ -2,9 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
@@ -12,16 +14,16 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -129,10 +131,8 @@ function EventTagsTreeRowDropdown({
   const location = useLocation();
   const organization = useOrganization();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: content.value,
-  });
-  const {mutate: saveTag} = useMutateProject({organization, project});
+  const {copy} = useCopyToClipboard();
+  const {mutate: saveTag} = useUpdateProject(project);
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
 
@@ -224,16 +224,35 @@ function EventTagsTreeRowDropdown({
     {
       key: 'copy-value',
       label: t('Copy tag value to clipboard'),
-      onAction: handleCopy,
+      onAction: () =>
+        copy(content.value, {successMessage: t('Tag value copied to clipboard.')}),
     },
     {
       key: 'add-to-highlights',
       label: t('Add to event highlights'),
       hidden: hideAddHighlightsOption || !isProjectAdmin || isFeedback,
       onAction: () => {
-        saveTag({
-          highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
-        });
+        saveTag(
+          {
+            highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
+          },
+          {
+            onError: () => {
+              addErrorMessage(
+                tct(`Failed to update '[projectName]' project`, {
+                  projectName: project.name,
+                })
+              );
+            },
+            onSuccess: () => {
+              addSuccessMessage(
+                tct(`Successfully updated '[projectName]' project`, {
+                  projectName: project.name,
+                })
+              );
+            },
+          }
+        );
       },
     },
     {
@@ -338,7 +357,7 @@ function EventTagsTreeValue({
           projectSlug={project.slug}
           releaseVersion={content.value}
           showUnderline
-          underlineColor="linkUnderline"
+          underlineColor="muted"
         >
           <Version version={content.value} truncate shouldWrapText />
         </VersionHoverCard>
@@ -409,7 +428,7 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
   }
   .invisible {
     visibility: hidden;
@@ -420,24 +439,26 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
       visibility: visible;
     }
   }
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
 `;
 
 const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
   /* Allows TreeBranchIcons to appear connected vertically */
-  border-right: 1px solid ${p => (p.hasStem ? p.theme.border : 'transparent')};
+  border-right: 1px solid
+    ${p => (p.hasStem ? p.theme.tokens.border.primary : 'transparent')};
   margin-right: -1px;
   height: 100%;
   width: ${p => (p.spacerCount - 1) * 20 + 3}px;
 `;
 
 const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : p.theme.border)};
+  border: 1px solid
+    ${p => (p.hasErrors ? p.theme.colors.red200 : p.theme.tokens.border.primary)};
   border-width: 0 0 1px 1px;
   border-radius: 0 0 0 5px;
   grid-column: span 1;
@@ -467,15 +488,15 @@ const TreeValueTrunk = styled('div')`
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.primary)};
 `;
 
 const TreeKey = styled(TreeValue)<{hasErrors?: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.subText)};
+  color: ${p => (p.hasErrors ? 'inherit' : p.theme.tokens.content.secondary)};
 `;
 
 /**
@@ -505,8 +526,8 @@ const TreeValueErrors = styled('div')`
 `;
 
 const TagLinkText = styled('span')`
-  color: ${p => p.theme.linkColor};
-  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  text-decoration: ${p => p.theme.tokens.interactive.link.accent.rest} underline dotted;
   margin: 0;
   &:hover,
   &:focus {

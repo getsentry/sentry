@@ -1,6 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -27,7 +28,7 @@ export function AddCredentialsButton({project, origin}: AddCredentialsButtonProp
         size="sm"
         data-test-id="create-new-credentials"
         disabled={!hasWriteAccess}
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
         onClick={() => {
           openAddTempestCredentialsModal({organization, project, origin});
           trackAnalytics('tempest.credentials.add_modal_opened', {

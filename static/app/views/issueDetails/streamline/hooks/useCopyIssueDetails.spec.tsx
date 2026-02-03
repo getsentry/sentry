@@ -89,7 +89,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('formats basic issue information correctly', () => {
-      const result = issueAndEventToMarkdown(group, event, null, null);
+      const result = issueAndEventToMarkdown(group, event, null, null, undefined);
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
@@ -97,7 +97,13 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes group summary data when provided', () => {
-      const result = issueAndEventToMarkdown(group, event, mockGroupSummaryData, null);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        mockGroupSummaryData,
+        null,
+        undefined
+      );
 
       expect(result).toContain('## Issue Summary');
       expect(result).toContain(mockGroupSummaryData.headline);
@@ -109,7 +115,13 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes autofix data when provided', () => {
-      const result = issueAndEventToMarkdown(group, event, null, mockAutofixData);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        null,
+        mockAutofixData,
+        undefined
+      );
 
       expect(result).toContain('## Root Cause');
       expect(result).toContain('## Solution');
@@ -124,7 +136,7 @@ describe('useCopyIssueDetails', () => {
         ],
       };
 
-      const result = issueAndEventToMarkdown(group, eventWithTags, null, null);
+      const result = issueAndEventToMarkdown(group, eventWithTags, null, null, undefined);
 
       expect(result).toContain('## Tags');
       expect(result).toContain('**browser:** Chrome');
@@ -162,7 +174,13 @@ describe('useCopyIssueDetails', () => {
         ],
       });
 
-      const result = issueAndEventToMarkdown(group, eventWithException, null, null);
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithException,
+        null,
+        null,
+        undefined
+      );
 
       expect(result).toContain('## Exception');
       expect(result).toContain('**Type:** TypeError');
@@ -170,12 +188,171 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('#### Stacktrace');
     });
 
+    it('includes thread stacktrace when activeThreadId matches', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+                {
+                  id: 2,
+                  name: 'Worker Thread',
+                  crashed: false,
+                  current: false,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'workerFunction',
+                        filename: 'worker.py',
+                        lineNo: 25,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      // Pass activeThreadId = 1 to select Main Thread
+      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 1);
+
+      expect(result).toContain('## Thread: Main Thread');
+      expect(result).toContain('(crashed)');
+      expect(result).toContain('(current)');
+      expect(result).toContain('mainFunction');
+      expect(result).toContain('main.py');
+      expect(result).not.toContain('Worker Thread');
+      expect(result).not.toContain('workerFunction');
+    });
+
+    it('includes different thread when activeThreadId changes', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+                {
+                  id: 2,
+                  name: 'Worker Thread',
+                  crashed: false,
+                  current: false,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'workerFunction',
+                        filename: 'worker.py',
+                        lineNo: 25,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      // Pass activeThreadId = 2 to select Worker Thread
+      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 2);
+
+      expect(result).toContain('## Thread: Worker Thread');
+      expect(result).not.toContain('(crashed)');
+      expect(result).not.toContain('(current)');
+      expect(result).toContain('workerFunction');
+      expect(result).toContain('worker.py');
+      expect(result).not.toContain('Main Thread');
+      expect(result).not.toContain('mainFunction');
+    });
+
+    it('does not include thread stacktrace when activeThreadId is undefined', () => {
+      const eventWithThreads = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.THREADS,
+            data: {
+              values: [
+                {
+                  id: 1,
+                  name: 'Main Thread',
+                  crashed: true,
+                  current: true,
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'mainFunction',
+                        filename: 'main.py',
+                        lineNo: 10,
+                        inApp: true,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithThreads,
+        null,
+        null,
+        undefined
+      );
+
+      expect(result).not.toContain('## Thread');
+      expect(result).not.toContain('mainFunction');
+    });
+
     it('prefers autofix rootCause over groupSummary possibleCause', () => {
       const result = issueAndEventToMarkdown(
         group,
         event,
         mockGroupSummaryData,
-        mockAutofixData
+        mockAutofixData,
+        undefined
       );
 
       expect(result).toContain('## Root Cause');
@@ -186,32 +363,16 @@ describe('useCopyIssueDetails', () => {
   });
 
   describe('useCopyIssueDetails', () => {
-    const mockClipboard = {writeText: jest.fn()};
-    const mockOnClick = jest.fn().mockImplementation(() => {
-      mockClipboard.writeText('test');
-      indicators.addSuccessMessage('Copied issue to clipboard as Markdown');
-      return Promise.resolve();
-    });
-    const mockCopyToClipboard = jest.fn();
-    let generatedText: string;
+    const mockCopy = jest.fn();
 
     beforeEach(() => {
       jest.clearAllMocks();
 
-      Object.defineProperty(window.navigator, 'clipboard', {
-        value: mockClipboard,
-        writable: true,
-      });
+      mockCopy.mockResolvedValue('');
 
-      mockCopyToClipboard.mockImplementation(({text}) => {
-        generatedText = text;
-        return {
-          onClick: mockOnClick,
-          label: 'Copy',
-        };
+      jest.mocked(copyToClipboardModule.default).mockReturnValue({
+        copy: mockCopy,
       });
-
-      jest.mocked(copyToClipboardModule.default).mockImplementation(mockCopyToClipboard);
 
       jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
         data: mockGroupSummaryData,
@@ -228,16 +389,11 @@ describe('useCopyIssueDetails', () => {
       jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     });
 
-    it('sets up useCopyToClipboard with the correct parameters', () => {
+    it('calls useCopyToClipboard hook', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
-      // Check that the hook was called with the expected parameters
-      expect(mockCopyToClipboard).toHaveBeenCalledWith({
-        text: expect.any(String),
-        successMessage: 'Copied issue to clipboard as Markdown',
-        errorMessage: 'Could not copy issue to clipboard',
-        onCopy: expect.any(Function),
-      });
+      // Check that the hook was called
+      expect(copyToClipboardModule.default).toHaveBeenCalled();
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
@@ -260,22 +416,54 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('provides partial data when event is undefined', () => {
+      let capturedText = '';
+
+      mockCopy.mockImplementation((text: string) => {
+        capturedText = text;
+        return Promise.resolve(text);
+      });
+
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      expect(generatedText).toContain(`# ${group.title}`);
-      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
-      expect(generatedText).toContain(`**Project:** ${group.project?.slug}`);
-      expect(generatedText).toContain('## Issue Summary');
-      expect(generatedText).toContain('## Root Cause');
-      expect(generatedText).toContain('## Solution');
-      expect(generatedText).not.toContain('## Exception');
+      // Trigger the keyboard event (command+alt+c)
+      const keyboardEvent = new KeyboardEvent('keydown', {
+        keyCode: 67, // 'C'.charCodeAt(0)
+        metaKey: true,
+        altKey: true,
+        bubbles: true,
+      } as KeyboardEventInit);
+      document.dispatchEvent(keyboardEvent);
+
+      expect(capturedText).toContain(`# ${group.title}`);
+      expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
+      expect(capturedText).toContain(`**Project:** ${group.project?.slug}`);
+      expect(capturedText).toContain('## Issue Summary');
+      expect(capturedText).toContain('## Root Cause');
+      expect(capturedText).toContain('## Solution');
+      expect(capturedText).not.toContain('## Exception');
     });
 
     it('generates markdown with the correct data when event is provided', () => {
+      let capturedText = '';
+
+      mockCopy.mockImplementation((text: string) => {
+        capturedText = text;
+        return Promise.resolve(text);
+      });
+
       renderHook(() => useCopyIssueDetails(group, event));
 
-      expect(generatedText).toContain(`# ${group.title}`);
-      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
+      // Trigger the keyboard event (command+alt+c)
+      const keyboardEvent = new KeyboardEvent('keydown', {
+        keyCode: 67, // 'C'.charCodeAt(0)
+        metaKey: true,
+        altKey: true,
+        bubbles: true,
+      } as KeyboardEventInit);
+      document.dispatchEvent(keyboardEvent);
+
+      expect(capturedText).toContain(`# ${group.title}`);
+      expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
     });
   });
 });

@@ -1,25 +1,36 @@
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 
 export default function BuildList() {
   const organization = useOrganization();
-  const params = useParams<{projectId: string}>();
-  const projectId = params.projectId;
 
-  const {cursor} = useLocationQuery({
+  const {cursor, project: projectList} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
+      project: decodeList,
     },
   });
+  const projects = Array.from(new Set(projectList.filter(Boolean)));
+  const projectId = projects[0];
+  const singleProject =
+    projectId === undefined ? undefined : ProjectsStore.getById(projectId);
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -29,15 +40,21 @@ export default function BuildList() {
     queryParams.cursor = cursor;
   }
 
+  if (projects.length > 0) {
+    queryParams.project = projects.length === 1 ? projectId : projects;
+  }
+
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: queryParams},
       ],
       {
         staleTime: 0,
-        enabled: !!projectId,
+        enabled: projects.length > 0,
       }
     );
 
@@ -46,23 +63,45 @@ export default function BuildList() {
   const builds = buildsData?.builds || [];
   const pageLinks = getResponseHeader?.('Link') || null;
 
+  usePreprodBuildsAnalytics({
+    builds,
+    cursor,
+    display: PreprodBuildsDisplay.SIZE,
+    enabled: projects.length > 0,
+    error: !!error,
+    isLoading,
+    pageSource: 'preprod_builds_list',
+    projectCount: projects.length,
+  });
+
   return (
     <SentryDocumentTitle title="Build list">
       <Layout.Page>
         <Layout.Header>
           <Layout.Title>Builds</Layout.Title>
+          <Layout.HeaderActions>
+            {singleProject && (
+              <Feature features="organizations:preprod-frontend-routes">
+                <LinkButton
+                  size="sm"
+                  icon={<IconSettings />}
+                  aria-label={t('Settings')}
+                  to={`/settings/${organization.slug}/projects/${singleProject.slug}/mobile-builds/`}
+                />
+              </Feature>
+            )}
+          </Layout.HeaderActions>
         </Layout.Header>
 
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Flex direction="column" gap="md">
               <PreprodBuildsTable
                 builds={builds}
                 isLoading={isLoading}
-                error={!!error}
+                error={error}
                 pageLinks={pageLinks}
                 organizationSlug={organization.slug}
-                projectSlug={projectId}
               />
             </Flex>
           </Layout.Main>

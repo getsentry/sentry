@@ -3,6 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   updateDashboardFavorite,
   updateDashboardPermissions,
@@ -11,9 +17,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -25,6 +28,7 @@ import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -84,10 +88,10 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
-          color={favorited ? 'yellow300' : 'gray500'}
+          variant={favorited ? 'warning' : 'muted'}
           isSolid={favorited}
           aria-label={favorited ? t('Unstar') : t('Star')}
           size="sm"
@@ -223,11 +227,15 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
-        </BodyCellContainer>
+        </Flex>
       ) : (
-        <ActivityAvatar type="system" size={26} />
+        <Flex justify="between" align="center" gap="3xl">
+          <Tooltip title="Sentry">
+            <ActivityAvatar type="system" size={26} />
+          </Tooltip>
+        </Flex>
       );
     }
 
@@ -251,13 +259,14 @@ function DashboardTable({
           dashboard={dataRow}
           onChangeEditAccess={onChangeEditAccess}
           listOnly
+          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
         />
       );
     }
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -267,7 +276,7 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          <ActionsIconWrapper>
+          <Flex gap="xs">
             <DashboardCreateLimitWrapper>
               {({
                 hasReachedDashboardLimit,
@@ -283,12 +292,23 @@ function DashboardTable({
                       onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                     });
                   }}
+                  priority="transparent"
                   aria-label={t('Duplicate Dashboard')}
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                  title={limitMessage}
+                  disabled={
+                    hasReachedDashboardLimit ||
+                    isLoadingDashboardsLimit ||
+                    (defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls'))
+                  }
+                  title={
+                    defined(dataRow.prebuiltId) &&
+                    !organization.features.includes('dashboards-prebuilt-controls')
+                      ? t('Prebuilt dashboards cannot be duplicated')
+                      : limitMessage
+                  }
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -301,14 +321,22 @@ function DashboardTable({
                   onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
+              priority="transparent"
               aria-label={t('Delete Dashboard')}
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={dashboards && dashboards.length <= 1}
+              disabled={
+                (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
+              }
+              title={
+                defined(dataRow.prebuiltId)
+                  ? t('Prebuilt dashboards cannot be deleted')
+                  : undefined
+              }
             />
-          </ActionsIconWrapper>
-        </BodyCellContainer>
+          </Flex>
+        </Flex>
       );
     }
 
@@ -319,8 +347,6 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
-      // necessary for edit access dropdown
-      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -332,10 +358,11 @@ function DashboardTable({
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
           };
+
           if (isHeader) {
             return [
-              <StyledIconStar
-                color="yellow300"
+              <IconStar
+                variant="warning"
                 isSolid
                 aria-label={t('Star Column')}
                 key="favorite-header"
@@ -362,34 +389,22 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  display: grid;
+  font-size: ${p => p.theme.font.size.md};
   grid-column-gap: ${space(1)};
-  color: ${p => p.theme.textColor};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
-`;
-
-const BodyCellContainer = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ActionsIconWrapper = styled('div')`
-  display: flex;
 `;
 
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
-`;
-
-const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.25)};
 `;

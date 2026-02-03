@@ -1,9 +1,10 @@
 import {Fragment, useState, type ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Hovercard} from 'sentry/components/hovercard';
 import ReplayList from 'sentry/components/replays/list/__stories__/replayList';
 import EnvironmentPicker from 'sentry/components/replays/player/__stories__/environmentPicker';
@@ -58,7 +59,7 @@ export default function ReplaySlugChooser({children}: Props) {
           <Hovercard
             body={
               <Flex direction="column" gap="md">
-                <Flex style={{height: '500px'}}>
+                <Flex height="500px">
                   <Flex direction="column" gap="md" flex="1">
                     <ReplayList onSelect={setReplaySlug} queryResult={queryResult} />
                   </Flex>

@@ -28,13 +28,14 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     errors: list[str] | None
     sensitivity: str | None
     seasonality: str | None
+    extrapolationMode: str | None
 
 
 @extend_schema_serializer(
@@ -254,6 +256,9 @@ class AlertRuleSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> AlertRuleSerializerResponse:
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
+
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
@@ -263,18 +268,31 @@ class AlertRuleSerializer(Serializer):
             obj.organization,
             actor=user,
         )
-        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-        aggregate = translate_aggregate_field(
-            obj.snuba_query.aggregate,
-            reverse=True,
-            allow_mri=allow_mri,
-            allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+
+        # Trace metrics have complicated aggregated validation that require EAP SearchResolver and do NOT need translation as they do not have tags in the old format (eg. tags[sentry:user))
+        is_trace_metric = (
+            obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+            and obj.snuba_query.event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in obj.snuba_query.event_types
         )
+
+        # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
+        if not is_trace_metric:
+            aggregate = translate_aggregate_field(
+                obj.snuba_query.aggregate,
+                reverse=True,
+                allow_mri=allow_mri,
+                allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
+            )
+        else:
+            aggregate = obj.snuba_query.aggregate
 
         # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
         # This hides the internal upsampling implementation from users
         if aggregate == "upsampled_count()":
             aggregate = "count()"
+
+        extrapolation_mode = obj.snuba_query.extrapolation_mode
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
@@ -316,6 +334,9 @@ class AlertRuleSerializer(Serializer):
             data["latestIncident"] = attrs.get("latestIncident", None)
         if "errors" in attrs:
             data["errors"] = attrs["errors"]
+
+        if extrapolation_mode is not None:
+            data["extrapolationMode"] = ExtrapolationMode(extrapolation_mode).name.lower()
 
         return data
 
@@ -367,7 +388,9 @@ class CombinedRuleSerializer(Serializer):
 
         serialized_alert_rules = serialize(alert_rules, user=user)
         serialized_alert_rule_map_by_id = {
-            serialized_alert["id"]: serialized_alert for serialized_alert in serialized_alert_rules
+            serialized_alert["id"]: serialized_alert
+            for serialized_alert in serialized_alert_rules
+            if serialized_alert
         }
 
         serialized_issue_rules = serialize(
@@ -376,7 +399,9 @@ class CombinedRuleSerializer(Serializer):
             serializer=RuleSerializer(expand=self.expand),
         )
         serialized_issue_rule_map_by_id = {
-            serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
+            serialized_rule["id"]: serialized_rule
+            for serialized_rule in serialized_issue_rules
+            if serialized_rule
         }
 
         uptime_detectors = [
@@ -464,6 +489,8 @@ class CombinedRuleSerializer(Serializer):
     ) -> MutableMapping[Any, Any]:
         updated_attrs = {**attrs}
         if isinstance(obj, AlertRule):
+            # Mark that we're using legacy AlertRule models
+            report_used_legacy_models()
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
             updated_attrs["type"] = "rule"

@@ -1,5 +1,3 @@
-import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -7,16 +5,15 @@ import * as qs from 'query-string';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import {IconBusiness} from 'sentry/icons/iconBusiness';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -30,7 +27,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -49,13 +45,34 @@ import type {
   TraceItemDetailsMeta,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
+import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+export interface GetExploreUrlArgs {
+  organization: Organization;
+  aggregateField?: Array<GroupBy | BaseVisualize>;
+  caseInsensitive?: CaseInsensitive;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sort?: string;
+  table?: 'trace' | 'attribute_breakdowns';
+  title?: string;
+  visualize?: BaseVisualize[];
+}
 
 export function getExploreUrl({
   organization,
@@ -69,31 +86,20 @@ export function getExploreUrl({
   sort,
   field,
   id,
+  table,
   title,
   referrer,
-}: {
-  organization: Organization;
-  aggregateField?: Array<GroupBy | BaseVisualize>;
-  field?: string[];
-  groupBy?: string[];
-  id?: number;
-  interval?: string;
-  mode?: Mode;
-  query?: string;
-  referrer?: string;
-  selection?: PageFilters;
-  sort?: string;
-  title?: string;
-  visualize?: BaseVisualize[];
-}) {
+  caseInsensitive,
+}: GetExploreUrlArgs) {
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -104,8 +110,10 @@ export function getExploreUrl({
     field,
     utc,
     id,
+    table,
     title,
     referrer,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
   return (
@@ -144,6 +152,7 @@ function getExploreUrlFromSavedQueryUrl({
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
           sortBys: decodeSorts(q.orderby),
+          caseInsensitive: q.caseInsensitive ? '1' : null,
         };
       }),
       title: savedQuery.name,
@@ -159,6 +168,7 @@ function getExploreUrlFromSavedQueryUrl({
       },
     });
   }
+
   return getExploreUrl({
     organization,
     ...savedQuery,
@@ -205,21 +215,24 @@ export function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
-    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
-      JSON.stringify({
-        chartType,
-        fields,
-        groupBys,
-        query,
-        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
-        yAxes,
-      })
+    queries: queries.map(
+      ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
+        JSON.stringify({
+          chartType,
+          fields,
+          groupBys,
+          query,
+          sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+          yAxes,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
+        })
     ),
     title,
     id,
@@ -293,7 +306,13 @@ export function generateTargetQuery({
     } else if (groupBy === 'environment' && typeof value === 'string') {
       location.query.environment = value;
     } else if (typeof value === 'string') {
-      search.setFilterValues(groupBy, [value]);
+      // TODO(nsdeschenes): Remove this once we have a proper way to handle quoted values
+      // that have square brackets included in the value
+      if (value.startsWith('[') && value.endsWith(']')) {
+        search.setFilterValues(groupBy, [`"${escapeDoubleQuotes(value)}"`]);
+      } else {
+        search.setFilterValues(groupBy, [value]);
+      }
     }
   }
 
@@ -392,82 +411,12 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return newExploreTarget(location, {
+  return getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
-    sampleSortBys: newSortBys,
+    sortBys: newSortBys,
   });
-}
-
-type MaxPickableDays = 7 | 14 | 30 | 90;
-type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
-
-export interface PickableDays {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: ({
-    arbitraryOptions,
-  }: {
-    arbitraryOptions: Record<string, ReactNode>;
-  }) => Record<string, ReactNode>;
-  isOptionDisabled?: ({value}: SelectOptionWithKey<string>) => boolean;
-  menuFooter?: ReactNode;
-}
-
-export function limitMaxPickableDays(organization: Organization): PickableDays {
-  const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
-    7: '7d',
-    14: '14d',
-    30: '30d',
-    90: '90d',
-  };
-
-  const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
-    ['7d', t('Last 7 days')],
-    ['14d', t('Last 14 days')],
-    ['30d', t('Last 30 days')],
-    ['90d', t('Last 90 days')],
-  ];
-
-  const maxPickableDays: MaxPickableDays = organization.features.includes(
-    'visibility-explore-range-high'
-  )
-    ? 90
-    : 30;
-  const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
-
-  const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
-  const enabledOptions = Object.fromEntries(relativeOptions.slice(0, index));
-  const disabledOptions = Object.fromEntries(
-    relativeOptions.slice(index).map(([value, label]) => {
-      return [value, <DisabledDateOption key={value} label={label} />];
-    })
-  );
-
-  const isOptionDisabled = (option: SelectOptionWithKey<string>): boolean => {
-    return disabledOptions.hasOwnProperty(option.value);
-  };
-
-  const menuFooter = index === relativeOptions.length ? null : <UpsellFooterHook />;
-
-  return {
-    defaultPeriod,
-    isOptionDisabled,
-    maxPickableDays,
-    menuFooter,
-    relativeOptions: ({
-      arbitraryOptions,
-    }: {
-      arbitraryOptions: Record<string, ReactNode>;
-    }) => ({
-      ...arbitraryOptions,
-      '1h': t('Last hour'),
-      '24h': t('Last 24 hours'),
-      ...enabledOptions,
-      ...disabledOptions,
-    }),
-  };
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
@@ -509,29 +458,6 @@ export function computeVisualizeSampleTotals(
   });
 }
 
-function DisabledDateOption({label}: {label: ReactNode}) {
-  return (
-    <DisabledDateOptionContainer>
-      {label}
-      <StyledIconBuisness />
-    </DisabledDateOptionContainer>
-  );
-}
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledIconBuisness = styled(IconBusiness)`
-  margin-left: auto;
-`;
-
-const UpsellFooterHook = HookOrDefault({
-  hookName: 'component:explore-date-range-query-limit-footer',
-  defaultComponent: () => undefined,
-});
-
 export function confirmDeleteSavedQuery({
   handleDelete,
   savedQuery,
@@ -568,11 +494,11 @@ export function findSuggestedColumns(
     }
 
     const isStringAttribute = key.startsWith('!')
-      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
-      : attributes.stringAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.stringAttributes
+      : key in attributes.stringAttributes;
     const isNumberAttribute = key.startsWith('!')
-      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
-      : attributes.numberAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.numberAttributes
+      : key in attributes.numberAttributes;
 
     // guard against unknown keys and aggregate keys
     if (!isStringAttribute && !isNumberAttribute) {
@@ -632,7 +558,7 @@ function isSimpleFilter(
 
   // all number attributes are considered non trivial because they
   // almost always match on a range of values
-  if (attributes.numberAttributes.hasOwnProperty(key)) {
+  if (key in attributes.numberAttributes) {
     return false;
   }
 
@@ -724,11 +650,34 @@ export function getSavedQueryTraceItemUrl({
   if (urlFunction) {
     return urlFunction({savedQuery, organization});
   }
-  // Invariant, only spans and logs are currently supported.
+  // Invariant, only spans, logs, and metrics are currently supported.
   Sentry.captureMessage(
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+function getReplayUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  const queryString = qs.stringify(queryParams, {skipNull: true});
+  return `${makeReplaysPathname({organization, path: '/'})}?${queryString}`;
 }
 
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
@@ -745,7 +694,9 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
-  [TraceItemDataset.TRACEMETRICS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
+  [TraceItemDataset.PREPROD]: undefined,
+  [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
 };
 
 /**

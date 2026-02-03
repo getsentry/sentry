@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -44,7 +43,11 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         {t('Unused Codes')}
 
         <ButtonBar>
-          <CopyToClipboardButton text={formattedCodes} size="xs" />
+          <CopyToClipboardButton
+            text={formattedCodes}
+            aria-label={t('Copy recovery codes to clipboard')}
+            size="xs"
+          />
           <Button
             size="xs"
             onClick={printCodes}
@@ -71,7 +74,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         </ButtonBar>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="warning">
+        <PanelAlert variant="warning">
           {t(
             'Make sure to save a copy of your recovery codes and store them in a safe place.'
           )}
@@ -93,6 +96,6 @@ const CodeContainer = styled(Panel)`
 `;
 
 const Code = styled(PanelItem)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(2)};
 `;

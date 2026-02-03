@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Input} from '@sentry/scraps/input';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Input} from 'sentry/components/core/input';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -105,7 +106,7 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
             <PanelBody>
-              <PanelAlert type="info">
+              <PanelAlert variant="info">
                 {t(
                   `Rate limits provide a flexible way to manage your error
                     volume. If you have a noisy project or environment you
@@ -227,7 +228,7 @@ const RateLimitRow = styled('div')`
 `;
 
 const EventsIn = styled('small')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: center;
   white-space: nowrap;
 `;

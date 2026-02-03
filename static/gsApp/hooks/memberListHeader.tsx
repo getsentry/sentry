@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconBusiness, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -44,7 +45,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
     <PanelHeader hasButtons>
       {t('Members')}
       <Wrapper>
-        <IconClose isCircled color="red300" />
+        <IconClose variant="danger" />
         {tct('Multiple members requires [planName] Plan or above', {
           planName: displayPlanName(bestPlan),
         })}

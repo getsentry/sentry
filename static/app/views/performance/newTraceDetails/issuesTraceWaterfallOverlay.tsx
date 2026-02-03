@@ -1,10 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -21,7 +23,7 @@ import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManag
 interface RowPosition {
   height: number;
   left: number;
-  pathToNode: ReturnType<typeof TraceTree.PathToNode>;
+  pathToNode: TraceTree.NodePath[];
   top: number;
   width: number;
 }
@@ -90,7 +92,7 @@ export function IssueTraceWaterfallOverlay({
           return;
         }
 
-        const pathToNode = TraceTree.PathToNode(node);
+        const pathToNode = node.pathToNode();
 
         if (!pathToNode) {
           return;
@@ -155,7 +157,7 @@ export function IssueTraceWaterfallOverlay({
 
 export function getTraceLinkForIssue(
   traceTarget: LocationDescriptor,
-  pathToNode?: ReturnType<typeof TraceTree.PathToNode>
+  pathToNode?: TraceTree.NodePath[]
 ) {
   if (typeof traceTarget === 'string') {
     return traceTarget;
@@ -195,6 +197,6 @@ const IssuesTraceOverlayContainer = styled(Link)`
   pointer-events: auto;
 
   &:hover {
-    background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+    background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;

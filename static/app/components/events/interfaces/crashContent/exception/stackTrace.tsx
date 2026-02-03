@@ -57,7 +57,7 @@ function StackTrace({
     return (
       <Panel dashedBorder>
         <EmptyMessage
-          icon={<IconWarning size="xl" />}
+          icon={<IconWarning />}
           title={t('No app only stack trace has been found!')}
         />
       </Panel>

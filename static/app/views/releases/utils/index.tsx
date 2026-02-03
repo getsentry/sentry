@@ -3,9 +3,10 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
+import type {TagProps} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import type {TagProps} from 'sentry/components/core/badge/tag';
-import {ExternalLink} from 'sentry/components/core/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
@@ -204,7 +205,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: React.ReactNode; type: TagProps['type']}
+  {name: string; tooltipTitle: React.ReactNode; variant: TagProps['variant']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),
@@ -212,7 +213,7 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'warning',
+    variant: 'warning',
   },
   adopted: {
     name: t('Adopted'),
@@ -220,7 +221,7 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'success',
+    variant: 'success',
   },
   replaced: {
     name: t('Replaced'),
@@ -228,12 +229,17 @@ export const ADOPTION_STAGE_LABELS: Record<
       'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
       {link: adoptionStagesLink}
     ),
-    type: 'default',
+    variant: 'muted',
   },
 };
 
-export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
-  ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);
+export const isMobileRelease = (
+  releaseProjectPlatform: PlatformKey,
+  includeDesktop = true
+) =>
+  ([...mobile, ...(includeDesktop ? desktop : [])] as string[]).includes(
+    releaseProjectPlatform
+  );
 
 /**
  * Helper that escapes quotes and formats release version into release search

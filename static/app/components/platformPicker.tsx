@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
@@ -262,7 +263,7 @@ function PlatformPicker({
       </PlatformList>
       {platformList.length === 0 && (
         <EmptyMessage
-          icon={<IconProject size="xl" />}
+          icon={<IconProject />}
           title={t("We don't have an SDK for that yet!")}
         >
           {tct(
@@ -315,8 +316,8 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const ClearButton = styled(Button)`
@@ -330,8 +331,8 @@ const ClearButton = styled(Button)`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
@@ -353,8 +354,8 @@ const PlatformCard = styled(
       <h3>{platform.name}</h3>
       {selected && visibleSelection && (
         <ClearButton
-          icon={<IconClose isCircled />}
-          borderless
+          icon={<IconClose />}
+          priority="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}
@@ -371,13 +372,10 @@ const PlatformCard = styled(
   border-radius: 4px;
   cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
-  ${p =>
-    p.selected &&
-    p.visibleSelection &&
-    `background: ${p.theme.alert.info.backgroundLight};`}
+  ${p => p.selected && p.visibleSelection && `background: ${p.theme.colors.blue100};`}
 
   &:hover {
-    background: ${p => p.theme.alert.muted.backgroundLight};
+    background: ${p => p.theme.tokens.background.secondary};
   }
 
   h3 {
@@ -386,9 +384,10 @@ const PlatformCard = styled(
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
+    color: ${p =>
+      p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
     text-align: center;
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

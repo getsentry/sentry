@@ -6,6 +6,11 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  DEFAULT_YAXIS_BY_TYPE,
+  OPTIONS_BY_TYPE,
+} from 'sentry/views/explore/metrics/constants';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -14,7 +19,10 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 interface MultiMetricsQueryParamsContextValue {
   metricQueries: MetricQuery[];
@@ -30,16 +38,26 @@ const [
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
+  allowUpTo?: number;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
+  allowUpTo,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const hasMultiVisualize = useOrganization().features.includes(
+    'tracemetrics-overlay-charts-ui'
+  );
+
   const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location);
+    const metricQueries = getMultiMetricsQueryParamsFromLocation(
+      location,
+      allowUpTo,
+      hasMultiVisualize
+    );
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -72,11 +90,63 @@ export function MultiMetricsQueryParamsProvider({
             if (i !== j) {
               return metricQuery;
             }
-            return {...metricQuery, metric: newTraceMetric};
+
+            // when changing trace metrics, we need to look at the currently selected
+            // aggregation and make necessary adjustments
+            const visualize = metricQuery.queryParams.visualizes[0];
+            let aggregateFields = undefined;
+            if (visualize && isVisualizeFunction(visualize)) {
+              const selectedAggregation = visualize.parsedFunction?.name;
+              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
+
+              if (
+                selectedAggregation &&
+                allowedAggregations?.find(option => option.value === selectedAggregation)
+              ) {
+                // the currently selected aggregation changed types
+                aggregateFields = [
+                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              } else {
+                // the currently selected aggregation isn't supported on the new metric
+                const defaultAggregation =
+                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
+                aggregateFields = [
+                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              }
+            }
+
+            return {
+              queryParams: metricQuery.queryParams.replace({aggregateFields}),
+              metric: newTraceMetric,
+            };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
           .filter(defined)
           .filter(Boolean);
+
+        navigate(target);
+      };
+    }
+
+    function removeMetricQueryForIndex(i: number) {
+      return function () {
+        // Don't allow removing the last metric query
+        if (metricQueries.length <= 1) {
+          return;
+        }
+
+        const target = {...location, query: {...location.query}};
+
+        const newMetricQueries: string[] = metricQueries
+          .filter((_, j) => i !== j)
+          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+          .filter(defined)
+          .filter(Boolean);
+        target.query.metric = newMetricQueries;
 
         navigate(target);
       };
@@ -88,10 +158,11 @@ export function MultiMetricsQueryParamsProvider({
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
           setTraceMetric: setTraceMetricForIndex(index),
+          removeMetric: removeMetricQueryForIndex(index),
         };
       }),
     };
-  }, [location, navigate]);
+  }, [allowUpTo, hasMultiVisualize, location, navigate]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -100,14 +171,20 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
+function getMultiMetricsQueryParamsFromLocation(
+  location: Location,
+  limit?: number,
+  multiVisualize = false
+): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
-  if (metricQueries.length) {
-    return metricQueries;
-  }
-  return [defaultMetricQuery()];
+  const metricQueries = rawQueryParams
+    .map(value => decodeMetricsQueryParams(value, multiVisualize))
+    .filter(defined);
+
+  const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
+
+  return limit ? queries.slice(0, limit) : queries;
 }
 
 export function useMultiMetricsQueryParams() {
@@ -123,7 +200,10 @@ export function useAddMetricQuery() {
   return function () {
     const target = {...location, query: {...location.query}};
 
-    const newMetricQueries: string[] = [...metricQueries, defaultMetricQuery()]
+    const newMetricQueries: string[] = [
+      ...metricQueries,
+      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
+    ]
       .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
       .filter(defined)
       .filter(Boolean);

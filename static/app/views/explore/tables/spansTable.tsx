@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useRef} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -133,7 +134,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
             </TableStatus>
           ) : result.isError ? (
             <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (

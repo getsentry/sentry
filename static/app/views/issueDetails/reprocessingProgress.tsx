@@ -51,8 +51,8 @@ const Wrapper = styled('div')`
 `;
 
 const Content = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   display: grid;
   gap: ${space(1.5)};
   justify-items: center;
@@ -69,12 +69,12 @@ const Inner = styled('div')`
 const Header = styled('div')`
   display: grid;
   gap: ${space(1)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   max-width: 557px;
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: 0;
 `;

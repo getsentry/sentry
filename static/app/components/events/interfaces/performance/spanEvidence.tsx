@@ -1,4 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,7 +22,7 @@ interface Props {
   projectSlug: string;
 }
 
-function SpanEvidenceInteriumSection({
+function SpanEvidenceInterimSection({
   children,
   event,
   organization,
@@ -76,7 +77,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const traceId = event.contexts.trace?.trace_id;
   return (
-    <SpanEvidenceInteriumSection
+    <SpanEvidenceInterimSection
       event={event}
       organization={organization}
       projectSlug={projectSlug}
@@ -89,6 +90,6 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           traceId={traceId}
         />
       )}
-    </SpanEvidenceInteriumSection>
+    </SpanEvidenceInterimSection>
   );
 }

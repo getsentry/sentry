@@ -95,12 +95,12 @@ class SeerSimilarIssueDataTest(TestCase):
             SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
 
     def test_from_raw_grouphash_with_no_group(self) -> None:
-        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         assert existing_grouphash.group_id is None
 
         with pytest.raises(SimilarHashMissingGroupError):
             raw_similar_issue_data = {
-                "parent_hash": "dogs are great",
+                "parent_hash": "dogs_are_great",
                 "should_group": True,
                 "stacktrace_distance": 0.01,
             }

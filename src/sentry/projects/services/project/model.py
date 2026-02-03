@@ -55,11 +55,12 @@ class RpcProjectFlags(RpcModel):
     has_insights_vitals: bool
     has_insights_caches: bool
     has_insights_queues: bool
-    has_insights_llm_monitoring: bool
+    has_insights_llm_monitoring: bool  # No longer used, use has_insights_agent_monitoring instead
     has_flags: bool
     has_insights_agent_monitoring: bool
     has_insights_mcp: bool
     has_logs: bool
+    has_trace_metrics: bool
 
 
 class RpcProject(RpcModel):

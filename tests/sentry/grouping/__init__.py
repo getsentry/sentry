@@ -22,6 +22,7 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.grouping.fingerprinting.utils import expand_title_template
 from sentry.grouping.strategies.configurations import (
     GROUPING_CONFIG_CLASSES,
     register_grouping_config,
@@ -35,6 +36,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 GROUPING_TESTS_DIR = path.dirname(__file__)
 GROUPING_INPUTS_DIR = path.join(GROUPING_TESTS_DIR, "grouping_inputs")
@@ -82,11 +84,26 @@ class GroupingInput:
         mgr.normalize()
         data = mgr.get_data()
 
-        # Normalize the stacktrace for grouping.  This normally happens in `EventManager.save`.
+        # Before creating the event, manually run the parts of `EventManager.save` which are
+        # necessary for grouping.
+
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
 
         data.setdefault("fingerprint", ["{{ default }}"])
         apply_server_side_fingerprinting(data, fingerprinting_config)
+        fingerprint_info = data.get("_fingerprint_info", {})
+        custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+        # Technically handling custom titles happens during grouping, not before it, but we're not
+        # running grouping until later, and the title needs to be set before we get metadata below.
+        # (The fact that this is happening out of order is why we need to create the dummy `Event`
+        # object to wrap the data, since that's what `expand_title_template` expects.)
+        if custom_title_template:
+            resolved_title = expand_title_template(
+                custom_title_template, Event(project_id=1, event_id="11211231", data=data)
+            )
+            data["title"] = resolved_title
+
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
@@ -166,7 +183,7 @@ def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
         return pytest.mark.skip("no configs to test")
 
     return pytest.mark.parametrize(
-        "config_name", config_ids, ids=lambda config_name: config_name.replace("-", "_")
+        "config_name", sorted(config_ids), ids=lambda config_name: config_name.replace("-", "_")
     )
 
 
@@ -311,8 +328,24 @@ class FingerprintInput:
         mgr.normalize()
         data = mgr.get_data()
 
+        # Before creating the event, manually run the parts of `EventManager.save` which are
+        # necessary for fingerprinting.
+
         data.setdefault("fingerprint", ["{{ default }}"])
         apply_server_side_fingerprinting(data, config)
+        fingerprint_info = data.get("_fingerprint_info", {})
+        custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+        # Technically handling custom titles happens during grouping, not before it, but we're not
+        # running grouping until later, and the title needs to be set before we get metadata below.
+        # (The fact that this is happening out of order is why we need to create the dummy `Event`
+        # object to wrap the data, since that's what `expand_title_template` expects.)
+        if custom_title_template:
+            resolved_title = expand_title_template(
+                custom_title_template, Event(project_id=1, event_id="11211231", data=data)
+            )
+            data["title"] = resolved_title
+
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))

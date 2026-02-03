@@ -15,7 +15,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
-from sentry.models.rule import Rule
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -46,6 +45,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -114,7 +114,7 @@ MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPE
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
+        self.rule = self.create_project_rule(name="Issa Rule")
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
@@ -340,7 +340,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:workflow-engine-trigger-actions")
+    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_send_alert_event_with_additional_payload_legacy_rule_id(
         self, mock_record, safe_urlopen
     ):
@@ -348,7 +348,6 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             action_data=[
                 {
                     "sentryAppInstallationUuid": self.install.uuid,
-                    "legacy_rule_id": "123",
                 }
             ]
         )
@@ -379,7 +378,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert payload["data"]["triggered_rule"] == rule.label
         assert payload["data"]["issue_alert"] == {
             # Use the legacy rule id
-            "id": "123",
+            "id": rule.data["actions"][0]["legacy_rule_id"],
             "title": rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
@@ -1718,6 +1717,112 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
+
+
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+class TestExpandedSentryAppsWebhooks(TestCase):
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_cron_issue_without_feature_flag(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        """Test that CRON issues don't send webhooks without the feature flag"""
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "monitor check-in failure",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        # Set to CRON category (type_id = 4001, MonitorIncidentType)
+        with assume_test_silo_mode(SiloMode.REGION):
+            event.group.update(type=4001)
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+        assert not safe_urlopen.called
+
+    @with_feature("organizations:expanded-sentry-apps-webhooks")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_cron_issue_with_feature_flag(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "monitor check-in failure",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        with assume_test_silo_mode(SiloMode.REGION):
+            event.group.update(type=4001)
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_error_issue_always_sends_webhook(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+        assert_success_metric(mock_record)
 
 
 class TestBackfillServiceHooksEvents(TestCase):

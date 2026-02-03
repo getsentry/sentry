@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
@@ -16,15 +16,16 @@ from sentry.grouping.enhancer import (
     get_enhancements_version,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import GroupingContext
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
-from sentry.grouping.utils import (
+from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.fingerprinting.utils import (
     expand_title_template,
     get_fingerprint_type,
-    hash_from_values,
     is_default_fingerprint_var,
     resolve_fingerprint_values,
 )
+from sentry.grouping.strategies.base import GroupingContext
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import (
     BaseVariant,
     ChecksumVariant,
@@ -38,20 +39,15 @@ from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS
 from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.fingerprinting import FingerprintingConfig
-    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
-
-
-class FingerprintInfo(TypedDict):
-    client_fingerprint: NotRequired[list[str]]
-    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass
@@ -282,16 +278,9 @@ def apply_server_side_fingerprinting(
 
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
+        # TODO: We don't need to return attributes as part of the fingerprint match anymore
         matched_rule, new_fingerprint, attributes = fingerprint_match
-
-        # A custom title attribute is stored in the event to override the
-        # default title.
-        if "title" in attributes:
-            event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
-
-        # Persist the rule that matched with the fingerprint in the event
-        # dictionary for later debugging.
         fingerprint_info["matched_rule"] = matched_rule.to_json()
 
     if fingerprint_info:
@@ -394,6 +383,14 @@ def get_grouping_variants_for_event(
                 "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
             }
 
+    # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we can
+    # remove this
+    use_legacy_unknown_variable_handling = (
+        True
+        if config is None
+        else config.initial_context.get("use_legacy_unknown_variable_handling", True)
+    )
+
     # Otherwise we go to the various forms of grouping based on fingerprints and/or event data
     # (stacktrace, message, etc.)
     raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
@@ -402,7 +399,18 @@ def get_grouping_variants_for_event(
     resolved_fingerprint = (
         raw_fingerprint
         if fingerprint_type == "default"
-        else resolve_fingerprint_values(raw_fingerprint, event.data)
+        else resolve_fingerprint_values(
+            raw_fingerprint,
+            event,
+            use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
+        )
+    )
+
+    # Check if the fingerprint includes a custom title, and if so, set the event's title accordingly.
+    _apply_custom_title_if_needed(
+        fingerprint_info,
+        event,
+        use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
     )
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
@@ -456,6 +464,22 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def _apply_custom_title_if_needed(
+    fingerprint_info: FingerprintInfo, event: Event, use_legacy_unknown_variable_handling: bool
+) -> None:
+    """
+    If the given event has a custom fingerprint which includes a title template, apply the custom
+    title to the event.
+    """
+    custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
+
+    if custom_title_template:
+        resolved_title = expand_title_template(
+            custom_title_template, event, use_legacy_unknown_variable_handling
+        )
+        event.data["title"] = resolved_title
 
 
 def get_contributing_variant_and_component(

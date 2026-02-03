@@ -1,19 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -39,6 +47,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {PlatformizedBackendOverviewPage} from 'sentry/views/insights/pages/backend/platformizedBackendOverviewPage';
 import {Referrer} from 'sentry/views/insights/pages/backend/referrers';
 import {
   DEFAULT_SORT,
@@ -49,6 +58,7 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
   WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import useHasPlatformizedBackendOverview from 'sentry/views/insights/pages/frontend/utils/useHasPlatformizedBackendOverview';
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
@@ -61,24 +71,36 @@ import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-function BackendOverviewPage() {
+interface BackendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function BackendOverviewPage({datePageFilterProps}: BackendOverviewPageProps) {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const isNewBackendExperienceEnabled = useInsightsEap();
+  const hasPlatformizedBackendOverview = useHasPlatformizedBackendOverview();
+  if (hasPlatformizedBackendOverview) {
+    return <PlatformizedBackendOverviewPage />;
+  }
   if (isLaravelPageAvailable) {
-    return <LaravelOverviewPage />;
+    return <LaravelOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage />;
+    return <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
   if (isNewBackendExperienceEnabled) {
-    return <EAPBackendOverviewPage />;
+    return <EAPBackendOverviewPage datePageFilterProps={datePageFilterProps} />;
   }
-  return <Am1BackendOverviewPage />;
+  return <Am1BackendOverviewPage datePageFilterProps={datePageFilterProps} />;
 }
 
-function EAPBackendOverviewPage() {
+interface EAPBackendOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
+function EAPBackendOverviewPage({datePageFilterProps}: EAPBackendOverviewPageProps) {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -202,14 +224,14 @@ function EAPBackendOverviewPage() {
       renderDisabled={NoAccess}
     >
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <InsightsEnvironmentSelector />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -229,10 +251,10 @@ function EAPBackendOverviewPage() {
             ) : (
               <Fragment>
                 <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
+                  <Stack gap="xl" height="100%" minHeight="502px">
                     <OverviewRequestsChartWidget />
                     <OverviewApiLatencyChartWidget />
-                  </StackedWidgetWrapper>
+                  </Stack>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
                   <IssuesWidget />
@@ -263,9 +285,14 @@ function EAPBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
-    <DomainOverviewPageProviders>
-      <BackendOverviewPage />
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays.maxPickableDays}>
+      <BackendOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }
@@ -275,14 +302,6 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 `;
 
 export default BackendOverviewPageWithProviders;
-
-const StackedWidgetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  height: 100%;
-  min-height: 502px;
-`;
 
 export const TripleRowWidgetWrapper = styled('div')`
   display: grid;

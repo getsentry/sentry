@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {deleteUptimeRule} from 'sentry/actionCreators/uptime';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -52,7 +53,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
     if (error?.status === 404) {
       return (
         <Alert.Container>
-          <Alert type="error">{t('This alert rule could not be found.')}</Alert>
+          <Alert variant="danger">{t('This alert rule could not be found.')}</Alert>
         </Alert.Container>
       );
     }
@@ -66,7 +67,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
   };
 
   return (
-    <Main fullWidth>
+    <Main width="full">
       <UptimeAlertForm rule={rule} handleDelete={handleDelete} />
     </Main>
   );

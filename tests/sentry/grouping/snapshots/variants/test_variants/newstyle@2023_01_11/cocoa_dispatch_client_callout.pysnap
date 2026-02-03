@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:46.599633+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: "7c8a196d16b94be382add324be2605ee"
@@ -11,7 +9,7 @@ app:
     app*
       threads*
         stacktrace*
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
               "unicorn"
           frame (marked out of app by the client)
@@ -38,13 +36,13 @@ app:
           frame* (marked in-app by the client)
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
               "FudgeLogTaggedError"
-          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by built-in stack trace rule (category:internals -group))
             function*
               "closure"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
               "SentrySetupInteractor.setupSentry"
           frame (marked out of app by the client)
@@ -53,7 +51,7 @@ app:
           frame (marked out of app by the client)
             function*
               "_dispatch_client_callout"
-          frame (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by stack trace rule (category:internals -group))
+          frame (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app) but ignored by built-in stack trace rule (category:internals -group))
             function*
               "closure"
 --------------------------------------------------------------------------
@@ -80,22 +78,22 @@ system:
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "_dispatch_block_async_invoke2"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "-[NSBlockOperation main]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
           frame*
@@ -104,18 +102,18 @@ system:
           frame*
             function*
               "FudgeLogTaggedError"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "closure"
           frame*
             function*
               "SentrySetupInteractor.setupSentry"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "_dispatch_lane_barrier_sync_invoke_and_complete"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "closure"

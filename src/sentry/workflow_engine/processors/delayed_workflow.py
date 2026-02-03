@@ -44,13 +44,13 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
+    TriggerResult,
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workflow")
@@ -216,17 +216,31 @@ class EventRedisData:
         A DCG can be recorded with an event for later processing multiple times.
         We need to pick a time to use when processing them in bulk, so to bias for recency we associate each DCG with the latest timestamp.
         """
-        result: dict[int, datetime | None] = defaultdict(lambda: None)
+        result: dict[int, datetime | None] = {}
 
         for key, instance in self.events.items():
             timestamp = instance.timestamp
+            if timestamp is None:
+                continue
             for dcg_id in key.dcg_ids:
-                existing_timestamp = result[dcg_id]
-                if timestamp is None:
-                    continue
-                elif existing_timestamp is not None and timestamp > existing_timestamp:
+                existing_timestamp = result.get(dcg_id)
+                if existing_timestamp is None or timestamp > existing_timestamp:
                     result[dcg_id] = timestamp
         return result
+
+    def filter_by_workflow_ids(self, valid_workflow_ids: set[WorkflowId]) -> EventRedisData:
+        """
+        Return a new EventRedisData containing only events for the given workflow IDs.
+        """
+        if not valid_workflow_ids:
+            return EventRedisData(events={})
+
+        filtered_events = {
+            key: instance
+            for key, instance in self.events.items()
+            if key.workflow_id in valid_workflow_ids
+        }
+        return EventRedisData(events=filtered_events)
 
 
 @dataclass
@@ -388,7 +402,7 @@ def get_condition_query_groups(
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
-        timestamp = event_data.dcg_to_timestamp[dcg.id]
+        timestamp = event_data.dcg_to_timestamp.get(dcg.id)
         if timestamp is not None:
             delay = now - timestamp
             # If it's been more than 1.5 minutes, we're taking too long to process the event and
@@ -496,7 +510,7 @@ def _evaluate_group_result_for_dcg(
     group_id: GroupId,
     workflow_env: int | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
-) -> bool:
+) -> TriggerResult:
     slow_conditions = dcg_to_slow_conditions[dcg.id]
     try:
         return _group_result_for_dcg(
@@ -510,7 +524,7 @@ def _evaluate_group_result_for_dcg(
             sample_rate=1.0,
         )
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
-        return False
+        return TriggerResult(triggered=False, error=ConditionError(msg="Missing query result"))
 
 
 def _group_result_for_dcg(
@@ -519,7 +533,7 @@ def _group_result_for_dcg(
     workflow_env: int | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     slow_conditions: list[DataCondition],
-) -> bool:
+) -> TriggerResult:
     conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
     for condition in slow_conditions:
         query_values = []
@@ -536,6 +550,12 @@ def _group_result_for_dcg(
     ).logic_result
 
 
+@dataclass(frozen=True)
+class _ConditionEvaluationStats:
+    tainted: int
+    untainted: int
+
+
 @sentry_sdk.trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
@@ -543,10 +563,11 @@ def get_groups_to_fire(
     event_data: EventRedisData,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
-) -> dict[GroupId, set[DataConditionGroup]]:
+) -> tuple[dict[GroupId, set[DataConditionGroup]], _ConditionEvaluationStats]:
     data_condition_group_mapping = {dcg.id: dcg for dcg in data_condition_groups}
     groups_to_fire: dict[GroupId, set[DataConditionGroup]] = defaultdict(set)
 
+    tainted, untainted = 0, 0
     for event_key in event_data.events:
         group_id = event_key.group_id
         if event_key.workflow_id not in workflows_to_envs:
@@ -554,36 +575,57 @@ def get_groups_to_fire(
             continue
 
         workflow_env = workflows_to_envs[event_key.workflow_id]
+        when_result = TriggerResult.TRUE
         if when_dcg_id := event_key.when_dcg_id:
-            if not (
-                dcg := data_condition_group_mapping.get(when_dcg_id)
-            ) or not _evaluate_group_result_for_dcg(
-                dcg,
+            when_dcg = data_condition_group_mapping.get(when_dcg_id)
+            if not when_dcg:
+                continue
+            when_result = _evaluate_group_result_for_dcg(
+                when_dcg,
                 dcg_to_slow_conditions,
                 group_id,
                 workflow_env,
                 condition_group_results,
-            ):
+            )
+            if not when_result.triggered:
+                # If we're not triggering, all action-y if conditions need to be treated
+                # as tainted or not based on the when condition result.
+                if_conds = event_key.if_dcg_ids | event_key.passing_dcg_ids
+                # Limit to those we can access to be consistent with the if conditions evaluation.
+                if_cond_count = len(if_conds & data_condition_group_mapping.keys())
+                if when_result.is_tainted():
+                    tainted += if_cond_count
+                else:
+                    untainted += if_cond_count
                 continue
 
         # the WHEN condition passed / was not evaluated, so we can now check the IF conditions
         for if_dcg_id in event_key.if_dcg_ids:
-            if (
-                dcg := data_condition_group_mapping.get(if_dcg_id)
-            ) and _evaluate_group_result_for_dcg(
-                dcg,
-                dcg_to_slow_conditions,
-                group_id,
-                workflow_env,
-                condition_group_results,
-            ):
-                groups_to_fire[group_id].add(dcg)
+            if dcg := data_condition_group_mapping.get(if_dcg_id):
+                if_result = when_result & _evaluate_group_result_for_dcg(
+                    dcg,
+                    dcg_to_slow_conditions,
+                    group_id,
+                    workflow_env,
+                    condition_group_results,
+                )
+                if if_result.is_tainted():
+                    tainted += 1
+                else:
+                    untainted += 1
+                if if_result.triggered:
+                    groups_to_fire[group_id].add(dcg)
 
         for if_dcg_id in event_key.passing_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
+                # TODO: Propagate taint with passing conditions.
+                if when_result.is_tainted():
+                    tainted += 1
+                else:
+                    untainted += 1
                 groups_to_fire[group_id].add(dcg)
 
-    return groups_to_fire
+    return groups_to_fire, _ConditionEvaluationStats(tainted=tainted, untainted=untainted)
 
 
 @sentry_sdk.trace
@@ -596,7 +638,8 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
 
     bulk_data = {}
     for node_id_chunk in chunked(node_ids, EVENT_LIMIT):
-        bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
+        with metrics.timer("workflow_engine.process_workflows.fetch_from_nodestore"):
+            bulk_results = fetch_retry_policy(lambda: nodestore.backend.get_multi(node_id_chunk))
         bulk_data.update(bulk_results)
 
     result: dict[str, Event] = {}
@@ -679,13 +722,7 @@ def fire_actions_for_groups(
         },
     )
 
-    # Bulk fetch detectors
-    event_id_to_detector = get_detectors_by_groupevents_bulk(
-        [group_event for group_event, _ in group_to_groupevent.values()]
-    )
-
     # Feature check caching to keep us within the trace budget.
-    trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
     single_processing_ff = features.has(
         "organizations:workflow-engine-single-process-workflows", organization
     )
@@ -693,9 +730,7 @@ def fire_actions_for_groups(
     rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
 
     should_trigger_actions = lambda type_id: (
-        type_id in ga_type_ids
-        or (type_id in rollout_type_ids and single_processing_ff)
-        or trigger_actions_ff
+        type_id in ga_type_ids or (type_id in rollout_type_ids and single_processing_ff)
     )
 
     total_actions = 0
@@ -707,22 +742,12 @@ def fire_actions_for_groups(
         for group, (group_event, start_timestamp) in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
                 workflow_event_data = WorkflowEventData(event=group_event, group=group)
-                detector = event_id_to_detector.get(group_event.event_id)
-
-                if detector is None:
-                    logger.warning(
-                        "No detector found for event, skipping",
-                        extra={
-                            "event_id": group_event.event_id,
-                            "group_id": group.id,
-                        },
-                    )
-                    continue
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
                 filtered_actions = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
+                # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
@@ -731,13 +756,20 @@ def fire_actions_for_groups(
                 )
 
                 workflow_fire_histories = create_workflow_fire_histories(
-                    detector,
                     filtered_actions,
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )
+
+                # Create mapping: workflow_id -> notification_uuid for propagation
+                workflow_uuid_map: dict[int, str] = {}
+                if workflow_fire_histories:
+                    workflow_uuid_map = {
+                        history.workflow_id: str(history.notification_uuid)
+                        for history in workflow_fire_histories
+                    }
 
                 event_id = (
                     workflow_event_data.event.event_id
@@ -757,7 +789,9 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, detector, workflow_event_data)
+                fire_actions(
+                    filtered_actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
+                )
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
@@ -784,32 +818,29 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
     return {key: sorted(values) for key, values in result.items()}
 
 
-@sentry_sdk.trace
-def process_delayed_workflows(
-    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
-) -> None:
-    """
-    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
-    """
+def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
+    """Process workflows for a project - evaluate conditions and fire actions."""
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
-        project = fetch_project(project_id)
-        if not project:
-            return
-
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
             log_context.set_verbose(True)
 
-        redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
-        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
-
-        metrics.incr(
-            "workflow_engine.delayed_workflow",
-            amount=len(event_data.events),
-        )
-
+        original_count = len(event_data.events)
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
+
+        event_data = event_data.filter_by_workflow_ids(set(workflows_to_envs.keys()))
+
+        filtered_count = original_count - len(event_data.events)
+        if filtered_count > 0:
+            metrics.incr(
+                "workflow_engine.delayed_workflow.filtered_deleted_workflows",
+                amount=filtered_count,
+            )
+
+        if not event_data.events:
+            return
+
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
         dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
 
@@ -862,12 +893,24 @@ def process_delayed_workflows(
     )
 
     # Evaluate DCGs
-    groups_to_dcgs = get_groups_to_fire(
+    groups_to_dcgs, trigger_stats = get_groups_to_fire(
         data_condition_groups,
         workflows_to_envs,
         event_data,
         condition_group_results,
         dcg_to_slow_conditions,
+    )
+    metrics.incr(
+        "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
+        amount=trigger_stats.tainted,
+        tags={"tainted": True},
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "workflow_engine.delayed_workflow.workflow_if_conditions_evaluated",
+        amount=trigger_stats.untainted,
+        tags={"tainted": False},
+        sample_rate=1.0,
     )
     logger.debug(
         "delayed_workflow.groups_to_fire",
@@ -886,4 +929,33 @@ def process_delayed_workflows(
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
-    cleanup_redis_buffer(batch_client.for_project(project_id), event_data.events.keys(), batch_key)
+
+
+@sentry_sdk.trace
+def process_delayed_workflows(
+    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
+) -> None:
+    """
+    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
+    project_client = batch_client.for_project(project_id)
+    redis_data = project_client.get_hash_data(batch_key)
+    event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+    event_keys = set(event_data.events.keys())
+
+    metrics.incr(
+        "workflow_engine.delayed_workflow",
+        amount=len(event_data.events),
+    )
+
+    project = fetch_project(project_id)
+    if not project:
+        # Project is gone, all done here, but let's not leave a mess.
+        cleanup_redis_buffer(project_client, event_keys, batch_key)
+        return
+
+    _process_workflows_for_project(project, event_data)
+    # if processing returns cleanly, that means we successfully processed the
+    # redis data and can delete it. If we fail, it'll raise and we'll either
+    # read it again on retry or let it ttl out.
+    cleanup_redis_buffer(project_client, event_keys, batch_key)

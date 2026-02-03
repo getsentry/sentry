@@ -15,7 +15,7 @@ describe('ProjectAlertSettings', () => {
     digestsMinDelay,
     digestsMaxDelay,
   });
-  const {organization, routerProps} = initializeOrg({
+  const {organization} = initializeOrg({
     projects: [project],
     router: {
       params: {projectId: project.slug},
@@ -24,12 +24,6 @@ describe('ProjectAlertSettings', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-
-    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: [],
@@ -37,7 +31,10 @@ describe('ProjectAlertSettings', () => {
   });
 
   it('renders', async () => {
-    render(<ProjectAlertSettings canEditRule {...routerProps} />);
+    render(<ProjectAlertSettings />, {
+      outletContext: {project, canEditRule: true},
+      organization,
+    });
 
     expect(
       await screen.findByPlaceholderText('e.g. $shortID - $title')

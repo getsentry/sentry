@@ -354,7 +354,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
-        assert event.data["scraping_attempts"] == [
+        scraping_attempts = sorted(
+            event.data["scraping_attempts"], key=lambda attempt: attempt["url"]
+        )
+        assert scraping_attempts == [
             {"status": "not_attempted", "url": "http://example.com/file.min.js"},
             {"status": "not_attempted", "url": "http://example.com/file.sourcemap.js"},
             {"status": "not_attempted", "url": "http://example.com/file1.js"},
@@ -461,7 +464,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
-        assert event.data["scraping_attempts"] == [
+        scraping_attempts = sorted(
+            event.data["scraping_attempts"], key=lambda attempt: attempt["url"]
+        )
+        assert scraping_attempts == [
             {"url": "http://example.com/webpack1.min.js", "status": "not_attempted"},
             {"url": "http://example.com/webpack1.min.js.map", "status": "not_attempted"},
             {"url": "http://example.com/webpack2.min.js", "status": "not_attempted"},
@@ -564,7 +570,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
-        assert event.data["scraping_attempts"] == [
+        scraping_attempts = sorted(
+            event.data["scraping_attempts"], key=lambda attempt: attempt["url"]
+        )
+        assert scraping_attempts == [
             {"status": "not_attempted", "url": "http://example.com/embedded.js"},
             {"status": "not_attempted", "url": "http://example.com/embedded.js.map"},
         ]
@@ -634,7 +643,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert "errors" not in event.data
 
-        assert event.data["scraping_attempts"] == [
+        scraping_attempts = sorted(
+            event.data["scraping_attempts"], key=lambda attempt: attempt["url"]
+        )
+        assert scraping_attempts == [
             {"url": "app:///nofiles.js", "status": "not_attempted"},
             {"url": "app:///nofiles.js.map", "status": "not_attempted"},
         ]
@@ -710,11 +722,14 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert "errors" not in event.data
 
-        assert event.data["scraping_attempts"] == [
-            {"status": "not_attempted", "url": "http://example.com/indexed.min.js"},
-            {"status": "not_attempted", "url": "http://example.com/indexed.sourcemap.js"},
+        scraping_attempts = sorted(
+            event.data["scraping_attempts"], key=lambda attempt: attempt["url"]
+        )
+        assert scraping_attempts == [
             {"status": "not_attempted", "url": "http://example.com/file1.js"},
             {"status": "not_attempted", "url": "http://example.com/file2.js"},
+            {"status": "not_attempted", "url": "http://example.com/indexed.min.js"},
+            {"status": "not_attempted", "url": "http://example.com/indexed.sourcemap.js"},
         ]
 
         exception = event.interfaces["exception"]

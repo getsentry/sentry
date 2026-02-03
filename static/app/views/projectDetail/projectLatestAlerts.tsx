@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {AlertBadge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -14,6 +15,7 @@ import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -61,7 +63,9 @@ function AlertRow({alert}: AlertRowProps) {
           ) : (
             <TimeSince
               date={dateStarted}
-              tooltipUnderlineColor={getStatusColor(statusProps)}
+              tooltipUnderlineColor={
+                isResolved ? 'success' : isWarning ? 'warning' : 'danger'
+              }
             />
           )}
         </AlertDate>
@@ -93,7 +97,9 @@ function ProjectLatestAlerts({
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'open'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -104,7 +110,9 @@ function ProjectLatestAlerts({
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      `/organizations/${organization.slug}/incidents/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {...query, status: 'closed'}},
     ],
     {staleTime: 0, enabled: isProjectStabilized}
@@ -118,7 +126,9 @@ function ProjectLatestAlerts({
   // This is only used to determine if we should show the "Create Alert" button
   const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
     [
-      `/organizations/${organization.slug}/alert-rules/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...pick(location.query, Object.values(URL_PARAM)),
@@ -211,9 +221,6 @@ type StatusColorProps = {
   isWarning: boolean;
 };
 
-const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
-  isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
-
 const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
@@ -224,20 +231,29 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 `;
 
 const AlertDetails = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-left: ${space(1.5)};
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.35;
 `;
 
 const AlertTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p => p.theme[getStatusColor(p)]};
+  color: ${p =>
+    p.isResolved
+      ? p.theme.tokens.content.success
+      : p.isWarning
+        ? p.theme.tokens.content.warning
+        : p.theme.tokens.content.danger};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

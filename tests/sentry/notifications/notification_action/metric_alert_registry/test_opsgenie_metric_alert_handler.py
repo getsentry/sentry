@@ -15,16 +15,14 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         self.create_models()
@@ -81,7 +79,16 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
         (
@@ -158,7 +165,16 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
         (

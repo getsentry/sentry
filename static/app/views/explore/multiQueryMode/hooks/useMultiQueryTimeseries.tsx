@@ -7,7 +7,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useProgressiveQuery,
-  type SpansRPCQueryExtras,
+  type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -19,7 +19,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
-  queryExtras?: SpansRPCQueryExtras;
+  queryExtras?: RPCQueryExtras;
 }
 
 interface UseMultiQueryTimeseriesResults {
@@ -29,6 +29,7 @@ interface UseMultiQueryTimeseriesResults {
 export function useMultiQueryTimeseries({
   enabled,
   index,
+  queryExtras,
 }: UseMultiQueryTimeseriesOptions) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
@@ -51,7 +52,7 @@ export function useMultiQueryTimeseries({
   );
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
-    queryHookArgs: {enabled, index},
+    queryHookArgs: {enabled, index, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
     },
@@ -106,7 +107,7 @@ function useMultiQueryTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(
     options,
-    'api.explore.spans-stats',
+    `api.explore.spans-timeseries`,
     DiscoverDatasets.SPANS
   );
 

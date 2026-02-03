@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -117,7 +117,7 @@ export function GroupTagValues() {
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
     groupId: params.groupId,
@@ -205,6 +205,7 @@ export function GroupTagValues() {
         range: '90d',
       });
       const issuesPath = `/organizations/${orgId}/issues/`;
+      const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
 
       return (
         <Fragment key={tagValueIdx}>
@@ -223,7 +224,7 @@ export function GroupTagValues() {
                     hideEmail
                   />
                 ) : (
-                  <DeviceName value={tagValue.name} />
+                  <DeviceName value={tagName} />
                 )}
               </GlobalSelectionLink>
             </NameWrapper>
@@ -233,12 +234,12 @@ export function GroupTagValues() {
                 href={`mailto:${tagValue.email}`}
                 data-test-id="group-tag-mail"
               >
-                <IconMail size="xs" color="gray300" />
+                <IconMail size="xs" variant="muted" />
               </StyledExternalLink>
             )}
             {isUrl(tagValue.value) && (
               <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
-                <IconOpen size="xs" color="gray300" />
+                <IconOpen size="xs" variant="muted" />
               </StyledExternalLink>
             )}
           </NameColumn>
@@ -291,8 +292,8 @@ export function GroupTagValues() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
-        <TitleWrapper>
+      <Layout.Main width="full">
+        <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>
             <LinkButton
@@ -313,7 +314,7 @@ export function GroupTagValues() {
               }}
             />
           </ButtonBar>
-        </TitleWrapper>
+        </Flex>
         <StyledPanelTable
           isLoading={isLoading}
           isEmpty={!isError && tagValueList?.length === 0}
@@ -350,22 +351,13 @@ function GroupTagValuesRoute() {
   return <GroupTagValues />;
 }
 
-const TitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
-
 const Title = styled('h3')`
   margin: 0;
 `;
 
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -410,13 +402,19 @@ function RightAlignColumn(props: FlexProps) {
 }
 
 const NameColumn = styled(Column)`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

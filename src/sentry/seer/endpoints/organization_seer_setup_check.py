@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class OrganizationSeerSetupCheck(OrganizationEndpoint):
+class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -46,20 +46,20 @@ class OrganizationSeerSetupCheck(OrganizationEndpoint):
             return Response(status=400)
 
         # Check quotas
-        has_seer_scanner_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_seer_scanner_quota: bool = quotas.backend.check_seer_quota(
             org_id=organization.id, data_category=DataCategory.SEER_SCANNER
         )
-        has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
+        has_autofix_quota: bool = quotas.backend.check_seer_quota(
             org_id=organization.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
         # Check consent
         user_acknowledgement = get_seer_user_acknowledgement(
-            user_id=request.user.id, org_id=organization.id
+            user_id=request.user.id, organization=organization
         )
         org_acknowledgement = True
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org_id=organization.id)
+            org_acknowledgement = get_seer_org_acknowledgement(organization)
 
         return Response(
             {

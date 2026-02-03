@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
@@ -20,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.tags_examples import TagsExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
@@ -67,6 +69,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         },
         examples=[TagsExamples.GROUP_TAGKEY_VALUES],
     )
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-values"])
     def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values
@@ -106,7 +109,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             serializer_cls = None
 
         paginator = tagstore.backend.get_group_tag_value_paginator(
-            group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            lookup_key,
+            order_by=order_by,
+            tenant_ids=tenant_ids,
         )
 
         return self.paginate(

@@ -6,9 +6,15 @@ from rest_framework import serializers
 
 from sentry import audit_log, features
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    ACTION_FILTERS_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
+)
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
     BaseDataConditionGroupValidator,
@@ -31,19 +37,35 @@ ModelType = TypeVar("ModelType", bound=models.Model)
 
 
 class WorkflowValidator(CamelSnakeSerializer):
-    id = serializers.CharField(required=False)
-    name = serializers.CharField(required=True, max_length=256)
-    enabled = serializers.BooleanField(required=False, default=True)
-    config = serializers.JSONField(required=False)
-    environment_id = serializers.IntegerField(required=False)
-    triggers = BaseDataConditionGroupValidator(required=False)
-    action_filters = serializers.ListField(required=False)
+    id = serializers.CharField(required=False, help_text="The ID of the existing alert")
+    name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
+    enabled = serializers.BooleanField(
+        required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    config = serializers.JSONField(
+        required=False,
+        help_text=WORKFLOW_CONFIG_HELP_TEXT,
+    )
+    environment = EnvironmentField(
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment for the alert to evaluate in",
+    )
+
+    triggers = BaseDataConditionGroupValidator(
+        required=False,
+        help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
+    )
+    action_filters = serializers.ListField(
+        required=False,
+        help_text=ACTION_FILTERS_HELP_TEXT,
+    )
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
     ) -> tuple[ListInputData, InputData]:
         try:
-            actions = action_filter["actions"]
+            actions = action_filter.pop("actions")
         except KeyError:
             raise serializers.ValidationError("Missing actions key in action filter")
 
@@ -147,6 +169,10 @@ class WorkflowValidator(CamelSnakeSerializer):
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
 
+        # If an instance is provided but no id in the data, use the instance's id to ensure we update the existing condition group
+        if instance and not condition_group_id:
+            condition_group_data["id"] = str(instance.id)
+
         actions = condition_group_data.pop("actions", None)
         condition_group = self._update_or_create(
             condition_group_data, validator, DataConditionGroup
@@ -157,9 +183,37 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return condition_group
 
+    def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
+        workflow = self.context["workflow"]
+
+        valid_dcg_ids: set[int] = set(
+            workflow.workflowdataconditiongroup_set.values_list("condition_group_id", flat=True)
+        )
+        valid_action_ids: set[int] = set(
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=valid_dcg_ids
+            ).values_list("action_id", flat=True)
+        )
+
+        for action_filter in action_filters:
+            dcg_id = action_filter.get("id")
+            if dcg_id is not None and int(dcg_id) not in valid_dcg_ids:
+                raise serializers.ValidationError(
+                    f"Action filter ID {dcg_id} does not belong to this workflow"
+                )
+
+            for action in action_filter.get("actions", []):
+                action_id = action.get("id")
+                if action_id is not None and int(action_id) not in valid_action_ids:
+                    raise serializers.ValidationError(
+                        f"Action ID {action_id} does not belong to this workflow"
+                    )
+
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
+
+        self._validate_action_filter_ownership(action_filters)
 
         remove_items_by_api_input(
             action_filters, instance.workflowdataconditiongroup_set, "condition_group__id"
@@ -221,12 +275,14 @@ class WorkflowValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
 
+            environment = validated_value.get("environment")
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
                 organization_id=self.context["organization"].id,
-                environment_id=validated_value.get("environment_id"),
+                environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
             )

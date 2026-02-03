@@ -1,6 +1,4 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -22,6 +20,10 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
+
+const DASHBOARD_WIDGET_BUILDER_PATHNAME =
+  '/organizations/org-slug/dashboards/new/widget/new/';
+const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/widget/new/';
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
@@ -84,18 +86,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['p90(transaction.duration)', 'max(spans.db)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -120,18 +121,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['max(spans.db)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -152,18 +152,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['max(spans.db)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -184,18 +183,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -211,6 +209,32 @@ describe('Visualize', () => {
     );
   });
 
+  it('adds the correct default new series when a default is provided for series display type', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['count(resolved_issues)'],
+              dataset: WidgetType.ISSUE,
+              displayType: DisplayType.BAR,
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(screen.queryByText('new_issues')).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByText('+ Add Series'));
+    expect(screen.getByText('new_issues')).toBeInTheDocument();
+  });
+
   it('maintains the selected aggregate when the column selection is changed and there are parameters', async () => {
     render(
       <WidgetBuilderProvider>
@@ -218,18 +242,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['max(spans.db)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -251,18 +274,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -292,18 +314,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['transaction.duration'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -322,18 +343,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -358,18 +378,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -377,9 +396,8 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p50'}));
 
     // Indicate that the column selection is open, and multiple options are available
-    expect(
-      screen.getByRole('option', {name: 'transaction.duration'})
-    ).toBeInTheDocument();
+    const option = screen.getByRole('option', {name: 'transaction.duration'});
+    expect(option).toBeInTheDocument();
     expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
@@ -390,18 +408,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count()'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -420,18 +437,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: ['transaction.duration'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -450,18 +466,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['max(spans.db)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -480,18 +495,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count_if(transaction.duration,equals,testValue)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -517,18 +531,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['count_if(transaction.duration,equals,testValue)'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -557,18 +570,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['transaction.duration'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -587,18 +599,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               field: ['transaction'],
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -622,18 +633,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.ISSUE,
               field: ['issue.id'],
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -649,18 +659,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
               yAxis: ['p90(transaction.duration)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -680,18 +689,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count()'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -708,18 +716,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count()'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -737,18 +744,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
               field: ['p50(transaction.duration)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -791,17 +797,16 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -825,14 +830,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -847,18 +851,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count_unique(user)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -880,19 +883,18 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.BIG_NUMBER,
               field: ['count_unique(1)', 'count_unique(2)', 'count_unique(3)'],
               selectedAggregate: '2',
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -917,14 +919,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -945,14 +946,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -971,17 +971,16 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               field: ['count_if(transaction.duration,equals,300)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1004,17 +1003,16 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.RELEASE,
               field: ['crash_free_rate(session)', 'environment'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1031,14 +1029,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1058,14 +1055,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1082,17 +1078,16 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               field: ['equation|count()+1', 'count()'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1108,18 +1103,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               field: ['transaction.duration', 'transaction.id'],
               displayType: DisplayType.TABLE,
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1135,14 +1129,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1165,14 +1158,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1192,14 +1184,13 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1226,17 +1217,16 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               field: ['p50(transaction.duration)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1297,18 +1287,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
-
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.LINE,
                 yAxis: ['p90(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1330,18 +1319,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
-
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.LINE,
                 yAxis: ['count(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1371,18 +1359,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
-
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
                 field: ['p90(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1402,18 +1389,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
-
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
                 field: ['span.duration'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1450,18 +1436,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
-
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
                 field: ['count(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1481,17 +1466,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: organizationWithFlag,
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
                 yAxis: ['count(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1536,17 +1521,17 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: organizationWithFlag,
-          router: RouterFixture({
-            location: LocationFixture({
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
               query: {
                 dataset: WidgetType.SPANS,
                 displayType: DisplayType.TABLE,
                 yAxis: ['count(span.duration)'],
               },
-            }),
-          }),
-
-          deprecatedRouterMocks: true,
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
         }
       );
 
@@ -1589,18 +1574,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['count(span.duration)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
     expect(
@@ -1616,18 +1600,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['avg(span.self_time)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1659,18 +1642,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['epm()'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
     expect(
@@ -1688,18 +1670,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['failure_rate()'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
     expect(
@@ -1717,18 +1698,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['avg(span.self_time)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1758,18 +1738,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['avg(span.self_time)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1800,18 +1779,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.SPANS,
               displayType: DisplayType.LINE,
               yAxis: ['count(span.duration)'],
             },
-          }),
-        }),
-
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1873,16 +1851,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization: organizationWithDeprecation,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
               yAxis: ['p95(transaction.duration)'],
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 
@@ -1907,16 +1886,17 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization: organizationWithoutDeprecation,
-        router: RouterFixture({
-          location: LocationFixture({
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
               yAxis: ['p95(transaction.duration)'],
             },
-          }),
-        }),
-        deprecatedRouterMocks: true,
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
       }
     );
 

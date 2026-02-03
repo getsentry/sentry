@@ -1,9 +1,8 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
@@ -13,9 +12,12 @@ describe('GroupUserFeedback', () => {
   const group = GroupFixture();
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/`,
+  };
 
   beforeEach(() => {
     ProjectsStore.init();
@@ -35,8 +37,7 @@ describe('GroupUserFeedback', () => {
 
     render(<GroupUserFeedback />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(
       await screen.findByRole('heading', {
@@ -74,8 +75,7 @@ describe('GroupUserFeedback', () => {
 
     render(<GroupUserFeedback />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();

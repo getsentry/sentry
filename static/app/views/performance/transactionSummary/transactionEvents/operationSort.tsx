@@ -4,7 +4,9 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {Radio} from 'sentry/components/core/radio';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
@@ -81,7 +83,7 @@ class OperationSort extends Component<Props, State> {
     const {eventView} = this.props;
     return (
       <DropdownMenuItem>
-        <MenuItemContent>
+        <Flex justify="start" align="center" width="100%">
           <RadioLabel>
             <StyledRadio
               readOnly
@@ -96,7 +98,7 @@ class OperationSort extends Component<Props, State> {
             />
             <span>{title}</span>
           </RadioLabel>
-        </MenuItemContent>
+        </Flex>
       </DropdownMenuItem>
     );
   }
@@ -172,7 +174,7 @@ const DropdownWrapper = styled('div')`
     0 0 0 1px rgba(52, 60, 69, 0.2),
     0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   width: 220px;
   overflow: visible;
   z-index: ${p => p.theme.zIndex.tooltip};
@@ -205,12 +207,12 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      border-bottom: 9px solid ${p => p.theme.border};
+      border-bottom: 9px solid ${p => p.theme.tokens.border.primary};
       top: -9px;
     }
 
     &:after {
-      border-bottom: 8px solid ${p => p.theme.background};
+      border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
   }
@@ -219,31 +221,23 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      border-top: 9px solid ${p => p.theme.border};
+      border-top: 9px solid ${p => p.theme.tokens.border.primary};
       bottom: -9px;
     }
 
     &:after {
-      border-top: 8px solid ${p => p.theme.background};
+      border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }
   }
 `;
 
 const DropdownMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const MenuItemContent = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-  width: 100%;
 `;
 
 const RadioLabel = styled('label')`
@@ -253,7 +247,7 @@ const RadioLabel = styled('label')`
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

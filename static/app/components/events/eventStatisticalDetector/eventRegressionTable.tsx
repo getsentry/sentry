@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import Duration from 'sentry/components/duration';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
@@ -181,7 +182,7 @@ function wrap(value: any, dataRow: any, option: any) {
 const ChangeContainer = styled(NumberContainer)<{
   change: 'positive' | 'neutral' | 'negative';
 }>`
-  ${p => p.change === 'positive' && `color: ${p.theme.red300};`}
-  ${p => p.change === 'neutral' && `color: ${p.theme.subText};`}
-  ${p => p.change === 'negative' && `color: ${p.theme.green300};`}
+  ${p => p.change === 'positive' && `color: ${p.theme.colors.red400};`}
+  ${p => p.change === 'neutral' && `color: ${p.theme.tokens.content.secondary};`}
+  ${p => p.change === 'negative' && `color: ${p.theme.colors.green400};`}
 `;

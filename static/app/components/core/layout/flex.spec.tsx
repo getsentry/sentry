@@ -1,8 +1,14 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {
+  Flex,
+  type FlexProps,
+  type FlexPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Flex', () => {
   it('renders children', () => {
@@ -47,6 +53,15 @@ describe('Flex', () => {
         {props => <Child {...props} />}
       </Flex>
     );
+  });
+
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Flex as="label" htmlFor="test-id">
+        Hello World
+      </Flex>
+    );
+    expectTypeOf<FlexProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {
@@ -106,5 +121,27 @@ describe('Flex', () => {
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
     expect(paddingFirst).toEqual(paddingBottomFirst);
+  });
+
+  describe('types', () => {
+    it('has a limited display prop', () => {
+      const props: FlexProps<any> = {};
+      expectTypeOf(props.display).toEqualTypeOf<
+        Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
+
+    it('default signature limits children to React.ReactNode', () => {
+      const props: FlexProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: FlexPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });

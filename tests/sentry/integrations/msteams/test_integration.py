@@ -1,13 +1,21 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
+import pytest
 import responses
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.msteams.integration import MsTeamsIntegrationProvider
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.integrations.msteams.integration import MsTeamsIntegration, MsTeamsIntegrationProvider
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
@@ -110,3 +118,71 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_personal_installation(self) -> None:
         self.assert_setup_flow(installation_type="tenant")
+
+
+@control_silo_test
+class MsTeamsIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="msteams",
+            name="MS Teams",
+            external_id=team_id,
+            metadata={
+                "access_token": "test-access-token",
+                "service_url": "https://smba.trafficmanager.net/amer/",
+                "installation_type": "team",
+                "tenant_id": tenant_id,
+            },
+        )
+        self.installation = MsTeamsIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.MSTEAMS,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="conversation123",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
+    def test_send_notification_success(self, mock_send_card: MagicMock) -> None:
+        from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+
+        payload: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.2",
+            "body": [],
+        }
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_send_card.assert_called_once_with(conversation_id="conversation123", card=payload)
+
+    @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
+    def test_send_notification_api_error(self, mock_send_card: MagicMock) -> None:
+        from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+
+        error_payload = json.dumps(
+            {
+                "error": {
+                    "code": "ConversationBlockedByUser",
+                    "message": "User blocked the conversation with the bot.",
+                },
+            }
+        )
+
+        mock_send_card.side_effect = ApiError(
+            text=error_payload,
+            code=400,
+        )
+        payload: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.2",
+            "body": [],
+        }
+
+        with pytest.raises(IntegrationConfigurationError) as e:
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert str(e.value) == error_payload

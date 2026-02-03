@@ -5,15 +5,17 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {SelectContext} from 'sentry/components/core/compactSelect/control';
-import {SelectFilterContext} from 'sentry/components/core/compactSelect/list';
 import {
+  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
+  SelectFilterContext,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+  type SelectKey,
+  type SelectSection,
+} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 
 import {GridListOption, type GridListOptionProps} from './option';
@@ -97,7 +99,7 @@ function GridList({
     }
   };
 
-  const {overlayIsOpen, search} = useContext(SelectContext);
+  const {overlayIsOpen, search} = useContext(ControlContext);
   const hiddenOptions = useContext(SelectFilterContext);
   const listItems = useMemo(
     () =>
@@ -115,9 +117,9 @@ function GridList({
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
-      <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
-        {overlayIsOpen &&
-          listItems.map(item => {
+      {overlayIsOpen && (
+        <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
+          {listItems.map(item => {
             if (item.type === 'section') {
               return (
                 <GridListSection
@@ -140,12 +142,13 @@ function GridList({
             );
           })}
 
-        {!search && hiddenOptions.size > 0 && (
-          <SizeLimitMessage>
-            {sizeLimitMessage ?? t('Use search to find more options…')}
-          </SizeLimitMessage>
-        )}
-      </ListWrap>
+          {!search && hiddenOptions.size > 0 && (
+            <SizeLimitMessage>
+              {sizeLimitMessage ?? t('Use search to find more options…')}
+            </SizeLimitMessage>
+          )}
+        </ListWrap>
+      )}
     </Fragment>
   );
 }

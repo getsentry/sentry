@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
     GroupOpenPeriodSerializer,
 )
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
@@ -44,9 +44,14 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     def get_group_from_detector_id(
         self, detector_id: str, organization: Organization
     ) -> Group | None:
+        validated_detector_id = to_valid_int_id("detectorId", detector_id)
         try:
-            detector = Detector.objects.select_related("project").get(id=detector_id)
-        except (Detector.DoesNotExist, ValueError):
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(id=validated_detector_id)
+            )
+        except Detector.DoesNotExist:
             raise ValidationError({"detectorId": "Detector not found"})
 
         if detector.project.organization_id != organization.id:
@@ -59,9 +64,10 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         return detector_group.group if detector_group else None
 
     def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group | None:
+        validated_group_id = to_valid_int_id("groupId", group_id)
         try:
-            group = Group.objects.select_related("project").get(id=group_id)
-        except (Group.DoesNotExist, ValueError):
+            group = Group.objects.select_related("project").get(id=validated_group_id)
+        except Group.DoesNotExist:
             raise ValidationError({"groupId": "Group not found"})
 
         if group.project.organization_id != organization.id:
@@ -92,6 +98,13 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 type=str,
                 description="ID of the issue group.",
             ),
+            OpenApiParameter(
+                name="eventId",
+                location="query",
+                required=False,
+                type=str,
+                description="ID of the event to filter open periods by.",
+            ),
         ],
         responses={
             200: GroupOpenPeriodSerializer,
@@ -112,6 +125,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         detector_id_param = request.GET.get("detectorId")
         group_id_param = request.GET.get("groupId")
+        event_id_param = request.GET.get("eventId")
+        # determines the time we need to subtract off of each timestamp before returning the data
+        bucket_size_param = request.GET.get("bucketSize", 0)
 
         if not detector_id_param and not group_id_param:
             raise ValidationError({"detail": "Must provide either detectorId or groupId"})
@@ -128,26 +144,29 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             )
         )
         if not target_group:
-            return Response(
-                {"detail": "Group not found. Could not query open periods."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        limit = None
-        per_page = request.GET.get("per_page")
-        if per_page:
-            limit = int(per_page)
-            assert limit > 0
+            return self.paginate(request=request, queryset=[])
 
         open_periods = get_open_periods_for_group(
             group=target_group,
             query_start=start,
             query_end=end,
-            limit=limit,
         )
+
+        if event_id_param:
+            open_periods = open_periods.filter(
+                groupopenperiodactivity__event_id=event_id_param
+            ).distinct()
+
         return self.paginate(
             request=request,
             queryset=open_periods,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                time_window=int(bucket_size_param),
+                query_start=start,
+                query_end=end,
+            ),
             count_hits=True,
         )

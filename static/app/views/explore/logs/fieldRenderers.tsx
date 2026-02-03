@@ -2,8 +2,10 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
@@ -145,7 +147,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-function TimestampRenderer(props: LogFieldRendererProps) {
+export function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
@@ -163,6 +165,12 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       </LogsTimestampTooltip>
     </LogDate>
   );
+}
+
+function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
+  const ingestedAt =
+    props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
+  return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
 }
 
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {
@@ -613,7 +621,7 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   });
 
   return (
-    <Container>
+    <Flex align="center">
       <ViewReplayLink
         replayId={replayId}
         to={target}
@@ -622,7 +630,7 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
       >
         {getShortEventId(replayId)}
       </ViewReplayLink>
-    </Container>
+    </Flex>
   );
 }
 
@@ -637,6 +645,7 @@ export const LogAttributesRendererMap: Record<
     }
     return TimestampRenderer(props);
   },
+  [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
@@ -669,9 +678,4 @@ const ClickableTimestamp = styled('span')`
   gap: ${space(0.25)};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
-`;
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
 `;

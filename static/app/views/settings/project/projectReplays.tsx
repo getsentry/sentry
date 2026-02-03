@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -12,25 +13,20 @@ import ReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/repla
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 const ReplaySettingsAlert = HookOrDefault({
   hookName: 'component:replay-settings-alert',
   defaultComponent: null,
 });
 
-interface Props {
-  project: Project; // Passed in by the parent route
-}
-
-export default function ProjectReplaySettings({project}: Props) {
+export default function ProjectReplaySettings() {
   const organization = useOrganization();
-  const {projectId} = useParams();
+  const {project} = useProjectSettingsOutlet();
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
@@ -107,7 +103,7 @@ export default function ProjectReplaySettings({project}: Props) {
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+              apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
               initialData={project.options}
               onSubmitSuccess={(
                 response // This will update our project context

@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -95,7 +96,7 @@ function VisualizeGhostField({
           aria-label={t('Drag to reorder')}
           icon={<IconGrabbable size="xs" />}
           size="zero"
-          borderless
+          priority="transparent"
         />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
@@ -204,7 +205,7 @@ function VisualizeGhostField({
             />
           )}
           <Button
-            borderless
+            priority="transparent"
             icon={<IconDelete />}
             size="zero"
             disabled
@@ -221,9 +222,9 @@ export default VisualizeGhostField;
 
 const Ghost = styled('div')`
   position: absolute;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;

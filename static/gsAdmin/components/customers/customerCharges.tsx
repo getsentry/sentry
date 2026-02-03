@@ -1,5 +1,6 @@
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -29,7 +30,7 @@ const getRow = (orgId: string, region: string, row: any) => [
     )}
   </td>,
   <td key="status" style={{textAlign: 'center'}}>
-    <Tag type={row.isPaid ? 'success' : 'warning'}>
+    <Tag variant={row.isPaid ? 'success' : 'warning'}>
       {row.isPaid ? 'paid' : row.failureCode}
     </Tag>
   </td>,

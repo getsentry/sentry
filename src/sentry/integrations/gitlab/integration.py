@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -10,6 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
@@ -20,21 +21,12 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.referrer_ids import GITLAB_OPEN_PR_BOT_REFERRER, GITLAB_PR_BOT_REFERRER
+from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
-    OPEN_PR_MAX_FILES_CHANGED,
-    OPEN_PR_MAX_LINES_CHANGED,
-    OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
-    OpenPRCommentWorkflow,
     PRCommentWorkflow,
-    PullRequestFile,
-    PullRequestIssue,
-    _open_pr_comment_log,
-)
-from sentry.integrations.source_code_management.language_parsers import (
-    get_patch_parsers_for_organization,
 )
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -42,6 +34,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
@@ -50,17 +43,17 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.snuba.referrer import Referrer
-from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import PatchParseError, patch_to_file_modifications
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
+from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
+from .utils import parse_gitlab_blob_url
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -121,7 +114,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
+class GitlabIntegration(
+    RepositoryIntegration, GitlabIssuesSpec, GitlabIssueSyncSpec, CommitContextIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -177,16 +172,87 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        branch, _, _ = url.partition("/")
+        if not repo.url:
+            return ""
+        branch, _ = parse_gitlab_blob_url(repo.url, url)
         return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        url = url.replace(f"{repo.url}/-/blob/", "")
-        url = url.replace(f"{repo.url}/blob/", "")
-        _, _, source_path = url.partition("/")
+        if not repo.url:
+            return ""
+        _, source_path = parse_gitlab_blob_url(repo.url, url)
         return source_path
+
+    # IssueSyncIntegration methods
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        config: list[dict[str, Any]] = []
+
+        if self.check_feature_flag():
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync GitLab Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitLab, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitLab"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitLab issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitLab"),
+                        "help": _("Post comments from Sentry issues to linked GitLab issues"),
+                    },
+                ]
+            )
+
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        config = self._get_organization_config_default_values()
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     # CommitContextIntegration methods
 
@@ -199,6 +265,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
             return True
 
         return False
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "group_id", "include_subgroups", "verify_ssl", "base_url"]
 
     # Gitlab only functions
 
@@ -221,9 +290,6 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitlabPRCommentWorkflow(integration=self)
-
-    def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
-        return GitlabOpenPRCommentWorkflow(integration=self)
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
@@ -275,186 +341,6 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
         return {
             "body": comment_body,
         }
-
-
-OPEN_PR_COMMENT_BODY_TEMPLATE = """\
-## 🔍 Existing Issues For Review
-Your merge request is modifying functions with the following pre-existing issues:
-
-{issue_tables}""".rstrip()
-
-OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
-📄 File: **{filename}**
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}"""
-
-OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
-<details>
-<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}
-</details>"""
-
-OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
-
-
-class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
-    integration: GitlabIntegration
-    organization_option_key = "sentry:gitlab_open_pr_bot"
-    referrer = Referrer.GITLAB_PR_COMMENT_BOT
-    referrer_id = GITLAB_OPEN_PR_BOT_REFERRER
-
-    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
-        client = self.integration.get_client()
-
-        try:
-            diffs = client.get_pr_diffs(repo=repo, pr=pr)
-        except ApiError as e:
-            if e.code == 404:
-                return []
-            else:
-                raise
-
-        changed_file_count = 0
-        changed_lines_count = 0
-        filtered_diffs = []
-
-        organization = Organization.objects.get_from_cache(id=repo.organization_id)
-        patch_parsers = get_patch_parsers_for_organization(organization)
-
-        for diff in diffs:
-            filename = diff["new_path"]
-            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
-            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
-
-            if filename.split(".")[-1] not in patch_parsers:
-                continue
-
-            try:
-                file_modifications = patch_to_file_modifications(diff["diff"])
-            except PatchParseError:
-                # TODO: This is caused because of the diffs are not in the correct format.
-                # This happens for Gitlab versions older than 16.5.
-                # The fix for this is to rebuild a consistent format using the other parts of the response.
-                # https://gitlab.com/gitlab-org/gitlab/-/issues/24913#note_1015454661
-                logger.warning(
-                    _open_pr_comment_log(
-                        integration_name=self.integration.integration_name,
-                        suffix="patch_parsing_error",
-                    )
-                )
-                continue
-            except Exception:
-                logger.exception(
-                    _open_pr_comment_log(
-                        integration_name=self.integration.integration_name,
-                        suffix="unexpected_error",
-                    )
-                )
-                continue
-
-            if not file_modifications.modified:
-                continue
-
-            changed_file_count += len(file_modifications.modified)
-            changed_lines_count += sum(
-                modification.lines_modified for modification in file_modifications.modified
-            )
-
-            filtered_diffs.append(diff)
-
-            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="rejected_comment"
-                    ),
-                    tags={"reason": "too_many_files"},
-                )
-                return []
-            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(
-                        integration=self.integration.integration_name, key="rejected_comment"
-                    ),
-                    tags={"reason": "too_many_lines"},
-                )
-                return []
-
-        return filtered_diffs
-
-    def get_pr_files_safe_for_comment(
-        self, repo: Repository, pr: PullRequest
-    ) -> list[PullRequestFile]:
-        pr_diffs = self.safe_for_comment(repo=repo, pr=pr)
-
-        if len(pr_diffs) == 0:
-            return []
-
-        pr_files = [
-            PullRequestFile(filename=diff["new_path"], patch=diff["diff"]) for diff in pr_diffs
-        ]
-
-        return pr_files
-
-    def get_comment_data(self, comment_body: str) -> dict[str, Any]:
-        return {
-            "body": comment_body,
-        }
-
-    @staticmethod
-    def format_comment_url(url: str, referrer: str) -> str:
-        return url + "?referrer=" + referrer
-
-    @staticmethod
-    def format_open_pr_comment(issue_tables: list[str]) -> str:
-        return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
-
-    @staticmethod
-    def format_open_pr_comment_subtitle(title_length, subtitle):
-        # the title length + " " + subtitle should be <= 52
-        subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
-        return (
-            subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
-        )
-
-    def format_issue_table(
-        self,
-        diff_filename: str,
-        issues: list[PullRequestIssue],
-        patch_parsers: dict[str, Any],
-        toggle: bool,
-    ) -> str:
-        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
-
-        if not language_parser:
-            return ""
-
-        issue_row_template = language_parser.issue_row_template
-
-        issue_rows = "\n".join(
-            [
-                issue_row_template.format(
-                    title=issue.title,
-                    subtitle=self.format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
-                    url=self.format_comment_url(issue.url, GITLAB_OPEN_PR_BOT_REFERRER),
-                    event_count=small_count(issue.event_count),
-                    function_name=issue.function_name,
-                    affected_users=small_count(issue.affected_users),
-                )
-                for issue in issues
-            ]
-        )
-
-        if toggle:
-            return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
-                filename=diff_filename, issue_rows=issue_rows
-            )
-
-        return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 class InstallationForm(forms.Form):

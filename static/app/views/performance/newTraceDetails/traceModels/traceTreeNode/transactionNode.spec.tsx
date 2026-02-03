@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
+  makeSpan,
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
@@ -12,9 +13,6 @@ import {TransactionNode} from './transactionNode';
 const createMockExtra = () => ({
   organization: OrganizationFixture(),
 });
-
-const mockFromSpans = jest.fn();
-const mockApplyPreference = jest.fn();
 
 describe('TransactionNode', () => {
   describe('constructor', () => {
@@ -28,13 +26,7 @@ describe('TransactionNode', () => {
         timestamp: 2000,
       });
 
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.canFetchChildren).toBe(true);
       expect(node.space).toEqual([1000 * 1e3, (2000 - 1000) * 1e3]);
@@ -51,13 +43,7 @@ describe('TransactionNode', () => {
         performance_issues: [performanceIssue],
       });
 
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.occurrences.has(performanceIssue)).toBe(true);
     });
@@ -66,17 +52,13 @@ describe('TransactionNode', () => {
       const parent = new TransactionNode(
         null,
         makeTransaction({start_timestamp: 1000}),
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
+        createMockExtra()
       );
 
       const child = new TransactionNode(
         parent as any,
         makeTransaction({start_timestamp: 500}),
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
+        createMockExtra()
       );
 
       expect(parent.children).toContain(child);
@@ -89,13 +71,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         event_id: 'test-event-id',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.id).toBe('test-event-id');
     });
@@ -104,13 +80,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         project_slug: 'test-project',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.projectSlug).toBe('test-project');
     });
@@ -119,13 +89,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         'transaction.op': 'http.server',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.op).toBe('http.server');
     });
@@ -134,13 +98,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         transaction: '/api/users',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.description).toBe('/api/users');
     });
@@ -149,13 +107,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         start_timestamp: 1500,
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.startTimestamp).toBe(1500);
     });
@@ -164,13 +116,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         timestamp: 2500,
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.endTimestamp).toBe(2500);
     });
@@ -182,13 +128,7 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
         transaction: '/api/users',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('http.server - /api/users');
     });
@@ -198,13 +138,7 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
         transaction: '',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.drawerTabsTitle).toBe('http.server');
     });
@@ -216,13 +150,7 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
         transaction: '/api/users',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.traceHeaderTitle).toEqual({
         title: 'http.server',
@@ -235,13 +163,7 @@ describe('TransactionNode', () => {
         'transaction.op': '',
         transaction: '/api/users',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.traceHeaderTitle.title).toBe('Trace');
     });
@@ -252,13 +174,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         event_id: '123',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchByPath('txn-123')).toBe(true);
       expect(node.matchByPath('txn-456')).toBe(false);
@@ -267,13 +183,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         event_id: 'txn-123',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('txn-123')).toBe(true);
     });
@@ -282,13 +192,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         span_id: 'span-456',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('span-456')).toBe(true);
     });
@@ -298,13 +202,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         errors: [error],
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('error-123')).toBe(true);
     });
@@ -313,13 +211,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         event_id: 'txn-123',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchById('unrelated-id')).toBe(false);
     });
@@ -330,13 +222,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         'transaction.op': 'http.server',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('http')).toBe(true);
       expect(node.matchWithFreeText('server')).toBe(true);
@@ -346,13 +232,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         transaction: '/api/users/profile',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('api')).toBe(true);
       expect(node.matchWithFreeText('users')).toBe(true);
@@ -362,13 +242,7 @@ describe('TransactionNode', () => {
       const transaction = makeTransaction({
         event_id: 'event-abc-123',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('event-abc-123')).toBe(true);
     });
@@ -378,13 +252,7 @@ describe('TransactionNode', () => {
         'transaction.op': 'http.server',
         transaction: '/api/users',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.matchWithFreeText('nonexistent')).toBe(false);
     });
@@ -397,13 +265,7 @@ describe('TransactionNode', () => {
         'transaction.op': 'navigation',
         sdk_name: 'javascript',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       const color = node.makeBarColor(ThemeFixture());
 
@@ -415,19 +277,11 @@ describe('TransactionNode', () => {
   describe('expand', () => {
     it('should expand and collapse', () => {
       const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
       const child1 = new TransactionNode(
         node,
         makeTransaction({start_timestamp: 500, 'transaction.op': 'http.server'}),
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
+        createMockExtra()
       );
 
       const mockTree = {
@@ -455,13 +309,7 @@ describe('TransactionNode', () => {
 
     it('should not expand when already expanded', () => {
       const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
       node.expanded = true;
       const mockTree = {list: [node]};
 
@@ -472,13 +320,7 @@ describe('TransactionNode', () => {
 
     it('should not expand when hasFetchedChildren is true', () => {
       const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
       node.hasFetchedChildren = true;
       const mockTree = {list: [node]};
 
@@ -491,13 +333,7 @@ describe('TransactionNode', () => {
   describe('analyticsName', () => {
     it('should return "transaction"', () => {
       const transaction = makeTransaction();
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.analyticsName()).toBe('transaction');
     });
@@ -506,13 +342,7 @@ describe('TransactionNode', () => {
   describe('pathToNode', () => {
     it('should return transaction path with event ID', () => {
       const transaction = makeTransaction({event_id: 'my-event-id'});
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.pathToNode()).toEqual(['txn-my-event-id']);
     });
@@ -524,13 +354,7 @@ describe('TransactionNode', () => {
         transaction: 'GET /api/users',
         'transaction.op': 'http.server',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.printNode()).toBe('GET /api/users - http.server');
     });
@@ -540,13 +364,7 @@ describe('TransactionNode', () => {
         transaction: undefined as any,
         'transaction.op': 'http.server',
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.printNode()).toBe('unknown transaction - http.server');
     });
@@ -556,15 +374,154 @@ describe('TransactionNode', () => {
         transaction: 'GET /api/users',
         'transaction.op': undefined as any,
       });
-      const node = new TransactionNode(
-        null,
-        transaction,
-        createMockExtra(),
-        mockFromSpans,
-        mockApplyPreference
-      );
+      const node = new TransactionNode(null, transaction, createMockExtra());
 
       expect(node.printNode()).toBe('GET /api/users - unknown op');
+    });
+  });
+
+  describe('resolveValueFromSearchKey', () => {
+    it('should resolve duration aliases to transaction duration', () => {
+      const transaction = makeTransaction({
+        start_timestamp: 1000,
+        timestamp: 2500,
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('duration')).toBe(1500 * 1e3);
+      expect(node.resolveValueFromSearchKey('transaction.total_time')).toBe(1500 * 1e3);
+    });
+
+    it('should resolve transaction-prefixed keys to value properties', () => {
+      const transaction = makeTransaction({
+        transaction: 'GET /api/users',
+        project_slug: 'my-project',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('transaction.project_slug')).toBe(
+        'my-project'
+      );
+    });
+
+    it('should return null for unrecognized keys', () => {
+      const transaction = makeTransaction({});
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
+      expect(node.resolveValueFromSearchKey('span.duration')).toBeNull();
+    });
+  });
+
+  describe('appendSpans cycle detection', () => {
+    it('should handle simple cycle (A -> B -> A) without infinite loop', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create spans with a cycle: A's parent is B, B's parent is A
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'span-b', // A's parent is B
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A (creates cycle)
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([spanA, spanB], null);
+
+      // Should complete without error and return valid bounds
+      expect(bounds).toBeDefined();
+      expect(Array.isArray(bounds)).toBe(true);
+
+      // Both spans should be attached to root since both form a cycle
+      expect(node.children).toHaveLength(2);
+      const childIds = node.children.map(c => c.id);
+      expect(childIds).toContain('span-a');
+      expect(childIds).toContain('span-b');
+    });
+
+    it('should handle longer cycle (A -> B -> C -> A) without infinite loop', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create spans with a longer cycle: A -> B -> C -> A
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'span-c', // A's parent is C
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A
+      });
+      const spanC = makeSpan({
+        span_id: 'span-c',
+        parent_span_id: 'span-b', // C's parent is B (creates cycle back to A)
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([spanA, spanB, spanC], null);
+
+      // Should complete without error
+      expect(bounds).toBeDefined();
+      expect(Array.isArray(bounds)).toBe(true);
+    });
+
+    it('should still build valid tree when no cycles exist', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create normal span hierarchy without cycles
+      const spanA = makeSpan({
+        span_id: 'span-a',
+        parent_span_id: 'root-span', // A's parent is root
+      });
+      const spanB = makeSpan({
+        span_id: 'span-b',
+        parent_span_id: 'span-a', // B's parent is A
+      });
+      const spanC = makeSpan({
+        span_id: 'span-c',
+        parent_span_id: 'span-b', // C's parent is B
+      });
+
+      const bounds = node.appendSpans([spanA, spanB, spanC], null);
+
+      expect(bounds).toBeDefined();
+      // All spans should be properly nested
+      expect(node.children).toHaveLength(1); // Only A is direct child of root
+      expect(node.children[0]?.id).toBe('span-a');
+    });
+
+    it('should handle self-referencing span', () => {
+      const transaction = makeTransaction({
+        event_id: 'txn-1',
+        span_id: 'root-span',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      // Create a span that references itself as parent
+      const selfRefSpan = makeSpan({
+        span_id: 'self-ref',
+        parent_span_id: 'self-ref', // Points to itself
+      });
+
+      // This should not cause infinite loop
+      const bounds = node.appendSpans([selfRefSpan], null);
+
+      expect(bounds).toBeDefined();
+      // The span should be attached to root since its parent creates a cycle
+      expect(node.children).toHaveLength(1);
     });
   });
 });

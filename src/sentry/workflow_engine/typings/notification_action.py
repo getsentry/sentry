@@ -6,6 +6,11 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.constants import SentryAppInstallationStatus
+from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.utils import json
+
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"
 
@@ -98,7 +103,8 @@ class EmailFieldMappingKeys(StrEnum):
     EmailFieldMappingKeys is an enum that represents the keys of an email field mapping.
     """
 
-    FALLTHROUGH_TYPE_KEY = "fallthroughType"
+    FALLTHROUGH_TYPE_KEY = "fallthrough_type"
+    FALLTHROUGH_TYPE_KEY_V2 = "fallthroughType"
     TARGET_TYPE_KEY = "targetType"
 
 
@@ -238,7 +244,21 @@ class BaseActionTranslator(ABC):
             "target_type": self.target_type if self.target_type is not None else None,
         }
         if self.action_type == ActionType.SENTRY_APP:
-            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+
+            installs = app_service.get_many(
+                filter={
+                    "uuids": [self.target_identifier],
+                    "status": SentryAppInstallationStatus.INSTALLED,
+                }
+            )
+            if not installs:
+                raise SentryAppError(
+                    message="Could not find sentry app install from uuid.",
+                    status_code=400,
+                )
+
+            base_config["target_identifier"] = str(installs[0].sentry_app.id)
 
         return base_config
 
@@ -575,12 +595,19 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
             self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
             == ActionTargetType.ISSUE_OWNERS.value
         ):
+            fallthrough_type: str | None = self.action.get(
+                EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
+                None,
+            )
+            if fallthrough_type is None:
+                fallthrough_type = self.action.get(
+                    EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY_V2.value,
+                    FallthroughChoiceType.ACTIVE_MEMBERS.value,
+                )
+
             return dataclasses.asdict(
                 EmailDataBlob(
-                    fallthroughType=self.action.get(
-                        EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value,
-                        FallthroughChoiceType.ACTIVE_MEMBERS.value,
-                    ),
+                    fallthrough_type=str(fallthrough_type),
                 )
             )
         return {}
@@ -643,6 +670,9 @@ class SentryAppActionTranslator(BaseActionTranslator):
         data = SentryAppDataBlob()
         if settings := self.action.get("settings"):
             for setting in settings:
+                # stringify setting value if it's a list
+                if isinstance(setting.get("value"), list):
+                    setting["value"] = json.dumps(setting["value"])
                 data.settings.append(SentryAppFormConfigDataBlob(**setting))
 
         return dataclasses.asdict(data)
@@ -740,7 +770,7 @@ class EmailDataBlob(DataBlob):
     EmailDataBlob represents the data blob for an email notification action.
     """
 
-    fallthroughType: str = ""
+    fallthrough_type: str = ""
 
 
 issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {

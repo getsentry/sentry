@@ -1,7 +1,7 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   AutomationBuilderSelect,
   selectControlStyles,
@@ -63,7 +63,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Notify member %s', `${user?.email ?? 'unknown'}`);
+  return t('Notify %s', `${user?.name ?? user?.email ?? 'unknown'}`);
 }
 
 export function EmailNode() {
@@ -104,14 +104,18 @@ function IdentifierField() {
 
   if (action.config.targetType === ActionTarget.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           aria-label={t('Team')}
           name={`${actionId}.config.targetIdentifier`}
           value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, targetIdentifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name,
+              },
               data: {},
             });
             removeError(action.id);
@@ -119,27 +123,31 @@ function IdentifierField() {
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
   if (action.config.targetType === ActionTarget.USER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
-          aria-label={t('User')}
+          ariaLabel={t('User')}
           organization={organization}
           key={`${actionId}.config.targetIdentifier`}
           value={action.config.targetIdentifier}
           onChange={(value: any) => {
             onUpdate({
-              config: {...action.config, targetIdentifier: value.actor.id},
+              config: {
+                ...action.config,
+                targetIdentifier: value.actor.id,
+                targetDisplay: value.actor.name ?? value.actor.email,
+              },
               data: {},
             });
             removeError(action.id);
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
   return tct('and, if none found, notify [fallthrough]', {
@@ -180,7 +188,3 @@ export function validateEmailAction(action: Action): string | undefined {
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

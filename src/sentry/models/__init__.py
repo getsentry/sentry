@@ -1,6 +1,7 @@
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
+from .apidevicecode import *  # NOQA
 from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
@@ -69,6 +70,7 @@ from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
+from .organizationcontributors import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
@@ -103,6 +105,7 @@ from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .repository import *  # NOQA
+from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA

@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 
@@ -99,7 +100,9 @@ class TrialSubscriptionAction extends Component<Props, State> {
       <Fragment>
         {startEnterpriseTrial && (
           <Alert.Container>
-            <Alert type="info">Spike protection will need to be manually disabled.</Alert>
+            <Alert variant="info">
+              Spike protection will need to be manually disabled.
+            </Alert>
           </Alert.Container>
         )}
         <NumberField

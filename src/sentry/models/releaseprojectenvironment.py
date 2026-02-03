@@ -15,8 +15,6 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.releases.commits import get_dual_write_start_date
-from sentry.releases.tasks import backfill_commits_for_release
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -86,20 +84,12 @@ class ReleaseProjectEnvironment(Model):
 
         # Same as releaseenvironment model. Minimizes last_seen updates to once a minute
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            old_last_seen = instance.last_seen
             cls.objects.filter(
                 id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
             ).update(last_seen=datetime)
             instance.last_seen = datetime
             cache.set(cache_key, instance, 3600)
             metrics_tags["bumped"] = "true"
-
-            dual_write_start = get_dual_write_start_date()
-            if dual_write_start and old_last_seen < dual_write_start <= datetime:
-                backfill_commits_for_release.delay(
-                    organization_id=project.organization_id,
-                    release_id=release.id,
-                )
         else:
             metrics_tags["bumped"] = "false"
 

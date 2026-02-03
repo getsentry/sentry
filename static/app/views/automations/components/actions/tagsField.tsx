@@ -9,7 +9,7 @@ export function TagsField() {
       name={`${actionId}.data.tags`}
       aria-label={t('Tags')}
       placeholder={t('e.g., environment,my_tag')}
-      value={action.data.tags}
+      value={action.data.tags ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
           data: {...action.data, tags: e.target.value},

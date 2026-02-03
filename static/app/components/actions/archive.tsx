@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -325,18 +326,18 @@ function ArchiveActions({
             aria-label={t('Archive options')}
             size={size}
             icon={
-              <IconChevron color="subText" direction={isOpen ? 'up' : 'down'} size="xs" />
+              <IconChevron variant="muted" direction={isOpen ? 'up' : 'down'} size="xs" />
             }
             disabled={disabled}
           />
         )}
         menuTitle={
-          <MenuWrapper>
+          <Flex justify="between" align="center">
             {t('Archive')}
             <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
-          </MenuWrapper>
+          </Flex>
         }
         items={dropdownItems}
         isDisabled={disabled}
@@ -349,21 +350,15 @@ export default ArchiveActions;
 
 const ArchiveButton = styled(Button)`
   box-shadow: none;
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
 `;
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;
 
-const MenuWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

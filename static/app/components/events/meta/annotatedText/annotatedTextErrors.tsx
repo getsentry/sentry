@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
@@ -60,7 +61,7 @@ export function AnnotatedTextErrors({errors = []}: {errors: MetaError[]}) {
         )
       }
     >
-      <StyledIconWarning color="errorText" data-test-id="annotated-text-error-icon" />
+      <StyledIconWarning variant="danger" data-test-id="annotated-text-error-icon" />
     </StyledTooltip>
   );
 }

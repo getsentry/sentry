@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -158,7 +161,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         client: GitHubApiClient,
         repo_name: str,
         pr_number: str,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Fetch general PR comments from GitHub.
 
@@ -185,7 +188,7 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
         client: GitHubApiClient,
         repo_name: str,
         pr_number: str,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Fetch PR review comments from GitHub.
 
@@ -203,5 +206,5 @@ class OrganizationPrCommentsEndpoint(OrganizationEndpoint):
                     "pr_number": pr_number,
                 }
             )
-            comments = client.get_pullrequest_comments(repo_name, pr_number)
+            comments = client.get_pull_request_comments(repo_name, pr_number)
             return comments or []

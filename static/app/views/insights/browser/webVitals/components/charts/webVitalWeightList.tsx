@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -39,7 +40,7 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
 }
 
 const Content = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const List = styled('ul')`
@@ -53,7 +54,7 @@ const ListItem = styled('li')``;
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
   margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   width: ${space(1)};
   height: ${space(1)};
   background-color: ${p => p.color};

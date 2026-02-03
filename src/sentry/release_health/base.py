@@ -38,6 +38,11 @@ SessionsQueryFunction = Literal[
     "foreground_anr_rate()",
     "unhandled_rate(session)",
     "unhandled_rate(user)",
+    "errored_rate(session)",
+    "errored_rate(user)",
+    "abnormal_rate(session)",
+    "abnormal_rate(user)",
+    "unhealthy_rate(session)",
 ]
 
 GroupByFieldName = Literal[
@@ -432,7 +437,7 @@ class ReleaseHealthBackend(Service):
         self,
         project_releases: Sequence[ProjectRelease],
         now: datetime | None = None,
-    ) -> Mapping[ProjectRelease, str]:
+    ) -> Mapping[ProjectRelease, datetime]:
         """Returns the oldest health data we have observed in a release
         in 90 days.  This is used for backfilling.
         """

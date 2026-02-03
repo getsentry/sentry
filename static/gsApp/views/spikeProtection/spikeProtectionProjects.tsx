@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -231,11 +232,11 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   const renderAccordionTitle = (project: Project) => {
     return (
-      <StyledAccordionTitle>
-        <AccordionTitleCell>
+      <Flex justify="between" align="center" width="100%" height="100%">
+        <Flex align="center" marginRight="xl">
           <StyledProjectBadge hideOverflow project={project} displayName={project.slug} />
-        </AccordionTitleCell>
-      </StyledAccordionTitle>
+        </Flex>
+      </Flex>
     );
   };
 
@@ -265,13 +266,13 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   return (
     <Fragment>
-      <Container>
+      <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
         <StyledButtonBar gap="0" merged>
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
         </StyledButtonBar>
-      </Container>
+      </Flex>
       <StyledPanelTable
         disablePadding={
           organization.features.includes('notification-actions') ? true : false
@@ -324,12 +325,6 @@ function SpikeProtectionProjects({subscription}: Props) {
 
 export default withSubscription(SpikeProtectionProjects);
 
-const Container = styled('div')`
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
-  display: flex;
-`;
-
 const StyledSearch = styled(SearchBar)`
   flex: 1;
 `;
@@ -343,14 +338,6 @@ const StyledProjectBadge = styled(ProjectBadge)`
   font-weight: bold;
 `;
 
-const StyledAccordionTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-`;
-
 const AccordionRowContainer = styled('div')`
   display: flex;
   width: 100%;
@@ -358,17 +345,11 @@ const AccordionRowContainer = styled('div')`
   padding-left: 0;
 `;
 
-const AccordionTitleCell = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(2)};
-`;
-
 const StyledAccordionDetails = styled('div')`
   margin-right: ${space(3)};
   margin-top: ${space(2)};
   padding-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledPanelTableHeader = styled('div')`

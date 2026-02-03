@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -13,7 +16,10 @@ import type {
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-import {VitalState, vitalStateColors} from 'sentry/views/performance/vitalDetail/utils';
+import {
+  makeVitalStateColors,
+  VitalState,
+} from 'sentry/views/performance/vitalDetail/utils';
 import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 type VitalBarProps = {
@@ -32,6 +38,7 @@ type VitalBarProps = {
 };
 
 export function VitalBar(props: VitalBarProps) {
+  const theme = useTheme();
   const {
     isLoading,
     data,
@@ -81,7 +88,7 @@ export function VitalBar(props: VitalBarProps) {
     ? null
     : (value ?? getP75(data?.[vital] ?? null, vital));
   const percents = getPercentsFromCounts(counts);
-  const colorStops = getColorStopsFromPercents(percents);
+  const colorStops = getColorStopsFromPercents(theme, percents);
 
   return (
     <Fragment>
@@ -173,15 +180,15 @@ function getPercentsFromCounts({
   return percents;
 }
 
-function getColorStopsFromPercents(percents: Percent[]) {
+function getColorStopsFromPercents(theme: Theme, percents: Percent[]) {
   return percents.map(({percent, vitalState}) => ({
     percent,
-    color: vitalStateColors[vitalState],
+    color: makeVitalStateColors(theme)[vitalState],
   }));
 }
 
 const BarDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;

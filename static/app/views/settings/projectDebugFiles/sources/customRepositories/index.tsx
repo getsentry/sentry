@@ -1,12 +1,13 @@
 import {useCallback, useEffect} from 'react';
 import type {Location} from 'history';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Panel from 'sentry/components/panels/panel';
@@ -15,10 +16,10 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -29,17 +30,16 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
 };
 
-function CustomRepositories({
+export default function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,
   project,
-  router,
   location,
 }: Props) {
+  const navigate = useNavigate();
   const orgSlug = organization.slug;
 
   const persistData = useCallback(
@@ -95,14 +95,14 @@ function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
         customRepository: undefined,
       },
     });
-  }, [location, router]);
+  }, [location, navigate]);
 
   const openDebugFileSourceDialog = useCallback(() => {
     const {customRepository} = location.query;
@@ -155,7 +155,7 @@ function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -220,5 +220,3 @@ function CustomRepositories({
     </Feature>
   );
 }
-
-export default CustomRepositories;

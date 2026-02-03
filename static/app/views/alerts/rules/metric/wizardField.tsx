@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -180,15 +181,19 @@ export default function WizardField({
           },
         ]
       : []),
-    {
-      label: t('CUSTOM'),
-      options: [
-        {
-          label: AlertWizardAlertNames.custom_transactions,
-          value: 'custom_transactions',
-        },
-      ],
-    },
+    ...((deprecateTransactionAlerts(organization)
+      ? []
+      : [
+          {
+            label: t('CUSTOM'),
+            options: [
+              {
+                label: AlertWizardAlertNames.custom_transactions,
+                value: 'custom_transactions',
+              },
+            ],
+          },
+        ]) as GroupedMenuOption[]),
   ];
 
   return (
@@ -231,7 +236,7 @@ export default function WizardField({
             <Select
               value={selectedTemplate}
               options={menuOptions}
-              disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
+              disabled={disabled}
               disabledReason={disabledReason}
               onChange={(option: MenuOption) => {
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

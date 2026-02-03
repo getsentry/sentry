@@ -17,30 +17,34 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 
 
-def as_tag_key(name: str, type: Literal["string", "number"]):
+def as_tag_key(name: str, type: Literal["string", "number", "boolean"]):
     key, _, _ = translate_internal_to_public_alias(name, type, SupportedTraceItemType.SPANS)
 
     if key is not None:
         name = key
     elif type == "number":
         key = f"tags[{name},number]"
+    elif type == "boolean":
+        key = f"tags[{name},boolean]"
     else:
         key = name
 
@@ -52,15 +56,17 @@ def as_tag_key(name: str, type: Literal["string", "number"]):
     }
 
 
-class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.VISIBILITY
+    owner = ApiOwner.DATA_BROWSING
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(["string", "number"], required=False, default="string")
+    type = serializers.ChoiceField(
+        ["string", "number", "boolean"], required=False, default="string"
+    )
 
 
 @region_silo_endpoint
@@ -105,18 +111,19 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             )
             meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
+            attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
+                serialized["type"], AttributeKey.Type.TYPE_STRING
+            )
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
                 limit=max_span_tags,
                 offset=0,
-                type=(
-                    AttributeKey.Type.TYPE_DOUBLE
-                    if serialized["type"] == "number"
-                    else AttributeKey.Type.TYPE_STRING
-                ),
+                type=attr_type,
             )
 
             rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         paginator = ChainPaginator(
             [
@@ -124,6 +131,11 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                     as_tag_key(attribute.name, serialized["type"])
                     for attribute in rpc_response.attributes
                     if attribute.name
+                    and can_expose_attribute(
+                        attribute.name,
+                        SupportedTraceItemType.SPANS,
+                        include_internal=include_internal,
+                    )
                 ],
             ],
             max_limit=max_span_tags,
@@ -175,7 +187,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         with handle_query_errors():
             tag_values = executor.execute()
 
-        tag_values.sort(key=lambda tag: tag.value)
+        tag_values.sort(key=lambda tag: tag.value or "")
 
         paginator = ChainPaginator([tag_values], max_limit=max_span_tag_values)
 

@@ -1,6 +1,9 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -11,12 +14,10 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -112,14 +113,15 @@ export function UptimeDataSection({group, event, project}: Props) {
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindow = location.query?.timeWindow as TimeWindow;
   const {since, until} = usePageFilterDates();
+  const timezone = useTimezone();
 
   const timeWindowConfig = useMemo(() => {
     if (defined(timeWindow)) {
       const {start, end} = getTimeRangeFromEvent(event, now, timeWindow);
-      return getConfigFromTimeRange(start, end, timelineWidth);
+      return getConfigFromTimeRange(start, end, timelineWidth, timezone);
     }
-    return getConfigFromTimeRange(since, until, timelineWidth);
-  }, [timeWindow, timelineWidth, since, until, event, now]);
+    return getConfigFromTimeRange(since, until, timelineWidth, timezone);
+  }, [timeWindow, timelineWidth, since, until, event, now, timezone]);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: detectorId ? [String(detectorId)] : [],
@@ -192,7 +194,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Text = styled('div')`
@@ -207,7 +209,7 @@ const TimelineContainer = styled(Panel)`
 `;
 
 const StyledGridLineTimeLabels = styled(GridLineLabels)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const TimelineWidthTracker = styled('div')`

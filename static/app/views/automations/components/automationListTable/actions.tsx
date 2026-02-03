@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -153,7 +154,7 @@ export function AutomationsTableActions({
   return (
     <Fragment>
       <SimpleTable.Header>
-        <ActionsBarWrapper>
+        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
           <Checkbox
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             onChange={s => {
@@ -187,24 +188,24 @@ export function AutomationsTableActions({
           >
             {t('Delete')}
           </Button>
-        </ActionsBarWrapper>
+        </Flex>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" showIcon={false}>
+        <FullWidthAlert variant="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
-              tct('Selected all [count] automations that match this search query.', {
+              tct('Selected all [count] alerts that match this search query.', {
                 count: queryCount,
               })
             ) : (
               <Fragment>
                 {tn(
-                  '%s automation on this page selected.',
-                  '%s automations on this page selected.',
+                  '%s alert on this page selected.',
+                  '%s alerts on this page selected.',
                   selected.size
                 )}
                 <Button priority="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] automations that match this search query.', {
+                  {tct('Select all [count] alerts that match this search query.', {
                     count: queryCount,
                   })}
                 </Button>
@@ -218,14 +219,5 @@ export function AutomationsTableActions({
 }
 
 const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
-
-const ActionsBarWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: 0 ${p => p.theme.space.xl};
-  width: 100%;
   grid-column: 1 / -1;
 `;

@@ -1,64 +1,69 @@
-import {Link} from 'react-router-dom';
+import React from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis, IconTelescope} from 'sentry/icons';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import IdBadge from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
+import Version from 'sentry/components/version';
+import {
+  IconDelete,
+  IconDownload,
+  IconEllipsis,
+  IconRefresh,
+  IconSettings,
+  IconTelescope,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoCompleted,
+  isSizeInfoRetryable,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
-import {createActionMenuItems} from './buildDetailsActionItems';
 import {useBuildDetailsActions} from './useBuildDetailsActions';
-
-function makeReleasesUrl(
-  projectId: string | undefined,
-  query: {appId?: string; version?: string}
-): string {
-  const {appId, version} = query;
-
-  // Not knowing the projectId should be transient.
-  if (projectId === undefined) {
-    return '#';
-  }
-
-  const params = new URLSearchParams();
-  params.set('project', projectId);
-  const parts = [];
-  if (appId) {
-    parts.push(`release.package:${appId}`);
-  }
-  if (version) {
-    parts.push(`release.version:${version}`);
-  }
-  if (parts.length) {
-    params.set('query', parts.join(' '));
-  }
-  return `/explore/releases/?${params}`;
-}
 
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
+  projectType: string | null;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const router = useRouter();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteAction, handleDownloadAction} =
-    useBuildDetailsActions({
-      projectId,
-      artifactId,
-    });
+  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
+  const {
+    isDeletingArtifact,
+    isRerunningStatusChecks,
+    handleDeleteArtifact,
+    handleRerunAction,
+    handleDownloadAction,
+    handleRerunStatusChecksAction,
+  } = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const {
     data: buildDetailsData,
@@ -84,24 +89,25 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getById(projectId);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {
-        version: buildDetailsData.app_info.version ?? undefined,
-      }),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
 
-  if (buildDetailsData.app_info.version) {
+  const version = buildDetailsData.app_info?.version;
+  const buildNumber = buildDetailsData.app_info?.build_number;
+
+  if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
-        version: buildDetailsData.app_info.version ?? undefined,
-        appId: buildDetailsData.app_info.app_id ?? undefined,
+      to: makeReleasesUrl(organization.slug, projectId, {
+        query: version,
+        tab: 'mobile-builds',
       }),
-      label: buildDetailsData.app_info.version,
+      label: version,
     });
   }
 
@@ -109,43 +115,188 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  const actionMenuItems = createActionMenuItems({
-    handleDeleteAction,
-    handleDownloadAction,
-    isSentryEmployee,
-  });
+  let versionTitle: string | undefined = undefined;
+  if (version) {
+    versionTitle = `v${version}`;
+    if (buildNumber) {
+      versionTitle += ` (${buildNumber})`;
+    }
+  }
+
+  const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
+  const canRerunStatusChecks =
+    areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
+
+  const handleCompareClick = () => {
+    if (!areActionsEnabled) {
+      return;
+    }
+    trackAnalytics('preprod.builds.details.compare_build_clicked', {
+      organization,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
+      project_type: projectType,
+      project_slug: project?.slug,
+    });
+    router.push(
+      getCompareBuildPath({
+        organizationSlug: organization.slug,
+        projectId,
+        headArtifactId: buildDetailsData.id,
+      })
+    );
+  };
+
+  const handleConfirmDelete = () => {
+    handleDeleteArtifact();
+    trackAnalytics('preprod.builds.details.delete_build', {
+      organization,
+      platform: buildDetailsData.app_info?.platform ?? null,
+      build_id: buildDetailsData.id,
+      project_slug: project?.slug,
+      project_type: projectType,
+    });
+  };
 
   return (
-    <Flex direction="column" padding="0 0 xl 0">
-      <Breadcrumbs crumbs={breadcrumbs} />
-      <Flex align="center" justify="between" gap="md">
-        <Heading as="h1">
-          v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
-        </Heading>
-        <Flex align="center" gap="sm" flexShrink={0}>
-          <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
-          >
-            <Button size="sm" priority="default" icon={<IconTelescope />}>
-              {t('Compare Build')}
-            </Button>
-          </Link>
-          <DropdownMenu
-            items={actionMenuItems}
-            trigger={(triggerProps, _isOpen) => (
-              <DropdownButton
-                {...triggerProps}
-                size="sm"
-                aria-label="More actions"
-                showChevron={false}
-                disabled={isDeletingArtifact || !artifactId}
-              >
-                <IconEllipsis />
-              </DropdownButton>
-            )}
-          />
+    <React.Fragment>
+      <Layout.HeaderContent>
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
         </Flex>
-      </Flex>
-    </Flex>
+        <Layout.Title>
+          <Flex align="center" gap="sm" minHeight="1lh">
+            {project && <IdBadge project={project} avatarSize={28} hideName />}
+            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
+            {!versionTitle && <Placeholder width="30ch" height="1em" />}
+          </Flex>
+        </Layout.Title>
+      </Layout.HeaderContent>
+
+      <Layout.HeaderActions>
+        <Flex align="center" gap="sm" flexShrink={0}>
+          <FeedbackButton
+            feedbackOptions={{
+              tags: {
+                'feedback.source': 'preprod.buildDetails',
+              },
+            }}
+          />
+          <Button
+            size="sm"
+            priority="default"
+            icon={<IconTelescope />}
+            onClick={handleCompareClick}
+            disabled={!areActionsEnabled}
+            title={
+              areActionsEnabled
+                ? undefined
+                : t('Size analysis must be completed to compare builds')
+            }
+          >
+            {t('Compare Build')}
+          </Button>
+          <Feature features="organizations:preprod-frontend-routes">
+            {project && (
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${project?.slug}/mobile-builds/`}
+              />
+            )}
+          </Feature>
+          <ConfirmDelete
+            message={t(
+              'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
+            )}
+            confirmInput={artifactId}
+            onConfirm={handleConfirmDelete}
+          >
+            {({open: openDeleteModal}) => {
+              const menuItems: MenuItemProps[] = [
+                {
+                  key: 'rerun-status-checks',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconRefresh size="sm" />
+                      {t('Rerun Status Checks')}
+                    </Flex>
+                  ),
+                  onAction: handleRerunStatusChecksAction,
+                  textValue: t('Rerun Status Checks'),
+                  disabled: !canRerunStatusChecks,
+                  tooltip: canRerunStatusChecks
+                    ? undefined
+                    : t('Size analysis must be completed to rerun status checks'),
+                },
+                {
+                  key: 'delete',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconDelete size="sm" variant="danger" />
+                      <Text variant="danger">{t('Delete Build')}</Text>
+                    </Flex>
+                  ),
+                  onAction: openDeleteModal,
+                  textValue: t('Delete Build'),
+                },
+              ];
+
+              if (isSentryEmployee) {
+                menuItems.push({
+                  key: 'admin-section',
+                  label: t('Admin (Sentry Employees only)'),
+                  children: [
+                    {
+                      key: 'rerun',
+                      label: (
+                        <Flex align="center" gap="sm">
+                          <IconRefresh size="sm" />
+                          {t('Rerun Analysis')}
+                        </Flex>
+                      ),
+                      onAction: handleRerunAction,
+                      textValue: t('Rerun Analysis'),
+                    },
+                    {
+                      key: 'download',
+                      label: (
+                        <Flex align="center" gap="sm">
+                          <IconDownload size="sm" />
+                          {t('Download Build')}
+                        </Flex>
+                      ),
+                      onAction: handleDownloadAction,
+                      textValue: t('Download Build'),
+                    },
+                  ],
+                });
+              }
+
+              return (
+                <DropdownMenu
+                  items={menuItems}
+                  trigger={(triggerProps, _isOpen) => (
+                    <DropdownButton
+                      {...triggerProps}
+                      size="sm"
+                      aria-label="More actions"
+                      showChevron={false}
+                      disabled={
+                        isDeletingArtifact || isRerunningStatusChecks || !artifactId
+                      }
+                    >
+                      <IconEllipsis />
+                    </DropdownButton>
+                  )}
+                />
+              );
+            }}
+          </ConfirmDelete>
+        </Flex>
+      </Layout.HeaderActions>
+    </React.Fragment>
   );
 }

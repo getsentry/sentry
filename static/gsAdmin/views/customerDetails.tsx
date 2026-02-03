@@ -16,6 +16,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   fetchMutation,
@@ -34,7 +35,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import addBillingMetricUsage from 'admin/components/addBillingMetricUsage';
 import addGiftBudgetAction from 'admin/components/addGiftBudgetAction';
 import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
-import {triggerAM2CompatibilityCheck} from 'admin/components/am2CompatibilityCheckModal';
 import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
@@ -43,6 +43,7 @@ import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
+import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
 import CustomerIntegrations from 'admin/components/customers/customerIntegrations';
 import CustomerInvoices from 'admin/components/customers/customerInvoices';
 import CustomerMembers from 'admin/components/customers/customerMembers';
@@ -85,11 +86,20 @@ import {
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [`/customers/${orgId}/`];
+  return [
+    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+  ];
 }
 
 function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [`/organizations/${orgId}/`, {query: {detailed: 0, include_feature_flags: 1}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {query: {detailed: 0, include_feature_flags: 1}},
+  ];
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
@@ -227,11 +237,6 @@ export default function CustomerDetails() {
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
-        .filter(
-          category =>
-            subscription.planDetails.checkoutCategories.includes(category) ||
-            subscription.planDetails.onDemandCategories.includes(category)
-        )
         .filter(category => {
           const categoryInfo = getCategoryInfoFromPlural(category);
           return categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
@@ -321,11 +326,10 @@ export default function CustomerDetails() {
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Grace Period', level: 'warning', visible: subscription.isGracePeriod},
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
-      level: 'error',
+      level: 'danger',
       help: subscription.suspensionReason,
       visible: subscription.isSuspended,
     },
@@ -440,15 +444,6 @@ export default function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
-          },
-          {
-            key: 'allowGrace',
-            name: 'Allow Grace Period',
-            help: 'Allow this account to enter a grace period upon next overage.',
-            disabled: subscription.canGracePeriod,
-            disabledReason: 'Account may already be in a grace period',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, canGracePeriod: true}),
           },
           {
             key: 'clearPendingChanges',
@@ -596,6 +591,7 @@ export default function CustomerDetails() {
           {
             key: 'changeDates',
             name: 'Change Dates',
+            // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
             help: 'Change the contract and on-demand period dates.',
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
@@ -640,13 +636,6 @@ export default function CustomerDetails() {
                   : null,
                 onSuccess: reloadData,
               }),
-          },
-          {
-            key: 'checkAM2',
-            name: 'Check AM2 Compatibility',
-            help: 'Check if this account can be switched to AM2',
-            skipConfirmModal: true,
-            onAction: () => triggerAM2CompatibilityCheck({organization}),
           },
           {
             key: 'closeAccount',
@@ -913,6 +902,10 @@ export default function CustomerDetails() {
           {
             noPanel: true,
             content: <CustomerProjects orgId={orgId} />,
+          },
+          {
+            noPanel: true,
+            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
           },
           {
             noPanel: true,

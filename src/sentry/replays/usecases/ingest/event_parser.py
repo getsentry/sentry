@@ -47,6 +47,14 @@ class MultiClickEvent:
     click_count: int
 
 
+@dataclass(frozen=True)
+class TapEvent:
+    timestamp: int
+    message: str
+    view_class: str
+    view_id: str
+
+
 @dataclass
 class HydrationError:
     timestamp: float
@@ -67,6 +75,7 @@ class ParsedEventMeta:
     mutation_events: list[MutationEvent]
     options_events: list[dict[str, Any]]
     request_response_sizes: list[tuple[Any, Any]]
+    tap_events: list[TapEvent]
 
 
 class EventContext(TypedDict):
@@ -77,6 +86,14 @@ class EventContext(TypedDict):
     trace_id: str | None
     replay_id: str
     segment_id: int
+    user_id: str | None
+    user_email: str | None
+    user_name: str | None
+    user_ip: str | None
+    user_geo_city: str | None
+    user_geo_country_code: str | None
+    user_geo_region: str | None
+    user_geo_subdivision: str | None
 
 
 @sentry_sdk.trace
@@ -120,6 +137,14 @@ class EventType(Enum):
     CLS = 21
     NAVIGATION_SPAN = 22
     MULTI_CLICK = 23
+    TAP = 24
+    DEVICE_BATTERY = 25
+    DEVICE_ORIENTATION = 26
+    DEVICE_CONNECTIVITY = 27
+    SCROLL = 28
+    SWIPE = 29
+    BACKGROUND = 30
+    FOREGROUND = 31
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -183,6 +208,22 @@ def which(event: dict[str, Any]) -> EventType:
                     return EventType.MUTATIONS
                 elif category == "sentry.feedback":
                     return EventType.FEEDBACK
+                elif category == "ui.tap":
+                    return EventType.TAP
+                elif category == "device.battery":
+                    return EventType.DEVICE_BATTERY
+                elif category == "device.orientation":
+                    return EventType.DEVICE_ORIENTATION
+                elif category == "device.connectivity":
+                    return EventType.DEVICE_CONNECTIVITY
+                elif category == "ui.scroll":
+                    return EventType.SCROLL
+                elif category == "ui.swipe":
+                    return EventType.SWIPE
+                elif category == "app.background":
+                    return EventType.BACKGROUND
+                elif category == "app.foreground":
+                    return EventType.FOREGROUND
                 else:
                     return EventType.UNKNOWN
             elif event["data"]["tag"] == "performanceSpan":
@@ -263,6 +304,14 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.OPTIONS
             | EventType.UNKNOWN
             | EventType.FEEDBACK  # feedback breadcrumbs from the SDK have MS timestamps.
+            | EventType.TAP
+            | EventType.DEVICE_BATTERY
+            | EventType.DEVICE_ORIENTATION
+            | EventType.DEVICE_CONNECTIVITY
+            | EventType.SCROLL
+            | EventType.SWIPE
+            | EventType.BACKGROUND
+            | EventType.FOREGROUND
         ):
             return "ms"
 
@@ -300,12 +349,17 @@ def parse_trace_item(
 ) -> TraceItem | None:
     try:
         return as_trace_item(context, event_type, event)
-    except (AttributeError, KeyError, TypeError, ValueError) as e:
-        logger.warning(
-            "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
-            exc_info=e,
-            extra={"event": event},
-        )
+    except (AttributeError, KeyError, TypeError, ValueError):
+        if random.random() < 0.01:
+            logger.warning(
+                "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
+                exc_info=True,
+                extra={
+                    "organization_id": context["organization_id"],
+                    "project_id": context["project_id"],
+                    "event": event,
+                },
+            )
         return None
 
 
@@ -320,6 +374,32 @@ def as_trace_item(
     # Extend the attributes with the replay_id to make it queryable by replay_id after we
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
+    trace_item_context["attributes"]["segment_id"] = context["segment_id"]
+
+    user_id = context.get("user_id")
+    if user_id is not None:
+        trace_item_context["attributes"]["user_id"] = user_id
+    user_email = context.get("user_email")
+    if user_email is not None:
+        trace_item_context["attributes"]["user_email"] = user_email
+    user_name = context.get("user_name")
+    if user_name is not None:
+        trace_item_context["attributes"]["user_name"] = user_name
+    user_ip = context.get("user_ip")
+    if user_ip is not None:
+        trace_item_context["attributes"]["user_ip"] = user_ip
+    user_geo_city = context.get("user_geo_city")
+    if user_geo_city is not None:
+        trace_item_context["attributes"]["user_geo_city"] = user_geo_city
+    user_geo_country_code = context.get("user_geo_country_code")
+    if user_geo_country_code is not None:
+        trace_item_context["attributes"]["user_geo_country_code"] = user_geo_country_code
+    user_geo_region = context.get("user_geo_region")
+    if user_geo_region is not None:
+        trace_item_context["attributes"]["user_geo_region"] = user_geo_region
+    user_geo_subdivision = context.get("user_geo_subdivision")
+    if user_geo_subdivision is not None:
+        trace_item_context["attributes"]["user_geo_subdivision"] = user_geo_subdivision
 
     return new_trace_item(
         {
@@ -393,6 +473,19 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.MULTI_CLICK:
             return None
+        case EventType.TAP:
+            payload = event.get("data", {}).get("payload", {})
+            tap_attributes: dict[str, Value] = {
+                "category": "ui.tap",
+                "message": as_string_strict(payload["message"]),
+                "view_id": as_string_strict(payload["data"]["view.id"]),
+                "view_class": as_string_strict(payload["data"]["view.class"]),
+            }
+            return {
+                "attributes": tap_attributes,
+                "event_hash": uuid.uuid4().bytes,
+                "timestamp": float(payload["timestamp"]),
+            }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
             payload_data = payload.get("data", {})
@@ -566,6 +659,20 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.NAVIGATION_SPAN:
             return None
+        case EventType.DEVICE_BATTERY:
+            return None
+        case EventType.DEVICE_ORIENTATION:
+            return None
+        case EventType.DEVICE_CONNECTIVITY:
+            return None
+        case EventType.SCROLL:
+            return None
+        case EventType.SWIPE:
+            return None
+        case EventType.BACKGROUND:
+            return None
+        case EventType.FOREGROUND:
+            return None
 
 
 def as_string_strict(value: Any) -> str:
@@ -594,6 +701,7 @@ class HighlightedEvents(TypedDict, total=False):
     multiclicks: list[MultiClickEvent]
     request_response_sizes: list[tuple[int | None, int | None]]
     options: list[dict[str, Any]]
+    taps: list[TapEvent]
 
 
 class HighlightedEventsBuilder:
@@ -607,6 +715,7 @@ class HighlightedEventsBuilder:
             "mutations": [],
             "options": [],
             "request_response_sizes": [],
+            "taps": [],
         }
 
     def add(self, event_type: EventType, event: dict[str, Any], sampled: bool) -> None:
@@ -623,6 +732,7 @@ class HighlightedEventsBuilder:
             self.events["mutations"],
             self.events["options"],
             self.events["request_response_sizes"],
+            self.events["taps"],
         )
 
 
@@ -673,6 +783,9 @@ def as_highlighted_event(
             return {}
     elif event_type == EventType.OPTIONS and sampled:
         return {"options": [event]}
+    elif event_type == EventType.TAP:
+        tap = parse_tap_event(event["data"]["payload"])
+        return {"taps": [tap]} if tap else {}
     else:
         return {}
 
@@ -705,6 +818,16 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
         response_size = None
 
     return request_size, response_size
+
+
+def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:
+    payload_data = payload.get("data", {})
+    return TapEvent(
+        timestamp=int(payload["timestamp"]),
+        message=payload.get("message", ""),
+        view_class=payload_data.get("view.class", ""),
+        view_id=payload_data.get("view.id", ""),
+    )
 
 
 def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> ClickEvent | None:

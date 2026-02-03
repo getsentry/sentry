@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
@@ -126,7 +127,11 @@ export function MEPTag() {
 
   const tagText = isMetricsData ? 'processed' : 'indexed';
 
-  return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
+  return (
+    <Tag variant="muted" data-test-id="has-metrics-data-tag">
+      {tagText}
+    </Tag>
+  );
 }
 
 type ExtractionStatus = 'extracted' | 'not-extracted' | null;

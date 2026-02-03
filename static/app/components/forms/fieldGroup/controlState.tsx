@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Spinner from 'sentry/components/forms/spinner';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
@@ -43,7 +44,7 @@ export function ControlState({
         </ControlStateWrapper>
       ) : isSaved ? (
         <ControlStateWrapper>
-          <StyledIconCheckmark color="success" size="sm" />
+          <StyledIconCheckmark variant="success" size="sm" />
         </ControlStateWrapper>
       ) : null}
 
@@ -56,7 +57,7 @@ export function ControlState({
             forceVisible
             skipWrapper
           >
-            <StyledIconWarning color="error" size="sm" />
+            <StyledIconWarning variant="danger" size="sm" />
           </Tooltip>
         </ControlStateWrapper>
       ) : null}

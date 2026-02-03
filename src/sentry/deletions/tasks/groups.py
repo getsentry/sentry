@@ -20,7 +20,7 @@ from sentry.taskworker.retry import Retry
     retry=Retry(times=MAX_RETRIES, delay=60 * 5),
     silo_mode=SiloMode.REGION,
 )
-@retry(exclude=(DeleteAborted,))
+@retry(exclude=(DeleteAborted,), timeouts=True)
 @track_group_async_operation
 def delete_groups_for_project(
     project_id: int,

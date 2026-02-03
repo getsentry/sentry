@@ -1,15 +1,20 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
+
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
+import {createablePlatforms} from 'sentry/data/platformPickerCategories';
+import platforms from 'sentry/data/platforms';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -86,6 +91,9 @@ export function WizardProjectSelection({
 
   const [newProjectName, setNewProjectName] = useState(platformParam || '');
   const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
+  const [newProjectPlatform, setNewProjectPlatform] = useState<string | null>(
+    platformParam || null
+  );
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
@@ -118,9 +126,7 @@ export function WizardProjectSelection({
     : false;
   const hasSelectableTeams = (selectableTeams ?? []).length > 0;
   const isCreationEnabled =
-    canUserCreateProject &&
-    platformParam &&
-    (isOrgMemberWithNoAccess || hasSelectableTeams);
+    canUserCreateProject && (isOrgMemberWithNoAccess || hasSelectableTeams);
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
   const createProjectMutation = useCreateProjectFromWizard();
@@ -156,6 +162,19 @@ export function WizardProjectSelection({
 
   const {options: cachedProjectOptions, clear: clearProjectOptions} =
     useCompactSelectOptionsCache(projectOptions);
+
+  const platformOptions = useMemo(
+    () =>
+      platforms
+        .filter(platform => createablePlatforms.has(platform.id))
+        .map(platform => ({
+          value: platform.id,
+          label: platform.name,
+          leadingItems: <PlatformIcon platform={platform.id} size={16} />,
+          searchKey: platform.name,
+        })),
+    []
+  );
 
   // Set the selected project to the first option if there is only one
   useEffect(() => {
@@ -197,8 +216,8 @@ export function WizardProjectSelection({
 
   const isProjectSelected = isCreateProjectSelected
     ? isOrgMemberWithNoAccess
-      ? newProjectName
-      : newProjectName && newProjectTeam
+      ? newProjectName && (platformParam || newProjectPlatform)
+      : newProjectName && (platformParam || newProjectPlatform) && newProjectTeam
     : selectedProject;
 
   const isFormValid = selectedOrg && isProjectSelected;
@@ -217,7 +236,7 @@ export function WizardProjectSelection({
             organization: selectedOrg,
             team: newProjectTeam,
             name: newProjectName,
-            platform: platformParam || 'other',
+            platform: newProjectPlatform || platformParam || 'other',
           });
 
           projectId = project.id;
@@ -250,6 +269,7 @@ export function WizardProjectSelection({
       createProjectMutation,
       newProjectTeam,
       newProjectName,
+      newProjectPlatform,
       updateWizardCacheMutation,
     ]
   );
@@ -265,6 +285,34 @@ export function WizardProjectSelection({
   } else if (search) {
     emptyMessage = t('No projects matching search');
   }
+
+  const platformField = (
+    <FieldWrapper>
+      <label>{t('Platform')}</label>
+      <StyledCompactSelect
+        value={newProjectPlatform as string}
+        searchable
+        options={platformOptions}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={
+              newProjectPlatform ? (
+                <PlatformIcon platform={newProjectPlatform} size={16} />
+              ) : null
+            }
+          >
+            {newProjectPlatform
+              ? platforms.find(p => p.id === newProjectPlatform)!.name
+              : t('Select a platform')}
+          </OverlayTrigger.Button>
+        )}
+        onChange={({value}) => {
+          setNewProjectPlatform(value as string);
+        }}
+      />
+    </FieldWrapper>
+  );
 
   const projectNameField = (
     <FieldWrapper>
@@ -288,16 +336,22 @@ export function WizardProjectSelection({
             value={selectedOrgId as string}
             searchable
             options={orgOptions}
-            triggerProps={{
-              icon: selectedOrg ? (
-                <OrganizationAvatar size={16} organization={selectedOrg} />
-              ) : null,
-              children: selectedOrg ? (
-                getOrgDisplayName(selectedOrg)
-              ) : (
-                <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={
+                  selectedOrg ? (
+                    <OrganizationAvatar size={16} organization={selectedOrg} />
+                  ) : null
+                }
+              >
+                {selectedOrg ? (
+                  getOrgDisplayName(selectedOrg)
+                ) : (
+                  <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
+                )}
+              </OverlayTrigger.Button>
+            )}
             onChange={({value}) => {
               if (value !== selectedOrgId) {
                 setSelectedOrgId(value as string);
@@ -324,18 +378,24 @@ export function WizardProjectSelection({
               value={selectedProjectId as string}
               searchable
               options={sortedProjectOptions}
-              triggerProps={{
-                icon: isCreateProjectSelected ? (
-                  <IconAdd isCircled />
-                ) : selectedProject ? (
-                  <ProjectBadge avatarSize={16} project={selectedProject} hideName />
-                ) : null,
-                children: isCreateProjectSelected
-                  ? t('Create Project')
-                  : selectedProject?.slug || (
-                      <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-                    ),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    isCreateProjectSelected ? (
+                      <IconAdd />
+                    ) : selectedProject ? (
+                      <ProjectBadge avatarSize={16} project={selectedProject} hideName />
+                    ) : null
+                  }
+                >
+                  {isCreateProjectSelected
+                    ? t('Create Project')
+                    : selectedProject?.slug || (
+                        <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
+                      )}
+                </OverlayTrigger.Button>
+              )}
               onChange={({value}) => {
                 setSelectedProjectId(value as string);
               }}
@@ -350,7 +410,7 @@ export function WizardProjectSelection({
                             setSelectedProjectId(CREATE_PROJECT_VALUE);
                             closeOverlay();
                           }}
-                          icon={<IconAdd isCircled />}
+                          icon={<IconAdd />}
                         >
                           {t('Create Project')}
                         </Button>
@@ -363,34 +423,46 @@ export function WizardProjectSelection({
         </FieldWrapper>
         {isCreateProjectSelected &&
           (isOrgMemberWithNoAccess ? (
-            projectNameField
-          ) : (
-            <Columns>
+            <Fragment>
+              {!platformParam && platformField}
               {projectNameField}
-              <FieldWrapper>
-                <label>{t('Team')}</label>
-                <StyledCompactSelect
-                  value={newProjectTeam as string}
-                  options={
-                    selectableTeams?.map(team => ({
-                      value: team.slug,
-                      label: `#${team.slug}`,
-                      leadingItems: <IdBadge team={team} hideName />,
-                      searchKey: team.slug,
-                    })) || []
-                  }
-                  triggerProps={{
-                    icon: selectedTeam ? (
-                      <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                    ) : null,
-                    children: selectedTeam ? `#${selectedTeam.slug}` : t('Select a team'),
-                  }}
-                  onChange={({value}) => {
-                    setNewProjectTeam(value as string);
-                  }}
-                />
-              </FieldWrapper>
-            </Columns>
+            </Fragment>
+          ) : (
+            <Fragment>
+              {!platformParam && platformField}
+              <Columns>
+                {projectNameField}
+                <FieldWrapper>
+                  <label>{t('Team')}</label>
+                  <StyledCompactSelect
+                    value={newProjectTeam as string}
+                    options={
+                      selectableTeams?.map(team => ({
+                        value: team.slug,
+                        label: `#${team.slug}`,
+                        leadingItems: <IdBadge team={team} hideName />,
+                        searchKey: team.slug,
+                      })) || []
+                    }
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        icon={
+                          selectedTeam ? (
+                            <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                          ) : null
+                        }
+                      >
+                        {selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
+                      </OverlayTrigger.Button>
+                    )}
+                    onChange={({value}) => {
+                      setNewProjectTeam(value as string);
+                    }}
+                  />
+                </FieldWrapper>
+              </Columns>
+            </Fragment>
           ))}
         <SubmitButton
           disabled={!isFormValid || isPending}
@@ -431,8 +503,12 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const SelectPlaceholder = styled('span')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: normal;
   text-align: left;
 `;

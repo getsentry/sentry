@@ -4,15 +4,15 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -53,6 +53,7 @@ import type {
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualizeEquation,
+  MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -101,8 +102,12 @@ export function AggregateColumnEditorModal({
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
-  const canDeleteGroupBy = tempColumns.filter(isGroupBy).length > 1;
-  const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
+  const groupByColumnss = tempColumns.filter(isGroupBy);
+  const visualizeColumns = tempColumns.filter(isVisualize);
+
+  const canDeleteGroupBy = groupByColumnss.length > 1;
+  const canDeleteVisualize = visualizeColumns.length > 1;
+  const canAddVisualize = visualizeColumns.length < MAX_VISUALIZES;
 
   return (
     <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
@@ -143,6 +148,7 @@ export function AggregateColumnEditorModal({
                     key: 'add-visualize',
                     label: t('Visualize / Function'),
                     details: t('ex. p50(span.duration)'),
+                    disabled: !canAddVisualize,
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
@@ -152,6 +158,7 @@ export function AggregateColumnEditorModal({
                           key: 'add-equation',
                           label: t('Equation'),
                           details: t('ex. p50(span.duration) / 2'),
+                          disabled: !canAddVisualize,
                           onAction: () =>
                             insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
                         },
@@ -162,7 +169,7 @@ export function AggregateColumnEditorModal({
                   <Button
                     {...triggerProps}
                     aria-label={t('Add a Column')}
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                   >
                     {t('Add a Column')}
                   </Button>
@@ -225,7 +232,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -249,7 +256,7 @@ function ColumnEditorRow({
       )}
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -300,13 +307,17 @@ function GroupBySelector({
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
-      triggerProps={{
-        children: label,
-        prefix: t('Group By'),
-        style: {
-          width: '100%',
-        },
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={t('Group By')}
+          style={{
+            width: '100%',
+          }}
+        >
+          {label}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
@@ -393,12 +404,15 @@ function AggregateSelector({
         value={parsedFunction?.name}
         onChange={handleFunctionChange}
         searchable
-        triggerProps={{
-          prefix: t('Function'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Function')}
+            style={{
+              width: '100%',
+            }}
+          />
+        )}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
         return (
@@ -410,11 +424,14 @@ function AggregateSelector({
             onChange={option => handleArgumentChange(index, option)}
             searchable
             disabled={argumentOptions.length === 1}
-            triggerProps={{
-              style: {
-                width: '100%',
-              },
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                style={{
+                  width: '100%',
+                }}
+              />
+            )}
           />
         );
       })}
@@ -426,11 +443,14 @@ function AggregateSelector({
           onChange={option => handleArgumentChange(0, option)}
           searchable
           disabled
-          triggerProps={{
-            style: {
-              width: '100%',
-            },
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
         />
       )}
     </Fragment>
@@ -524,7 +544,11 @@ const DoubleWidthCompactSelect = styled(CompactSelect)`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   line-height: normal;
   position: relative;

@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Badge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -62,7 +62,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.warnings && props.warnings.length > 0 && (
             <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
               <TooltipIconTrigger aria-label={t('Widget warnings')}>
-                <IconWarning color="warningText" />
+                <IconWarning variant="warning" />
               </TooltipIconTrigger>
             </Tooltip>
           )}
@@ -72,7 +72,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
               (currentBadgeProps, i) => (
-                <WidgetBadge key={i} type="default">
+                <WidgetBadge key={i} variant="muted">
                   {currentBadgeProps}
                 </WidgetBadge>
               )
@@ -127,7 +127,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   triggerProps={{
                     'aria-label': t('Widget actions'),
                     size: 'xs',
-                    borderless: true,
+                    priority: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}
@@ -141,7 +141,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              priority="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 props.onFullScreenViewClick?.();

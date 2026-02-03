@@ -30,26 +30,35 @@ type ConditionsPanelProps = {
 function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
-      {triggers && (
-        <ConditionGroupWrapper>
-          <ConditionGroupHeader>
-            {tct('[when:When] [logicType] of the following occur', {
-              when: <ConditionBadge />,
-              logicType:
-                TRIGGER_MATCH_OPTIONS.find(choice => choice.value === triggers.logicType)
-                  ?.label || triggers.logicType,
-            })}
-          </ConditionGroupHeader>
-          {triggers.conditions.map((trigger, index) => (
-            <div key={index}>
-              <DataConditionDetails condition={trigger} />
-            </div>
-          ))}
-        </ConditionGroupWrapper>
-      )}
+      <ConditionGroupWrapper>
+        <ConditionGroupHeader>
+          {triggers?.conditions && triggers.conditions.length > 0
+            ? tct(
+                '[when:When] an issue event is captured and [logicType] of the following occur',
+                {
+                  when: <ConditionBadge />,
+                  logicType:
+                    TRIGGER_MATCH_OPTIONS.find(
+                      choice => choice.value === triggers?.logicType
+                    )?.label || t('any'),
+                }
+              )
+            : tct('[when:When] an issue event is captured', {
+                when: <ConditionBadge />,
+              })}
+        </ConditionGroupHeader>
+        {triggers?.conditions?.map((trigger, index) => (
+          <div key={index}>
+            <DataConditionDetails condition={trigger} />
+          </div>
+        ))}
+      </ConditionGroupWrapper>
       {actionFilters.map((actionFilter, index) => (
         <div key={index}>
-          <ActionFilter actionFilter={actionFilter} totalFilters={actionFilters.length} />
+          <ActionFilter
+            actionFilter={actionFilter}
+            showDivider={actionFilters.length > 1}
+          />
         </div>
       ))}
     </Panel>
@@ -75,20 +84,23 @@ function findActionHandler(
 
 interface ActionFilterProps {
   actionFilter: DataConditionGroup;
-  totalFilters: number;
+  showDivider: boolean;
 }
 
-function ActionFilter({actionFilter, totalFilters}: ActionFilterProps) {
+function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
   const {data: availableActions = [], isLoading} = useAvailableActionsQuery();
 
   return (
-    <ConditionGroupWrapper showDivider={totalFilters > 1}>
+    <ConditionGroupWrapper showDivider={showDivider}>
       <ConditionGroupHeader>
         {tct('[if:If] [logicType] of these filters match', {
           if: <ConditionBadge />,
           logicType:
-            FILTER_MATCH_OPTIONS.find(choice => choice.value === actionFilter.logicType)
-              ?.label || actionFilter.logicType,
+            FILTER_MATCH_OPTIONS.find(
+              choice =>
+                choice.value === actionFilter.logicType ||
+                choice.alias === actionFilter.logicType
+            )?.label || actionFilter.logicType,
         })}
       </ConditionGroupHeader>
       {actionFilter.conditions.length > 0
@@ -143,7 +155,7 @@ function ActionDetails({action, handler}: ActionDetailsProps) {
     <Fragment>
       {action.status === 'disabled' && (
         <IconPadding>
-          <IconWarning color="danger" />
+          <IconWarning variant="danger" />
         </IconPadding>
       )}
       {!Component || !handler ? (
@@ -159,28 +171,28 @@ const Panel = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.translucentBorder};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.lg};
   word-break: break-word;
 `;
 
 const ConditionGroupHeader = styled('div')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const ConditionGroupWrapper = styled('div')<{showDivider?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.showDivider &&
     css`
       padding-top: ${p.theme.space.lg};
-      border-top: 1px solid ${p.theme.translucentBorder};
+      border-top: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
     `}
 `;
 

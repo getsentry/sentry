@@ -206,6 +206,32 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             slug=self.sentry_app.slug, organization=self.organization
         )
 
+        # should not return sentry apps that are not alertable
+        self.not_alertable_sentry_app = self.create_sentry_app(
+            name="Not Alertable Sentry App",
+            organization=self.organization,
+            is_alertable=False,
+        )
+        self.not_alertable_sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.not_alertable_sentry_app.slug, organization=self.organization
+        )
+
+        self.not_alertable_sentry_app = self.create_sentry_app(
+            name="Not Alertable Sentry App With Component",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.sentry_app_settings_schema,
+                ]
+            },
+            is_alertable=False,
+        )
+        self.not_alertable_sentry_app_with_component_installation = (
+            self.create_sentry_app_installation(
+                slug=self.not_alertable_sentry_app.slug, organization=self.organization
+            )
+        )
+
         # should not return sentry apps that are not installed
         self.create_sentry_app(
             name="Bad Sentry App",
@@ -367,7 +393,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 2
+
+        # should only return the sentry app with a component
+        assert len(response.data) == 1
         assert response.data == [
             {
                 "type": Action.Type.SENTRY_APP,
@@ -384,20 +412,29 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "title": self.sentry_app_settings_schema["title"],
                 },
             },
-            {
-                "type": Action.Type.SENTRY_APP,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "sentryApp": {
-                    "id": str(self.no_component_sentry_app.id),
-                    "name": self.no_component_sentry_app.name,
-                    "installationId": str(self.no_component_sentry_app_installation.id),
-                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
-                    "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
-                },
-            },
         ]
+
+    @patch(
+        "sentry.workflow_engine.endpoints.organization_available_action_index.prepare_ui_component"
+    )
+    def test_sentry_apps_filters_failed_component_preparation(
+        self, mock_prepare_ui_component: MagicMock
+    ) -> None:
+        """Test that sentry apps whose components fail to prepare are filtered out"""
+        self.setup_sentry_apps()
+
+        # make prepare_ui_component return None to simulate a broken app
+        mock_prepare_ui_component.return_value = None
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+
+        # verify prepare_ui_component was called
+        assert mock_prepare_ui_component.called
+        # should return no sentry apps since component preparation failed
+        assert len(response.data) == 0
 
     def test_webhooks(self) -> None:
         self.setup_webhooks()
@@ -441,7 +478,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 9
+        assert len(response.data) == 8
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
@@ -466,6 +503,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
             },
+            # webhook action should include sentry apps without components
             {
                 "type": Action.Type.WEBHOOK,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
@@ -473,6 +511,10 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "dataSchema": {},
                 "services": [
                     {"slug": "slack", "name": "(Legacy) Slack"},
+                    {
+                        "slug": self.no_component_sentry_app.slug,
+                        "name": self.no_component_sentry_app.name,
+                    },
                     {"slug": "webhooks", "name": "WebHooks"},
                 ],
             },
@@ -489,19 +531,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     "status": SentryAppStatus.as_str(self.sentry_app.status),
                     "settings": self.sentry_app_settings_schema["settings"],
                     "title": self.sentry_app_settings_schema["title"],
-                },
-            },
-            {
-                "type": Action.Type.SENTRY_APP,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "sentryApp": {
-                    "id": str(self.no_component_sentry_app.id),
-                    "name": self.no_component_sentry_app.name,
-                    "installationId": str(self.no_component_sentry_app_installation.id),
-                    "installationUuid": str(self.no_component_sentry_app_installation.uuid),
-                    "status": SentryAppStatus.as_str(self.no_component_sentry_app.status),
                 },
             },
             # ticket creation actions, sorted alphabetically

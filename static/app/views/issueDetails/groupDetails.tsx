@@ -5,8 +5,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
-import {TabPanels, Tabs} from 'sentry/components/core/tabs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import {Container} from '@sentry/scraps/layout';
+import {TabPanels, Tabs} from '@sentry/scraps/tabs';
+
+import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +36,7 @@ import {
   getTitle,
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
@@ -43,7 +46,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -63,6 +65,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
@@ -509,9 +512,11 @@ function useTrackView({
   project,
   tab,
   organization,
+  hasAutofixQuota,
 }: {
   event: Event | null;
   group: Group | null;
+  hasAutofixQuota: boolean;
   organization: Organization;
   tab: Tab;
   project?: Project;
@@ -542,6 +547,7 @@ function useTrackView({
       user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
+    has_seer_access: hasAutofixQuota,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -560,6 +566,16 @@ function useTrackView({
     suspect_commit_calculation: 'no suspect commit',
     // Will be updated in Autofix if enabled
     autofix_status: 'none',
+    // Will be updated in GroupSummary if AI summary is available
+    has_summary: null,
+    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
+    has_root_cause: null,
+    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
+    has_solution: null,
+    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
+    has_coded_solution: null,
+    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
+    has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);
 }
@@ -632,7 +648,11 @@ function GroupDetailsContentError({
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
-      return <MissingProjectMembership organization={organization} project={project} />;
+      return (
+        <Container padding="lg">
+          <MissingProjectMembership organization={organization} project={project} />
+        </Container>
+      );
     default:
       return <StyledLoadingError onRetry={onRetry} />;
   }
@@ -666,6 +686,7 @@ function GroupDetailsContent({
   });
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
     if (isDrawerOpen) {
@@ -703,7 +724,14 @@ function GroupDetailsContent({
     openSeerDrawer,
   ]);
 
-  useTrackView({group, event, project, tab: currentTab, organization});
+  useTrackView({
+    group,
+    event,
+    project,
+    tab: currentTab,
+    organization,
+    hasAutofixQuota,
+  });
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
@@ -896,7 +924,7 @@ function GroupDetails() {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
+          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
           <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
             <Outlet />
           </GroupDetailsPageContent>

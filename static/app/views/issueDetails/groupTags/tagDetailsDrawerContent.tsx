@@ -3,11 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -40,7 +42,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const sort: TagSort =
     (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
@@ -220,27 +222,35 @@ function TagDetailsValue({
 }) {
   const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
-  const valueComponent =
-    tagKey === 'user' ? (
-      <UserValue>
-        {getContextIcon({
-          alias: 'user',
-          type: 'user',
-          value: tagValue,
-          contextIconProps: {
-            size: 'md',
-          },
-          theme,
-        })}
-        <div>{userValues.title}</div>
-        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-      </UserValue>
-    ) : (
-      <DeviceName value={tagValue.value} />
-    );
+  const value =
+    tagValue.value === '' ? <Text variant="muted">{t('(empty)')}</Text> : tagValue.value;
+  let valueComponent: React.ReactNode = value;
+  if (tagValue.value !== '') {
+    if (tagKey === 'user') {
+      valueComponent = (
+        <Flex align="center" gap="sm" minWidth={0} overflow="hidden">
+          {getContextIcon({
+            alias: 'user',
+            type: 'user',
+            value: tagValue,
+            contextIconProps: {
+              size: 'md',
+            },
+            theme,
+          })}
+          <Flex wrap="wrap" gap="xs" minWidth={0}>
+            <Text>{userValues.title}</Text>
+            {userValues.subtitle && <Text variant="muted">{userValues.subtitle}</Text>}
+          </Flex>
+        </Flex>
+      );
+    } else if (tagKey === 'device') {
+      valueComponent = <DeviceName value={tagValue.value} />;
+    }
+  }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -265,9 +275,8 @@ function TagValueActionsMenu({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: tagValue.value,
-  });
+  const {copy} = useCopyToClipboard();
+
   const referrer = 'tag-details-drawer';
   const key = escapeIssueTagKey(tagValue.key ?? tag.key);
   const query = tagValue.query
@@ -319,7 +328,9 @@ function TagValueActionsMenu({
         {
           key: 'copy-value',
           label: t('Copy tag value to clipboard'),
-          onAction: handleCopy,
+          onAction: () =>
+            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
+          hidden: tagValue.value === '',
         },
       ]}
     />
@@ -340,8 +351,8 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -353,13 +364,13 @@ const ColumnSort = styled(Link)`
   gap: ${space(0.5)};
   align-items: center;
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.textColor};
+  text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -370,13 +381,13 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0 ${space(1)};
 `;
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;
@@ -397,26 +408,20 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const UserSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  display: inline-block; /* Prevent inheriting text decoration */
-`;
-
 const ValueLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  word-break: break-all;
+  color: ${p => p.theme.tokens.content.primary};
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
-
-const UserValue = styled('div')`
-  display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

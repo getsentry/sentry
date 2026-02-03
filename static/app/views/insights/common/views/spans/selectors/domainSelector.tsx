@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
@@ -135,7 +137,7 @@ export function DomainSelector({
     });
   }
 
-  const projectIds = pageFilters.selection.projects.sort();
+  const projectIds = [...pageFilters.selection.projects].sort();
   const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
   const {options: domainOptions} = useCompactSelectOptionsCache(
@@ -167,16 +169,15 @@ export function DomainSelector({
       loading={isPending}
       searchable
       menuTitle={domainAlias}
-      maxMenuWidth="500px"
       data-test-id="domain-selector"
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);
         }
       }}
-      triggerProps={{
-        prefix: domainAlias,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={domainAlias} />
+      )}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
           organization,

@@ -16,6 +16,16 @@ describe('TestsPreOnboardingPage', () => {
     features: ['codecov-integration'],
   });
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/config/integrations/`,
+      method: 'GET',
+      body: {
+        providers: [],
+      },
+    });
+  });
+
   it('displays the US storage alert when organization is not in US region', () => {
     // Mock non-US region
     mockGetRegionData.mockReturnValue({

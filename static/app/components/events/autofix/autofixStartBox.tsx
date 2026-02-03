@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
@@ -110,9 +111,9 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 transform: 'rotate(30deg)',
               }}
             />
-            <StartTextRow>
-              <IconSeer variant="waiting" color="textColor" size="xl" />
-            </StartTextRow>
+            <Flex justify="center" align="center" gap="md" width="100%">
+              <IconSeer animation="waiting" variant="primary" size="xl" />
+            </Flex>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -187,12 +188,16 @@ const ScaleContainer = styled('div')`
 const Container = styled('div')`
   position: relative;
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.primary}
+    linear-gradient(
+      135deg,
+      ${p => p.theme.colors.pink500}08,
+      ${p => p.theme.colors.pink500}20
+    );
   overflow: visible;
   padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const AutofixStartText = styled('div')`
@@ -200,17 +205,9 @@ const AutofixStartText = styled('div')`
   padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   position: relative;
   overflow: hidden;
-`;
-
-const StartTextRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-  justify-content: center;
 `;
 
 const BackgroundStar = styled('img')`
@@ -222,7 +219,7 @@ const BackgroundStar = styled('img')`
 `;
 
 const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.5;
 `;
 
@@ -234,11 +231,11 @@ const InputWrapper = styled('form')`
 
 const StyledInput = styled(TextArea)`
   resize: none;
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
 
-  border-color: ${p => p.theme.innerBorder};
+  border-color: ${p => p.theme.tokens.border.secondary};
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -248,6 +245,6 @@ const StyledButton = styled(Button)`
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   border-left: none;
 `;

@@ -288,7 +288,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def stage_offsets(self, offsets: Mapping[Partition, int]) -> None:
         return self.__consumer.stage_offsets(offsets)
 
-    def commit_offsets(self) -> Mapping[Partition, int]:
+    def commit_offsets(self) -> Mapping[Partition, int] | None:
         return self.__consumer.commit_offsets()
 
     def close(self, timeout: float | None = None) -> None:

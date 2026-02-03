@@ -1,0 +1,174 @@
+---
+title: Numbers and Units
+layout: document
+description: Guidance on types of numerical values within Sentry, and their representations.
+status: in-progress
+---
+
+> [!WARNING]
+> A key missing part of this pattern is information about precision. We'd like to have guidance on how to choose the level of precision based on the context.
+
+Sentry supports many kinds of numeric data, and many representations of that data in the UI. Every data type has its own requirements for how to represent it in various contexts. This section serves as a reference for how we think those values should be represented. While there are often exceptions to these rules, this document covers what we see as the correct general guidelines.
+
+Our goal is to use units and abbreviations consistently across the product. There should never be user confusion over what a particular unit means, and numbers should be as scannable as possible in order to help users work quickly to diagnose issues and absorb information.
+
+Data formatting depends on the UI context. Some contexts require that data be truncated, or condensed and others require that data is fully expanded (e.g., in tooltips). The most important contexts are:
+
+1. **Full** (the full value, suitable for display in tooltips, and in details panels)
+2. **Dense** (a highly condensed value, when the context is severely constrained in space, like in Y axis labels)
+3. **Regular** (a general purpose context, like table cells)
+
+A few general notes for formatting:
+
+- avoid abbreviations when possible. If you have space always write out the full unit or word
+- sometimes abbreviations are unavoidable, such as in a table or a cell in a table where space is limited. In these cases more information should be available in a tooltip
+- make a best effort to respect the current user's locale as often as possible, especially when it comes to delimiters
+
+## Number
+
+A "number" is the most basic type of numeric data that Sentry can display. A "number" is any numeric value with unknown meaning. The "number" type is used as a fallback when we can't determine the meaning of a value, or if a value has no semantic meaning. The lack of meaning means that we do not abbreviate numbers, and they have the same representation in every context.
+
+### Formatting
+
+| Common Value | Large Value   | Small Value | Zero |
+| ------------ | ------------- | ----------- | ---- |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+| 78.81        | 12,123,013.23 | 0.0000012   | 0    |
+
+## Integer
+
+An "integer" is any whole number or 0. Integers are often used for counts. Integer values are usually positive, usually large, and always whole. Unlike regular numbers, they are formatted with an SI multiplier suffix. The value is always rounded to the nearest integer. There should never be a space between the value and the suffix.
+
+### Formatting
+
+| Context | Common Value | Large Value | Small Value | Zero |
+| ------- | ------------ | ----------- | ----------- | ---- |
+| Full    | 78           | 12,123,123  | 1           | 0    |
+| Regular | 78           | 12.1K       | 1           | 0    |
+| Dense   | 78           | 12.1K       | 1           | 0    |
+
+- when abbreviating large integers, we omit trailing 0s (e.g., `"12K"` instead of `"12.0K"`). Otherwise, abbreviated values always have 1 decimal point
+
+> [!WARNING]
+> There is no current guidance on whether rounding should be applied to aggregated integers (e.g., should an average count be rounded?)
+
+## Percentage
+
+A percentage is a unitless positive or negative value, similar to the "number" type, but they represent a proportion of something. For example, CPU capacity may be a percentage, but it can exceed 100%. Percentages are treated identically to the "number" type, with a trailing "%" sign. The only exception is that in "regular" contexts, percentages have a minimum. Any value below 0.0001 are shown as "&lt;0.1%"
+
+### Formatting
+
+| Representation | Common Value | Large Value | Small Value | Zero |
+| -------------- | ------------ | ----------- | ----------- | ---- |
+| Full           | 78.12%       | 12,123.12%  | 0.000001    | 0%   |
+| Regular        | 78.12%       | 12,123.12%  | &lt;0.1%    | 0%   |
+| Dense          | 78.12%       | 12,123.12%  | &lt;0.1%    | 0%   |
+
+## Percent Change
+
+A "percent change" is a percentage with added context that it represents a change from a previous value. Percent change has two components: a polarity and a preferred polarity. Both of them can be either positive, or negative. The polarity is the sign of the value (e.g., -0.8 has a negative polarity, and 0.8 has a positive polarity). The preferred polarity depends on the context. A change in duration of an endpoint has a negative preferred polarity (i.e., decreases are good) while a change in the number of visitors probably has a positive preferred polarity (i.e., increases are good).
+
+Percent change follows the same formatting rules as percentages, but always includes the sign (either "+" or "-") and usually colorized. When the polarity matches the preferred polarity, the text is green. When the polarity does not match the preferred polarity, the text is red. If the value is exactly 0, no color is applied.
+
+## Duration
+
+A "duration" represents elapsed time. Many parts of Sentry's UI measure the durations of various operations. A duration is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the duration. e.g., "123 ms" is correct, "0.123 s" is not correct, nor "123,000 μs".
+
+### Formatting
+
+| Representation | Common Value      | Large Value | Small Value       | Zero |
+| -------------- | ----------------- | ----------- | ----------------- | ---- |
+| Full           | 12.1 milliseconds | 16.7 years  | 0.001 nanoseconds | 0 ns |
+| Regular        | 12.1 ms           | 16.7 yr     | 0.001 ns          | 0 ns |
+| Dense          | 12.1 ms           | 16.7 yr     | 0.001 ns          | 0 ns |
+
+### Units
+
+| Unit        | Abbreviation |
+| ----------- | ------------ |
+| nanosecond  | ns           |
+| microsecond | μs           |
+| millisecond | ms           |
+| second      | s            |
+| minute      | min          |
+| hour        | hr           |
+| day         | d            |
+| week        | w            |
+| month       | mo           |
+| year        | y            |
+
+## Size
+
+Size represents the volume of data, in bytes. Size is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the duration. e.g., 1.2MiB is correct, we never format it as "0.00117GiB". Units above petabyte and pebibyte exist, but we do not use them. The smallest unit in use is "bytes", never "bits".
+
+### Formatting
+
+| Representation | Common Value  | Large Value    | Small Value | Zero |
+| -------------- | ------------- | -------------- | ----------- | ---- |
+| Full           | 724 kibibytes | 16.7 pebibytes | 3 kilobytes | 0 B  |
+| Regular        | 724 KiB       | 16.8 PiB       | 3 KB        | 0 B  |
+| Dense          | 724 KiB       | 16.8 PiB       | 3 KB        | 0 B  |
+
+- always use 3 digits for display, not counting the 0 before a decimal
+
+### IEC Units
+
+IEC units use binary prefixes for the units. This is a popular way to represent sizes of information. In this format, each subsequent unit is 1,024 times the previous (as opposed to SI units, where each 1,000 as the multiplier). Sentry generally prefers IEC units with binary prefixes.
+
+| Unit     | Abbreviation |
+| -------- | ------------ |
+| Byte     | B            |
+| Kibibyte | KiB          |
+| Mebibyte | MiB          |
+| Gibibyte | GiB          |
+| Tebibyte | TiB          |
+| Pebibyte | PiB          |
+
+> [!WARNING]
+> The "B" abbreviation of "bytes" creates a slight ambiguity with the multiplier prefixes of integers. e.g., "11B" means "eleven billion", but "11.2 B" means "11.2 bytes".
+
+### SI Units
+
+> [!WARNING]
+> We'd like to provide guidance on when (if ever) it's appropriate to use SI vs. IEC units, but this needs more investigation.
+
+SI units were often used historically, and we use them in some contexts.
+
+| Unit     | Abbreviation |
+| -------- | ------------ |
+| Byte     | B            |
+| Kilobyte | KB           |
+| Megabyte | MB           |
+| Gigabyte | GB           |
+| Terabyte | TB           |
+| Petabyte | PB           |
+
+## Score
+
+A "score" is a positive integer value from 0 to 100. Scores are a synthetic measure, like Sentry's "Performance Score". This is very similar to an integer, except many parts of the UI give it special handling.
+
+- score values are _always_ formatted as integers
+- when a "score" is plotted, the Y axis _must_ range from 0 to 100 regardless of the contents
+- scores are often shown next to a qualitative label like "good" or "meh"
+
+## Rate
+
+A "rate" is a measurement of a number over time. Throughput measurements like "spans per minute" are a "rate". Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. Rates also have a minimum. Any value below 0.0001 are shown as "&lt;0.01"
+
+### Formatting
+
+| Representation | Common Value    | Large Value           | Small Value       | Zero         |
+| -------------- | --------------- | --------------------- | ----------------- | ------------ |
+| Full           | 12.1 per minute | 12,000,123 per minute | 0.000213 per hour | 0 per minute |
+| Regular        | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
+| Dense          | 12.1/min        | 12,000,123/min        | &lt;0.01/h        | 0/m          |
+
+- the number part of the display follows the same formatting rules as the "number" type
+- the number part is always rounded to two significant figures
+- rates are not currently localized. The strings "per second", "per minute", and "per hour" are always in English
+
+## Currency
+
+> [!WARNING]
+> This section is under construction.

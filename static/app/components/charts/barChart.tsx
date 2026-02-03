@@ -81,6 +81,12 @@ export function BarChart({
   }, [xAxis]);
 
   return (
-    <BaseChart {...props} ref={ref} xAxis={xAxisOptions} series={transformedSeries} />
+    <BaseChart
+      {...props}
+      animation={animation}
+      ref={ref}
+      xAxis={xAxisOptions}
+      series={transformedSeries}
+    />
   );
 }

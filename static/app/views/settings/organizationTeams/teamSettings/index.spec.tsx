@@ -29,13 +29,14 @@ describe('TeamSettings', () => {
       },
     });
 
-    const {router} = render(<TeamSettings team={team} />, {
+    const {router} = render(<TeamSettings />, {
       initialRouterConfig: {
         location: {
           pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
         },
         route: '/settings/:orgId/teams/:teamId/settings/',
       },
+      outletContext: {team},
     });
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
@@ -67,7 +68,7 @@ describe('TeamSettings', () => {
     const team = TeamFixture();
     const organization = OrganizationFixture({access: []});
 
-    render(<TeamSettings team={team} />, {
+    render(<TeamSettings />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -75,6 +76,7 @@ describe('TeamSettings', () => {
         },
         route: '/settings/:orgId/teams/:teamId/settings/',
       },
+      outletContext: {team},
     });
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
@@ -89,13 +91,14 @@ describe('TeamSettings', () => {
     });
     TeamStore.loadInitialData([team]);
 
-    const {router} = render(<TeamSettings team={team} />, {
+    const {router} = render(<TeamSettings />, {
       initialRouterConfig: {
         location: {
           pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
         },
         route: '/settings/:orgId/teams/:teamId/settings/',
       },
+      outletContext: {team},
     });
     renderGlobalModal();
 
@@ -123,7 +126,7 @@ describe('TeamSettings', () => {
     const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
     const organization = OrganizationFixture({access: []});
 
-    render(<TeamSettings team={team} />, {
+    render(<TeamSettings />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -131,6 +134,7 @@ describe('TeamSettings', () => {
         },
         route: '/settings/:orgId/teams/:teamId/settings/',
       },
+      outletContext: {team},
     });
 
     expect(

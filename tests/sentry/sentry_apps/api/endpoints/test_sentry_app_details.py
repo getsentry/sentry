@@ -8,10 +8,11 @@ from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
 )
-from sentry.constants import SentryAppStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -23,6 +24,8 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -758,6 +761,51 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=403,
         )
 
+    def test_manager_cannot_set_publish_request_inprogress_status(self) -> None:
+        """
+        Regression test for authorization bypass vulnerability.
+
+        A Manager (with org:write but not org:admin) should NOT be able to set
+        status to 'publish_request_inprogress' via PUT. This should only be
+        possible via the dedicated publish request endpoint which requires org:admin.
+        """
+        manager_user = self.create_user("manager@example.com", is_superuser=False)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.create_member(
+                user=manager_user, organization=self.organization, role="manager", teams=[]
+            )
+        self.login_as(manager_user)
+
+        # Verify the app starts as unpublished
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+        # Attempt to set status to publish_request_inprogress via PUT
+        # This should be silently ignored (status won't change)
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status="publish_request_inprogress",
+            status_code=200,
+        )
+
+        # Verify status was NOT changed
+        self.unpublished_app.refresh_from_db()
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+    def test_superuser_can_set_publish_request_inprogress_status(self) -> None:
+        """Verify superusers CAN set status to publish_request_inprogress via PUT."""
+        self.login_as(user=self.superuser, superuser=True)
+
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status="publish_request_inprogress",
+            status_code=200,
+        )
+
+        self.unpublished_app.refresh_from_db()
+        assert self.unpublished_app.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+
 
 @control_silo_test
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
@@ -846,3 +894,32 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(self.user_manager)
 
         self.get_error_response(self.internal_integration.slug, status_code=403)
+
+    def test_disables_actions(self) -> None:
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.internal_integration.id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP,
+            },
+        )
+        webhook_action = self.create_action(
+            type=Action.Type.WEBHOOK,
+            config={
+                "target_identifier": self.internal_integration.slug,
+            },
+        )
+
+        self.get_success_response(
+            self.internal_integration.slug,
+            status_code=204,
+        )
+        with self.tasks():
+            run_scheduled_deletions_control()
+
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.DISABLED
+
+        webhook_action.refresh_from_db()
+        assert webhook_action.status == ObjectStatus.DISABLED

@@ -1,9 +1,9 @@
 import moment from 'moment-timezone';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import CustomerContact from 'admin/components/customerContact';
 import CustomerName from 'admin/components/customerName';
@@ -38,11 +38,10 @@ const getRow = (row: Subscription) => [
             </span>
           )}
         </small>
-        {row.isGracePeriod && <Tag type="warning">Grace Period</Tag>}
-        {row.usageExceeded && <Tag type="warning">Capacity Limit</Tag>}
+        {row.usageExceeded && <Tag variant="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
-            <Tag type="error">Suspended</Tag>
+            <Tag variant="danger">Suspended</Tag>
           </Tooltip>
         )}
       </div>
@@ -144,13 +143,6 @@ function CustomerGrid(props: Props) {
         },
         managed: {
           name: 'Managed',
-          options: [
-            ['0', 'No'],
-            ['1', 'Yes'],
-          ],
-        },
-        gracePeriod: {
-          name: 'Grace Period',
           options: [
             ['0', 'No'],
             ['1', 'Yes'],

@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Placeholder from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -11,8 +12,11 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -29,7 +33,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const getP95Threshold = (avg: number) => {
   return {
-    error: avg * 3,
+    danger: avg * 3,
     warning: avg * 2,
   };
 };
@@ -60,6 +64,7 @@ export function PathsTable() {
   mutableQuery.addFilterValue(SpanFields.TRANSACTION_OP, 'http.server');
   mutableQuery.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
+  const {tableSort} = useTableSort();
   const tableDataRequest = useTableDataWithController({
     query: mutableQuery,
     fields: [
@@ -73,22 +78,25 @@ export function PathsTable() {
       'http.request.method',
       'count_unique(user)',
     ],
-    cursorParamName: 'pathsCursor',
+    sort: tableSort,
     referrer: Referrer.PATHS_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-        cursorParamName="pathsCursor"
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 
@@ -157,7 +165,6 @@ export function PathsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="pathsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
@@ -174,7 +181,7 @@ function TransactionDetails({
   const theme = useTheme();
 
   if (isControllerLoading) {
-    return <Placeholder height={theme.fontSize.sm} width="200px" />;
+    return <Placeholder height={theme.font.size.sm} width="200px" />;
   }
 
   if (!controller) {
@@ -195,8 +202,12 @@ function TransactionDetails({
 }
 
 const ControllerText = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 0px;
 `;

@@ -3,8 +3,10 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {Badge} from 'sentry/components/core/badge';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Badge} from '@sentry/scraps/badge';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
@@ -89,7 +91,6 @@ export function TestSuiteDropdown() {
       onSearch={handleOnSearch}
       emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
-      maxMenuWidth={`${MAX_SUITE_UI_LENGTH}em`}
       trigger={triggerProps => {
         const areAllSuitesSelected =
           value.length === 0 || testSuites?.every(suite => value.includes(suite));
@@ -109,27 +110,25 @@ export function TestSuiteDropdown() {
           : value.length - suitesToShow.length;
 
         return (
-          <DropdownButton {...triggerProps}>
-            <TriggerLabelWrap>
+          <OverlayTrigger.Button {...triggerProps}>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{label}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
             {remainingCount > 0 && (
-              <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+              <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
-          </DropdownButton>
+          </OverlayTrigger.Button>
         );
       }}
     />
   );
 }
 
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
-
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

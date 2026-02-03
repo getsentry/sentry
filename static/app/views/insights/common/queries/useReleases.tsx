@@ -3,6 +3,7 @@ import chunk from 'lodash/chunk';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -29,7 +30,9 @@ export function useReleases(
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: projects,
@@ -62,7 +65,9 @@ export function useReleases(
       };
       const eventView = EventView.fromNewQueryWithPageFilters(newQuery, selection);
       const queryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             ...eventView.getEventsAPIPayload(location),
@@ -125,21 +130,15 @@ export function useReleases(
 export function useReleaseSelection(): {
   isLoading: boolean;
   primaryRelease: string | undefined;
-  secondaryRelease: string | undefined;
 } {
   const location = useLocation();
 
-  const {data: releases, isLoading} = useReleases(undefined, undefined);
+  const {isLoading} = useReleases(undefined, undefined);
 
-  // If there are more than 1 release, the first one should be the older one
+  const primaryReleaseFromQuery = decodeScalar(location.query.primaryRelease);
+
   const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ??
-    (releases && releases.length > 1 ? releases?.[1]?.version : releases?.[0]?.version);
+    primaryReleaseFromQuery === '' ? undefined : primaryReleaseFromQuery;
 
-  // If there are more than 1 release, the second one should be the newest one
-  const secondaryRelease =
-    decodeScalar(location.query.secondaryRelease) ??
-    (releases && releases.length > 1 ? releases?.[0]?.version : undefined);
-
-  return {primaryRelease, secondaryRelease, isLoading};
+  return {primaryRelease, isLoading};
 }

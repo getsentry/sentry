@@ -1,0 +1,99 @@
+---
+title: Surface
+description: The Surface component is a simple component for rendering surfaces at different elevations.
+category: layout
+source: '@sentry/scraps/layout'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/surface.tsx
+---
+
+import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/layout/surface';
+
+export {documentation};
+
+The `Surface` component is a simplified layout component built on top of the `Container` component. It provides a simplified API for surfaces with specific props: `variant`, `elevation`, and `radius`. It also accepts props that are passed through to `Container`.
+
+## Flat Variants
+
+Use basic variants for content areas: `primary` for main content, `secondary` for supporting content, and `tertiary` for nested or de-emphasized areas.
+
+<Storybook.Demo>
+  <Stack minWidth="0" flexGrow={1} gap="md">
+    <Surface variant="primary" padding="xl lg">
+      Primary surface
+    </Surface>
+    <Surface variant="secondary" padding="xl lg">
+      Secondary surface
+    </Surface>
+    <Surface variant="tertiary" padding="xl lg">
+      Tertiary surface
+    </Surface>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Surface variant="primary">Primary surface</Surface>
+<Surface variant="secondary">Secondary surface</Surface>
+<Surface variant="tertiary">Tertiary surface</Surface>
+```
+
+## Overlay Variant & Elevation
+
+Use `variant="overlay"` for floating surfaces like dropdowns, modals, and popovers. Overlay surfaces include a border and box-shadow. The `elevation` prop controls shadow intensity and is only available for overlay surfaces.
+
+<Storybook.Demo>
+  <Stack minWidth="0" flexGrow={1} gap="md">
+    <Surface variant="overlay" elevation="low" padding="xl lg">
+      <Text variant="primary">
+        Overlay: Low elevation <Text variant="muted">(default)</Text>
+      </Text>
+    </Surface>
+    <Surface variant="overlay" elevation="medium" padding="xl lg">
+      Overlay: Medium elevation
+    </Surface>
+    <Surface variant="overlay" elevation="high" padding="xl lg">
+      Overlay: High elevation
+    </Surface>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Surface variant="overlay" elevation="low">
+  Overlay: Low elevation (default)
+</Surface>
+<Surface variant="overlay" elevation="medium">
+  Overlay: Medium elevation
+</Surface>
+<Surface variant="overlay" elevation="high">
+  Overlay: High elevation
+</Surface>
+```
+
+### Composition via Render Function
+
+The `Surface` component can be used to compose other components via render functions. For example, you can use the `Surface` component to create a dropdown menu:
+
+<Storybook.Demo>
+  <Surface variant="overlay" elevation="low" padding="xl lg">
+    {props => (
+      <Container {...props} padding="xl lg">
+        <Text variant="primary">
+          Overlay: Low elevation <Text variant="muted">(default)</Text>
+        </Text>
+      </Container>
+    )}
+  </Surface>
+</Storybook.Demo>
+
+```jsx
+<Surface variant="overlay" elevation="low">
+  {props => (
+    <Container {...props} padding="xl lg">
+      <Text variant="primary">Overlay: Low elevation (default)</Text>
+    </Container>
+  )}
+</Surface>
+```

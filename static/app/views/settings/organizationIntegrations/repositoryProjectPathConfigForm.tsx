@@ -1,7 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import pick from 'lodash/pick';
 
-import type {GeneralSelectValue} from 'sentry/components/core/select';
+import type {GeneralSelectValue} from '@sentry/scraps/select';
+
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -58,6 +59,10 @@ function RepositoryProjectPathConfigForm({
     }
   );
 
+  // Stream-based VCS (like Perforce) use streams/codelines instead of branches
+  // and don't require a default branch to be specified
+  const isStreamBased = integration.provider.key === 'perforce';
+
   // Effect to handle the case when integration repos data becomes available
   useEffect(() => {
     if (integrationReposData?.repos && selectedRepo) {
@@ -93,13 +98,19 @@ function RepositoryProjectPathConfigForm({
     {
       name: 'defaultBranch',
       type: 'string',
-      required: true,
-      label: t('Branch'),
-      placeholder: t('Type your branch'),
+      required: !isStreamBased,
+      label: isStreamBased ? t('Stream') : t('Branch'),
+      placeholder: isStreamBased
+        ? t('Type your stream (optional, e.g., main)')
+        : t('Type your branch'),
       showHelpInTooltip: true,
-      help: t(
-        'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
-      ),
+      help: isStreamBased
+        ? t(
+            'Optional: Specify a stream/codeline (e.g., "main"). If not specified, the depot root will be used. Streams are part of the depot path in Perforce.'
+          )
+        : t(
+            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+          ),
     },
     {
       name: 'stackRoot',
@@ -135,7 +146,7 @@ function RepositoryProjectPathConfigForm({
   }
 
   const initialData = {
-    defaultBranch: 'main',
+    defaultBranch: isStreamBased ? '' : 'main',
     stackRoot: '',
     sourceRoot: '',
     repositoryId: existingConfig?.repoId,

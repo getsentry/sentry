@@ -37,6 +37,11 @@ class OnDemandResponse(TypedDict):
     dashboardWidgetQueryId: int
 
 
+class LinkedDashboardResponse(TypedDict):
+    field: str
+    dashboardId: int
+
+
 class DashboardWidgetQueryResponse(TypedDict):
     id: str
     name: str
@@ -50,11 +55,36 @@ class DashboardWidgetQueryResponse(TypedDict):
     onDemand: list[OnDemandResponse]
     isHidden: bool
     selectedAggregate: int | None
+    linkedDashboards: list[LinkedDashboardResponse]
 
 
-class ThresholdType(TypedDict):
+class ThresholdTypeOptional(TypedDict, total=False):
+    preferredPolarity: str
+
+
+class ThresholdType(ThresholdTypeOptional):
     max_values: dict[str, int]
     unit: str
+
+
+def _convert_thresholds_to_camel_case(thresholds: dict[str, Any] | None) -> ThresholdType | None:
+    if thresholds is None:
+        return None
+
+    result: ThresholdType = {
+        # We currently do not convert max_values to camelCase because the frontend already expects it in snake_case.
+        "max_values": thresholds.get("max_values", {}),
+        "unit": thresholds.get("unit", ""),
+    }
+    if thresholds.get("preferred_polarity") is not None:
+        result["preferredPolarity"] = thresholds["preferred_polarity"]
+    return result
+
+
+class WidgetChangedReasonType(TypedDict):
+    orderby: list[dict[str, str]] | None
+    equations: list[dict[str, str | list[str]]] | None
+    selected_columns: list[str]
 
 
 class DashboardWidgetResponse(TypedDict):
@@ -72,6 +102,7 @@ class DashboardWidgetResponse(TypedDict):
     layout: dict[str, int] | None
     datasetSource: str | None
     exploreUrls: NotRequired[list[str] | None]
+    changedReason: list[WidgetChangedReasonType] | None
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -86,7 +117,7 @@ class DashboardWidgetSerializer(Serializer):
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
-                .prefetch_related("dashboardwidgetqueryondemand_set")
+                .prefetch_related("dashboardwidgetqueryondemand_set", "dashboardfieldlink_set")
                 .order_by("order")
             )
         )
@@ -106,19 +137,23 @@ class DashboardWidgetSerializer(Serializer):
         urls = []
 
         for q_index, transaction_query in enumerate(transaction_queries):
-            spans_query, _ = translate_dashboard_widget_queries(
-                obj,
-                q_index,
-                transaction_query["name"],
-                transaction_query["fields"],
-                transaction_query["columns"],
-                transaction_query["aggregates"],
-                transaction_query["orderby"],
-                transaction_query["conditions"],
-                transaction_query["fieldAliases"],
-                transaction_query["isHidden"],
-                transaction_query["selectedAggregate"],
-            )
+            try:
+                spans_query, _ = translate_dashboard_widget_queries(
+                    obj,
+                    q_index,
+                    transaction_query["name"],
+                    transaction_query["fields"],
+                    transaction_query["columns"],
+                    transaction_query["aggregates"],
+                    transaction_query["orderby"],
+                    transaction_query["conditions"],
+                    transaction_query["fieldAliases"],
+                    transaction_query["isHidden"],
+                    transaction_query["selectedAggregate"],
+                )
+            except Exception:
+                continue
+
             aggregate_equation_fields = [
                 field for field in spans_query.fields if is_function(field) or is_equation(field)
             ]
@@ -286,14 +321,17 @@ class DashboardWidgetSerializer(Serializer):
             organization=obj.dashboard.organization,
             actor=user,
         ):
-            explore_urls = self.get_explore_urls(obj, attrs)
+            try:
+                explore_urls = self.get_explore_urls(obj, attrs)
+            except Exception:
+                explore_urls = None
 
         serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
-            "thresholds": obj.thresholds,
+            "thresholds": _convert_thresholds_to_camel_case(obj.thresholds),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
             "dateCreated": obj.date_added,
@@ -304,6 +342,7 @@ class DashboardWidgetSerializer(Serializer):
             "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
+            "changedReason": obj.changed_reason,
         }
 
         if explore_urls:
@@ -343,7 +382,17 @@ class DashboardWidgetQuerySerializer(Serializer):
             widget_data_sources = [
                 d for d in data_sources if d["dashboardWidgetQueryId"] == widget_query.id
             ]
-            result[widget_query] = {"onDemand": widget_data_sources}
+
+            # Convert field links to response format
+            linked_dashboards = [
+                {"field": link.field, "dashboardId": link.dashboard_id}
+                for link in widget_query.dashboardfieldlink_set.all()
+            ]
+
+            result[widget_query] = {
+                "onDemand": widget_data_sources,
+                "linkedDashboards": linked_dashboards,
+            }
 
         return result
 
@@ -361,6 +410,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
             "selectedAggregate": obj.selected_aggregate,
+            "linkedDashboards": attrs["linkedDashboards"],
         }
 
 
@@ -386,6 +436,7 @@ class DashboardListResponse(TypedDict):
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
     projects: list[int]
+    prebuiltId: int | None
 
 
 class _WidgetPreview(TypedDict):
@@ -446,7 +497,7 @@ class DashboardFiltersMixin:
             page_filters["utc"] = dashboard_filters["utc"]
 
         tag_filters: DashboardFilters = {}
-        for filter_key in ("release", "releaseId"):
+        for filter_key in ("release", "releaseId", "globalFilter"):
             if dashboard_filters.get(camel_to_snake_case(filter_key)):
                 tag_filters[filter_key] = dashboard_filters[camel_to_snake_case(filter_key)]
 
@@ -557,12 +608,14 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),
             "lastVisited": attrs.get("last_visited", None),
+            "prebuiltId": obj.prebuilt_id,
         }
 
 
 class DashboardFilters(TypedDict, total=False):
     release: list[str]
     releaseId: list[str]
+    globalFilter: list[dict[str, Any]]
 
 
 class DashboardDetailsResponseOptional(TypedDict, total=False):
@@ -578,12 +631,13 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
     dateCreated: str
-    createdBy: UserSerializerResponse
+    createdBy: UserSerializerResponse | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    prebuiltId: int | None
 
 
 @register(Dashboard)
@@ -608,17 +662,30 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
+
+        if "globalFilter" in tag_filters and not features.has(
+            "organizations:dashboards-global-filters",
+            organization=obj.organization,
+            actor=user,
+        ):
+            tag_filters["globalFilter"] = []
+
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0],
+            "createdBy": (
+                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
+                if obj.created_by_id
+                else None
+            ),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
             "isFavorited": user.id in obj.favorited_by,
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
+            "prebuiltId": obj.prebuilt_id,
             **page_filters,
         }
 

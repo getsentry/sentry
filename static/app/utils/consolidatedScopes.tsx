@@ -15,6 +15,7 @@ const HUMAN_RESOURCE_NAMES = {
   project: 'Project',
   team: 'Team',
   release: 'Release',
+  distribution: 'Distribution',
   event: 'Event',
   org: 'Organization',
   member: 'Member',
@@ -25,6 +26,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
   Project: 'no-access',
   Team: 'no-access',
   Release: 'no-access',
+  Distribution: 'no-access',
   Event: 'no-access',
   Organization: 'no-access',
   Member: 'no-access',
@@ -32,6 +34,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 };
 
 const PROJECT_RELEASES = 'project:releases';
+const PROJECT_DISTRIBUTION = 'project:distribution';
 const ORG_INTEGRATIONS = 'org:integrations';
 
 type PermissionLevelResources = {
@@ -95,7 +98,17 @@ function toResourcePermissions(scopes: string[]): Permissions {
   // row for Releases.
   if (scopes.includes(PROJECT_RELEASES)) {
     permissions.Release = 'admin';
-    filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
+    filteredScopes = filteredScopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
+  }
+
+  // The scope for distribution is `project:distribution`, but instead of displaying
+  // it as a permission of Project, we want to separate it out into its own
+  // row for Distribution.
+  if (scopes.includes(PROJECT_DISTRIBUTION)) {
+    permissions.Distribution = 'read';
+    filteredScopes = filteredScopes.filter(
+      (scope: string) => scope !== PROJECT_DISTRIBUTION
+    ); // remove project:distribution
   }
 
   // We have a special case with the org:integrations scope. This scope is

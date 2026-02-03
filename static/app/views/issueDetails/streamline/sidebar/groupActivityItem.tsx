@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import CommitLink from 'sentry/components/commitLink';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import PullRequestLink from 'sentry/components/pullRequestLink';
@@ -284,26 +285,67 @@ export default function getGroupActivityItem(
           }),
         };
       case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
-        // Resolved in the next release
+        const hasIntegration =
+          'integration_id' in activity.data && activity.data.integration_id;
+        const integrationLink = hasIntegration ? (
+          <Link
+            to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
+          >
+            {activity.data.provider}
+          </Link>
+        ) : null;
+
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
           return {
             title: t('Resolved'),
-            message: tct('by [author] in releases greater than [version] [semver]', {
-              author,
-              version: <ActivityRelease project={project} version={currentVersion} />,
-              semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
-            }),
+            message: hasIntegration
+              ? tct(
+                  'by [author] in releases greater than [version] [semver] via [integration]',
+                  {
+                    author,
+                    version: (
+                      <ActivityRelease project={project} version={currentVersion} />
+                    ),
+                    semver: isSemverRelease(currentVersion)
+                      ? t('(semver)')
+                      : t('(non-semver)'),
+                    integration: integrationLink,
+                  }
+                )
+              : tct('by [author] in releases greater than [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={currentVersion} />,
+                  semver: isSemverRelease(currentVersion)
+                    ? t('(semver)')
+                    : t('(non-semver)'),
+                }),
           };
         }
         const version = activity.data.version;
+        if (version) {
+          return {
+            title: t('Resolved'),
+            message: hasIntegration
+              ? tct('by [author] in [version] [semver] via [integration]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                  integration: integrationLink,
+                })
+              : tct('by [author] in [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                }),
+          };
+        }
         return {
           title: t('Resolved'),
-          message: version
-            ? tct('by [author] in [version] [semver]', {
+          message: hasIntegration
+            ? tct('by [author] in the upcoming release via [integration]', {
                 author,
-                version: <ActivityRelease project={project} version={version} />,
-                semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                integration: integrationLink,
               })
             : tct('by [author] in the upcoming release', {
                 author,
@@ -682,19 +724,19 @@ function ActivityRelease({project, version}: {project: Project; version: string}
 }
 
 const Subtext = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledRuleSpan = styled('span')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const ReleaseVersion = styled(Version)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 `;

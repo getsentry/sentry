@@ -98,10 +98,10 @@ export default function useFetchParallelPages<Data>({
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
 
-  const pages = Math.ceil(hits / perPage);
   const cursors = useMemo(
-    () => new Array(pages).fill(0).map((_, i) => `0:${perPage * i}:0`),
-    [pages, perPage]
+    () =>
+      new Array(Math.ceil(hits / perPage)).fill(0).map((_, i) => `0:${perPage * i}:0`),
+    [hits, perPage]
   );
 
   const [state, setState] = useState<State<Data>>({

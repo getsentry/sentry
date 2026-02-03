@@ -1,10 +1,19 @@
 import type {ReactNode} from 'react';
+import {initializeLogsTest} from 'sentry-fixture/log';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -18,50 +27,71 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 
 describe('LogsToolbar', () => {
+  const {organization, setupPageFilters} = initializeLogsTest();
+
+  setupPageFilters();
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'bar', name: 'bar', attributeSource: {source_type: 'custom'}},
+        {key: 'foo', name: 'foo', attributeSource: {source_type: 'custom'}},
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'number', itemType: 'logs'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'severity', name: 'severity', attributeSource: {source_type: 'custom'}},
+        {
+          key: 'custom.string_tag',
+          name: 'custom.string_tag',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string', itemType: 'logs'})],
+    });
+  });
+
   describe('visualize section', () => {
     it('options disabled', async () => {
-      render(
-        <Wrapper>
-          <LogsToolbar numberTags={{}} stringTags={{}} />
-        </Wrapper>
-      );
+      render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
-      const options = screen.getAllByRole('option');
 
-      const aggregates: Array<[string, boolean]> = [
-        ['count', true],
-        ['count unique', true],
-        ['sum', false],
-        ['avg', false],
-        ['p50', false],
-        ['p75', false],
-        ['p90', false],
-        ['p95', false],
-        ['p99', false],
-        ['max', false],
-        ['min', false],
+      const aggregates = [
+        'count',
+        'count unique',
+        'sum',
+        'avg',
+        'p50',
+        'p75',
+        'p90',
+        'p95',
+        'p99',
+        'max',
+        'min',
       ];
 
-      expect(options).toHaveLength(aggregates.length);
-
-      for (let i = 0; i < aggregates.length; i++) {
-        const [name, enabled] = aggregates[i]!;
-        expect(options[i]).toHaveTextContent(name);
-        if (enabled) {
-          expect(options[i]).not.toHaveAttribute('aria-disabled', 'true');
-        } else {
-          expect(options[i]).toHaveAttribute('aria-disabled', 'true');
-        }
-      }
+      aggregates.forEach(name => {
+        expect(screen.getByRole('option', {name})).not.toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      });
     });
 
     it('uses the right default when switching aggregates', async () => {
-      const {router} = render(
-        <Wrapper>
-          <LogsToolbar numberTags={{foo: {key: 'foo', name: 'foo'}}} stringTags={{}} />
-        </Wrapper>
-      );
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
@@ -74,7 +104,7 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['avg(foo)']}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['avg(bar)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
@@ -89,19 +119,10 @@ describe('LogsToolbar', () => {
     });
 
     it('switches the parameter', async () => {
-      const {router} = render(
-        <Wrapper>
-          <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
-            stringTags={{
-              message: {key: 'message', name: 'message'},
-              severity: {key: 'severity', name: 'severity'},
-            }}
-          />
-        </Wrapper>
-      );
-
-      let options: HTMLElement[];
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       // count has no user changable argument
       expect(screen.getByRole('button', {name: 'logs'})).toBeDisabled();
@@ -109,13 +130,10 @@ describe('LogsToolbar', () => {
       // count unique only shows string attributes
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
-      await userEvent.click(screen.getByRole('button', {name: 'message'})); // this one isnt remapped for some reason
-      options = screen.getAllByRole('option');
-      expect(options).toHaveLength(4);
-      expect(options[0]).toHaveTextContent('barnumber');
-      expect(options[1]).toHaveTextContent('foonumber');
-      expect(options[2]).toHaveTextContent('message'); // this one isnt remapped for some reason
-      expect(options[3]).toHaveTextContent('severity');
+      await userEvent.click(screen.getByRole('button', {name: 'message'}));
+      expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'severity'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['count_unique(severity)']}].map(aggregateField =>
@@ -126,11 +144,9 @@ describe('LogsToolbar', () => {
       // avg shows only number attributes
       await userEvent.click(screen.getByRole('button', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
-      await userEvent.click(screen.getByRole('button', {name: 'bar'})); // this one isnt remapped for some reason
-      options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveTextContent('bar'); // this one isnt remapped for some reason
-      expect(options[1]).toHaveTextContent('foo');
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['avg(foo)']}].map(aggregateField =>
@@ -140,17 +156,10 @@ describe('LogsToolbar', () => {
     });
 
     it('can add/delete visualizes', async () => {
-      const {router} = render(
-        <Wrapper>
-          <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
-            stringTags={{
-              message: {key: 'message', name: 'message'},
-              severity: {key: 'severity', name: 'severity'},
-            }}
-          />
-        </Wrapper>
-      );
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
@@ -173,19 +182,18 @@ describe('LogsToolbar', () => {
 
   describe('group by section', () => {
     it('can switch group bys', async () => {
-      const {router} = render(
-        <Wrapper>
-          <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
-            stringTags={{
-              message: {key: 'message', name: 'message'},
-              severity: {key: 'severity', name: 'severity'},
-            }}
-          />
-        </Wrapper>
-      );
+      let mode: Mode | undefined = undefined;
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      function Component() {
+        mode = useQueryParamsMode();
+        return <LogsToolbar />;
+      }
+      const {router} = render(<Component />, {organization, additionalWrapper: Wrapper});
+
+      expect(mode).toEqual(Mode.SAMPLES);
+
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'message'}, {yAxes: ['count(message)']}].map(aggregateField =>
@@ -193,29 +201,26 @@ describe('LogsToolbar', () => {
         )
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'message'}));
+      expect(mode).toEqual(Mode.AGGREGATE);
+
+      await userEvent.click(within(editorColumn).getByRole('button', {name: 'message'}));
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: 'severity'}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
+      expect(mode).toEqual(Mode.AGGREGATE);
     });
 
     it('can add/delete group bys', async () => {
-      const {router} = render(
-        <Wrapper>
-          <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
-            stringTags={{
-              message: {key: 'message', name: 'message'},
-              severity: {key: 'severity', name: 'severity'},
-            }}
-          />
-        </Wrapper>
-      );
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
 
-      await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
@@ -233,5 +238,64 @@ describe('LogsToolbar', () => {
         )
       );
     });
+  });
+
+  it('re-fetches attributes on search', async () => {
+    const searchStringMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'custom.searched_tag',
+          name: 'custom.searched_tag',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+      match: [
+        MockApiClient.matchQuery({
+          attributeType: 'string',
+          itemType: 'logs',
+          substringMatch: 'searched',
+        }),
+      ],
+    });
+
+    const searchNumberMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'searched_number',
+          name: 'searched_number',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+      match: [
+        MockApiClient.matchQuery({
+          attributeType: 'number',
+          itemType: 'logs',
+          substringMatch: 'searched',
+        }),
+      ],
+    });
+
+    render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
+
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
+
+    expect(
+      screen.queryByRole('option', {name: 'custom.searched_tag'})
+    ).not.toBeInTheDocument();
+
+    const searchInput = screen.getByRole('textbox');
+    await userEvent.type(searchInput, 'searched');
+
+    await waitFor(() => expect(searchStringMock).toHaveBeenCalled());
+    await waitFor(() => expect(searchNumberMock).toHaveBeenCalled());
+
+    expect(
+      await screen.findByRole('option', {name: 'custom.searched_tag'})
+    ).toBeInTheDocument();
   });
 });

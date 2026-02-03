@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -167,7 +167,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
             </div>
             <PolicyStatusRow>
               <StatusIconWithTooltip
-                icon={<IconCheckmark isCircled size="sm" color="success" />}
+                icon={<IconCheckmark size="sm" variant="success" />}
                 tooltip="Included with all accounts"
               />
               <LinkButton size="sm" external href="https://sentry.io/security/">
@@ -242,6 +242,6 @@ export function TermsAndConditions({subscription}: TermsProps) {
 
 const PolicyTitle = styled('h6')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;

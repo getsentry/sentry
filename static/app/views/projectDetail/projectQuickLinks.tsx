@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,7 +24,6 @@ import {
 import {SidebarSection} from './styles';
 
 type Props = {
-  location: Location;
   organization: Organization;
   project?: Project;
 };
@@ -120,14 +119,18 @@ const QuickLink = styled((p: any) =>
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray200};
+      color: ${p.theme.colors.gray200};
       cursor: not-allowed;
     `}
 `;
 
 const QuickLinkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.font.size.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default ProjectQuickLinks;

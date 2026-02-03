@@ -5,13 +5,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
-import {Input} from 'sentry/components/core/input';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
@@ -28,7 +28,12 @@ import {
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
@@ -36,7 +41,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type LinkedDashboard,
+} from 'sentry/views/dashboards/types';
+import {isChartDisplayType} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -45,6 +55,7 @@ import {
   ColumnCompactSelect,
   SelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -57,6 +68,7 @@ import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
 
@@ -90,21 +102,24 @@ function formatColumnOptions(
             ? prettifyTagKey(option.value.meta.name)
             : option.value.meta.name,
 
-        trailingItems: renderTag(
-          option.value.kind,
-          option.value.meta.name,
-          option.value.kind !== FieldValueKind.FUNCTION &&
-            option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType
-            : undefined
-        ),
+        trailingItems: () => {
+          return renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          );
+        },
         disabled: !supported,
-        tooltip:
-          !supported && field.kind === FieldValueKind.FUNCTION
+        tooltip: ({disabled}: {disabled: boolean}) => {
+          return disabled && field.kind === FieldValueKind.FUNCTION
             ? tct('This field is not available for the [aggregate] function', {
                 aggregate: <strong>{field.function[0]}</strong>,
               })
-            : undefined,
+            : undefined;
+        },
       };
     });
 }
@@ -270,24 +285,32 @@ function Visualize({error, setError}: VisualizeProps) {
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
 
-  const isChartWidget =
-    state.displayType !== DisplayType.TABLE &&
-    state.displayType !== DisplayType.BIG_NUMBER;
+  const isChartWidget = isChartDisplayType(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
-  const {tags: numericSpanTags} = useTraceItemTags('number');
-  const {tags: stringSpanTags} = useTraceItemTags('string');
+  let hiddenKeys: string[] = [];
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    hiddenKeys = HiddenTraceMetricSearchFields;
+  }
+  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
+  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
   // chart types.
-  let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+  const traceItemColumnOptions = useMemo(() => {
+    if (
+      state.dataset !== WidgetType.SPANS &&
+      state.dataset !== WidgetType.LOGS &&
+      state.dataset !== WidgetType.TRACEMETRICS
+    ) {
+      return [];
+    }
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
         .map(field => field.field) ?? [];
-    traceItemColumnOptions = [
+    const options: Array<SelectValue<string> & {label: string; value: string}> = [
       // Columns that are not in the tag responses, e.g. old tags
       ...columns
         .filter(
@@ -300,30 +323,32 @@ function Visualize({error, setError}: VisualizeProps) {
           return {
             label: prettifyTagKey(column),
             value: column,
-            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+            trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
       ...Object.values(stringSpanTags).map(tag => {
         return {
           label: tag.name,
           value: tag.key,
-          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          trailingItems: () => <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numericSpanTags).map(tag => {
         return {
           label: prettifyTagKey(tag.name),
           value: tag.key,
-          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          trailingItems: () => <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
-    traceItemColumnOptions.sort(_sortFn);
-  }
+    options.sort(_sortFn);
+    return options;
+  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   const fields = isChartWidget ? state.yAxis : state.fields;
+  const linkedDashboards = state.linkedDashboards || [];
   const updateAction = isChartWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
@@ -331,14 +356,24 @@ function Visualize({error, setError}: VisualizeProps) {
   const fieldOptions = useMemo(() => {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
-    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+    if (
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS
+    ) {
       return datasetConfig.getTableFieldOptions(
         organization,
         {...numericSpanTags, ...stringSpanTags},
         customMeasurements
       );
     }
-    return datasetConfig.getTableFieldOptions(organization, tags, customMeasurements);
+    return datasetConfig.getTableFieldOptions(
+      organization,
+      tags,
+      customMeasurements,
+      undefined,
+      state.displayType
+    );
   }, [
     state.dataset,
     datasetConfig,
@@ -347,6 +382,7 @@ function Visualize({error, setError}: VisualizeProps) {
     customMeasurements,
     numericSpanTags,
     stringSpanTags,
+    state.displayType,
   ]);
 
   const aggregates = useMemo(
@@ -376,6 +412,113 @@ function Visualize({error, setError}: VisualizeProps) {
     'visibility-explore-equations'
   );
   const hasDrillDownFlows = useHasDrillDownFlows();
+
+  // Default field to add to the widget query when adding a new field.
+  const defaultField =
+    (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
+
+  const baseAggregateOptions = useMemo(
+    () =>
+      aggregates.map(option => ({
+        value:
+          option.value.kind === FieldValueKind.FUNCTION
+            ? getAggregateValueKey(option.value.meta.name)
+            : option.value.meta.name,
+        label: option.value.meta.name,
+        trailingItems: () => renderTag(option.value.kind, option.value.meta.name) ?? null,
+      })),
+    [aggregates]
+  );
+
+  // Release dataset tables only use specific fields from SESSIONS_TAGS
+  const releaseSessionTagsOptions = useMemo(() => {
+    if (state.dataset !== WidgetType.RELEASE) {
+      return [];
+    }
+    return Object.values(fieldOptions)
+      .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
+      .map(option => ({
+        label: option.value.meta.name,
+        value: option.value.meta.name,
+        textValue: option.value.meta.name,
+        trailingItems: () => renderTag(option.value.kind, option.value.meta.name),
+      }))
+      .sort(_sortFn);
+  }, [state.dataset, fieldOptions]);
+
+  // Column options for table widgets - includes all fields without any filtering
+  // imposed by the aggregate filtering its possible columns
+  const tableFieldOptions = useMemo(() => {
+    if (
+      isChartWidget ||
+      isBigNumberWidget ||
+      state.dataset === WidgetType.ISSUE ||
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS ||
+      state.dataset === WidgetType.RELEASE
+    ) {
+      return [];
+    }
+    return Object.values(fieldOptions)
+      .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
+      .map(option => ({
+        label: option.value.meta.name,
+        value: option.value.meta.name,
+        textValue: option.value.meta.name,
+        trailingItems: () =>
+          renderTag(
+            option.value.kind,
+            option.value.meta.name,
+            option.value.kind !== FieldValueKind.FUNCTION &&
+              option.value.kind !== FieldValueKind.EQUATION
+              ? option.value.meta.dataType
+              : undefined
+          ),
+      }))
+      .sort(_sortFn);
+  }, [isChartWidget, isBigNumberWidget, state.dataset, fieldOptions]);
+
+  const computedAggregateOptions = useMemo(() => {
+    if (isChartWidget || isBigNumberWidget) {
+      return {type: 'chart' as const, options: baseAggregateOptions};
+    }
+
+    const baseOptions = [NONE_AGGREGATE, ...baseAggregateOptions];
+
+    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
+    if (state.dataset === WidgetType.ISSUE) {
+      return {type: 'issue' as const, options: baseOptions};
+    }
+    // Add span column options for Spans dataset
+    if (
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS
+    ) {
+      return {
+        type: 'trace' as const,
+        options: [...baseOptions, ...traceItemColumnOptions],
+      };
+    }
+    if (state.dataset === WidgetType.RELEASE) {
+      return {
+        type: 'release' as const,
+        optionsWithNone: [...baseOptions, ...releaseSessionTagsOptions],
+        optionsWithoutNone: [...baseAggregateOptions, ...releaseSessionTagsOptions],
+      };
+    }
+    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
+    return {type: 'table' as const, options: [...baseOptions, ...tableFieldOptions]};
+  }, [
+    isChartWidget,
+    isBigNumberWidget,
+    state.dataset,
+    baseAggregateOptions,
+    traceItemColumnOptions,
+    releaseSessionTagsOptions,
+    tableFieldOptions,
+  ]);
 
   return (
     <Fragment>
@@ -421,7 +564,7 @@ function Visualize({error, setError}: VisualizeProps) {
             items={draggableFieldIds}
             strategy={verticalListSortingStrategy}
           >
-            <Fields>
+            <Stack gap="md">
               {fields?.map((field, index) => {
                 const canDelete = canDeleteField(
                   state.dataset ?? WidgetType.ERRORS,
@@ -432,7 +575,11 @@ function Visualize({error, setError}: VisualizeProps) {
                 const isOnlyFieldOrAggregate =
                   fields.length === 2 &&
                   field.kind !== FieldValueKind.EQUATION &&
-                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION);
+                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION) &&
+                  // The spans dataset can have a single equation, so isOnlyFieldOrAggregate
+                  // is not applicable. The errors dataset requires one series to be
+                  // selected for equations to work.
+                  state.dataset !== WidgetType.SPANS;
 
                 // Depending on the dataset and the display type, we use different options for
                 // displaying in the column select.
@@ -449,7 +596,8 @@ function Visualize({error, setError}: VisualizeProps) {
                     : datasetConfig.filterTableOptions;
                 const columnOptions =
                   (state.dataset === WidgetType.SPANS ||
-                    state.dataset === WidgetType.LOGS) &&
+                    state.dataset === WidgetType.LOGS ||
+                    state.dataset === WidgetType.TRACEMETRICS) &&
                   field.kind !== FieldValueKind.FUNCTION
                     ? traceItemColumnOptions
                     : getColumnOptions(
@@ -468,70 +616,14 @@ function Visualize({error, setError}: VisualizeProps) {
                       textValue?: string;
                     }
                   | SelectValue<string>
-                > = aggregates.map(option => ({
-                  value:
-                    option.value.kind === FieldValueKind.FUNCTION
-                      ? getAggregateValueKey(option.value.meta.name)
-                      : option.value.meta.name,
-                  label: option.value.meta.name,
-                  trailingItems:
-                    renderTag(option.value.kind, option.value.meta.name) ?? null,
-                }));
+                >;
 
-                if (!isChartWidget && !isBigNumberWidget) {
-                  const baseOptions = [NONE_AGGREGATE, ...aggregateOptions];
-
-                  if (state.dataset === WidgetType.ISSUE) {
-                    // Issue widgets don't have aggregates, set to baseOptions to include the NONE_AGGREGATE label
-                    aggregateOptions = baseOptions;
-                  } else if (
-                    state.dataset === WidgetType.SPANS ||
-                    state.dataset === WidgetType.LOGS
-                  ) {
-                    // Add span column options for Spans dataset
-                    aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
-                  } else if (state.dataset === WidgetType.RELEASE) {
-                    aggregateOptions = [
-                      ...(canDelete ? baseOptions : aggregateOptions),
-                      ...Object.values(fieldOptions)
-                        // release dataset tables only use specific fields "SESSION_TAGS"
-                        .filter(option => SESSIONS_TAGS.includes(option.value.meta.name))
-                        .map(option => ({
-                          label: option.value.meta.name,
-                          value: option.value.meta.name,
-                          textValue: option.value.meta.name,
-                          trailingItems: renderTag(
-                            option.value.kind,
-                            option.value.meta.name
-                          ),
-                        }))
-                        .sort(_sortFn),
-                    ];
-                  } else {
-                    // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
-                    aggregateOptions = [
-                      ...baseOptions,
-
-                      // Iterate over fieldOptions so we can show all of the fields without any filtering
-                      // imposed by the aggregate filtering its possible columns
-                      ...Object.values(fieldOptions)
-                        .filter(option => option.value.kind !== FieldValueKind.FUNCTION)
-                        .map(option => ({
-                          label: option.value.meta.name,
-                          value: option.value.meta.name,
-                          textValue: option.value.meta.name,
-                          trailingItems: renderTag(
-                            option.value.kind,
-                            option.value.meta.name,
-                            option.value.kind !== FieldValueKind.FUNCTION &&
-                              option.value.kind !== FieldValueKind.EQUATION
-                              ? option.value.meta.dataType
-                              : undefined
-                          ),
-                        }))
-                        .sort(_sortFn),
-                    ];
-                  }
+                if (computedAggregateOptions.type === 'release') {
+                  aggregateOptions = canDelete
+                    ? computedAggregateOptions.optionsWithNone
+                    : computedAggregateOptions.optionsWithoutNone;
+                } else {
+                  aggregateOptions = computedAggregateOptions.options;
                 }
 
                 let matchingAggregate: any;
@@ -666,23 +758,31 @@ function Visualize({error, setError}: VisualizeProps) {
                             )
                           ) : (
                             <Fragment>
-                              <SelectRow
-                                field={field}
-                                index={index}
-                                hasColumnParameter={hasColumnParameter}
-                                columnOptions={columnOptions}
-                                aggregateOptions={aggregateOptions}
-                                stringFields={stringFields}
-                                error={error}
-                                setError={setError}
-                                fields={fields}
-                                source={source}
-                                isEditing={isEditing}
-                                fieldOptions={fieldOptions}
-                                columnFilterMethod={columnFilterMethod}
-                                aggregates={aggregates}
-                                disabled={disableTransactionWidget}
-                              />
+                              {state.dataset === WidgetType.TRACEMETRICS ? (
+                                <MetricSelectRow
+                                  disabled={disableTransactionWidget}
+                                  field={field}
+                                  index={index}
+                                />
+                              ) : (
+                                <SelectRow
+                                  field={field}
+                                  index={index}
+                                  hasColumnParameter={hasColumnParameter}
+                                  columnOptions={columnOptions}
+                                  aggregateOptions={aggregateOptions}
+                                  stringFields={stringFields}
+                                  error={error}
+                                  setError={setError}
+                                  fields={fields}
+                                  source={source}
+                                  isEditing={isEditing}
+                                  fieldOptions={fieldOptions}
+                                  columnFilterMethod={columnFilterMethod}
+                                  aggregates={aggregates}
+                                  disabled={disableTransactionWidget}
+                                />
+                              )}
                               {field.kind === FieldValueKind.FUNCTION &&
                                 parameterRefinements.length > 0 && (
                                   <ParameterRefinements>
@@ -780,69 +880,103 @@ function Visualize({error, setError}: VisualizeProps) {
                               }}
                             />
                           )}
-                          {hasDrillDownFlows && isTableWidget && (
+                          {hasDrillDownFlows &&
+                            isTableWidget &&
+                            fields[index]?.kind === FieldValueKind.FIELD && (
+                              <Button
+                                priority="transparent"
+                                icon={<IconLink />}
+                                aria-label={t('Link field')}
+                                size="zero"
+                                onClick={() => {
+                                  openLinkToDashboardModal({
+                                    onLink: dashboardId => {
+                                      if (
+                                        fields[index]?.kind === FieldValueKind.FIELD &&
+                                        fields[index]?.field
+                                      ) {
+                                        const newLinkedDashboards: LinkedDashboard[] = [
+                                          ...linkedDashboards,
+                                          {dashboardId, field: fields[index].field},
+                                        ];
+                                        dispatch({
+                                          type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                          payload: newLinkedDashboards,
+                                        });
+                                      }
+                                    },
+                                    currentLinkedDashboard: linkedDashboards.find(
+                                      linkedDashboard => {
+                                        if (
+                                          fields[index]?.kind === FieldValueKind.FIELD &&
+                                          fields[index]?.field
+                                        ) {
+                                          return (
+                                            linkedDashboard.field === fields[index].field
+                                          );
+                                        }
+                                        return false;
+                                      }
+                                    ),
+                                    source,
+                                  });
+                                }}
+                              />
+                            )}
+                          {(state.displayType !== DisplayType.BIG_NUMBER ||
+                            datasetConfig.enableEquations) && (
                             <Button
-                              borderless
-                              icon={<IconLink />}
-                              aria-label={t('Link field')}
+                              priority="transparent"
+                              icon={<IconDelete />}
                               size="zero"
+                              disabled={
+                                fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
+                              }
                               onClick={() => {
-                                openLinkToDashboardModal({
-                                  source,
+                                dispatch({
+                                  type: updateAction,
+                                  payload:
+                                    fields?.filter((_field, i) => i !== index) ?? [],
+                                });
+
+                                if (
+                                  state.displayType === DisplayType.BIG_NUMBER &&
+                                  selectedAggregateSet
+                                ) {
+                                  // Unset the selected aggregate if it's the last one
+                                  // so the state will automatically choose the last aggregate
+                                  // as new fields are added
+                                  if (state.selectedAggregate === fields.length - 1) {
+                                    dispatch({
+                                      type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                      payload: undefined,
+                                    });
+                                  }
+                                }
+
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field:
+                                    field.kind === FieldValueKind.EQUATION
+                                      ? 'visualize.deleteEquation'
+                                      : 'visualize.deleteField',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
+                                  organization,
                                 });
                               }}
+                              aria-label={t('Remove field')}
                             />
                           )}
-                          <Button
-                            borderless
-                            icon={<IconDelete />}
-                            size="zero"
-                            disabled={
-                              fields.length <= 1 || !canDelete || isOnlyFieldOrAggregate
-                            }
-                            onClick={() => {
-                              dispatch({
-                                type: updateAction,
-                                payload: fields?.filter((_field, i) => i !== index) ?? [],
-                              });
-
-                              if (
-                                state.displayType === DisplayType.BIG_NUMBER &&
-                                selectedAggregateSet
-                              ) {
-                                // Unset the selected aggregate if it's the last one
-                                // so the state will automatically choose the last aggregate
-                                // as new fields are added
-                                if (state.selectedAggregate === fields.length - 1) {
-                                  dispatch({
-                                    type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                    payload: undefined,
-                                  });
-                                }
-                              }
-
-                              trackAnalytics('dashboards_views.widget_builder.change', {
-                                builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                field:
-                                  field.kind === FieldValueKind.EQUATION
-                                    ? 'visualize.deleteEquation'
-                                    : 'visualize.deleteField',
-                                from: source,
-                                new_widget: !isEditing,
-                                value: '',
-                                widget_type: state.dataset ?? '',
-                                organization,
-                              });
-                            }}
-                            aria-label={t('Remove field')}
-                          />
                         </FieldExtras>
                       </FieldRow>
                     )}
                   </SortableVisualizeFieldWrapper>
                 );
               })}
-            </Fields>
+            </Stack>
           </SortableContext>
           <DragOverlay dropAnimation={null}>
             {activeId && (
@@ -859,71 +993,75 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      <AddButtons>
-        <AddButton
-          priority="link"
-          disabled={disableTransactionWidget}
-          aria-label={
-            isChartWidget
-              ? t('Add Series')
+      {(isChartWidget ||
+        isTableWidget ||
+        (isBigNumberWidget && datasetConfig.enableEquations)) && (
+        <AddButtons>
+          <AddButton
+            priority="link"
+            disabled={disableTransactionWidget}
+            aria-label={
+              isChartWidget
+                ? t('Add Series')
+                : isBigNumberWidget
+                  ? t('Add Field')
+                  : t('Add Column')
+            }
+            onClick={() => {
+              dispatch({
+                type: updateAction,
+                payload: [...(fields ?? []), cloneDeep(defaultField)],
+              });
+
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.addField',
+                from: source,
+                new_widget: !isEditing,
+                value: '',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
+          >
+            {isChartWidget
+              ? t('+ Add Series')
               : isBigNumberWidget
-                ? t('Add Field')
-                : t('Add Column')
-          }
-          onClick={() => {
-            dispatch({
-              type: updateAction,
-              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
-            });
+                ? t('+ Add Field')
+                : t('+ Add Column')}
+          </AddButton>
+          {datasetConfig.enableEquations &&
+            (state.dataset !== WidgetType.SPANS ||
+              (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+              <AddButton
+                priority="link"
+                disabled={disableTransactionWidget}
+                aria-label={t('Add Equation')}
+                onClick={() => {
+                  dispatch({
+                    type: updateAction,
+                    payload: [
+                      ...(fields ?? []),
+                      {kind: FieldValueKind.EQUATION, field: ''},
+                    ],
+                  });
 
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.addField',
-              from: source,
-              new_widget: !isEditing,
-              value: '',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-          }}
-        >
-          {isChartWidget
-            ? t('+ Add Series')
-            : isBigNumberWidget
-              ? t('+ Add Field')
-              : t('+ Add Column')}
-        </AddButton>
-        {datasetConfig.enableEquations &&
-          (state.dataset !== WidgetType.SPANS ||
-            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
-            <AddButton
-              priority="link"
-              disabled={disableTransactionWidget}
-              aria-label={t('Add Equation')}
-              onClick={() => {
-                dispatch({
-                  type: updateAction,
-                  payload: [
-                    ...(fields ?? []),
-                    {kind: FieldValueKind.EQUATION, field: ''},
-                  ],
-                });
-
-                trackAnalytics('dashboards_views.widget_builder.change', {
-                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                  field: 'visualize.addEquation',
-                  from: source,
-                  new_widget: !isEditing,
-                  value: '',
-                  widget_type: state.dataset ?? '',
-                  organization,
-                });
-              }}
-            >
-              {t('+ Add Equation')}
-            </AddButton>
-          )}
-      </AddButtons>
+                  trackAnalytics('dashboards_views.widget_builder.change', {
+                    builder_version: WidgetBuilderVersion.SLIDEOUT,
+                    field: 'visualize.addEquation',
+                    from: source,
+                    new_widget: !isEditing,
+                    value: '',
+                    widget_type: state.dataset ?? '',
+                    organization,
+                  });
+                }}
+              >
+                {t('+ Add Equation')}
+              </AddButton>
+            )}
+        </AddButtons>
+      )}
     </Fragment>
   );
 }
@@ -931,54 +1069,14 @@ function Visualize({error, setError}: VisualizeProps) {
 export default Visualize;
 
 function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
-  if (dataType) {
-    switch (dataType) {
-      case 'boolean':
-      case 'date':
-      case 'string':
-        return <Tag type="highlight">{t('string')}</Tag>;
-      case 'duration':
-      case 'integer':
-      case 'percentage':
-      case 'number':
-        return <Tag type="success">{t('number')}</Tag>;
-      default:
-        return <Tag>{dataType}</Tag>;
-    }
-  }
-  let text: string | undefined, tagType: TagProps['type'] | undefined;
-
-  switch (kind) {
-    case FieldValueKind.FUNCTION:
-      text = 'f(x)';
-      tagType = 'warning';
-      break;
-    case FieldValueKind.CUSTOM_MEASUREMENT:
-    case FieldValueKind.MEASUREMENT:
-      text = 'field';
-      tagType = 'highlight';
-      break;
-    case FieldValueKind.BREAKDOWN:
-      text = 'field';
-      tagType = 'highlight';
-      break;
-    case FieldValueKind.TAG:
-      text = kind;
-      tagType = 'warning';
-      break;
-    case FieldValueKind.NUMERIC_METRICS:
-      text = 'f(x)';
-      tagType = 'warning';
-      break;
-    case FieldValueKind.FIELD:
-      text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight';
-      break;
-    default:
-      text = kind;
-  }
-
-  return <Tag type={tagType}>{text}</Tag>;
+  return (
+    <TypeBadge
+      label={label}
+      valueKind={kind}
+      valueType={dataType as FieldValueType}
+      deprecatedFields={DEPRECATED_FIELDS}
+    />
+  );
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{
@@ -1023,7 +1121,9 @@ export const FieldBar = styled('div')`
   min-width: 0;
 `;
 
-export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
+export const PrimarySelectRow = styled('div')<{
+  hasColumnParameter: boolean;
+}>`
   display: flex;
   width: 100%;
   min-width: 0;
@@ -1032,7 +1132,6 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
   }
-
   & ${AggregateCompactSelect} button {
     ${p =>
       p.hasColumnParameter &&
@@ -1043,13 +1142,9 @@ export const PrimarySelectRow = styled('div')<{hasColumnParameter: boolean}>`
   }
 `;
 
-export const FieldRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  width: 100%;
-  min-width: 0;
-`;
+export function FieldRow(props: FlexProps<'div'>) {
+  return <Flex gap="md" width="100%" minWidth="0" {...props} />;
+}
 
 export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
@@ -1066,12 +1161,6 @@ const AddButton = styled(Button)`
 const AddButtons = styled('div')`
   display: inline-flex;
   gap: ${space(1.5)};
-`;
-
-const Fields = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

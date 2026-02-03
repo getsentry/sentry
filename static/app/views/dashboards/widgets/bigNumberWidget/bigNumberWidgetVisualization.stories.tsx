@@ -315,8 +315,8 @@ function SmallWidget(props: SmallWidgetProps) {
 }
 
 const Padded = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: ${p => `1px solid ${p.theme.border}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
   padding: ${space(2)} ${space(1)};
   width: 250px;
   height: 80px;

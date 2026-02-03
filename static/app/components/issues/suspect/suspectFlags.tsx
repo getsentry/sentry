@@ -1,9 +1,11 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,8 +103,8 @@ const TagHeader = styled('h4')`
   align-items: center;
 
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TagValueGrid = styled('ul')`
@@ -121,17 +123,20 @@ const TagValueRow = styled('li')`
 
   align-items: center;
   padding: ${space(0.25)} ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.textColor};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   font-variant-numeric: tabular-nums;
 
   &:nth-child(2n) {
-    background-color: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+    background-color: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;
 
 const StyledLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 
   &:hover [data-underline-on-hover='true'] {

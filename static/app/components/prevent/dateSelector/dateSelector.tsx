@@ -1,9 +1,11 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
@@ -44,35 +46,32 @@ export function DateSelector() {
       onChange={handleChange}
       menuTitle={t('Filter to time period')}
       menuWidth="16rem"
-      trigger={(triggerProps, isOpen) => {
+      trigger={triggerProps => {
         const defaultLabel = options.some(item => item.value === preventPeriod)
           ? preventPeriod?.toUpperCase()
           : t('Invalid Period');
 
         return (
-          <DropdownButton
-            isOpen={isOpen}
+          <OverlayTrigger.Button
             icon={<IconCalendar />}
             data-test-id="prevent-time-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{defaultLabel}</TriggerLabel>
-            </TriggerLabelWrap>
-          </DropdownButton>
+            </Container>
+          </OverlayTrigger.Button>
         );
       }}
     />
   );
 }
 
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
-
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

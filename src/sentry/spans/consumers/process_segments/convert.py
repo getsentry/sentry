@@ -3,11 +3,19 @@ from typing import Any, cast
 import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    KeyValue,
+    KeyValueList,
+    TraceItem,
+)
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
 
@@ -15,8 +23,6 @@ FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
     "hash": "sentry.hash",
-    "is_remote": "sentry.is_remote",
-    "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
@@ -24,8 +30,8 @@ FIELD_TO_ATTRIBUTE = {
 }
 
 RENAME_ATTRIBUTES = {
-    "sentry.description": "sentry.raw_description",
-    "sentry.segment.id": "sentry.segment_id",
+    ATTRIBUTE_NAMES.SENTRY_DESCRIPTION: "sentry.raw_description",
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
 
@@ -46,16 +52,20 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         except Exception:
             sentry_sdk.capture_exception()
         else:
-            if k == "sentry.client_sample_rate":
+            if k == ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE:
                 try:
                     client_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
-            elif k == "sentry.server_sample_rate":
+            elif k == ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE:
                 try:
                     server_sample_rate = float(value)  # type:ignore[arg-type]
                 except ValueError:
                     pass
+
+    # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
+    if (is_segment := span.get("is_segment")) is not None:
+        attributes["sentry.is_segment"] = _anyvalue(is_segment)
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         attribute = span.get(field_name)  # type:ignore[assignment]
@@ -69,17 +79,29 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             attributes[eap_name] = attributes.pop(convention_name)
 
     try:
-        # TODO: Move this to Relay
         attributes["sentry.duration_ms"] = AnyValue(
-            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
+            double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
         )
     except Exception:
         sentry_sdk.capture_exception()
 
+    if span_meta := span.get("_meta"):
+        for attr, meta in (span_meta.get("attributes") or {}).items():
+            try:
+                if attr in RENAME_ATTRIBUTES:
+                    attr = RENAME_ATTRIBUTES[attr]
+                # Meta is expected to be a stringified json object.
+                value = orjson.dumps({"meta": meta}).decode()
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue(value)
+            except Exception:
+                sentry_sdk.capture_exception()
+
     if links := span.get("links"):
         try:
-            sanitized_links = [_sanitize_span_link(link) for link in links]
-            attributes["sentry.links"] = _anyvalue(sanitized_links)
+            sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
+            # Span links are expected to be a stringified json object.
+            value = orjson.dumps(sanitized_links).decode()
+            attributes["sentry.links"] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
@@ -88,7 +110,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        item_id=hex_to_item_id(span["span_id"]),
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=_timestamp(span["start_timestamp"]),
         attributes=attributes,
@@ -111,8 +133,14 @@ def _anyvalue(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, (list, dict)):
-        return AnyValue(string_value=orjson.dumps(value).decode())
+    elif isinstance(value, list):
+        return AnyValue(array_value=ArrayValue(values=[_anyvalue(v) for v in value]))
+    elif isinstance(value, dict):
+        return AnyValue(
+            kvlist_value=KeyValueList(
+                values=[KeyValue(key=k, value=_anyvalue(v)) for k, v in value.items()]
+            )
+        )
 
     raise ValueError(f"Unknown value type: {type(value)}")
 
@@ -133,17 +161,18 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+
     sanitized_link = cast(SpanLink, {**link})
 
     allowed_attributes = {}
-    attributes = link.get("attributes", {}) or {}
+    attributes = link.get("attributes") or {}
 
     # In the future, we want Relay to drop unsupported attributes, so there
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
     try:
-        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[arg-type,index]
+        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[index,arg-type]
     except (KeyError, ValueError, TypeError):
         dropped_attributes_count = 0
 

@@ -1,12 +1,13 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -19,29 +20,18 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import withSubscription from 'getsentry/components/withSubscription';
-import type {InvoiceBase, Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
+import type {InvoiceBase} from 'getsentry/types';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-
-import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
-
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-} & RouteComponentProps<unknown, unknown>;
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -53,13 +43,9 @@ enum ReceiptStatus {
 /**
  * Invoice/Payment list view.
  */
-function PaymentHistory({organization, subscription}: Props) {
-  const isNewBillingUI = hasNewBillingUI(organization);
+function PaymentHistory() {
+  const organization = useOrganization();
   const location = useLocation();
-
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'receipts');
-  }, [organization, subscription]);
 
   const {
     data: payments,
@@ -81,46 +67,8 @@ function PaymentHistory({organization, subscription}: Props) {
   const hasBillingPerms = organization.access?.includes('org:billing');
   const paymentsPageLinks = getResponseHeader?.('Link');
 
-  if (!isNewBillingUI) {
-    if (isPending) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <SubscriptionHeader subscription={subscription} organization={organization} />
-          <LoadingIndicator />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    if (isError) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <LoadingError />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    if (!hasBillingPerms) {
-      return (
-        <SubscriptionPageContainer background="primary" organization={organization}>
-          <ContactBillingMembers />
-        </SubscriptionPageContainer>
-      );
-    }
-
-    return (
-      <SubscriptionPageContainer background="primary" organization={organization}>
-        <SubscriptionHeader organization={organization} subscription={subscription} />
-        <ReceiptGrid
-          payments={payments}
-          organization={organization}
-          paymentsPageLinks={paymentsPageLinks}
-        />
-      </SubscriptionPageContainer>
-    );
-  }
-
   return (
-    <SubscriptionPageContainer background="primary" organization={organization}>
+    <SubscriptionPageContainer background="primary">
       <SentryDocumentTitle title={t('Receipts')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Receipts')} />
       {isPending ? (
@@ -150,7 +98,8 @@ function ReceiptGrid({
   paymentsPageLinks: string | null | undefined;
 }) {
   const theme = useTheme();
-  const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const getTag = (payment: InvoiceBase) => {
     const status = payment.amountRefunded
@@ -161,7 +110,7 @@ function ReceiptGrid({
           ? ReceiptStatus.CLOSED
           : ReceiptStatus.AWAITING_PAYMENT;
     let icon = <IconWarning />;
-    let tagType = 'warning';
+    let tagType: TagProps['variant'] = 'warning';
 
     switch (status) {
       case ReceiptStatus.PAID:
@@ -170,7 +119,7 @@ function ReceiptGrid({
         break;
       case ReceiptStatus.CLOSED:
         icon = <IconClose />;
-        tagType = 'error';
+        tagType = 'danger';
         break;
       case ReceiptStatus.REFUNDED:
         icon = <IconTimer />;
@@ -183,7 +132,7 @@ function ReceiptGrid({
     }
 
     return (
-      <Tag icon={icon} type={tagType as any}>
+      <Tag icon={icon} variant={tagType}>
         {capitalize(status.replace('_', ' '))}
       </Tag>
     );
@@ -199,8 +148,8 @@ function ReceiptGrid({
         data-test-id="payment-list"
       >
         <Grid
-          align="center"
-          columns={isMobile ? 'repeat(5, 1fr)' : 'repeat(4, 1fr) 2fr'}
+          align="start"
+          columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
           gap="xl"
           padding="xl"
         >
@@ -209,7 +158,7 @@ function ReceiptGrid({
             {t('Amount')}
           </Text>
           <Text bold>{t('Status')}</Text>
-          <Text bold>{t('Receipt ID')}</Text>
+          {!isXSmallScreen && <Text bold>{t('Receipt ID')}</Text>}
           <div />
         </Grid>
         {payments.map(payment => {
@@ -218,7 +167,7 @@ function ReceiptGrid({
             <Grid
               key={payment.id}
               align="center"
-              columns={isMobile ? 'repeat(5, 1fr)' : 'repeat(4, 1fr) 2fr'}
+              columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
               gap="xl"
               borderTop="primary"
               padding="xl"
@@ -235,12 +184,14 @@ function ReceiptGrid({
                 )}
               </Container>
               <Container>{getTag(payment)}</Container>
-              <Text monospace ellipsis>
-                {payment.id}
-              </Text>
+              {!isXSmallScreen && (
+                <Text monospace ellipsis>
+                  {payment.id}
+                </Text>
+              )}
               <Flex justify="end">
                 <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
-                  {isMobile ? undefined : t('Download PDF')}
+                  {isSmallScreen ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>
             </Grid>
@@ -253,4 +204,4 @@ function ReceiptGrid({
   );
 }
 
-export default withOrganization(withSubscription(PaymentHistory));
+export default PaymentHistory;

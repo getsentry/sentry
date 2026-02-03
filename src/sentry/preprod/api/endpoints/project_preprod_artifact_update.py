@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any
 
 import jsonschema
 import orjson
@@ -9,7 +12,8 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import internal_region_silo_endpoint
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -17,13 +21,21 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeMetrics,
+)
+from sentry.preprod.producer import PreprodFeature
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
 
 
-def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
+def validate_preprod_artifact_update_schema(
+    request_body: bytes,
+) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact update requests.
 
@@ -53,9 +65,22 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
                     "certificate_expiration_date": {"type": "string"},
                     "is_code_signature_valid": {"type": "boolean"},
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
+                    "missing_dsym_binaries": {"type": "array", "items": {"type": "string"}},
+                    "build_date": {"type": "string"},
+                    "cli_version": {"type": "string", "maxLength": 255},
+                    "fastlane_plugin_version": {"type": "string", "maxLength": 255},
+                },
+            },
+            "android_app_info": {
+                "type": "object",
+                "properties": {
+                    "has_proguard_mapping": {"type": "boolean"},
+                    "cli_version": {"type": "string", "maxLength": 255},
+                    "gradle_plugin_version": {"type": "string", "maxLength": 255},
                 },
             },
             "dequeued_at": {"type": "string"},
+            "app_icon_id": {"type": "string", "maxLength": 255},
         },
         "additionalProperties": True,
     }
@@ -75,7 +100,16 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
         "apple_app_info.profile_name": "The profile_name field must be a string.",
         "apple_app_info.is_code_signature_valid": "The is_code_signature_valid field must be a boolean.",
         "apple_app_info.code_signature_errors": "The code_signature_errors field must be an array of strings.",
+        "apple_app_info.missing_dsym_binaries": "The missing_dsym_binaries field must be an array of strings.",
+        "apple_app_info.build_date": "The build_date field must be a string.",
+        "apple_app_info.cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
+        "apple_app_info.fastlane_plugin_version": "The fastlane_plugin_version field must be a string with a maximum length of 255 characters.",
+        "android_app_info": "The android_app_info field must be an object.",
+        "android_app_info.has_proguard_mapping": "The has_proguard_mapping field must be a boolean.",
+        "android_app_info.cli_version": "The cli_version field must be a string with a maximum length of 255 characters.",
+        "android_app_info.gradle_plugin_version": "The gradle_plugin_version field must be a string with a maximum length of 255 characters.",
         "dequeued_at": "The dequeued_at field must be a string.",
+        "app_icon_id": "The app_icon_id field must be a string with a maximum length of 255 characters.",
     }
 
     try:
@@ -94,7 +128,7 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
 
 
 def find_or_create_release(
-    project, package: str, version: str, build_number: int | None = None
+    project: Project, package: str, version: str, build_number: int | None = None
 ) -> Release | None:
     """
     Find or create a release based on package, version, and project.
@@ -171,7 +205,7 @@ def find_or_create_release(
         return None
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -180,7 +214,13 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     authentication_classes = (LaunchpadRpcSignatureAuthentication,)
     permission_classes = (LaunchpadRpcPermission,)
 
-    def put(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """
         Update a preprod artifact with preprocessed data
         ```````````````````````````````````````````````
@@ -236,21 +276,25 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.state = PreprodArtifact.ArtifactState.FAILED
             updated_fields.append("state")
 
-        if "build_version" in data:
-            head_artifact.build_version = data["build_version"]
-            updated_fields.append("build_version")
-
-        if "build_number" in data:
-            head_artifact.build_number = data["build_number"]
-            updated_fields.append("build_number")
-
         if "app_id" in data:
             head_artifact.app_id = data["app_id"]
             updated_fields.append("app_id")
 
+        mobile_app_info_updates = {}
+        if "build_version" in data:
+            mobile_app_info_updates["build_version"] = data["build_version"]
+        if "build_number" in data:
+            mobile_app_info_updates["build_number"] = data["build_number"]
+        if "app_icon_id" in data:
+            mobile_app_info_updates["app_icon_id"] = data["app_icon_id"]
         if "app_name" in data:
-            head_artifact.app_name = data["app_name"]
-            updated_fields.append("app_name")
+            mobile_app_info_updates["app_name"] = data["app_name"]
+
+        if mobile_app_info_updates:
+            PreprodArtifactMobileAppInfo.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                defaults=mobile_app_info_updates,
+            )
 
         extras_updates = {}
 
@@ -259,6 +303,23 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             if "main_binary_uuid" in apple_info:
                 head_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
                 updated_fields.append("main_binary_identifier")
+
+            if "missing_dsym_binaries" in apple_info:
+                binaries = apple_info["missing_dsym_binaries"]
+                if isinstance(binaries, list):
+                    extras_updates["has_missing_dsym_binaries"] = len(binaries) > 0
+
+            if "build_date" in apple_info:
+                head_artifact.date_built = apple_info["build_date"]
+                updated_fields.append("date_built")
+
+            if "cli_version" in apple_info:
+                head_artifact.cli_version = apple_info["cli_version"]
+                updated_fields.append("cli_version")
+
+            if "fastlane_plugin_version" in apple_info:
+                head_artifact.fastlane_plugin_version = apple_info["fastlane_plugin_version"]
+                updated_fields.append("fastlane_plugin_version")
 
             for field in [
                 "is_simulator",
@@ -271,6 +332,21 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             ]:
                 if field in apple_info:
                     extras_updates[field] = apple_info[field]
+
+        if "android_app_info" in data:
+            android_info = data["android_app_info"]
+
+            if "cli_version" in android_info:
+                head_artifact.cli_version = android_info["cli_version"]
+                updated_fields.append("cli_version")
+
+            if "gradle_plugin_version" in android_info:
+                head_artifact.gradle_plugin_version = android_info["gradle_plugin_version"]
+                updated_fields.append("gradle_plugin_version")
+
+            for field in ["has_proguard_mapping"]:
+                if field in android_info:
+                    extras_updates[field] = android_info[field]
 
         if "dequeued_at" in data:
             extras_updates["dequeued_at"] = data["dequeued_at"]
@@ -288,28 +364,80 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
 
             head_artifact.save(update_fields=updated_fields + ["date_updated"])
 
+            logger.info(
+                "preprod.artifact.processed",
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "artifact_type": head_artifact.artifact_type,
+                    "app_id": head_artifact.app_id,
+                    "build_configuration": (
+                        head_artifact.build_configuration.name
+                        if head_artifact.build_configuration
+                        else None
+                    ),
+                    "project_id": project.id,
+                    "organization_id": project.organization_id,
+                    "organization_slug": project.organization.slug,
+                },
+            )
+
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact_id_int,
+                    "caller": "artifact_update_endpoint",
                 }
             )
 
+        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        build_version = mobile_app_info.build_version if mobile_app_info else None
+        build_number = mobile_app_info.build_number if mobile_app_info else None
         if (
             head_artifact.app_id
-            and head_artifact.build_version
+            and build_version
             and head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
         ):
             find_or_create_release(
                 project=project,
                 package=head_artifact.app_id,
-                version=head_artifact.build_version,
-                build_number=head_artifact.build_number,
+                version=build_version,
+                build_number=build_number,
             )
+
+        # Determine which features can run based on quota and filters
+        requested_features: list[PreprodFeature] = []
+
+        can_run_size, size_skip_reason = should_run_size(head_artifact)
+        if can_run_size:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        else:
+            # Update size metrics record to NOT_RAN with appropriate error code
+            if size_skip_reason == "quota":
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+                error_message = "Size analysis quota exceeded"
+            else:
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+                error_message = "Size analysis filtered out by project settings"
+
+            PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "identifier": None,
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                    "error_code": error_code,
+                    "error_message": error_message,
+                },
+            )
+
+        can_run_distro, _ = should_run_distribution(head_artifact)
+        if can_run_distro:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         return Response(
             {
                 "success": True,
                 "artifactId": head_artifact_id,
                 "updatedFields": updated_fields,
+                "requestedFeatures": [feature.value for feature in requested_features],
             }
         )

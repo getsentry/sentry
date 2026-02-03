@@ -14,6 +14,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
 from sentry.integrations.models.integration import Integration
@@ -25,6 +26,8 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.users.models.identity import Identity
+from sentry.workflow_engine.service.action.service import action_service
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +43,13 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
 
 
+@receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
+def process_identity_updates(object_identifier: int, region_name: str, **kwds: Any):
+    maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
+
+
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
-
     if (
         sentry_app := maybe_process_tombstone(
             model=SentryApp, object_identifier=object_identifier, region_name=region_name
@@ -53,6 +60,42 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     # Spawn a task to clear caches, as there can be 1000+ installations
     # for a sentry app.
     clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_DELETE)
+def process_sentry_app_deletes(
+    shard_identifier: int,
+    object_identifier: int,
+    region_name: str,
+    payload: Mapping[str, Any],
+    **kwds: Any,
+):
+    action_service.update_action_status_for_sentry_app_via_sentry_app_id(
+        region_name=region_name,
+        status=ObjectStatus.DISABLED,
+        sentry_app_id=object_identifier,
+    )
+    if slug := payload.get("slug"):
+        action_service.update_action_status_for_webhook_via_sentry_app_slug(
+            region_name=region_name,
+            status=ObjectStatus.DISABLED,
+            sentry_app_slug=slug,
+        )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE)
+def process_sentry_app_installation_deletes(
+    shard_identifier: int,
+    object_identifier: int,
+    region_name: str,
+    payload: Mapping[str, Any],
+    **kwds: Any,
+):
+    action_service.update_action_status_for_sentry_app_via_uuid__region(
+        region_name=region_name,
+        status=ObjectStatus.DISABLED,
+        sentry_app_install_uuid=payload["uuid"],
+    )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)

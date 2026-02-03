@@ -2,9 +2,11 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Radio} from '@sentry/scraps/radio';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -15,6 +17,7 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,9 +25,13 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
@@ -41,15 +48,17 @@ type Props = {
 
 type TagOption = string;
 
-function TagsPageContent(props: Props) {
-  const {eventView, location, organization, projects} = props;
+function TagsPageContent() {
+  const props = useTransactionSummaryContext();
+  const {eventView, organization, projects} = props;
+  const location = useLocation();
 
   const [aggregateColumn, setAggregateColumn] = useState(
     getTransactionField(SpanOperationBreakdownFilter.NONE, projects, eventView)
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -63,6 +72,7 @@ function TagsPageContent(props: Props) {
           return (
             <InnerContent
               {...props}
+              location={location}
               isLoading={isLoading}
               tableData={tableData}
               aggregateColumn={aggregateColumn}
@@ -186,6 +196,11 @@ function InnerContent(
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.TRANSACTIONS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -199,7 +214,7 @@ function InnerContent(
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
           <StyledSearchBarWrapper>
             <TransactionSearchQueryBuilder
@@ -219,7 +234,9 @@ function InnerContent(
               });
               onChangeAggregateColumn(opt.value);
             }}
-            triggerProps={{prefix: t('X-Axis')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('X-Axis')} />
+            )}
           />
         </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
@@ -296,7 +313,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
@@ -315,7 +332,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
 const ReversedLayoutBody = styled('div')`
   margin: 0;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {

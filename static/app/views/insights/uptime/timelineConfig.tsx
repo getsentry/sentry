@@ -10,8 +10,8 @@ import {
 export const checkStatusPrecedent: CheckStatus[] = [
   CheckStatus.FAILURE_INCIDENT,
   CheckStatus.FAILURE,
-  CheckStatus.MISSED_WINDOW,
   CheckStatus.SUCCESS,
+  CheckStatus.MISSED_WINDOW,
 ];
 
 export const statusToText: Record<CheckStatus, string> = {
@@ -25,35 +25,44 @@ export const reasonToText: Record<
   CheckStatusReason,
   (check: UptimeCheck) => React.ReactNode
 > = {
-  [CheckStatusReason.FAILURE]: check =>
+  [CheckStatusReason.FAILURE]: check => {
+    if (check.assertionFailureData) {
+      return t('Assertions Failed');
+    }
+
     // TODO(epurkhiser): Not all failures include a HTTP status code, we
     // should display the `status_reason_description` somewhere (this is not
     // currently exposed to the frontend)
-    check.httpStatusCode ? t('HTTP %s', check.httpStatusCode) : null,
+    return check.httpStatusCode ? t('HTTP %s', check.httpStatusCode) : null;
+  },
   [CheckStatusReason.TIMEOUT]: _ => t('Timeout'),
   [CheckStatusReason.DNS_ERROR]: _ => t('DNS Error'),
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
   [CheckStatusReason.CONNECTION_ERROR]: _ => t('Connection Error'),
   [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
+  [CheckStatusReason.MISS_PRODUCED]: _ => t('No Result Produced'),
+  [CheckStatusReason.MISS_BACKFILL]: _ => t('Backfilled'),
+  [CheckStatusReason.ASSERTION_COMPILATION_ERROR]: _ => t('Invalid Assertion'),
+  [CheckStatusReason.ASSERTION_EVALUATION_ERROR]: _ => t('Assertion Error'),
 };
 
 export const tickStyle: TickStyle<CheckStatus> = theme => ({
   [CheckStatus.SUCCESS]: {
-    labelColor: theme.green400,
-    tickColor: theme.green300,
+    labelColor: theme.colors.green500,
+    tickColor: theme.colors.green400,
   },
   [CheckStatus.FAILURE]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
-    hatchTick: theme.red200,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
+    hatchTick: theme.colors.red200,
   },
   [CheckStatus.FAILURE_INCIDENT]: {
-    labelColor: theme.red400,
-    tickColor: theme.red300,
+    labelColor: theme.colors.red500,
+    tickColor: theme.colors.red400,
   },
   [CheckStatus.MISSED_WINDOW]: {
-    labelColor: theme.gray400,
-    tickColor: theme.gray300,
-    hatchTick: theme.gray200,
+    labelColor: theme.colors.gray500,
+    tickColor: theme.colors.gray400,
+    hatchTick: theme.colors.gray200,
   },
 });

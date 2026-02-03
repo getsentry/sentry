@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
@@ -45,7 +48,7 @@ import {
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
@@ -64,13 +67,13 @@ export function SpanDescription({
   attributes: TraceItemResponseAttribute[];
   avgSpanDuration: number | undefined;
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
@@ -100,7 +103,8 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreUsingName =
+    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
@@ -140,7 +144,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            node.event?.projectID,
+            node.projectId?.toString(),
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -166,9 +170,16 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+
+  // `"url.full"` is semantic, but `"url"` is common
+  const spanURL =
+    findSpanAttributeValue(attributes, 'url.full') ??
+    findSpanAttributeValue(attributes, 'url');
+
   const value =
     resolvedModule === ModuleName.DB ? (
-      <CodeSnippetWrapper>
+      <Stack flex="1">
         <StyledCodeSnippet
           language={dbSystem === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
@@ -177,7 +188,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={node.projectId?.toString()}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -188,20 +199,56 @@ export function SpanDescription({
         ) : (
           <MissingFrame />
         )}
-      </CodeSnippetWrapper>
+      </Stack>
+    ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
+      <Flex direction="column" width="100%">
+        <Flex align="start" justify="between" gap="xs" padding="md">
+          <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
+            <Flex gap="xs">
+              {requestMethod && <Text>{requestMethod}</Text>}
+              <Text wordBreak="break-word">{spanURL}</Text>
+            </Flex>
+            <LinkHint value={spanURL} />
+          </Flex>
+          <CopyToClipboardButton
+            priority="transparent"
+            size="zero"
+            aria-label={t('Copy span URL to clipboard')}
+            text={spanURL}
+            tooltipProps={{disabled: true}}
+          />
+        </Flex>
+        {codeFilepath && (
+          <StackTraceMiniFrame
+            projectId={project?.id}
+            event={event}
+            frame={{
+              filename: codeFilepath,
+              lineNo: codeLineNumber ? Number(codeLineNumber) : null,
+              function: codeFunction,
+            }}
+          />
+        )}
+      </Flex>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
+    ) : shouldUseOTelFriendlyUI &&
+      !span.description &&
+      span.name &&
+      span.name !== span.op ? (
       <DescriptionWrapper>
-        <FormattedDescription>{span.name}</FormattedDescription>
+        <Flex align="center" minHeight="24px">
+          {span.name}
+        </Flex>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={span.name}
+          aria-label={t('Copy span name to clipboard')}
           tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
@@ -209,14 +256,15 @@ export function SpanDescription({
       <DescriptionWrapper>
         {formattedDescription ? (
           <Fragment>
-            <FormattedDescription>
+            <Flex align="center" minHeight="24px">
               {formattedDescription}
               <LinkHint value={formattedDescription} />
-            </FormattedDescription>
+            </Flex>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
+              aria-label={t('Copy formatted description to clipboard')}
               tooltipProps={{disabled: true}}
             />
           </Fragment>
@@ -229,14 +277,16 @@ export function SpanDescription({
   return (
     <TraceDrawerComponents.Highlights
       node={node}
-      transaction={undefined}
       project={project}
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
+      footerContent={<TraceDrawerComponents.HighLightEAPOpsBreakdown node={node} />}
+      comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
+        spanId: span.event_id,
         op: span.op,
       })}
     />
@@ -266,7 +316,7 @@ function ResourceImageDescription({
 }: {
   attributes: TraceItemResponseAttribute[];
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: EapSpanNode;
 }) {
   const span = node.value;
 
@@ -292,7 +342,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug ?? node.projectSlug}
         />
       )}
     </StyledDescriptionWrapper>
@@ -310,18 +360,19 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
 
   return (
-    <ImageContainer>
-      <FilenameContainer>
+    <Stack align="center" gap="xs" width="100%">
+      <Flex justify="between" align="baseline" gap="md" width="100%">
         <span>
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
-      </FilenameContainer>
+      </Flex>
       {showImage && !hasError ? (
         <ImageWrapper>
           <img
@@ -339,36 +390,14 @@ function ResourceImage(props: {
       ) : (
         <MissingImage />
       )}
-    </ImageContainer>
+    </Stack>
   );
 }
-
-const FilenameContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
 
 const ImageWrapper = styled('div')`
   width: 200px;
   height: 180px;
   margin: auto;
-`;
-
-const ImageContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 `;
 
 const StyledLink = styled(Link)`
@@ -389,16 +418,10 @@ const StyledCodeSnippet = styled(CodeBlock)`
   }
 `;
 
-const FormattedDescription = styled('div')`
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-`;
-
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

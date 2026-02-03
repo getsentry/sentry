@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -500,7 +500,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
       return (
         <Fragment>
           <Alert.Container>
-            <Alert type="info" showIcon={false}>
+            <Alert variant="info" showIcon={false}>
               {'You need to associate an identity with ' +
                 this.props.plugin.name +
                 ' before you can create issues with this service.'}
@@ -512,7 +512,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     }
     if (error.error_type === 'config') {
       return (
-        <Alert type="info" showIcon={false}>
+        <Alert variant="info" showIcon={false}>
           {error.has_auth_configured ? (
             <Fragment>
               You still need to{' '}
@@ -545,14 +545,14 @@ class IssueActions extends PluginComponentBase<Props, State> {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
       return (
-        <Alert type="error" showIcon={false}>
+        <Alert variant="danger" showIcon={false}>
           {errors}
         </Alert>
       );
     }
     if (error.message) {
       return (
-        <Alert type="error" showIcon={false}>
+        <Alert variant="danger" showIcon={false}>
           {error.message}
         </Alert>
       );

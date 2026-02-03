@@ -1,10 +1,13 @@
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -67,7 +70,7 @@ function Version({
   const versionToDisplay = shouldFormatVersion
     ? formatVersion(version, withPackage)
     : version;
-  const theme = useTheme();
+  const isHashVersion = /\b[a-f0-9]{40}\b|\b[a-f0-9]{64}\b/.test(version);
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
@@ -116,29 +119,22 @@ function Version({
   };
 
   const renderTooltipContent = () => (
-    <TooltipContent
+    <Flex
+      as="span"
+      align="center"
       onClick={e => {
         e.stopPropagation();
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-      <CopyToClipboardButton borderless text={version} size="zero" />
-    </TooltipContent>
+      <CopyToClipboardButton
+        priority="transparent"
+        text={version}
+        size="zero"
+        aria-label={t('Copy version to clipboard')}
+      />
+    </Flex>
   );
-
-  const getOverlayStyle = () => {
-    // if the version name is not a hash (sha1 or sha265) and we are not on
-    // mobile, allow tooltip to be as wide as 500px
-    if (/(^[a-f0-9]{40}$)|(^[a-f0-9]{64}$)/.test(version)) {
-      return undefined;
-    }
-
-    return css`
-      @media (min-width: ${theme.breakpoints.sm}) {
-        max-width: 500px;
-      }
-    `;
-  };
 
   return (
     <Tooltip
@@ -146,7 +142,7 @@ function Version({
       disabled={!tooltipRawVersion}
       isHoverable
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
-      overlayStyle={getOverlayStyle()}
+      maxWidth={isHashVersion ? undefined : 400}
     >
       {renderVersion()}
     </Tooltip>
@@ -169,13 +165,12 @@ const VersionText = styled('span')<{
   white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;
 
-const TooltipContent = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
 const TooltipVersionWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default Version;

@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+import {isEnterprise, isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -38,14 +38,20 @@ export function SubscriptionFixture(props: Props): TSubscription {
   );
   const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
+  const hasSizeAnalyses = planDetails?.categories?.includes(DataCategory.SIZE_ANALYSIS);
+  const hasInstallableBuilds = planDetails?.categories?.includes(
+    DataCategory.INSTALLABLE_BUILD
+  );
+  const hasLegacySeer = AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
   const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
   // Create a safe default for planCategories if it doesn't exist
   const safeCategories = planDetails?.planCategories || {};
 
   const isTrial = isTrialPlan(planDetails.id);
+  const isEnterpriseTrial = isTrial && isEnterprise(planDetails.id);
   const reservedBudgets = [];
-  if (hasSeer) {
+  if (hasLegacySeer) {
     if (isTrial) {
       reservedBudgets.push(SeerReservedBudgetFixture({reservedBudget: 150_00}));
     } else {
@@ -58,6 +64,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     addOns[addOnCategory.apiName] = {
       ...addOnCategory,
       enabled: isTrial,
+      isAvailable: addOnCategory.apiName in planDetails.addOnCategories,
     };
   });
 
@@ -71,7 +78,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hadCustomDynamicSampling: false,
     id: '',
     isBundleEligible: false,
-    isEnterpriseTrial: false,
+    isEnterpriseTrial,
     isExemptFromForcedTrial: false,
     isForcedTrial: false,
     isOverMemberLimit: false,
@@ -96,6 +103,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       zipCode: '94242',
       expMonth: 12,
       expYear: 2077,
+      brand: 'Visa',
     },
     billingPeriodEnd: '2018-10-24',
     onDemandSpendUsed: 0,
@@ -148,6 +156,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     vatID: null,
     msaUpdatedForDataConsent: false,
     dataRetention: null,
+    orgRetention: {standard: null, downsampled: null},
     addOns,
     reservedBudgets,
     categories: {
@@ -237,7 +246,23 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 11,
         }),
       }),
-      ...(hasSeer && {
+      ...(hasSizeAnalyses && {
+        sizeAnalyses: MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          prepaid: safeCategories.sizeAnalyses?.[0]?.events || 100,
+          order: 17,
+        }),
+      }),
+      ...(hasInstallableBuilds && {
+        installableBuilds: MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: safeCategories.installableBuilds?.[0]?.events || 0,
+          prepaid: safeCategories.installableBuilds?.[0]?.events || 0,
+          order: 18,
+        }),
+      }),
+      ...(hasLegacySeer && {
         seerAutofix: MetricHistoryFixture({
           category: DataCategory.SEER_AUTOFIX,
           reserved: 0,
@@ -251,7 +276,16 @@ export function SubscriptionFixture(props: Props): TSubscription {
           order: 15,
         }),
       }),
+      ...(hasSeer && {
+        seerUsers: MetricHistoryFixture({
+          category: DataCategory.SEER_USER,
+          reserved: 0,
+          prepaid: 0,
+          order: 16,
+        }),
+      }),
     },
+    effectiveRetentions: {},
     ...planData,
   };
 }
@@ -259,9 +293,9 @@ export function SubscriptionFixture(props: Props): TSubscription {
 /**
  * Returns a subscription with self-serve paid Seer reserved budget.
  */
-export function SubscriptionWithSeerFixture(props: Props): TSubscription {
+export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
   const subscription = SubscriptionFixture(props);
-  if (!subscription.planDetails.addOnCategories[AddOnCategory.SEER]) {
+  if (!subscription.planDetails.addOnCategories[AddOnCategory.LEGACY_SEER]) {
     return subscription;
   }
 
@@ -280,15 +314,24 @@ export function SubscriptionWithSeerFixture(props: Props): TSubscription {
       order: 28,
     }),
   };
+  if (subscription.categories.seerUsers) {
+    delete subscription.categories.seerUsers;
+  }
   subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
   subscription.addOns = {
     ...subscription.addOns,
-    [AddOnCategory.SEER]: {
-      ...(subscription.addOns?.[AddOnCategory.SEER] ??
-        subscription.planDetails.addOnCategories[AddOnCategory.SEER]),
+    [AddOnCategory.LEGACY_SEER]: {
+      ...(subscription.addOns?.[AddOnCategory.LEGACY_SEER] ??
+        subscription.planDetails.addOnCategories[AddOnCategory.LEGACY_SEER]),
       enabled: true,
+      isAvailable: true,
     },
   };
+  if (subscription.addOns?.[AddOnCategory.SEER]) {
+    subscription.addOns[AddOnCategory.SEER].enabled = false;
+    subscription.addOns[AddOnCategory.SEER].isAvailable = false;
+    delete subscription.categories.seerUsers;
+  }
   return subscription;
 }
 

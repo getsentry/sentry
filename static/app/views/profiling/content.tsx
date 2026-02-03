@@ -2,10 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -26,6 +27,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,12 +35,14 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/profiling/onboarding';
-import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -47,10 +51,6 @@ import {useLandingAnalytics} from './useLandingAnalytics';
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
 const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
-
-interface ProfilingContentProps {
-  location: Location;
-}
 
 function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
   return tab === 'flamegraph' || tab === 'transactions';
@@ -62,10 +62,11 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-export default function ProfilingContent({location}: ProfilingContentProps) {
+export default function ProfilingContent() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const location = useLocation();
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(
@@ -134,10 +135,27 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
     [dispatchDataState, location, organization]
   );
 
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
-        defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        defaultSelection={
+          datePageFilterProps.defaultPeriod
+            ? {
+                datetime: {
+                  period: datePageFilterProps.defaultPeriod,
+                  start: null,
+                  end: null,
+                  utc: null,
+                },
+              }
+            : undefined
+        }
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
@@ -147,12 +165,15 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
           </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
-            <LayoutMain fullWidth>
+            <LayoutMain width="full">
               <ActionBar>
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
                 </PageFilterBar>
               </ActionBar>
               {showOnboardingPanel ? (
@@ -185,7 +206,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                   )}
                   <div>
                     <Tabs value={tab} onChange={onTabChange}>
-                      <TabList hideBorder>
+                      <TabList>
                         <TabList.Item key="transactions">
                           {t('Transactions')}
                           <StyledQuestionTooltip
@@ -305,7 +326,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
       </SearchbarContainer>
       {transactionsError && (
         <Alert.Container>
-          <Alert type="error">{transactionsError}</Alert>
+          <Alert variant="danger">{transactionsError}</Alert>
         </Alert.Container>
       )}
       <ProfileEventsTable
@@ -365,7 +386,7 @@ function ProfilingContentPageHeader() {
             )}
           />
         </Layout.Title>
-        <FeedbackWidgetButton />
+        <FeedbackButton />
       </StyledHeaderContent>
     </StyledLayoutHeader>
   );
@@ -408,8 +429,8 @@ const LandingAggregateFlamegraphSizer = styled('div')`
 const LandingAggregateFlamegraphContainer = styled('div')`
   height: 100%;
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const StyledLayoutHeader = styled(Layout.Header)`

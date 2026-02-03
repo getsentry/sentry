@@ -51,6 +51,7 @@ class TestDataSourceSerializer(TestCase):
                     "query": "hello",
                     "timeWindow": 60,
                     "eventTypes": ["error"],
+                    "extrapolationMode": "unknown",
                 },
                 "status": 1,
                 "subscription": None,

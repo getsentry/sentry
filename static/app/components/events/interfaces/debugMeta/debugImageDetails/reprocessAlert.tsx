@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
+import {Alert, AlertLink} from '@sentry/scraps/alert';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -59,7 +59,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
 
   if (reprocessable) {
     return (
-      <AlertLink type="warning" onClick={onReprocessEvent}>
+      <AlertLink variant="warning" onClick={onReprocessEvent}>
         {t(
           'You’ve uploaded new debug files. Reprocess events in this issue to view a better stack trace'
         )}
@@ -82,7 +82,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
   }
 
   return (
-    <Alert type="info" showIcon={false}>
+    <Alert variant="info" showIcon={false}>
       {getAlertInfoMessage()}
     </Alert>
   );

@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
@@ -23,7 +24,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
     <Layout.Body>
       <Layout.Main>
         <Alert.Container>
-          <Alert type="warning">
+          <Alert variant="warning">
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
               {
@@ -55,7 +56,7 @@ function DeletionPending({organization}: OrganizationProps) {
       AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
-        type: 'error',
+        variant: 'danger',
       });
     }
   };

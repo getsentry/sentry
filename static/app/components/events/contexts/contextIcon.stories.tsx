@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -44,11 +45,11 @@ const Cell = styled('div')`
   gap: ${space(1)};
   align-items: center;
   border: 1px solid transparent;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   cursor: pointer;
 
   &:hover {
-    border-color: ${p => p.theme.border};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

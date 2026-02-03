@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -53,7 +54,9 @@ export function TeamUnresolvedIssues({
     refetch,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      `/teams/${organization.slug}/${teamSlug}/all-unresolved-issues/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams({start, end, period, utc}),
@@ -185,10 +188,10 @@ export function TeamUnresolvedIssues({
                       <SubText
                         color={
                           totals.percentChange === 0
-                            ? theme.subText
+                            ? theme.tokens.content.secondary
                             : totals.percentChange > 0
-                              ? theme.errorText
-                              : theme.successText
+                              ? theme.tokens.content.danger
+                              : theme.tokens.content.success
                         }
                       >
                         {formatPercentage(
@@ -215,7 +218,7 @@ export function TeamUnresolvedIssues({
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -223,7 +226,7 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   box-shadow: unset;
 
   & > div {

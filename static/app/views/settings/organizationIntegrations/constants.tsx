@@ -3,16 +3,6 @@ export const NOT_INSTALLED = 'Not Installed';
 export const PENDING = 'Pending';
 export const DISABLED = 'Disabled';
 export const PENDING_DELETION = 'Pending Deletion';
-const LEARN_MORE = 'Learn More';
-
-export const COLORS = {
-  [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray300',
-  [DISABLED]: 'gray300',
-  [PENDING_DELETION]: 'gray300',
-  [PENDING]: 'pink300',
-  [LEARN_MORE]: 'gray300',
-} as const;
 
 /**
  * Integrations in the integration directory should be sorted by their popularity (weight).
@@ -24,18 +14,19 @@ export const POPULARITY_WEIGHT: Record<string, number> = {
   // First-party-integrations
   slack: 50,
   github: 20,
-  jira: 10,
+  jira: 15,
   bitbucket: 10,
-  discord: 10,
+  discord: 15,
   gitlab: 10,
   pagerduty: 10,
-  vsts: 10,
-  jira_server: 10,
-  bitbucket_server: 10,
+  vsts: 9,
+  jira_server: 9,
+  bitbucket_server: 9,
   github_enterprise: 10,
-  vercel: 10,
-  msteams: 10,
+  vercel: 15,
+  msteams: 15,
   aws_lambda: 10,
+  cursor: 14,
 
   // Plugins
   webhooks: 10,

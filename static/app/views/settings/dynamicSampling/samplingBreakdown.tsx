@@ -4,7 +4,9 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -98,11 +100,11 @@ export function SamplingBreakdown({
                   key={item.project.id}
                   overlayStyle={{maxWidth: 'none'}}
                   title={
-                    <LegendItem key={item.project.id}>
+                    <Flex align="center" gap="sm" key={item.project.id}>
                       <ProjectBadge disableLink avatarSize={16} project={item.project} />
                       {formatPercent(itemPercent, {addSymbol: true})}
                       <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
-                    </LegendItem>
+                    </Flex>
                   }
                   skipWrapper
                 >
@@ -119,11 +121,11 @@ export function SamplingBreakdown({
               <Tooltip
                 overlayStyle={{maxWidth: 'none'}}
                 title={
-                  <LegendItem>
+                  <Flex align="center" gap="sm">
                     <OthersBadge />
                     {formatPercent(otherRate, {addSymbol: true})}
                     <SubText>{formatAbbreviatedNumber(total)}</SubText>
-                  </LegendItem>
+                  </Flex>
                 }
                 skipWrapper
               >
@@ -136,22 +138,22 @@ export function SamplingBreakdown({
               </Tooltip>
             )}
           </Breakdown>
-          <Footer>
+          <Flex align="start" gap="xl">
             <Legend>
               {topItems.map((item: any) => {
                 const itemPercent = getSpanRate(item.sampledSpans);
                 return (
-                  <LegendItem key={item.project.id}>
+                  <Flex align="center" gap="sm" key={item.project.id}>
                     <ProjectBadge avatarSize={16} project={item.project} />
                     {formatPercent(itemPercent, {addSymbol: true})}
-                  </LegendItem>
+                  </Flex>
                 );
               })}
               {hasOthers && (
-                <LegendItem>
+                <Flex align="center" gap="sm">
                   <OthersBadge />
                   {formatPercent(otherRate, {addSymbol: true})}
-                </LegendItem>
+                </Flex>
               )}
             </Legend>
             <Total>
@@ -159,7 +161,7 @@ export function SamplingBreakdown({
               &nbsp;
               {formatAbbreviatedNumber(total)}
             </Total>
-          </Footer>
+          </Flex>
         </Fragment>
       ) : (
         <EmptyStateText>{t('No spans found in the selected period.')}</EmptyStateText>
@@ -175,22 +177,16 @@ const StyledPanel = styled(Panel)`
 
 const Heading = styled('h6')`
   margin-bottom: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  align-items: flex-start;
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Breakdown = styled('div')`
   display: flex;
   height: ${space(2)};
   width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  background: ${p => p.theme.backgroundTertiary};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const Legend = styled('div')`
@@ -198,7 +194,7 @@ const Legend = styled('div')`
   flex-wrap: wrap;
   margin-top: ${space(1.5)};
   gap: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex: 1;
 `;
 
@@ -206,23 +202,17 @@ const Total = styled('div')`
   display: flex;
   align-items: center;
   margin-top: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex-shrink: 0;
 `;
 
-const LegendItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 
 const EmptyStateText = styled('div')`
   text-align: center;
   padding: ${space(0.5)} 0 ${space(3)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {logout} from 'sentry/actionCreators/account';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LogoSentry from 'sentry/components/logoSentry';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -95,10 +95,10 @@ const Wrapper = styled('div')`
   align-items: center;
   padding-right: ${space(3)};
   gap: ${space(4)};
-  background-color: ${p => p.theme.backgroundElevated};
+  background-color: ${p => p.theme.tokens.background.primary};
   white-space: nowrap;
 
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -116,7 +116,7 @@ const StyledLogoSentry = styled(LogoSentry)`
   margin-right: auto;
   width: 130px;
   height: 30px;
-  fill: ${p => p.theme.textColor};
+  fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
 `;
 
 const FreeTrialTextShort = styled('span')`

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def get_grouping_info(
     grouping_config: StrategyConfiguration, project: Project, event: Event | GroupEvent
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, Any]:
     # We always fetch the stored hashes here. The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
     # produced hashes that would normally also appear in the event.
@@ -43,7 +43,7 @@ def _check_for_mismatched_hashes(
     The result is stored with each variant and recorded as a metric.
     """
 
-    for variant_dict in grouping_info.values():
+    for variant_dict in grouping_info["variants"].values():
         hash_value = variant_dict["hash"]
 
         # Since the hashes are generated on the fly and might no
@@ -125,18 +125,29 @@ def get_grouping_info_from_variants_legacy(
 
 def get_grouping_info_from_variants(
     variants: dict[str, BaseVariant],
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, Any]:
     """
     Given a dictionary of variant objects, create and return a copy of the dictionary in which each
     variant object value has been transformed into an equivalent dictionary value, which knows the
     key under which it lives.
     """
 
-    return {
+    grouping_config_id = None
+    for variant in variants.values():
+        grouping_config_id = variant.config.id if hasattr(variant, "config") else None
+        if grouping_config_id:
+            break
+
+    variants_json = {
         # Overwrite the description with a new, improved version
         variant.key: {
             **variant.as_dict(),
             "description": _get_new_description(variant),
         }
         for variant in variants.values()
+    }
+
+    return {
+        "grouping_config": grouping_config_id,
+        "variants": variants_json,
     }

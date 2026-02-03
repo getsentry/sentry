@@ -3,8 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import FormContext from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
 import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
@@ -299,7 +300,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
   margin-top: 25px;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   background: none;
   padding: 16px 0 0;
   margin-bottom: 16px;

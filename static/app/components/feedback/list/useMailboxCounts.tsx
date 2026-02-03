@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -66,7 +67,11 @@ export default function useMailboxCounts({
 
   const result = useApiQuery<ApiReturnType>(
     [
-      `/organizations/${organization.slug}/issues-count/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {query: queryViewWithStatsPeriod},
     ],
     {

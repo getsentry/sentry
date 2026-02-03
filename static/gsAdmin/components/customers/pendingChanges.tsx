@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconArrow} from 'sentry/icons';
@@ -10,7 +11,7 @@ import {DataCategory} from 'sentry/types/core';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
@@ -21,7 +22,7 @@ import {
   isOnDemandBudgetsEqual,
   parseOnDemandBudgets,
   parseOnDemandBudgetsFromSubscription,
-} from 'getsentry/views/onDemandBudgets/utils';
+} from 'getsentry/views/spendLimits/utils';
 
 function getStringForPrice(
   price: number | null | undefined,
@@ -307,7 +308,8 @@ function getOnDemandChanges(subscription: Subscription) {
       );
       changes.push(
         <span>
-          On-demand budget — {current} → {change}
+          {displayBudgetName(pendingChanges.planDetails, {title: true, withBudget: true})}{' '}
+          — {current} → {change}
         </span>
       );
     }
@@ -316,7 +318,8 @@ function getOnDemandChanges(subscription: Subscription) {
     const change = getStringForPrice(pendingChanges.onDemandMaxSpend);
     changes.push(
       <span>
-        On-demand maximum — {old} → {change}
+        {displayBudgetName(pendingChanges.planDetails, {title: true})} maximum — {old} →{' '}
+        {change}
       </span>
     );
   }
@@ -385,7 +388,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info">This account has pending changes to the subscription</Alert>
+        <Alert variant="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>

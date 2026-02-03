@@ -19,7 +19,8 @@ from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
 
-from sentry import nodestore, tsdb
+from sentry import analytics, nodestore, tsdb
+from sentry.analytics.events.event_processing_error_recorded import EventProcessingErrorRecorded
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
@@ -41,6 +42,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
+from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -67,7 +69,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.services import eventstore
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -348,6 +350,136 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == "CompositeException: Can't call onError."
 
+    def test_kotlin_coroutine_diagnostic_exception_correct_title(self) -> None:
+        """DiagnosticCoroutineContextException should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "main exception",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "RuntimeException"
+        assert event.data["metadata"]["value"] == "main exception"
+        assert event.group is not None
+        assert event.group.title == "RuntimeException: main exception"
+
+    def test_kotlin_coroutine_diagnostic_exception_chained_mechanism_correct_title(self) -> None:
+        """DiagnosticCoroutineContextException with chained mechanism should not determine the title."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "IllegalStateException",
+                            "value": "coroutine error",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "chained",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "IllegalStateException"
+        assert event.data["metadata"]["value"] == "coroutine error"
+        assert event.group is not None
+        assert event.group.title == "IllegalStateException: coroutine error"
+
+    def test_kotlin_coroutine_diagnostic_exception_no_parent_keeps_default_behavior(self) -> None:
+        """DiagnosticCoroutineContextException without parent_id should not change behavior."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["type"] == "DiagnosticCoroutineContextException"
+        assert event.group is not None
+        assert "DiagnosticCoroutineContextException" in event.group.title
+
+    def test_kotlin_coroutine_diagnostic_exception_invalid_parent_id_uses_root(self) -> None:
+        """DiagnosticCoroutineContextException with invalid parent_id becomes orphaned in exception tree."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "actual error",
+                            "module": "java.lang",
+                            "mechanism": {
+                                "type": "UncaughtExceptionHandler",
+                                "handled": False,
+                                "exception_id": 0,
+                            },
+                        },
+                        {
+                            "type": "DiagnosticCoroutineContextException",
+                            "module": "kotlinx.coroutines.internal",
+                            "mechanism": {
+                                "type": "suppressed",
+                                "exception_id": 1,
+                                "parent_id": 999,  # References non-existent exception
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        # With invalid parent_id, DiagnosticCoroutineContextException is orphaned in the exception
+        # tree. The exception group filtering logic then picks RuntimeException (the root) as the
+        # main exception. This is correct behavior - the orphaned exception is effectively excluded.
+        assert event.data["metadata"]["type"] == "RuntimeException"
+        assert event.data["metadata"]["value"] == "actual error"
+        assert event.group is not None
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
         ts = before_now(minutes=5).isoformat()
@@ -366,16 +498,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.is_resolved()
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=group,
             project=group.project,
             type=ActivityType.SET_RESOLVED_BY_AGE.value,
             datetime=resolved_at,
-        )
-
-        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
-            resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         manager = EventManager(
@@ -390,21 +517,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
-        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
-        assert len(open_periods) == 2
-        open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
-        assert open_period.date_ended is None
-        open_period = open_periods[1]
-        assert open_period.date_started == group.first_seen
-        assert open_period.date_ended == resolved_at
-
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
+    @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
+    def test_unresolves_group(
+        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+    ) -> None:
+        mock_get_group_type.return_value = MetricIssue
         ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -427,6 +545,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             type=ActivityType.SET_RESOLVED.value,
             datetime=resolved_at,
         )
+
         GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
             resolution_time=resolved_at,
             resolution_activity=activity,
@@ -453,9 +572,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[0]
         assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
+        assert open_period.event_id == event2.event_id
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+        assert open_period.event_id == event.event_id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
@@ -474,7 +595,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group.save()
         assert group.is_resolved()
 
-        GroupOpenPeriod.objects.all().delete()
         manager = EventManager(
             make_event(
                 event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
@@ -486,11 +606,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
         assert send_robust.called
-
-        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
-        assert GroupOpenPeriod.objects.filter(group=group).count() == 1
-        assert GroupOpenPeriod.objects.get(group=group).date_ended is None
-        assert GroupOpenPeriod.objects.get(group=group).date_started == activity.datetime
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
@@ -1173,15 +1288,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         resolved_at = before_now(minutes=4)
-        activity = Activity.objects.create(
+        Activity.objects.create(
             group=event.group,
             project=event.group.project,
             type=ActivityType.SET_RESOLVED.value,
             datetime=resolved_at,
-        )
-        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).close_open_period(
-            resolution_time=resolved_at,
-            resolution_activity=activity,
         )
 
         mock_is_resolved.return_value = True
@@ -1199,19 +1310,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
-
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
-        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
-        assert len(open_periods) == 2
-        open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
-        assert open_period.date_ended is None
-        open_period = open_periods[1]
-        assert open_period.date_started == group.first_seen
-        assert open_period.date_ended == resolved_at
 
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
@@ -1689,7 +1787,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
-        from sentry.models.groupopenperiod import GroupOpenPeriod
 
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
@@ -1706,13 +1803,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "value": "bar",
             "initial_priority": PriorityLevel.HIGH,
         }
-
-        open_period = GroupOpenPeriod.objects.filter(group=group)
-        assert len(open_period) == 1
-        assert open_period[0].group_id == group.id
-        assert open_period[0].project_id == self.project.id
-        assert open_period[0].date_started == group.first_seen
-        assert open_period[0].date_ended is None
 
     def test_error_event_with_minified_stacktrace(self) -> None:
         with patch(
@@ -2297,7 +2387,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 self.tasks(),
                 pytest.raises(HashDiscarded),
             ):
-                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
             assert mock_track_outcome.call_count == 3
 
@@ -2345,7 +2435,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ):
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
-                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                        manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a2])
 
         # The first minidump should be accepted, since the limit is 1
         # Event outcome goes through aggregator (1 call), attachments go through direct track_outcome (2 calls)
@@ -2375,7 +2465,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 with self.feature("organizations:event-attachments"):
                     with self.tasks():
                         event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
+                            self.project.id, cache_key=cache_key, attachments=[a1, a2]
                         )
 
         assert event.data["metadata"]["stripped_crash"] is True
@@ -2426,7 +2516,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
@@ -2462,7 +2552,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 mock_track_outcome_aggregated,
             ):
                 with self.feature("organizations:event-attachments"):
-                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
+                    manager.save(self.project.id, cache_key=cache_key, attachments=[a1, a3])
 
         # Event outcome goes through aggregator (1 call), attachments through direct track_outcome (2 calls)
         assert mock_track_outcome_aggregated.call_count == 1
@@ -2829,6 +2919,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
+            assert isinstance(event, GroupEvent)
             assert event.occurrence
             assert event.occurrence.evidence_display == [
                 IssueEvidence(
@@ -2988,7 +3079,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
-        def attempt_to_generate_slow_db_issue() -> Event:
+        def attempt_to_generate_slow_db_issue() -> GroupEvent:
             return self.create_performance_issue(
                 event_data=make_event(**get_event("slow-db/slow-db-spans")),
                 issue_type=PerformanceSlowDBQueryGroupType,
@@ -4130,7 +4221,7 @@ class DSLatestReleaseBoostTest(TestCase):
 class TestSaveGroupHashAndGroup(TransactionTestCase):
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
-        perf_data["event_id"] = str(uuid.uuid4())
+        perf_data["event_id"] = "a" * 32
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
@@ -4253,3 +4344,124 @@ def test_cogs_event_manager(
     # We cannot assert for exact length because manager save method adds some extra fields. So we
     # assert that the length is at least greater than the expected length.
     assert formatted["amount"] >= expected_len
+
+
+class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
+    """
+    Unit tests for processing error analytics recording.
+
+    These tests use store_event() which goes through the full EventManager flow.
+    Errors can come from:
+    1. Normalization (validation errors like invalid_data, future_timestamp)
+    2. Symbolication (js_*, native_*, proguard_* errors)
+    """
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_validation_errors_recorded_to_analytics(self, mock_random: mock.MagicMock) -> None:
+        """Test that validation errors from normalization are also recorded."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            event = self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            recorded_events = [
+                call[0][0]
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            expected_events = [
+                EventProcessingErrorRecorded(
+                    organization_id=self.project.organization_id,
+                    project_id=self.project.id,
+                    event_id=event.event_id,
+                    group_id=event.group_id,
+                    error_type="future_timestamp",
+                    platform="python",
+                ),
+            ]
+            assert recorded_events == expected_events
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_not_sampled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that processing errors are not recorded when outside the 1% sample."""
+        mock_random.return_value = 0.5
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_no_errors(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when there are no processing errors."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature("organizations:processing-error-analytics"),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            self.store_event(
+                data=make_event(platform="python"),
+                project_id=self.project.id,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0
+
+    @mock.patch("sentry.event_manager.random.random")
+    def test_processing_errors_not_recorded_when_feature_disabled(
+        self, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that analytics is not recorded when feature flag is disabled."""
+        mock_random.return_value = 0.001
+        with (
+            self.feature({"organizations:processing-error-analytics": False}),
+            mock.patch.object(analytics, "record", wraps=analytics.record) as spy_analytics_record,
+        ):
+            # Create an event with a future timestamp, which produces a validation error
+            future = timezone.now() + timedelta(minutes=10)
+            self.store_event(
+                data=make_event(
+                    platform="python",
+                    timestamp=future.isoformat(),
+                ),
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            processing_error_calls = [
+                call
+                for call in spy_analytics_record.call_args_list
+                if isinstance(call[0][0], EventProcessingErrorRecorded)
+            ]
+            assert len(processing_error_calls) == 0

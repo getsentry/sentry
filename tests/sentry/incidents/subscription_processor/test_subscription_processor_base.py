@@ -8,7 +8,10 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.subscription_processor import SubscriptionProcessor
+from sentry.incidents.subscription_processor import (
+    SubscriptionProcessor,
+    store_detector_last_update,
+)
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
@@ -16,7 +19,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
@@ -26,7 +28,6 @@ EMPTY = object()
 
 
 @freeze_time()
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics_patch(self):
@@ -37,6 +38,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
+        self.detector = self.metric_detector
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -44,10 +46,12 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
 
     @cached_property
     def sub(self):
-        subscription_id = int(self.metric_detector.data_sources.first().source_id)
+        data_source = self.metric_detector.data_sources.first()
+        assert data_source is not None
+        subscription_id = int(data_source.source_id)
         return QuerySubscription.objects.get(id=subscription_id)
 
-    def create_detector_data_source_and_data_conditions(self):
+    def create_detector_data_source_and_data_conditions(self) -> Detector:
         detector = self.create_detector(
             project=self.project,
             workflow_condition_group=self.create_data_condition_group(),
@@ -82,12 +86,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         self.create_data_source_detector(data_source, detector)
 
         self.set_up_data_conditions(detector, Condition.GREATER, 100, None, 10)
-
-        # XXX: while we're in the rollout phase of workflow engine, the subscription processor still requires a rule.
-        # Create one here and delete it when we can.
-        rule = self.create_alert_rule()
-        rule.snuba_query = snuba_query
-        rule.save()
 
         return detector
 
@@ -130,7 +128,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         )
 
     @cached_property
-    def metric_detector(self):
+    def metric_detector(self) -> Detector:
         return self.create_detector_data_source_and_data_conditions()
 
     @cached_property
@@ -200,23 +198,61 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             time_delta = timedelta()
         if subscription is None:
             subscription = self.sub
-        processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
         with (
             self.feature(["organizations:incidents", "organizations:performance-view"]),
             self.capture_on_commit_callbacks(execute=True),
         ):
-            processor.process_update(message)
-        return processor
-
-    def assert_no_open_period(self, rule, subscription=None):
-        # TODO: inverse of below
-        pass
-
-    def assert_open_period(self, rule, subscription=None):
-        # TODO: once we are writing to IncidentGroupOpenPeriod look up the GroupOpenPeriod
-        pass
+            return SubscriptionProcessor.process(subscription, message)
 
     def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)
         return int(detector_state.state)
+
+
+class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
+    def test_uses_stored_last_update_value(self) -> None:
+        stored_timestamp = timezone.now() + timedelta(minutes=10)
+        store_detector_last_update(self.metric_detector, self.project.id, stored_timestamp)
+
+        old_update_message = self.build_subscription_update(
+            self.sub, value=self.critical_threshold + 1, time_delta=timedelta(minutes=5)
+        )
+
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = SubscriptionProcessor.process(self.sub, old_update_message)
+
+        assert result is False
+
+    def test_no_detector_returns_false_without_exception(self) -> None:
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
+            )
+            subscription_without_detector = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+
+        message = self.build_subscription_update(subscription_without_detector, value=100)
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = SubscriptionProcessor.process(subscription_without_detector, message)
+
+        assert result is False

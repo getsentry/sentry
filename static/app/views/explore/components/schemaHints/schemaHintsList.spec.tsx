@@ -4,7 +4,6 @@ import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
@@ -47,9 +46,7 @@ function Subject(
   }
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <Content />
-      </PageParamsProvider>
+      <Content />
     </SpansQueryParamsProvider>
   );
 }
@@ -118,10 +115,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -140,10 +134,7 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

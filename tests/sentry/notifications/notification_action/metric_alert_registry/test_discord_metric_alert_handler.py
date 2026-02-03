@@ -16,18 +16,17 @@ from sentry.notifications.notification_action.metric_alert_registry import Disco
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
     get_detailed_incident_serializer,
+    get_detector_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         self.create_models()
@@ -81,6 +80,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             open_period_context=open_period_context,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
             incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            detector_serialized_response=get_detector_serializer(self.detector),
             notification_uuid=notification_uuid,
         )
 
@@ -89,7 +89,16 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
     )
     @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
         (
@@ -164,7 +173,16 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
         )
 
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=event_data_with_activity,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=notification_uuid,
+        )
+
+        self.handler.invoke_legacy_registry(invocation)
 
         assert mock_send_alert.call_count == 1
         (

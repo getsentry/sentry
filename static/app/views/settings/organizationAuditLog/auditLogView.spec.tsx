@@ -30,8 +30,9 @@ describe('OrganizationAuditLog', () => {
     render(<OrganizationAuditLog />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
-    // Check that both textboxes are present (date selector search and event selector)
-    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    // Check that both date selector search and event selector are present
+    expect(screen.getByText('All time')).toBeInTheDocument();
+    expect(screen.getByText('Select Action:')).toBeInTheDocument();
     expect(screen.getByText('Member')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
     expect(screen.getByText('IP')).toBeInTheDocument();
@@ -123,5 +124,24 @@ describe('OrganizationAuditLog', () => {
     expect(
       screen.getByText('edited metric alert rule "Failure rate too high"')
     ).toBeInTheDocument();
+  });
+
+  it('allows filtering for arbitrary custom time ranges', async () => {
+    const {router} = render(<OrganizationAuditLog />);
+
+    await userEvent.click(screen.getByTestId('page-filter-timerange-selector'));
+
+    const searchbox = screen.getByPlaceholderText(/custom range/i);
+    await userEvent.type(searchbox, '2w');
+    await userEvent.click(screen.getByText('Last 2 weeks'));
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        query: {statsPeriod: '2w'},
+      })
+    );
+    expect(screen.getByTestId('page-filter-timerange-selector')).toHaveTextContent(
+      'Last 2 weeks'
+    );
   });
 });

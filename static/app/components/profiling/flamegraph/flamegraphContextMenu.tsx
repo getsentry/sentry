@@ -4,8 +4,9 @@ import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
@@ -556,8 +557,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   transform: translateX(-2px);
 
   > div {
-    border: 2px solid ${p => p.theme.gray100} !important;
-    border-left-color: ${p => p.theme.gray200} !important;
+    border: 2px solid ${p => p.theme.colors.gray100} !important;
+    border-left-color: ${p => p.theme.colors.gray200} !important;
   }
 `;
 

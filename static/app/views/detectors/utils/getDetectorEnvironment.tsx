@@ -15,6 +15,7 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       // Crons can have multiple environments
       return null;
     case 'error':
+    case 'issue_stream':
       return null;
     default:
       unreachable(detectorType);

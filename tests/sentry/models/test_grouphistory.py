@@ -78,10 +78,10 @@ class GetPrevHistoryTest(TestCase):
         prev_history = self.create_group_history(self.group, GroupHistoryStatus.UNRESOLVED)
         assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history
         prev_history = self.create_group_history(
-            self.group, GroupHistoryStatus.RESOLVED, prev_history=prev_history
+            self.group, GroupHistoryStatus.RESOLVED, prev_history_date=prev_history.date_added
         )
         assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) == prev_history
         prev_history = self.create_group_history(
-            self.group, GroupHistoryStatus.UNRESOLVED, prev_history=prev_history
+            self.group, GroupHistoryStatus.UNRESOLVED, prev_history_date=prev_history.date_added
         )
         assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history

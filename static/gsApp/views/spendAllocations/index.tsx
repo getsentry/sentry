@@ -1,13 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +18,6 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -53,6 +54,7 @@ type Props = {
 };
 
 export function SpendAllocationsRoot({organization, subscription}: Props) {
+  const theme = useTheme();
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [orgEnabledFlag, setOrgEnabledFlag] = useState<boolean>(true);
@@ -69,9 +71,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const hasOrgWritePerms = hasPermissions(organization, 'org:write');
   const canViewSpendAllocation = hasBillingPerms || hasOrgWritePerms;
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategory.ATTACHMENTS
-      ? BigNumUnits.KILO_BYTES
-      : BigNumUnits.NUMBERS;
+    const categoryInfo = getCategoryInfoFromPlural(selectedMetric);
+    return categoryInfo?.formatting.bigNumUnit ?? BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
   const supportedCategories = planDetails.categories.filter(
@@ -305,17 +306,30 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (!organization.features.includes('spend-allocations')) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <PlanFeature organization={organization} features={['spend-allocations']}>
           {({plan}) => (
             <Panel dashedBorder data-test-id="disabled-allocations">
               <EmptyMessage
-                size="large"
-                icon={<IconBroadcast size="xl" />}
+                size="lg"
+                icon={<IconBroadcast />}
                 title={t(
                   'Allocate event resources to important projects every billing period.'
                 )}
-                description={tct(
+                action={
+                  <Container margin="sm">
+                    <LearnMoreButton
+                      organization={organization}
+                      source="allocations-upsell"
+                      href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
+                      external
+                    >
+                      {t('Documentation')}
+                    </LearnMoreButton>
+                  </Container>
+                }
+              >
+                {tct(
                   'Spend Allocations prioritize important projects by guaranteeing a monthly volume of events for exclusive consumption. This ensures coverage for your important projects, even during consumption spikes. This feature [planRequirement] or above.',
                   {
                     planRequirement: (
@@ -329,19 +343,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                     ),
                   }
                 )}
-                action={
-                  <ButtonBar gap="0">
-                    <StyledLearnMoreButton
-                      organization={organization}
-                      source="allocations-upsell"
-                      href="https://docs.sentry.io/product/accounts/quotas/#spend-allocation"
-                      external
-                    >
-                      {t('Documentation')}
-                    </StyledLearnMoreButton>
-                  </ButtonBar>
-                }
-              />
+              </EmptyMessage>
             </Panel>
           )}
         </PlanFeature>
@@ -351,14 +353,14 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   if (isDisabledByPartner(subscription)) {
     return (
-      <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SubscriptionPageContainer background="secondary">
         <PartnershipNote subscription={subscription} />
       </SubscriptionPageContainer>
     );
   }
 
   return (
-    <SubscriptionPageContainer background="secondary" organization={organization}>
+    <SubscriptionPageContainer background="secondary">
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Spend Allocations')}
@@ -370,8 +372,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 <LinkButton
                   aria-label={t('Manage Subscription')}
                   size="sm"
-                  style={{marginRight: space(1)}}
-                  to={`/settings/${organization.slug}/billing/checkout/?referrer=spend_allocations`}
+                  style={{marginRight: theme.space.md}}
+                  to={`/checkout/${organization.slug}/?referrer=spend_allocations`}
                 >
                   {t('Manage Subscription')}
                 </LinkButton>
@@ -381,7 +383,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                 priority="primary"
                 size="sm"
                 data-test-id="new-allocation"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd size="xs" />}
                 onClick={openForm()}
               >
                 {t('New Allocation')}
@@ -401,18 +403,25 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         )}
       </div>
       {!isLoading && !canViewSpendAllocation && (
-        <StyledPermissionAlert
-          data-test-id="permission-alert"
-          message={t(
-            'Only users with billing or write permissions can view spend allocation details.'
-          )}
-        />
+        <Container marginTop="3xl">
+          <OrganizationPermissionAlert
+            data-test-id="permission-alert"
+            message={t(
+              'Only users with billing or write permissions can view spend allocation details.'
+            )}
+          />
+        </Container>
       )}
-
       {canViewSpendAllocation && (
-        <PageGrid data-test-id="subhead-actions">
+        <Grid
+          columns={{xs: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)'}}
+          areas={{xs: '"bb bb dd"', lg: '"bb bb dd . ."'}}
+          gap="xl"
+          margin="xl 0"
+          data-test-id="subhead-actions"
+        >
           <StyledButtonBar>
-            <Dates>
+            <Stack align="center" column="2 / 5">
               <strong>
                 {!viewNextPeriod && 'Current Period'}
                 {viewNextPeriod && 'Next Period'}
@@ -430,10 +439,12 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
                   year: 'numeric',
                 })}
               </div>
-            </Dates>
+            </Stack>
           </StyledButtonBar>
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={selectedMetric}
             options={supportedCategories
               .filter(category => subscription.planDetails.categories.includes(category))
@@ -450,7 +461,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               setCurrentCursor('');
             }}
           />
-        </PageGrid>
+        </Grid>
       )}
       {isLoading && <LoadingIndicator />}
       {errors && (
@@ -517,22 +528,6 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
 export default withOrganization(withSubscription(SpendAllocationsRoot));
 
-const PageGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${space(2)};
-  margin: ${space(2)} 0;
-
-  @media (min-width: 0) {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-areas: 'bb bb dd';
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-areas: 'bb bb dd . .';
-  }
-`;
-
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
   grid-area: dd;
@@ -543,21 +538,7 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
 `;
 
-const StyledPermissionAlert = styled(OrganizationPermissionAlert)`
-  margin-top: 30px;
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   grid-column: auto / span 1;
   grid-area: bb;
-`;
-const Dates = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  grid-column: 2 / 5;
-`;
-
-const StyledLearnMoreButton = styled(LearnMoreButton)`
-  margin: ${space(0.75)};
 `;

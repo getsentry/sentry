@@ -9,32 +9,34 @@ discover: 0003_discover_json_field
 
 explore: 0006_add_changed_reason_field_explore
 
-feedback: 0006_safe_del_feedback_model
+feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0023_correct_webhook_payload_constraint
+hybridcloud: 0024_add_project_distribution_scope
 
 insights: 0002_backfill_team_starred
 
-monitors: 0010_delete_orphaned_detectors
+monitors: 0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0017_break_commit_fks
+preprod: 0026_add_initial_snapshot_models
 
-releases: 0001_release_models
+prevent: 0004_delete_prevent_ai_configuration_table
 
-replays: 0006_add_bulk_delete_job
+releases: 0004_cleanup_failed_safe_deletes
 
-sentry: 0995_add_date_updated_to_grouphash_metadata
+replays: 0007_organizationmember_replay_access
+
+sentry: 1024_delete_never_active_users_without_emails_self_hosted
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0001_squashed_0002_make_message_type_nullable
+tempest: 0003_use_encrypted_char_field
 
-uptime: 0047_remove_uptime_status_columns
+uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0093_add_action_config_index
+workflow_engine: 0107_fix_email_action_fallthrough_type

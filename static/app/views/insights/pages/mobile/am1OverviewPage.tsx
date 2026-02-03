@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -29,9 +32,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
-  MOBILE_LANDING_TITLE,
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
@@ -78,14 +79,18 @@ const REACT_NATIVE_COLUMN_TITLES = [
   {title: 'user misery'},
 ];
 
+interface Am1MobileOverviewPageProps {
+  datePageFilterProps: DatePageFilterProps;
+}
+
 // Am1 customers do not have EAP, so we need to use the old frontend overview page for now
-export function Am1MobileOverviewPage() {
+export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
@@ -200,16 +205,15 @@ export function Am1MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
@@ -252,7 +256,7 @@ export function Am1MobileOverviewPage() {
                     <Table
                       projects={projects}
                       columnTitles={columnTitles}
-                      setError={setPageError}
+                      setError={setPageDanger}
                       theme={theme}
                       {...sharedProps}
                     />

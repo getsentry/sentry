@@ -24,8 +24,12 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user.service import user_service
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
+from sentry.utils.iterators import chunked
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
+# Limit the number of commits to batch in a single query to avoid query timeouts
+# from large IN clauses combined with complex LIKE conditions
+COMMIT_BATCH_SIZE = 50
 
 
 def tokenize_path(path: str) -> Iterator[str]:
@@ -96,11 +100,18 @@ def _get_commit_file_changes(
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(operator.or_, (Q(filename__iendswith=path) for path in filenames))
 
-    commit_file_change_matches = CommitFileChange.objects.filter(
-        path_query, commit_id__in=[c.id for c in commits]
-    )
+    # Batch commits to avoid query timeouts from large IN clauses
+    # combined with complex LIKE conditions
+    all_file_changes: list[CommitFileChange] = []
+    commit_ids = [c.id for c in commits]
 
-    return list(commit_file_change_matches)
+    for batch_commit_ids in chunked(commit_ids, COMMIT_BATCH_SIZE):
+        commit_file_change_matches = CommitFileChange.objects.filter(
+            path_query, commit_id__in=batch_commit_ids
+        )
+        all_file_changes.extend(list(commit_file_change_matches))
+
+    return all_file_changes
 
 
 def _match_commits_paths(

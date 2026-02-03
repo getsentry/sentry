@@ -1,7 +1,11 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {DurationUnit, SizeUnit, type RateUnit} from 'sentry/utils/discover/fields';
+import {
+  ABYTE_UNITS,
+  DurationUnit,
+  SizeUnit,
+  type RateUnit,
+} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatDollars, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -13,6 +17,20 @@ import {
   isASizeUnit,
 } from 'sentry/views/dashboards/widgets/common/typePredicates';
 
+/**
+ * Format a value for the tooltip on an ECharts graph.
+ *
+ * The value might be a user submitted metric, or an aggregate. For user metric
+ * values, it's wise to render the value at full precision, since the user might
+ * be interested in the exact value, and tooltips should generally show the full
+ * value. For aggregates, the precision is contrived, and the significant digits
+ * might not match the original data. In this case, it would be wise to truncate
+ * the value for display purposes, but we opt to do the safer thing and show the
+ * value at full precision.
+ *
+ * This concept mostly applies to "number" values, since integers, durations,
+ * and sizes naturally require less precision.
+ */
 export function formatTooltipValue(
   value: number | typeof ECHARTS_MISSING_DATA_VALUE,
   type: string,
@@ -25,7 +43,9 @@ export function formatTooltipValue(
   switch (type) {
     case 'integer':
     case 'number':
-      return value.toLocaleString();
+      return value.toLocaleString(undefined, {
+        maximumFractionDigits: 20,
+      });
     case 'percentage':
       return formatPercentage(value, 2);
     case 'duration': {

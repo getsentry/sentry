@@ -1,14 +1,14 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -81,7 +81,7 @@ export default function UptimeAlertDetails() {
   if (isPending || loadingProject) {
     return (
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
       </Layout.Body>
@@ -181,7 +181,7 @@ export default function UptimeAlertDetails() {
           {!detector.enabled && (
             <Alert.Container>
               <Alert
-                type="muted"
+                variant="muted"
                 trailingItems={
                   <StatusToggleButton
                     uptimeDetector={detector}
@@ -201,7 +201,7 @@ export default function UptimeAlertDetails() {
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
             detectorId={detector.id}
-            projectSlug={project.slug}
+            project={project}
             traceSampling={uptimeSub.traceSampling}
           />
         </Layout.Main>

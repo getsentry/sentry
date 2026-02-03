@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -18,6 +20,9 @@ const ERROR_POLL_INTERVAL_MS = 5000;
 const START_TIMEOUT_MS = 15_000; // Max time to wait for processing to start after a start request.
 const TOTAL_TIMEOUT_MS = 100_000; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
 
+function logReplaySummaryTimeout({extra}: {extra: Record<string, string>}) {
+  Sentry.logger.info('Replay summary poll timed out', extra);
+}
 export interface UseReplaySummaryResult {
   /**
    * Whether there was an error with the initial query or summary generation,
@@ -69,7 +74,14 @@ function createAISummaryQueryKey(
   projectSlug: string | undefined,
   replayId: string
 ): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
+  return [
+    getApiUrl(
+      `/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/`,
+      {
+        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId},
+      }
+    ),
+  ];
 }
 
 export function useReplaySummary(
@@ -97,6 +109,14 @@ export function useReplaySummary(
     timeMs: TOTAL_TIMEOUT_MS,
     onTimeout: () => {
       setDidTimeout(true);
+      logReplaySummaryTimeout({
+        extra: {
+          reason: 'Total timeout',
+          orgSlug: organization.slug,
+          replayId: replayRecord?.id ?? '',
+          segmentCount: segmentCount.toString(),
+        },
+      });
     },
   });
 
@@ -105,6 +125,14 @@ export function useReplaySummary(
     onTimeout: () => {
       setDidTimeout(true);
       cancelTotalTimeout();
+      logReplaySummaryTimeout({
+        extra: {
+          reason: 'Start timeout',
+          orgSlug: organization.slug,
+          replayId: replayRecord?.id ?? '',
+          segmentCount: segmentCount.toString(),
+        },
+      });
     },
   });
 

@@ -1,3 +1,5 @@
+import os
+
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -30,6 +32,14 @@ DEFAULT_SENTRY_PROJECT_ID = 1
 def create_default_projects(**kwds):
     if not (in_test_environment() or is_self_hosted() or settings.DEBUG):
         # No op in production SaaS environments.
+        return
+
+    # Temporary patch to stop getsentry migrations-drift ci from timing out
+    # because something in create_default_project triggers taskworkers which
+    # spin for 5m waiting for kafka which isn't up.
+    # (Only postgres+redis is needed for running migrations.)
+    # We still want post_save hooks to run, just not in this specific case.
+    if os.environ.get("SENTRY_NO_CREATE_DEFAULT_PROJECT") == "1":
         return
 
     create_default_project(

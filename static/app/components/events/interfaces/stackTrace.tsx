@@ -70,6 +70,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
       <TraceEventDataSection
         type={EntryType.STACKTRACE}
         projectSlug={projectSlug}
+        event={event}
         eventId={event.id}
         platform={platform}
         stackTraceNotFound={stackTraceNotFound}

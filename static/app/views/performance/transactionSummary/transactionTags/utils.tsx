@@ -2,7 +2,9 @@ import type {Location, Query} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -81,4 +83,32 @@ export function parseHistogramBucketInfo(row: Record<string, string | number>) {
     offset: parseInt(parts[parts.length - 2]!, 10),
     multiplier: parseInt(parts[parts.length - 1]!, 10),
   };
+}
+
+export function generateTransactionTagsEventView({
+  location,
+  transactionName,
+}: {
+  location: Location;
+  transactionName: string;
+}): EventView {
+  const query = `(${decodeScalar(location.query.query, '')})`;
+  const conditions = new MutableSearch(query);
+
+  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('transaction', [transactionName]);
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields: ['transaction.duration'],
+      query: conditions.formatString(),
+      projects: [],
+    },
+    location
+  );
+
+  return eventView;
 }

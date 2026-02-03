@@ -1,5 +1,4 @@
 import {IncidentFixture} from 'sentry-fixture/incident';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,13 +6,13 @@ import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -94,11 +93,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays list', async () => {
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -118,11 +114,8 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       body: [],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
 
     expect(
@@ -133,11 +126,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays team dropdown context if unassigned', async () => {
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
 
@@ -154,11 +144,8 @@ describe('AlertRulesList', () => {
       url: '/projects/org-slug/earth/rules/123/',
       body: [],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
 
     const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
@@ -177,11 +164,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays dropdown context menu with actions', async () => {
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
@@ -197,7 +181,7 @@ describe('AlertRulesList', () => {
     const deletedRuleName = 'Issue Rule';
     const issueRule = ProjectAlertRuleFixture({
       name: deletedRuleName,
-      projects: ['project-slug'],
+      projects: ['earth'],
     });
 
     MockApiClient.addMockResponse({
@@ -206,16 +190,13 @@ describe('AlertRulesList', () => {
       body: [{...issueRule, type: CombinedAlertType.ISSUE}],
     });
 
-    const {router, project, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     renderGlobalModal();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/rules/${issueRule.id}/`,
+      url: `/projects/${defaultOrg.slug}/earth/rules/${issueRule.id}/`,
       method: 'DELETE',
       body: {},
     });
@@ -251,16 +232,13 @@ describe('AlertRulesList', () => {
       body: [{...metricRule, type: CombinedAlertType.METRIC}],
     });
 
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     renderGlobalModal();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${metricRule.id}/`,
+      url: `/organizations/${defaultOrg.slug}/alert-rules/${metricRule.id}/`,
       method: 'DELETE',
       body: {},
     });
@@ -285,13 +263,8 @@ describe('AlertRulesList', () => {
   });
 
   it('sends user to new alert page on duplicate action', async () => {
-    const {organization, router} = initializeOrg({
+    const {router} = render(<AlertRulesList />, {
       organization: defaultOrg,
-    });
-    render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
     });
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
@@ -303,32 +276,30 @@ describe('AlertRulesList', () => {
 
     await userEvent.click(duplicate);
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/alerts/new/issue/',
-      query: {
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/issues/alerts/new/issue/'
+      );
+    });
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
         createFromDuplicate: 'true',
         duplicateRuleId: '123',
         project: 'earth',
         referrer: 'alert_stream',
-      },
+      });
     });
   });
 
   it('sorts by name', async () => {
-    const {router, organization} = initializeOrg({
-      organization: defaultOrg,
-      router: {
-        location: LocationFixture({
-          query: {asc: '1', sort: 'name'},
-          // Sort by the name column
-          search: '?asc=1&sort=name`',
-        }),
-      },
-    });
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/alerts/rules/',
+          query: {asc: '1', sort: 'name'},
+        },
+      },
     });
 
     expect(await screen.findByText('Alert Rule')).toHaveAttribute(
@@ -350,11 +321,8 @@ describe('AlertRulesList', () => {
       ...defaultOrg,
       access: [],
     };
-    const {router, organization} = initializeOrg({organization: noAccessOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: noAccessOrg,
     });
 
     expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
@@ -364,11 +332,8 @@ describe('AlertRulesList', () => {
   });
 
   it('searches by name', async () => {
-    const {organization, router} = initializeOrg();
-    render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+    const {router} = render(<AlertRulesList />, {
+      organization: defaultOrg,
     });
 
     const search = await screen.findByPlaceholderText('Search by name');
@@ -377,28 +342,24 @@ describe('AlertRulesList', () => {
     const testQuery = 'test name';
     await userEvent.type(search, `${testQuery}{enter}`);
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           name: testQuery,
-        },
-      })
-    );
+        })
+      );
+    });
   });
 
   it('uses empty team query parameter when removing all teams', async () => {
-    const {organization, router} = initializeOrg({
-      router: {
-        location: LocationFixture({
+    const {router} = render(<AlertRulesList />, {
+      organization: defaultOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/alerts/rules/',
           query: {team: 'myteams'},
-          search: '?team=myteams`',
-        }),
+        },
       },
-    });
-    render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -409,21 +370,18 @@ describe('AlertRulesList', () => {
     const myTeams = await screen.findAllByText('My Teams');
     await userEvent.click(myTeams[1]!);
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           team: '',
-        },
-      })
-    );
+        })
+      );
+    });
   });
 
   it('displays metric alert status', async () => {
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     const rules = await screen.findAllByText('My Incident Rule');
 
@@ -450,11 +408,8 @@ describe('AlertRulesList', () => {
         },
       ],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
@@ -477,11 +432,8 @@ describe('AlertRulesList', () => {
         },
       ],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
@@ -503,11 +455,8 @@ describe('AlertRulesList', () => {
         },
       ],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
@@ -527,22 +476,16 @@ describe('AlertRulesList', () => {
         },
       ],
     });
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     expect(await screen.findByText('My Incident Rule')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
   });
 
   it('sorts by alert rule', async () => {
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -560,26 +503,21 @@ describe('AlertRulesList', () => {
   });
 
   it('preserves empty team query parameter on pagination', async () => {
-    const {organization, router} = initializeOrg({
+    const {router} = render(<AlertRulesList />, {
       organization: defaultOrg,
-    });
-    render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           team: '',
           cursor: '0:100:0',
-        },
-      })
-    );
+        })
+      );
+    });
   });
 
   it('renders uptime alert rules', async () => {
@@ -594,11 +532,8 @@ describe('AlertRulesList', () => {
       ],
     });
 
-    const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
 
     expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
@@ -615,16 +550,13 @@ describe('AlertRulesList', () => {
       body: [{...uptimeRule, type: CombinedAlertType.UPTIME}],
     });
 
-    const {router, project, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {
-      router,
-      organization,
-      deprecatedRouterMocks: true,
+      organization: defaultOrg,
     });
     renderGlobalModal();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRule.id}/`,
+      url: `/projects/${defaultOrg.slug}/project-slug/uptime/${uptimeRule.id}/`,
       method: 'DELETE',
       body: {},
     });
@@ -648,5 +580,234 @@ describe('AlertRulesList', () => {
     expect(deleteMock).toHaveBeenCalledTimes(1);
     expect(emptyListMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(deletedRuleName)).not.toBeInTheDocument();
+  });
+
+  describe('metric alerts without incidents feature', () => {
+    const orgWithoutIncidents = OrganizationFixture({
+      access: ['alerts:write'],
+      features: [], // No 'incidents' feature
+    });
+
+    it('displays warning banner when org has metric alerts but lacks incidents feature', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      expect(
+        await screen.findByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not display warning banner when org has no metric alerts', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...ProjectAlertRuleFixture({
+              id: '1',
+              name: 'Issue Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.ISSUE,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      expect(await screen.findByText('Issue Alert')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not display warning banner when org has incidents feature', async () => {
+      const orgWithIncidents = OrganizationFixture({
+        access: ['alerts:write'],
+        features: ['incidents'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithIncidents,
+      });
+
+      expect(await screen.findByText('Metric Alert')).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Your metric alerts have been disabled. Upgrade your plan to re-enable them.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables clicking on metric alert and shows tooltip when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Disabled Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const alertName = await screen.findByText('Disabled Metric Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it's not a link
+      expect(alertName.closest('a')).not.toBeInTheDocument();
+
+      // Hover to show tooltip
+      await userEvent.hover(alertName);
+
+      expect(
+        await screen.findByText(
+          'This metric alert is not available. Your organization does not have access to this feature.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('disables edit and duplicate actions for metric alerts when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
+      await userEvent.click(actions);
+
+      const editOption = screen.getByRole('menuitemradio', {name: 'Edit'});
+      const duplicateOption = screen.getByRole('menuitemradio', {name: 'Duplicate'});
+
+      expect(editOption).toHaveAttribute('aria-disabled', 'true');
+      expect(duplicateOption).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not disable issue alerts when incidents feature is missing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...ProjectAlertRuleFixture({
+              id: '1',
+              name: 'Issue Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.ISSUE,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithoutIncidents,
+      });
+
+      const alertName = await screen.findByText('Issue Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it IS a link (not disabled)
+      expect(alertName.closest('a')).toBeInTheDocument();
+
+      const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
+      await userEvent.click(actions);
+
+      const editOption = screen.getByRole('menuitemradio', {name: 'Edit'});
+      const duplicateOption = screen.getByRole('menuitemradio', {name: 'Duplicate'});
+
+      expect(editOption).not.toHaveAttribute('aria-disabled', 'true');
+      expect(duplicateOption).not.toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('allows clicking on metric alerts when org has incidents feature', async () => {
+      const orgWithIncidents = OrganizationFixture({
+        access: ['alerts:write'],
+        features: ['incidents'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/combined-rules/',
+        headers: {Link: pageLinks},
+        body: [
+          {
+            ...MetricRuleFixture({
+              id: '1',
+              name: 'Enabled Metric Alert',
+              projects: ['earth'],
+            }),
+            type: CombinedAlertType.METRIC,
+          },
+        ],
+      });
+
+      render(<AlertRulesList />, {
+        organization: orgWithIncidents,
+      });
+
+      const alertName = await screen.findByText('Enabled Metric Alert');
+      expect(alertName).toBeInTheDocument();
+
+      // Check that it IS a link (enabled)
+      expect(alertName.closest('a')).toBeInTheDocument();
+    });
   });
 });

@@ -1,53 +1,32 @@
-import {useEffect, useState} from 'react';
-import pick from 'lodash/pick';
+import {useEffect} from 'react';
+
+import {Alert} from '@sentry/scraps/alert';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
+import {useTimeseriesVisualizationEnabled} from 'sentry/views/dashboards/utils/useTimeseriesVisualizationEnabled';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import type {Widget} from './types';
-import {DashboardState} from './types';
-import {constructWidgetFromQuery} from './utils';
 
-const ALLOWED_PARAMS = [
-  'start',
-  'end',
-  'utc',
-  'period',
-  'project',
-  'environment',
-  'statsPeriod',
-];
-
-type Props = RouteComponentProps<{
-  dashboardId: string;
-  orgId: string;
-  widgetId?: number | string;
-}> & {
-  children: React.ReactNode;
-};
-
-function ViewEditDashboard(props: Props) {
+export default function ViewEditDashboard() {
   const api = useApi();
   const organization = useOrganization();
+  const {dashboardId} = useParams<{dashboardId: string}>();
+  const location = useLocation();
 
-  const {params, location} = props;
-  const dashboardId = params.dashboardId;
   const orgSlug = organization.slug;
-  const [newWidget, setNewWidget] = useState<Widget | undefined>();
-  const [dashboardInitialState, setDashboardInitialState] = useState(DashboardState.VIEW);
 
   useEffect(() => {
     if (dashboardId && dashboardId !== 'default-overview') {
@@ -55,37 +34,27 @@ function ViewEditDashboard(props: Props) {
     }
   }, [api, orgSlug, dashboardId]);
 
-  useEffect(() => {
-    const constructedWidget = constructWidgetFromQuery(location.query);
-    // Clean up url after constructing widget from query string, only allow GHS params
-    if (constructedWidget) {
-      setNewWidget(constructedWidget);
-      setDashboardInitialState(DashboardState.EDIT);
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: pick(location.query, ALLOWED_PARAMS),
-      });
-    }
-  }, [location.pathname, location.query]);
+  const useTimeseriesVisualization = useTimeseriesVisualizationEnabled();
+
+  // Get optimistic dashboard from location.state if available (e.g., after adding a widget)
+  const optimisticDashboard = (location.state as {dashboard?: DashboardDetails} | null)
+    ?.dashboard;
 
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards>
+      <OrgDashboards initialDashboard={optimisticDashboard}>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
             <ErrorBoundary>
               <DashboardDetail
-                {...props}
                 key={dashboard.id}
-                organization={organization}
-                initialState={dashboardInitialState}
+                initialState={DashboardState.VIEW}
                 dashboard={dashboard}
                 dashboards={dashboards}
                 onDashboardUpdate={onDashboardUpdate}
-                newWidget={newWidget}
-                onSetNewWidget={() => setNewWidget(undefined)}
+                useTimeseriesVisualization={useTimeseriesVisualization}
               />
             </ErrorBoundary>
           ) : (
@@ -97,8 +66,6 @@ function ViewEditDashboard(props: Props) {
   );
 }
 
-export default ViewEditDashboard;
-
 type FeatureProps = {
   children: React.ReactNode;
   organization: Organization;
@@ -108,7 +75,7 @@ export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning" showIcon={false}>
+        <Alert variant="warning" showIcon={false}>
           {t("You don't have access to this feature")}
         </Alert>
       </Alert.Container>

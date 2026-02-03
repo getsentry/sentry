@@ -2,7 +2,9 @@ import type {ReactNode} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Grid} from '@sentry/scraps/layout';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -62,5 +64,26 @@ export function InvalidTokenTooltip({
     >
       {children}
     </Tooltip>
+  );
+}
+
+type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {
+  children: React.ReactNode;
+  columnCount: number;
+};
+
+export function GridInvalidTokenTooltip({
+  children,
+  columnCount,
+  ...props
+}: GridInvalidTokenTooltipProps) {
+  return (
+    <Grid align="stretch" height="22px" columns={`repeat(${columnCount}, auto)`}>
+      {styleProps => (
+        <InvalidTokenTooltip {...props} {...styleProps}>
+          {children}
+        </InvalidTokenTooltip>
+      )}
+    </Grid>
   );
 }

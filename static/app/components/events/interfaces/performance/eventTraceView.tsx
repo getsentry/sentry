@@ -1,14 +1,17 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
+import {
+  isWebVitalsEvent,
+  TRACE_WATERFALL_PREFERENCES_KEY,
+} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -130,10 +133,6 @@ function OneOtherIssueEvent({event}: {event: Event}) {
 const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
-
-const isWebVitalsEvent = (event: Event) => {
-  return event.tags.some((tag: {key: string}) => tag?.key === 'web_vital');
-};
 
 interface EventTraceViewProps {
   event: Event;

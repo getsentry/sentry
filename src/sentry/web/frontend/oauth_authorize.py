@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -20,7 +21,12 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api.oauth_authorize")
+logger = logging.getLogger("sentry.oauth")
+
+# RFC 7636 §4.2: code_challenge is 43-128 unreserved characters (same format as verifier)
+# ABNF: code-challenge = 43*128unreserved
+# unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -31,20 +37,30 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
-            return self.redirect(
-                "{}#{}".format(
-                    redirect_uri,
-                    urlencode([(k, v) for k, v in params.items() if v is not None]),
-                )
+            final_uri = "{}#{}".format(
+                redirect_uri,
+                urlencode([(k, v) for k, v in params.items() if v is not None]),
             )
+        else:
+            parts = list(urlparse(redirect_uri))
+            query = parse_qsl(parts[4])
+            for key, value in params.items():
+                if value is not None:
+                    query.append((key, value))
+            parts[4] = urlencode(query)
+            final_uri = urlunparse(parts)
 
-        parts = list(urlparse(redirect_uri))
-        query = parse_qsl(parts[4])
-        for key, value in params.items():
-            if value is not None:
-                query.append((key, value))
-        parts[4] = urlencode(query)
-        return self.redirect(urlunparse(parts))
+        # Django's HttpResponseRedirect blocks custom URL schemes for security.
+        # For OAuth redirects to Sentry Apple apps, we need to support the
+        # sentry-apple:// scheme, so we use HttpResponse with a Location
+        # header directly.
+        parsed_uri = urlparse(final_uri)
+        if parsed_uri.scheme == "sentry-apple":
+            response = HttpResponse(status=302)
+            response["Location"] = final_uri
+            return response
+
+        return self.redirect(final_uri)
 
     def error(
         self,
@@ -56,7 +72,7 @@ class OAuthAuthorizeView(AuthLoginView):
         client_id=None,
         err_response=None,
     ):
-        logging.error(
+        logger.error(
             "oauth.authorize-error",
             extra={
                 "error_name": name,
@@ -182,6 +198,44 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
+        # PKCE support (RFC 7636): accept code_challenge and code_challenge_method.
+        # This implementation only supports S256 method (plain method not supported for security).
+        # Note: OAuth 2.1 requires S256 to be implemented; plain is still allowed in narrow cases.
+        # Reference: https://datatracker.ietf.org/doc/html/rfc7636#section-4.2
+        code_challenge = request.GET.get("code_challenge")
+        code_challenge_method = request.GET.get("code_challenge_method")
+
+        if code_challenge is not None:
+            # Validate code_challenge format per RFC 7636 §4.2: 43-128 unreserved chars
+            if not CODE_CHALLENGE_REGEX.match(code_challenge):
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
+            # Require S256 method explicitly (plain method not supported for security)
+            if code_challenge_method != "S256":
+                logger.error(
+                    "oauth.pkce.invalid-method",
+                    extra={
+                        "client_id": client_id,
+                        "application_id": application.id if application else None,
+                        "method": code_challenge_method,
+                    },
+                )
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
         payload = {
             "rt": response_type,
             "cid": client_id,
@@ -189,7 +243,16 @@ class OAuthAuthorizeView(AuthLoginView):
             "sc": scopes,
             "st": state,
             "uid": request.user.id if request.user.is_authenticated else "",
+            "cc": code_challenge,
+            "ccm": code_challenge_method if code_challenge else None,
         }
+        # TODO(dcramer): Using a single "oa2" session key means multiple tabs authorizing
+        # different applications will overwrite each other's session data. If a user has
+        # Tab A (App A) and Tab B (App B) open, whichever tab they opened last will have
+        # its payload in the session. Approving from Tab A would then authorize App B.
+        # Consider using a unique transaction ID per authorization request, stored either
+        # in the URL or as a per-request session key (e.g., oa2:{tx_id}).
+        # See oauth_device.py for an example using user_code as a natural unique key.
         request.session["oa2"] = payload
 
         if not request.user.is_authenticated:
@@ -216,17 +279,9 @@ class OAuthAuthorizeView(AuthLoginView):
                         response_type=response_type,
                         redirect_uri=redirect_uri,
                         state=state,
+                        code_challenge=payload.get("cc"),
+                        code_challenge_method=payload.get("ccm"),
                     )
-
-        payload = {
-            "rt": response_type,
-            "cid": client_id,
-            "ru": redirect_uri,
-            "sc": scopes,
-            "st": state,
-            "uid": request.user.id,
-        }
-        request.session["oa2"] = payload
 
         permissions = []
         if scopes:
@@ -245,7 +300,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
         if application.requires_org_level_access:
-            organization_options = user_service.get_organizations(user_id=request.user.id)
+            organization_options = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
+            )
             if not organization_options:
                 return self.respond(
                     "sentry/oauth-error.html",
@@ -276,6 +333,10 @@ class OAuthAuthorizeView(AuthLoginView):
         response = super().post(request, application=application, **kwargs)
         # once they login, bind their user ID
         if request.user.is_authenticated:
+            # Regenerate session to prevent session fixation attacks
+            request.session.cycle_key()
+
+            # Update OAuth payload with authenticated user ID for validation in post()
             request.session["oa2"]["uid"] = request.user.id
             request.session.modified = True
         return response
@@ -315,6 +376,8 @@ class OAuthAuthorizeView(AuthLoginView):
         response_type = payload["rt"]
         redirect_uri = payload["ru"]
         scopes = payload["sc"]
+        code_challenge = payload.get("cc")
+        code_challenge_method = payload.get("ccm")
 
         op = request.POST.get("op")
         if op == "approve":
@@ -326,6 +389,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 state=payload["st"],
+                code_challenge=code_challenge,
+                code_challenge_method=code_challenge_method,
             )
 
         elif op == "deny":
@@ -350,11 +415,53 @@ class OAuthAuthorizeView(AuthLoginView):
         response_type: Literal["code", "token"],
         redirect_uri,
         state,
+        code_challenge=None,
+        code_challenge_method=None,
     ) -> HttpResponseBase:
         # Some applications require org level access, so user who approves only gives
         # access to that organization by selecting one. If None, means the application
         # has user level access and will be able to have access to all the organizations of that user.
         selected_organization_id = request.POST.get("selected_organization_id")
+
+        # Validate organization selection for org-level access applications
+        # This prevents privilege escalation and ensures apps that require org-level
+        # access always have an organization_id set
+        if application.requires_org_level_access:
+            # Organization ID is required for org-level access applications
+            if not selected_organization_id:
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_request",
+                    state=state,
+                )
+
+            user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
+            org_ids = {org.id for org in user_orgs}
+
+            try:
+                selected_org_id_int = int(selected_organization_id)
+            except (ValueError, TypeError):
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="unauthorized_client",
+                    state=state,
+                )
+
+            if selected_org_id_int not in org_ids:
+                return self.error(
+                    request=request,
+                    client_id=application.client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="unauthorized_client",
+                    state=state,
+                )
 
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
@@ -391,6 +498,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri=redirect_uri,
                 scope_list=scopes,
                 organization_id=selected_organization_id,
+                code_challenge=code_challenge,
+                code_challenge_method=code_challenge_method,
             )
             logger.info(
                 "approve.grant",
@@ -429,9 +538,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri,
                 {
                     "access_token": token.token,
-                    "expires_in": int((timezone.now() - token.expires_at).total_seconds()),
+                    "expires_in": int((token.expires_at - timezone.now()).total_seconds()),
                     "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "token_type": "bearer",
+                    "token_type": "Bearer",
                     "scope": " ".join(token.get_scopes()),
                     "state": state,
                 },

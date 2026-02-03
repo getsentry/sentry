@@ -18,6 +18,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
@@ -394,7 +395,13 @@ describe('AutomationsList', () => {
         body: {},
       });
 
-      render(<AutomationsList />, {organization});
+      render(
+        // MonitorViewContainer provides PageFiltersContainer typically
+        <PageFiltersContainer>
+          <AutomationsList />
+        </PageFiltersContainer>,
+        {organization}
+      );
       renderGlobalModal();
 
       // Mock the filtered search results - this will be used when search is applied
@@ -443,11 +450,9 @@ describe('AutomationsList', () => {
       await userEvent.click(masterCheckbox);
 
       // Should show alert with option to select all query results
-      expect(
-        screen.getByText(/20 automations on this page selected/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/20 alerts on this page selected/)).toBeInTheDocument();
       const selectAllForQuery = screen.getByText(
-        /Select all 50 automations that match this search query/
+        /Select all 50 alerts that match this search query/
       );
       await userEvent.click(selectAllForQuery);
 
@@ -523,7 +528,7 @@ describe('AutomationsList', () => {
       const noActionsIcon = within(noActionsRow).getAllByRole('img')[0]!; // Get the first img (warning icon)
       await userEvent.hover(noActionsIcon);
       expect(
-        await screen.findByText('You must add an action for this automation to run.')
+        await screen.findByText('You must add an action for this alert to run.')
       ).toBeInTheDocument();
 
       // Test second automation (all disabled) - should show "Invalid" and danger tooltip
@@ -535,7 +540,7 @@ describe('AutomationsList', () => {
       await userEvent.hover(allDisabledIcon);
       expect(
         await screen.findByText(
-          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+          'Alert is invalid because no actions can run. Actions need to be reconfigured.'
         )
       ).toBeInTheDocument();
 

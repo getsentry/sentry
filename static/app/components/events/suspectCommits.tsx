@@ -131,11 +131,11 @@ export function SuspectCommits({
           >
             {isExpanded ? (
               <Fragment>
-                {t('Show less')} <IconSubtract isCircled size="md" />
+                {t('Show less')} <IconSubtract size="md" />
               </Fragment>
             ) : (
               <Fragment>
-                {t('Show more')} <IconAdd isCircled size="md" />
+                {t('Show more')} <IconAdd size="md" />
               </Fragment>
             )}
           </ExpandButton>
@@ -166,15 +166,15 @@ const ExpandButton = styled('button')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: bold;
   padding: 10px 12px 0 12px;
 `;
 
 const StreamlinedPanel = styled(Panel)`
   position: relative;
-  background: ${p => p.theme.background}
-    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.surface100});
+  background: ${p => p.theme.tokens.background.primary}
+    linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.colors.surface200});
   overflow: hidden;
   margin-bottom: 0;
   width: 100%;

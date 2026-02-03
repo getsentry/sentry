@@ -1,11 +1,11 @@
 import {useTheme} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -15,7 +15,6 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 import {
   setApiQueryData,
   useApiQuery,
@@ -31,12 +30,14 @@ import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/co
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-export default function ProjectOwnership({project}: {project: Project}) {
+export default function ProjectOwnership() {
   const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
+  const {project} = useProjectSettingsOutlet();
 
   const ownershipQueryKey: ApiQueryKey = [
     `/projects/${organization.slug}/${project.slug}/ownership/`,
@@ -171,7 +172,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       />
       {isCodeownersError && (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {t(
               "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
             )}
@@ -251,7 +252,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
         </Form>
       ) : (
         <Alert.Container>
-          <Alert type="error" showIcon={false}>
+          <Alert variant="danger" showIcon={false}>
             {t('There was an error issue owner settings.')}
           </Alert>
         </Alert.Container>

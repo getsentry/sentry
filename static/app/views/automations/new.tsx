@@ -1,44 +1,97 @@
-import {useState} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {Observer} from 'mobx-react-lite';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import FormModel from 'sentry/components/forms/model';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {IconAdd} from 'sentry/icons';
+import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
+import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  AutomationBuilderContext,
+  useAutomationBuilderReducer,
+} from 'sentry/views/automations/components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {ConnectMonitorsContent} from 'sentry/views/automations/components/editConnectedMonitors';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import AutomationForm from 'sentry/views/automations/components/automationForm';
+import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+import {
+  getNewAutomationData,
+  validateAutomationBuilderState,
+} from 'sentry/views/automations/components/automationFormData';
+import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
+import {useCreateAutomation} from 'sentry/views/automations/hooks';
+import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
+import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+
+function AutomationDocumentTitle() {
+  const title = useFormField('name');
+  return (
+    <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
+  );
+}
 
 function AutomationBreadcrumbs() {
+  const title = useFormField('name');
   const organization = useOrganization();
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automations'), to: makeAutomationBasePathname(organization.slug)},
-        {label: t('New Automation')},
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+        {label: title ? title : t('New Alert')},
       ]}
     />
   );
 }
 
-export default function AutomationNew() {
-  const location = useLocation();
-  const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
+const initialData = {
+  name: '',
+  environment: null,
+  frequency: 1440,
+  enabled: true,
+  projectIds: [],
+};
 
-  const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(() => {
+export default function AutomationNewSettings() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
+  const model = useMemo(() => new FormModel(), []);
+  const {state, actions} = useAutomationBuilderReducer();
+  const theme = useTheme();
+  const maxWidth = theme.breakpoints.lg;
+
+  const {
+    errors: automationBuilderErrors,
+    setErrors: setAutomationBuilderErrors,
+    removeError,
+  } = useAutomationBuilderErrors();
+
+  const initialConnectedIds = useMemo(() => {
     const connectedIdsQuery = location.query.connectedIds as
       | string
       | string[]
@@ -46,66 +99,178 @@ export default function AutomationNew() {
     if (!connectedIdsQuery) {
       return [];
     }
-    const connectedIdsArray = Array.isArray(connectedIdsQuery)
+    const connectedIds = Array.isArray(connectedIdsQuery)
       ? connectedIdsQuery
       : [connectedIdsQuery];
-    return connectedIdsArray;
-  });
+    return connectedIds;
+  }, [location.query.connectedIds]);
+
+  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+
+  const handleSubmit = useCallback<OnSubmitCallback>(
+    async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
+      const errors = validateAutomationBuilderState(state);
+      setAutomationBuilderErrors(errors);
+
+      if (Object.keys(errors).length > 0) {
+        const analyticsPayload = getAutomationAnalyticsPayload(
+          getNewAutomationData({
+            data: data as AutomationFormData,
+            state,
+          })
+        );
+        Sentry.logger.warn('Create alert form validation failed', {
+          errors,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
+          success: false,
+        });
+        return;
+      }
+
+      formModel.setFormSaving();
+
+      const formData = await resolveDetectorIdsForProjects({
+        formData: data as AutomationFormData,
+        onSubmitError,
+        orgSlug: organization.slug,
+        projectIds: data.projectIds,
+        queryClient,
+      });
+      if (!formData) {
+        return;
+      }
+      const newAutomationData = getNewAutomationData({
+        data: formData,
+        state,
+      });
+      const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
+
+      try {
+        const automation = await createAutomation(newAutomationData);
+        onSubmitSuccess(formModel.getData());
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
+          success: true,
+        });
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
+      } catch (err) {
+        onSubmitError(err);
+        Sentry.logger.warn('Create alert request failure', {
+          error: err,
+          details: analyticsPayload,
+        });
+        trackAnalytics('automation.created', {
+          organization,
+          ...analyticsPayload,
+          source: 'full',
+          success: false,
+        });
+      }
+    },
+    [
+      state,
+      setAutomationBuilderErrors,
+      organization,
+      queryClient,
+      createAutomation,
+      navigate,
+    ]
+  );
 
   return (
-    <SentryDocumentTitle title={t('New Automation')}>
-      <Layout.Page>
-        <StyledLayoutHeader>
-          <Layout.HeaderContent>
-            <AutomationBreadcrumbs />
-            <Layout.Title>{t('New Automation')}</Layout.Title>
-          </Layout.HeaderContent>
-          <AutomationFeedbackButton />
-        </StyledLayoutHeader>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <ConnectMonitorsContent
-              initialIds={connectedIds}
-              saveConnectedIds={setConnectedIds}
-              footerContent={
-                <LinkButton
-                  icon={<IconAdd />}
-                  href={makeMonitorCreatePathname(organization.slug)}
-                  external
+    <FullHeightForm
+      hideFooter
+      initialData={{...initialData, detectorIds: initialConnectedIds}}
+      onSubmit={handleSubmit}
+      model={model}
+    >
+      <AutomationFormProvider>
+        <AutomationDocumentTitle />
+        <Layout.Page>
+          <StyledLayoutHeader>
+            <HeaderInner maxWidth={maxWidth}>
+              <Layout.HeaderContent>
+                <AutomationBreadcrumbs />
+                <Layout.Title>
+                  <EditableAutomationName />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <div>
+                <AutomationFeedbackButton />
+              </div>
+            </HeaderInner>
+          </StyledLayoutHeader>
+          <StyledBody maxWidth={maxWidth}>
+            <Layout.Main width="full">
+              <AutomationBuilderErrorContext.Provider
+                value={{
+                  errors: automationBuilderErrors,
+                  setErrors: setAutomationBuilderErrors,
+                  removeError,
+                  mutationErrors: error?.responseJSON,
+                }}
+              >
+                <AutomationBuilderContext.Provider
+                  value={{
+                    state,
+                    actions,
+                    showTriggerLogicTypeSelector: false,
+                  }}
                 >
-                  {t('Create New Monitor')}
-                </LinkButton>
-              }
-            />
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-      <StickyFooter>
-        <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
-        <Flex gap="md">
-          <LinkButton
-            priority="default"
-            to={makeAutomationBasePathname(organization.slug)}
-          >
-            {t('Cancel')}
-          </LinkButton>
-          <LinkButton
-            priority="primary"
-            to={{
-              pathname: `${makeAutomationBasePathname(organization.slug)}new/settings/`,
-              ...(connectedIds.length > 0 && {
-                query: {connectedIds},
-              }),
-            }}
-          >
-            {t('Next')}
-          </LinkButton>
-        </Flex>
-      </StickyFooter>
-    </SentryDocumentTitle>
+                  <AutomationForm model={model} />
+                </AutomationBuilderContext.Provider>
+              </AutomationBuilderErrorContext.Provider>
+            </Layout.Main>
+          </StyledBody>
+        </Layout.Page>
+        <StickyFooter>
+          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+            <Observer>
+              {() => (
+                <Button priority="primary" type="submit" disabled={model.isSaving}>
+                  {t('Create Alert')}
+                </Button>
+              )}
+            </Observer>
+          </Flex>
+        </StickyFooter>
+      </AutomationFormProvider>
+    </FullHeightForm>
   );
 }
 
 const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
+`;
+
+const HeaderInner = styled('div')<{maxWidth?: string}>`
+  display: contents;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: ${p => p.maxWidth};
+    width: 100%;
+  }
+`;
+
+const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
+  max-width: ${p => p.maxWidth};
+  padding: 0;
+  margin: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: 0;
+    margin: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
+  }
 `;

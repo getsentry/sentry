@@ -1,289 +1,250 @@
 ---
-created: '2025-10-06T21:57:35.589662+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
-  "app_stacktrace": {
-    "component": {
+  "grouping_config": "newstyle:2023-01-11",
+  "variants": {
+    "app_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system stacktrace takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no in-app frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "marked out of app by the client",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because filename is anonymous",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "<anonymous>"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "marked out of app by the client",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "dojo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "c"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "marked out of app by the client",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "dojo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "trimmed javascript function",
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "_createDocumentViewModel"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": false,
+      "description": "event-level stacktrace — in-app frames",
+      "hash": null,
       "hint": "ignored because system stacktrace takes precedence",
-      "id": "app",
-      "name": "in-app",
-      "values": [
-        {
-          "contributes": false,
-          "hint": "ignored because it contains no in-app frames",
-          "id": "stacktrace",
-          "name": "stacktrace",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "marked out of app by the client",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because filename is anonymous",
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "<anonymous>"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": []
-                }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "marked out of app by the client",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "dojo.js"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "c"
-                  ]
-                }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "marked out of app by the client",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "dojo.js"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "trimmed javascript function",
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "_createDocumentViewModel"
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
+      "key": "app_stacktrace",
+      "type": "component"
     },
-    "config": {
-      "base": "BASE_CONFIG",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2023-01-11",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": false,
-    "description": "event-level stacktrace — in-app frames",
-    "hash": null,
-    "hint": "ignored because system stacktrace takes precedence",
-    "key": "app_stacktrace",
-    "type": "component"
-  },
-  "system_stacktrace": {
-    "component": {
+    "system_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "ignored low quality javascript frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because filename is anonymous",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "<anonymous>"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  }
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "dojo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "c"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "dojo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "trimmed javascript function",
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "_createDocumentViewModel"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contributes": true,
+      "description": "event-level stacktrace — all frames",
+      "hash": "c5da56c71b31f34c5880d734cbc8f5bb",
       "hint": null,
-      "id": "system",
-      "name": null,
-      "values": [
-        {
-          "contributes": true,
-          "hint": null,
-          "id": "stacktrace",
-          "name": "stacktrace",
-          "values": [
-            {
-              "contributes": false,
-              "hint": "ignored low quality javascript frame",
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because filename is anonymous",
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "<anonymous>"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": []
-                }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "dojo.js"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "c"
-                  ]
-                }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "frame",
-              "name": null,
-              "values": [
-                {
-                  "contributes": false,
-                  "hint": null,
-                  "id": "module",
-                  "name": null,
-                  "values": []
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "filename",
-                  "name": null,
-                  "values": [
-                    "dojo.js"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "trimmed javascript function",
-                  "id": "function",
-                  "name": null,
-                  "values": [
-                    "_createDocumentViewModel"
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "config": {
-      "base": "BASE_CONFIG",
-      "delegates": [
-        "frame:v1",
-        "single-exception:v1",
-        "stacktrace:v1"
-      ],
-      "id": "newstyle:2023-01-11",
-      "strategies": [
-        "chained-exception:v1",
-        "csp:v1",
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "message:v1",
-        "stacktrace:v1",
-        "template:v1",
-        "threads:v1"
-      ]
-    },
-    "contributes": true,
-    "description": "event-level stacktrace — all frames",
-    "hash": "c5da56c71b31f34c5880d734cbc8f5bb",
-    "hint": null,
-    "key": "system_stacktrace",
-    "type": "component"
+      "key": "system_stacktrace",
+      "type": "component"
+    }
   }
 }

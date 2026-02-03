@@ -37,6 +37,10 @@ class DualWriteMetricsBackend(MetricsBackend):
       all other metrics are routed *only* to the primary backend.
     - If the metric is not matched by any prefix, it is routed to *only* the primary backend.
 
+    Additionally, an `experimental_backend` can be configured with `experimental_args`.
+    Metrics will always be sent to the experimental backend (in addition to primary/secondary)
+    unless they match the `deny_list` prefixes in `experimental_args`.
+
     """
 
     def __init__(self, **kwargs: Any):
@@ -46,6 +50,9 @@ class DualWriteMetricsBackend(MetricsBackend):
         )
         self._secondary_backend = _initialize_backend(
             kwargs.pop("secondary_backend", None), kwargs.pop("secondary_backend_args", {})
+        )
+        self._experimental_backend = _initialize_backend(
+            kwargs.pop("experimental_backend", None), kwargs.pop("experimental_args", {})
         )
 
         self._distribution_prefixes = tuple(kwargs.pop("distribution_prefixes", []))
@@ -86,6 +93,9 @@ class DualWriteMetricsBackend(MetricsBackend):
             self._secondary_backend.incr(
                 key, instance, tags, amount, sample_rate, unit, stacklevel + 1
             )
+        self._experimental_backend.incr(
+            key, instance, tags, amount, sample_rate, unit, stacklevel + 1
+        )
 
     def timing(
         self,
@@ -101,6 +111,7 @@ class DualWriteMetricsBackend(MetricsBackend):
             self._primary_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
         if use_secondary:
             self._secondary_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+        self._experimental_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
 
     def gauge(
         self,
@@ -121,6 +132,9 @@ class DualWriteMetricsBackend(MetricsBackend):
             self._secondary_backend.gauge(
                 key, value, instance, tags, sample_rate, unit, stacklevel + 1
             )
+        self._experimental_backend.gauge(
+            key, value, instance, tags, sample_rate, unit, stacklevel + 1
+        )
 
     def distribution(
         self,
@@ -141,6 +155,9 @@ class DualWriteMetricsBackend(MetricsBackend):
             self._secondary_backend.distribution(
                 key, value, instance, tags, sample_rate, unit, stacklevel + 1
             )
+        self._experimental_backend.distribution(
+            key, value, instance, tags, sample_rate, unit, stacklevel + 1
+        )
 
     def event(
         self,
@@ -179,3 +196,14 @@ class DualWriteMetricsBackend(MetricsBackend):
                 tags,
                 stacklevel + 1,
             )
+        self._experimental_backend.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            tags,
+            stacklevel + 1,
+        )

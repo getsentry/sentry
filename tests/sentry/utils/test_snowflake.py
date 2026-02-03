@@ -20,6 +20,7 @@ from sentry.utils.snowflake import (
     SnowflakeBitSegment,
     generate_snowflake_id,
     get_redis_cluster,
+    get_timestamp_redis_key,
     uses_snowflake_id,
 )
 
@@ -64,14 +65,16 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_out_of_region_sequences(self) -> None:
-        cluster = get_redis_cluster("test_redis_key")
+        cluster = get_redis_cluster()
         current_timestamp = int(datetime.now().timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START)
+        redis_key = "test_redis_key"
+
         for i in range(int(_TTL.total_seconds())):
             timestamp = current_timestamp - i
-            cluster.set(str(timestamp), 16)
+            cluster.set(get_timestamp_redis_key(redis_key, timestamp), 16)
 
         with pytest.raises(Exception) as context:
-            generate_snowflake_id("test_redis_key")
+            generate_snowflake_id(redis_key)
 
         assert str(context.value) == "No available ID"
 

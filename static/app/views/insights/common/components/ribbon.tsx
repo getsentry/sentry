@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 
 export const ReadoutRibbon = styled('div')`
@@ -9,9 +11,6 @@ export const ReadoutRibbon = styled('div')`
   row-gap: ${space(2)};
 `;
 
-export const ToolRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(2)};
-  position: relative;
-`;
+export function ToolRibbon(props: FlexProps<'div'>) {
+  return <Flex wrap="wrap" gap="xl" position="relative" {...props} />;
+}

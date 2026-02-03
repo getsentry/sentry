@@ -4,6 +4,11 @@ import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -12,10 +17,6 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -39,7 +40,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {
   setApiQueryData,
@@ -49,7 +49,10 @@ import {
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -150,7 +153,6 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{appSlug?: string}>;
 const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/`];
 };
@@ -159,9 +161,10 @@ const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
   return [`/sentry-apps/${appSlug}/api-tokens/`];
 };
 
-export default function SentryApplicationDetails(props: Props) {
-  const {appSlug} = props.params;
-  const {router, location} = props;
+export default function SentryApplicationDetails() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
   const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
@@ -230,7 +233,7 @@ export default function SentryApplicationDetails(props: Props) {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    router.push(normalizeUrl(url));
+    navigate(normalizeUrl(url));
   };
 
   const handleSubmitError = (err: any) => {
@@ -281,11 +284,11 @@ export default function SentryApplicationDetails(props: Props) {
   const renderTokens = () => {
     if (!hasTokenAccess) {
       return (
-        <EmptyMessage description={t('You do not have access to view these tokens.')} />
+        <EmptyMessage>{t('You do not have access to view these tokens.')}</EmptyMessage>
       );
     }
     if (tokens.length < 1 && newTokens.length < 1) {
-      return <EmptyMessage description={t('No tokens created yet.')} />;
+      return <EmptyMessage>{t('No tokens created yet.')}</EmptyMessage>;
     }
     const tokensToDisplay = tokens.map(token => (
       <ApiTokenRow
@@ -314,7 +317,7 @@ export default function SentryApplicationDetails(props: Props) {
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
             <Alert.Container>
-              <Alert type="info">
+              <Alert variant="info">
                 {t('This will be the only time your client secret is visible!')}
               </Alert>
             </Alert.Container>
@@ -439,7 +442,7 @@ export default function SentryApplicationDetails(props: Props) {
                 <AddTokenHeader key="token-add">
                   <Button
                     size="xs"
-                    icon={<IconAdd isCircled />}
+                    icon={<IconAdd />}
                     onClick={evt => onAddToken(evt)}
                     data-test-id="token-add"
                   >

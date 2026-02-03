@@ -20,16 +20,17 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 interface TraceSpanLinksProps {
   links: TraceItemResponseLink[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: EapSpanNode;
+  onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   theme: Theme;
   traceId: string;
@@ -125,7 +126,7 @@ export function TraceSpanLinks({
               }
 
               // If the link is to the same trace, we look for and navigate to the span in the same trace waterfall
-              const spanNode = TraceTree.FindByID(tree.root, link.itemId);
+              const spanNode = tree.root.findChild(c => c.matchById(link.itemId));
               if (spanNode) {
                 onTabScrollToNode(spanNode);
               }

@@ -1,7 +1,8 @@
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

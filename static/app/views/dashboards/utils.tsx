@@ -1,9 +1,8 @@
 import {connect} from 'echarts';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
@@ -28,21 +27,16 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
-  getColumnsAndAggregates,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -131,51 +125,6 @@ export function normalizeUnit(value: number, unit: string, dataType: string): nu
   return value * multiplier;
 }
 
-function coerceStringToArray(value?: string | string[] | null) {
-  return typeof value === 'string' ? [value] : value;
-}
-
-export function constructWidgetFromQuery(query?: Query): Widget | undefined {
-  if (query) {
-    const queryNames = coerceStringToArray(query.queryNames);
-    const queryConditions = coerceStringToArray(query.queryConditions);
-    const queryFields = coerceStringToArray(query.queryFields);
-    const widgetType = decodeScalar(query.widgetType);
-    const queries: WidgetQuery[] = [];
-    if (
-      queryConditions &&
-      queryNames &&
-      queryFields &&
-      typeof query.queryOrderby === 'string'
-    ) {
-      const {columns, aggregates} = getColumnsAndAggregates(queryFields);
-      queryConditions.forEach((condition, index) => {
-        queries.push({
-          name: queryNames[index]!,
-          conditions: condition,
-          fields: queryFields,
-          columns,
-          aggregates,
-          orderby: query.queryOrderby as string,
-        });
-      });
-    }
-    if (query.title && query.displayType && query.interval && queries.length > 0) {
-      const newWidget: Widget = {
-        ...(pick(query, ['title', 'displayType', 'interval']) as {
-          displayType: DisplayType;
-          interval: string;
-          title: string;
-        }),
-        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
-        queries,
-      };
-      return newWidget;
-    }
-  }
-  return undefined;
-}
-
 export function getWidgetInterval(
   widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
@@ -186,7 +135,9 @@ export function getWidgetInterval(
   const MAX_BIN_COUNT = 66;
 
   let interval =
-    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+    widget.widgetType === WidgetType.SPANS ||
+    widget.widgetType === WidgetType.LOGS ||
+    widget.widgetType === WidgetType.TRACEMETRICS
       ? // For span based widgets, we want to permit non 1d bar charts.
         undefined
       : // Bars charts are daily totals to aligned with discover. It also makes them
@@ -216,9 +167,13 @@ export function getWidgetInterval(
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
     const highInterval = getInterval(
       datetimeObj,
-      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      widget.widgetType === WidgetType.SPANS ||
+        widget.widgetType === WidgetType.LOGS ||
+        widget.widgetType === WidgetType.TRACEMETRICS
         ? 'spans'
-        : 'high'
+        : widget.widgetType === WidgetType.ISSUE
+          ? 'issues'
+          : 'high'
     );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
@@ -311,9 +266,14 @@ export function getWidgetDiscoverUrl(
     discoverLocation.query.fromMetric = 'true';
   }
 
+  // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+  const projectParam =
+    selection.projects.length === 0 ? '' : discoverLocation.query.project;
+
   // Construct and return the discover url
   const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
     ...discoverLocation.query,
+    project: projectParam,
   })}`;
   return discoverPath;
 }
@@ -333,7 +293,8 @@ export function getWidgetIssueUrl(
     query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return issuesLocation;
@@ -353,7 +314,8 @@ export function getWidgetReleasesUrl(
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
     query: applyDashboardFilters('', dashboardFilters),
-    project: selection.projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
   })}`;
   return releasesLocation;
@@ -385,14 +347,6 @@ export function flattenErrors(
     });
   }
   return update;
-}
-
-export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
-  return isMEPEnabled
-    ? {
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
-      }
-    : {};
 }
 
 export function getNumEquations(possibleEquations: string[]) {
@@ -453,6 +407,7 @@ export function hasUnsavedFilterChanges(
   type Filters = {
     end?: string;
     environment?: Set<string>;
+    globalFilter?: Set<string>;
     period?: string;
     projects?: Set<number>;
     release?: Set<string>;
@@ -482,6 +437,13 @@ export function hasUnsavedFilterChanges(
     // params, otherwise the dashboard should be using its saved state
     savedFilters.release = new Set(initialDashboard.filters?.release);
     currentFilters.release = new Set(location.query?.release);
+  }
+
+  if (defined(location.query?.globalFilter)) {
+    savedFilters.globalFilter = new Set(
+      initialDashboard.filters?.globalFilter?.map(filter => JSON.stringify(filter))
+    );
+    currentFilters.globalFilter = new Set(decodeList(location.query?.globalFilter));
   }
 
   return !isEqual(savedFilters, currentFilters);
@@ -545,24 +507,37 @@ export function getCurrentPageFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
-    // Skip global filters for now, URL parameter persistence will be added later on
-    if (key === DashboardFilterKeys.GLOBAL_FILTER) {
-      return;
-    }
     if (defined(location.query?.[key])) {
-      dashboardFilters[key] = decodeList(location.query?.[key]);
+      const queryFilters = decodeList(location.query?.[key]);
+
+      if (key === DashboardFilterKeys.GLOBAL_FILTER) {
+        // Global filters are stored as JSON strings
+        dashboardFilters[key] = queryFilters
+          .map(filter => {
+            try {
+              return JSON.parse(filter);
+            } catch (error) {
+              return null;
+            }
+          })
+          .filter(filter => filter !== null);
+      } else {
+        dashboardFilters[key] = queryFilters;
+      }
     }
   });
   return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
 export function dashboardFiltersToString(
-  dashboardFilters: DashboardFilters | null | undefined
+  dashboardFilters: DashboardFilters | null | undefined,
+  widgetType?: WidgetType
 ): string {
   let dashboardFilterConditions = '';
-  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
-  if (supportedFilters) {
-    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
+
+  const pinnedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
+  if (pinnedFilters) {
+    for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
@@ -572,6 +547,18 @@ export function dashboardFiltersToString(
       }
     }
   }
+
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+  // If widgetType is provided, concatenate global filters that apply
+  if (widgetType && globalFilters) {
+    dashboardFilterConditions +=
+      globalFilters
+        .filter(globalFilter => globalFilter.dataset === widgetType)
+        .map(globalFilter => globalFilter.value)
+        .join(' ') ?? '';
+  }
+
   return dashboardFilterConditions;
 }
 
@@ -618,9 +605,13 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 
 export function applyDashboardFilters(
   baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined
+  dashboardFilters: DashboardFilters | undefined,
+  widgetType?: WidgetType
 ): string | undefined {
-  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  const dashboardFilterConditions = dashboardFiltersToString(
+    dashboardFilters,
+    widgetType
+  );
   if (dashboardFilterConditions) {
     if (baseQuery) {
       return `(${baseQuery}) ${dashboardFilterConditions}`;
@@ -629,3 +620,15 @@ export function applyDashboardFilters(
   }
   return baseQuery;
 }
+
+export const isChartDisplayType = (displayType?: DisplayType) => {
+  if (!displayType) {
+    return true;
+  }
+  return ![
+    DisplayType.BIG_NUMBER,
+    DisplayType.TABLE,
+    DisplayType.DETAILS,
+    DisplayType.WHEEL,
+  ].includes(displayType);
+};

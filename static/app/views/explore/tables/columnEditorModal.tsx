@@ -3,12 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -32,6 +32,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
+  requiredTags?: string[];
 }
 
 export function ColumnEditorModal({
@@ -41,6 +42,7 @@ export function ColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
+  requiredTags,
   numberTags,
   stringTags,
   hiddenKeys,
@@ -50,10 +52,7 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(
-          column =>
-            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
-        )
+        .filter(column => !(column in stringTags) && !(column in numberTags))
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);
@@ -149,6 +148,7 @@ export function ColumnEditorModal({
                 <ColumnEditorRow
                   key={column.id}
                   canDelete={editableColumns.length > 1}
+                  required={requiredTags?.includes(column.column)}
                   column={column}
                   options={tags}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
@@ -162,7 +162,7 @@ export function ColumnEditorModal({
                   size="sm"
                   aria-label={t('Add a Column')}
                   onClick={() => insertColumn('')}
-                  icon={<IconAdd isCircled />}
+                  icon={<IconAdd />}
                 >
                   {t('Add a Column')}
                 </Button>
@@ -204,11 +204,13 @@ interface ColumnEditorRowProps {
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
   options: Array<SelectOption<string>>;
+  required?: boolean;
 }
 
 function ColumnEditorRow({
   canDelete,
   column,
+  required,
   options,
   onColumnChange,
   onColumnDelete,
@@ -259,7 +261,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -269,19 +271,24 @@ function ColumnEditorRow({
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
+        disabled={required}
         searchable
-        triggerProps={{
-          children: label,
-          prefix: t('Column'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Column')}
+            style={{
+              width: '100%',
+            }}
+          >
+            {label}
+          </OverlayTrigger.Button>
+        )}
       />
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
-        disabled={!canDelete}
+        priority="transparent"
+        disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
         onClick={onColumnDelete}
@@ -321,5 +328,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const TriggerLabelText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

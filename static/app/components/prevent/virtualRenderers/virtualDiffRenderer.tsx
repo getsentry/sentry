@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
   LINE_HEIGHT,
@@ -87,7 +89,7 @@ function CodeBody({
   }, [hashedPath, lineData, lines.length, location.hash, virtualizer]);
 
   return (
-    <CodeWrapper ref={setWrapperRefState}>
+    <Flex ref={setWrapperRefState}>
       <LineNumberColumn>
         {virtualizer.getVirtualItems().map(virtualItem => {
           const line = lineData[virtualItem.index];
@@ -197,13 +199,9 @@ function CodeBody({
           );
         })}
       </CodeColumn>
-    </CodeWrapper>
+    </Flex>
   );
 }
-
-const CodeWrapper = styled('div')`
-  display: flex;
-`;
 
 const CodeColumn = styled('div')`
   height: 100%;
@@ -367,8 +365,8 @@ const TextArea = styled('textarea')`
   color: transparent;
   outline: 0px solid transparent;
   outline-offset: 0px;
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.codeFontSize};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 0;
@@ -389,13 +387,13 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   height: 100%;
   scrollbar-width: none;
 
-  border-left: ${space(0.25)} solid ${p => p.theme.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.gray200};
+  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
 
   ${p => {
     if (!p.isOverflowing) {
       return css`
-        border-bottom: ${space(0.25)} solid ${p.theme.gray200};
+        border-bottom: ${space(0.25)} solid ${p.theme.colors.gray200};
       `;
     }
     return '';

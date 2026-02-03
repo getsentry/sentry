@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import TextOverflow from 'sentry/components/textOverflow';
 import Truncate from 'sentry/components/truncate';
@@ -107,7 +108,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
-  const {setPageError} = usePageAlert();
+  const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -516,7 +517,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={setPageError}
+              onError={setPageDanger}
               queryExtras={extraQueryParams}
             />
           );

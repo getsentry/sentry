@@ -1,10 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import responses
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
@@ -13,7 +14,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
@@ -75,21 +75,28 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             data={"provider": self.integration.provider, "name": "config"},
         ).exists()
 
-    @patch.object(IntegrationInstallation, "update_organization_config")
-    def test_update_config_error(self, mock_update_config: MagicMock) -> None:
+    def test_update_config_error(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
 
-        mock_update_config.side_effect = IntegrationError("hello")
-        response = self.get_error_response(
-            self.organization.slug, self.integration.id, **config, status_code=400
-        )
-        assert response.data["detail"] == ["hello"]
+        with patch.object(
+            GitlabIntegration,
+            "update_organization_config",
+            side_effect=IntegrationError("hello"),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, self.integration.id, **config, status_code=400
+            )
+            assert response.data["detail"] == ["hello"]
 
-        mock_update_config.side_effect = ApiError("hi")
-        response = self.get_error_response(
-            self.organization.slug, self.integration.id, **config, status_code=400
-        )
-        assert response.data["detail"] == ["hi"]
+        with patch.object(
+            GitlabIntegration,
+            "update_organization_config",
+            side_effect=ApiError("hi"),
+        ):
+            response = self.get_error_response(
+                self.organization.slug, self.integration.id, **config, status_code=400
+            )
+            assert response.data["detail"] == ["hi"]
 
 
 @control_silo_test
@@ -103,6 +110,19 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.organization.id
         )
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
+        )
+
+    def test_delete_disabled_integration(self) -> None:
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        org_integration.update(status=ObjectStatus.DISABLED)
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert Integration.objects.filter(id=self.integration.id).exists()
+
+        org_integration.refresh_from_db()
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
@@ -134,7 +154,6 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         self.integration.add_organization(self.organization, self.user)
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_serialize_organizationintegration_with_create_issue_config_for_jira(self) -> None:
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""

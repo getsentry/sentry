@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.http.response import FileResponse, HttpResponseBase
@@ -10,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisCompareDownloadEvent
 from sentry.preprod.models import PreprodArtifactSizeComparison
 
@@ -24,7 +27,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
     }
 
     def get(
-        self, request: Request, project, head_size_metric_id, base_size_metric_id
+        self, request: Request, project: Project, head_size_metric_id: int, base_size_metric_id: int
     ) -> HttpResponseBase:
         """
         Download size analysis comparison results for specific size metrics
@@ -46,15 +49,15 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                head_size_metric_id=head_size_metric_id,
-                base_size_metric_id=base_size_metric_id,
+                head_size_metric_id=str(head_size_metric_id),
+                base_size_metric_id=str(base_size_metric_id),
             )
         )
 
         if not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
         logger.info(
             "preprod.size_analysis.compare.api.download",
@@ -78,14 +81,14 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                     "base_size_metric_id": base_size_metric_id,
                 },
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         if comparison_obj.file_id is None:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_file_id",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             file_obj = File.objects.get(id=comparison_obj.file_id)
@@ -94,7 +97,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Comparison not found."}, status=404)
+            return Response({"detail": "Comparison not found."}, status=404)
 
         try:
             fp = file_obj.getfile()
@@ -103,7 +106,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
                 "preprod.size_analysis.compare.api.download.no_file_getfile",
                 extra={"comparison_id": comparison_obj.id},
             )
-            return Response({"error": "Failed to retrieve size analysis comparison."}, status=500)
+            return Response({"detail": "Failed to retrieve size analysis comparison."}, status=500)
 
         response = FileResponse(
             fp,

@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +18,7 @@ export function SampleEventAlert({
   return (
     <Alert
       system
-      type="info"
+      variant="info"
       icon={<IconLightning />}
       trailingItems={
         <LinkButton
