@@ -519,8 +519,6 @@ describe('SpansTabContent', () => {
 
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
-      // We're temporarily disabling metrics cross event querying for EA
-      // expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
     });
 
     it('adds a cross event query', async () => {

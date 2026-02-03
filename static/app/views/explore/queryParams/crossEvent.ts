@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 
-export type CrossEventType = 'logs' | 'spans' /* | 'metrics' */;
+export type CrossEventType = 'logs' | 'spans';
 
 export interface CrossEvent {
   query: string;
@@ -33,8 +33,7 @@ export function getCrossEventsFromLocation(
 }
 
 export function isCrossEventType(value: string): value is CrossEventType {
-  // We're temporarily disabling metrics cross event querying for EA
-  return value === 'logs' || value === 'spans' /* || value === 'metrics' */;
+  return value === 'logs' || value === 'spans';
 }
 
 function isCrossEvent(value: any): value is CrossEvent {
