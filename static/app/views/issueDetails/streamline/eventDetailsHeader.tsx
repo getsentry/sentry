@@ -12,7 +12,7 @@ import {
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import {TourElement} from 'sentry/components/tours/components';
+import {TourElement, type TourRenderProps} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -48,10 +48,16 @@ import {
 interface EventDetailsHeaderProps {
   group: Group;
   project: Project;
+  tourProps: TourRenderProps;
   event?: Event;
 }
 
-export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+export function EventDetailsHeader({
+  group,
+  event,
+  project,
+  tourProps,
+}: EventDetailsHeaderProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,6 +113,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         role="group"
         aria-description={t('Event filtering controls')}
         hasFilterBar={issueTypeConfig.header.filterBar.enabled}
+        {...tourProps}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -118,8 +125,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            {tourProps => (
-              <Flex direction={{xs: 'column', md: 'row'}} gap="sm" {...tourProps}>
+            {tp => (
+              <Flex direction={{xs: 'column', md: 'row'}} gap="sm" {...tp}>
                 <Grid
                   width="100%"
                   gap="sm"
@@ -242,7 +249,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   );
 }
 
-function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
+function EnvironmentSelector({
+  group,
+  event,
+  project,
+}: Omit<EventDetailsHeaderProps, 'tourProps'>) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
@@ -265,9 +276,11 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   );
 }
 
-const DetailsContainer = styled('div')<{
-  hasFilterBar: boolean;
-}>`
+const DetailsContainer = styled('div')<
+  TourRenderProps & {
+    hasFilterBar: boolean;
+  }
+>`
   position: relative;
   display: flex;
   flex-direction: column;

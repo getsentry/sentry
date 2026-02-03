@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
@@ -253,10 +254,9 @@ export function NewIssueExperienceButton() {
     >
       {props => (
         <DropdownMenu
-          {...props}
           trigger={triggerProps => (
             <StyledDropdownButton
-              {...triggerProps}
+              {...mergeProps(triggerProps, props)}
               size={hasStreamlinedUI ? 'xs' : 'sm'}
               aria-label={t('Manage issue experience')}
             >

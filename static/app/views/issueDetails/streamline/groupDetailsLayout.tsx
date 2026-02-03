@@ -68,10 +68,10 @@ export function GroupDetailsLayout({
           >
             {tourProps => (
               <EventDetailsHeader
-                {...tourProps}
                 event={event}
                 group={group}
                 project={project}
+                tourProps={tourProps}
               />
             )}
           </SharedTourElement>
