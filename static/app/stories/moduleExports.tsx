@@ -35,18 +35,23 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
       const [key, {value, type}] = sortedEntries[i]!;
 
       if (value) {
-        // Check if the next entry is a type-only export that starts with this value's key
-        const nextEntry = sortedEntries[i + 1];
-        if (nextEntry) {
-          const [nextKey, nextExport] = nextEntry;
-          if (!nextExport.value && nextExport.type && nextKey.startsWith(key)) {
-            // Combine on same line
-            namedList.push(`${value}, ${nextExport.type}`);
-            i++; // Skip the next entry since we've combined it
-            continue;
+        // If this entry has both value and type, combine them
+        if (type) {
+          namedList.push(`${value}, ${type}`);
+        } else {
+          // Check if the next entry is a type-only export that starts with this value's key
+          const nextEntry = sortedEntries[i + 1];
+          if (nextEntry) {
+            const [nextKey, nextExport] = nextEntry;
+            if (!nextExport.value && nextExport.type && nextKey.startsWith(key)) {
+              // Combine on same line
+              namedList.push(`${value}, ${nextExport.type}`);
+              i++; // Skip the next entry since we've combined it
+              continue;
+            }
           }
+          namedList.push(value);
         }
-        namedList.push(value);
       } else if (type) {
         // Type-only export that wasn't combined with a previous value
         namedList.push(type);
