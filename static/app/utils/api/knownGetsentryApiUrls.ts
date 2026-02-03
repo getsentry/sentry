@@ -22,6 +22,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/balancechanges/'
   | '/customers/$organizationIdOrSlug/billing-config/'
   | '/customers/$organizationIdOrSlug/billing-details/'
+  | '/customers/$organizationIdOrSlug/billing-seats/current/'
   | '/customers/$organizationIdOrSlug/charges/'
   | '/customers/$organizationIdOrSlug/charges/$chargeId/'
   | '/customers/$organizationIdOrSlug/history/'

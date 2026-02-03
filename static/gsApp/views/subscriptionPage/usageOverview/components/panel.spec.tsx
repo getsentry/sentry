@@ -319,8 +319,9 @@ describe('ProductBreakdownPanel', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       body: {},
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     render(
       <ProductBreakdownPanel
@@ -480,7 +481,7 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for Seer add-on', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -516,6 +517,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -558,7 +560,7 @@ describe('ProductBreakdownPanel', () => {
       organization,
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -594,6 +596,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     enterpriseSubscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -633,9 +636,10 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for add-on with missing metric history', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.addOns!.seer = {
       ...subscription.addOns!.seer!,
