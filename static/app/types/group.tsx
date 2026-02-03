@@ -988,8 +988,9 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
-interface GroupOpenPeriodActivity {
+export interface GroupOpenPeriodActivity {
   dateCreated: string;
+  eventId: string | null;
   id: string;
   type: 'opened' | 'status_change' | 'closed';
   value: 'high' | 'medium' | null;
@@ -999,7 +1000,6 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
-  eventId: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;

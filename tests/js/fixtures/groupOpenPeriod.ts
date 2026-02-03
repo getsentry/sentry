@@ -1,12 +1,11 @@
-import type {GroupOpenPeriod} from 'sentry/types/group';
-
-type GroupOpenPeriodActivity = GroupOpenPeriod['activities'][number];
+import type {GroupOpenPeriod, GroupOpenPeriodActivity} from 'sentry/types/group';
 
 const DEFAULT_ACTIVITY: GroupOpenPeriodActivity = {
   id: 'activity-1',
   type: 'opened',
   value: 'high',
   dateCreated: '2024-01-01T00:00:00Z',
+  eventId: 'event-1',
 };
 
 const DEFAULT_OPEN_PERIOD: GroupOpenPeriod = {
@@ -14,7 +13,6 @@ const DEFAULT_OPEN_PERIOD: GroupOpenPeriod = {
   start: '2024-01-01T00:00:00Z',
   end: '2024-01-01T00:05:00Z',
   duration: '5m',
-  eventId: 'event-1',
   isOpen: false,
   lastChecked: '2024-01-01T00:05:00Z',
   activities: [DEFAULT_ACTIVITY],
