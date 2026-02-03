@@ -66,8 +66,15 @@ decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
 def deserialize_event(
     event: bytes, report_exception: Callable[[Exception], None]
 ) -> SubscriptionEvent | None:
+    mv = memoryview(event)
+
+    # Check version is 0.
+    if mv[0] != 0:
+        report_exception(ValueError("Could not decode version byte."))
+        return None
+
     try:
-        result = decoder.decode(event)
+        result = decoder.decode(mv[1:])
         return {
             "event": result.event,
             "event_type_hint": result.event_type_hint,
@@ -119,8 +126,8 @@ def serialize_event(event: SubscriptionEvent) -> bytearray:
     )
 
     buf = bytearray(64)
-    buf[0] = b"\x00"  # Version 0 tag.
-    encoder.encode_into(structured_event, buf, offset=1)
+    buf[0] = 0  # Version 0 tag.
+    encoder.encode_into(structured_event, buf, 1)
     return buf
 
 
