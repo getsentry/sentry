@@ -3,8 +3,10 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
+import {getProfilingSentryPropertiesSnippet} from 'sentry/gettingStartedDocs/java/profiling';
 import {
   getGradleInstallSnippet,
+  getMavenInstallSnippet,
   getVerifyJavaSnippet,
   getVerifyKotlinSnippet,
   PackageManager,
@@ -14,50 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 import {SpringVersion, type Params, type PlatformOptions} from './utils';
-
-const getMavenInstallSnippet = (params: Params) => `
-<build>
-  <plugins>
-    <plugin>
-      <groupId>io.sentry</groupId>
-      <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        params.sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : (params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']
-              ?.version ?? '0.0.4')
-      }</version>
-      <extensions>true</extensions>
-      <configuration>
-        <!-- for showing output of sentry-cli -->
-        <debugSentryCli>true</debugSentryCli>
-
-        <org>${params.organization.slug}</org>
-
-        <project>${params.project.slug}</project>
-
-        <!-- in case you're self hosting, provide the URL here -->
-        <!--<url>http://localhost:8000/</url>-->
-
-        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
-      </configuration>
-      <executions>
-        <execution>
-          <goals>
-            <!--
-            Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-            This enables source context, allowing you to see your source
-            code as part of your stack traces in Sentry.
-            -->
-            <goal>uploadSourceBundle</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-  ...
-</build>`;
 
 const getOpenTelemetryRunSnippet = (params: Params) => `
 SENTRY_AUTO_INIT=false java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
@@ -118,7 +76,7 @@ logs.enabled=true`
 # We recommend adjusting this value in production.
 traces-sample-rate=1.0`
       : ''
-  }`;
+  }${params.isProfilingSelected ? getProfilingSentryPropertiesSnippet() : ''}`;
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
@@ -302,7 +260,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         },
         {
           type: 'conditional',
-          condition: params.isPerformanceSelected || params.isLogsSelected,
+          condition:
+            params.isPerformanceSelected ||
+            params.isLogsSelected ||
+            params.isProfilingSelected,
           content: [
             {
               type: 'text',
