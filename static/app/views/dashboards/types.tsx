@@ -83,7 +83,7 @@ export type LinkedDashboard = {
   field: string;
   // List of additional datasets to apply new dashboard filters to.
   // Typically we only apply filters to the same dataset as the widget, but this allows us to apply to other datasets when needed.
-  additionalDatasets?: WidgetType[];
+  additionalGlobalFilterDatasetTargets?: WidgetType[];
   // Used for static dashboards that are not saved to the database
   staticDashboardId?: PrebuiltDashboardId;
 };

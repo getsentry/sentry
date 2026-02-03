@@ -1431,7 +1431,7 @@ function getDashboardUrl(
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
       const datasetsToApplyFiltersTo = [
         widget.widgetType,
-        ...(dashboardLink.additionalDatasets ?? []),
+        ...(dashboardLink.additionalGlobalFilterDatasetTargets ?? []),
       ];
 
       const newTemporaryFilters: GlobalFilter[] = [

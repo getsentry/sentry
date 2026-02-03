@@ -166,7 +166,7 @@ describe('getFieldRenderer', () => {
             {
               dashboardId: '123',
               field: 'transaction',
-              additionalDatasets: [WidgetType.ISSUE],
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
             },
           ],
           aggregates: [],
