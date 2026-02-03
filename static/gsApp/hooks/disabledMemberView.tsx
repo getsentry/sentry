@@ -14,6 +14,7 @@ import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -44,7 +45,12 @@ function DisabledMemberView(props: Props) {
     isError,
     refetch,
   } = useApiQuery<Organization>(
-    [`/organizations/${orgSlug}/`, {query: {detailed: '0', include_feature_flags: '1'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {query: {detailed: '0', include_feature_flags: '1'}},
+    ],
     {
       staleTime: 0,
     }
