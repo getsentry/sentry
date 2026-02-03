@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';

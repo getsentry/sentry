@@ -379,7 +379,8 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
+  z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
@@ -388,12 +389,24 @@ const MessageBubble = styled('div')<{
     p.role === 'user'
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: inherit;
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none;
+  }
   ${p =>
     p.isClickable &&
     `
     cursor: pointer;
-    &:hover {
+    &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
+    }
+    &:hover {
       background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
     &:active {
@@ -403,8 +416,13 @@ const MessageBubble = styled('div')<{
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
-    outline-offset: -2px;
+    &::after {
+      border-color: ${p.theme.tokens.focus.default};
+      border-width: 2px;
+    }
+    &:hover::after {
+      border-color: ${p.theme.tokens.focus.default};
+    }
   `}
 `;
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 export interface TreemapControlButton {
   ariaLabel: string;
