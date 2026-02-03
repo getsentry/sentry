@@ -609,7 +609,7 @@ function AutofixHighlightPopup(props: Props) {
       if (animationFrameId !== undefined) {
         window.cancelAnimationFrame(animationFrameId);
       }
-      
+
       // Use requestAnimationFrame for smoother updates
       animationFrameId = window.requestAnimationFrame(() => {
         timeoutId = window.setTimeout(updatePosition, 50);
