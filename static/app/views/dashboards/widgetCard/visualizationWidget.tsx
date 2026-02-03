@@ -209,7 +209,6 @@ function VisualizationWidgetContent({
   const tableErrorMessage = tableQueryResult?.errorMessage;
   const aggregates = widget.queries[0]?.aggregates ?? [];
   const columns = widget.queries[0]?.columns ?? [];
-  const hasGroupBy = columns.length > 0;
 
   // Filter out "Other" series for the legend breakdown
   const filteredSeriesWithIndex = hasBreakdownData
@@ -230,14 +229,16 @@ function VisualizationWidgetContent({
 
           let value: number | null = null;
           if (tableDataRows) {
-            if (hasGroupBy) {
+            // If there is only one aggregate, we can match by index
+            if (columns.length === 1 && aggregates.length === 1) {
               // With group by: match by filteredIndex (both timeseries and table are ordered by aggregate desc, excluding "Other")
               const aggregate = aggregates[0];
               const row = tableDataRows[filteredIndex];
+              // TODO: We should ideally match row[columns[0]] with the series, however series can have aliases
               if (aggregate && row?.[aggregate] !== undefined) {
                 value = row[aggregate] as number;
               }
-            } else {
+            } else if (columns.length === 0 && aggregates.length > 1) {
               // Without group by: single row with multiple aggregates
               const aggregate = aggregates[index];
               const row = tableDataRows[0];
