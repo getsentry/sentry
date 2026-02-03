@@ -1,5 +1,5 @@
 /**
- * Allowed search keys for the builds endpoint (size view).
+ * Allowed search keys for the builds dashboard.
  * Keep in sync with src/sentry/preprod/api/endpoints/builds.py allowed_keys
  */
 export const MOBILE_BUILDS_ALLOWED_KEYS = [
