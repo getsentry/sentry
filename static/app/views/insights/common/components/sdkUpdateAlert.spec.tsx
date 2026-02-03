@@ -75,13 +75,13 @@ describe('SDKUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using @sentry/nextjs and a newer version (8.0.0) is available. Update for a better experience."
+          "We've detected you're using the @sentry/nextjs package, and a newer version (8.0.0) is available. Update for a better experience."
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('renders alert without suggested version', async () => {
+  it('renders alert with specific package but without suggested version', async () => {
     renderMockRequests({
       sdkUpdates: [
         {
@@ -98,8 +98,29 @@ describe('SDKUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using sentry-sdk and a newer version is available. Update for a better experience."
+          "We've detected you're using the sentry-sdk package, and a newer version is available. Update for a better experience."
         )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders generic alert when SDK name is not recognized', async () => {
+    renderMockRequests({
+      sdkUpdates: [
+        {
+          projectId: '1',
+          sdkName: 'sentry.unknown.sdk',
+          sdkVersion: '1.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '2.0.0'}],
+        },
+      ],
+    });
+
+    render(<SDKUpdateAlert />, {organization});
+
+    expect(
+      await screen.findByText(
+        'A newer version of the Sentry SDK is available. Update for a better experience.'
       )
     ).toBeInTheDocument();
   });

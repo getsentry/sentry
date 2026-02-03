@@ -7,9 +7,9 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 
-function getPackageNameFromSdkName(sdkName?: string): string {
+function getPackageNameFromSdkName(sdkName?: string): string | null {
   if (!sdkName) {
-    return t('the Sentry SDK');
+    return null;
   }
 
   if (sdkName.startsWith('sentry.python')) {
@@ -24,7 +24,7 @@ function getPackageNameFromSdkName(sdkName?: string): string {
     }
   }
 
-  return t('the Sentry SDK');
+  return null;
 }
 
 const EXPIRATION_DAYS = 30;
@@ -78,17 +78,23 @@ export function SDKUpdateAlert() {
         />
       }
     >
-      {suggestedVersion
-        ? tct(
-            "We've detected you're using [packageName] and a newer version ([version]) is available. Update for a better experience.",
-            {
-              packageName: <code>{packageName}</code>,
-              version: <code>{suggestedVersion}</code>,
-            }
-          )
-        : tct(
-            "We've detected you're using [packageName] and a newer version is available. Update for a better experience.",
-            {packageName: <code>{packageName}</code>}
+      {packageName
+        ? suggestedVersion
+          ? tct(
+              "We've detected you're using the [packageName] package, and a newer version ([version]) is available. Update for a better experience.",
+              {
+                packageName: <code>{packageName}</code>,
+                version: <code>{suggestedVersion}</code>,
+              }
+            )
+          : tct(
+              "We've detected you're using the [packageName] package, and a newer version is available. Update for a better experience.",
+              {
+                packageName: <code>{packageName}</code>,
+              }
+            )
+        : t(
+            'A newer version of the Sentry SDK is available. Update for a better experience.'
           )}
     </Alert>
   );
