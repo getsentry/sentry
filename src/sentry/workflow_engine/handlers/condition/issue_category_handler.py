@@ -41,4 +41,4 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
         if include:
             return bool(value == issue_category or value == issue_category_v2)
 
-        return bool(value != issue_category or value != issue_category_v2)
+        return bool(value != issue_category and value != issue_category_v2)
