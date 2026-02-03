@@ -573,6 +573,9 @@ function AutofixHighlightPopup(props: Props) {
       return undefined;
     }
 
+    let timeoutId: number | undefined;
+    let animationFrameId: number | undefined;
+
     const updatePosition = () => {
       if (!referenceElement || !popupRef.current) {
         return;
@@ -598,32 +601,53 @@ function AutofixHighlightPopup(props: Props) {
       });
     };
 
+    // Debounced update function to prevent excessive updates
+    const debouncedUpdatePosition = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      if (animationFrameId !== undefined) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      
+      // Use requestAnimationFrame for smoother updates
+      animationFrameId = window.requestAnimationFrame(() => {
+        timeoutId = window.setTimeout(updatePosition, 50);
+      });
+    };
+
     // Initial position
     updatePosition();
 
-    // Create observers to track both elements
-    const referenceObserver = new ResizeObserver(updatePosition);
-    const popupObserver = new ResizeObserver(updatePosition);
+    // Create observers to track both elements with debouncing
+    const referenceObserver = new ResizeObserver(debouncedUpdatePosition);
+    const popupObserver = new ResizeObserver(debouncedUpdatePosition);
 
     referenceObserver.observe(referenceElement);
     popupObserver.observe(popupRef.current);
 
-    // Track scroll events
+    // Track scroll events with debouncing
     const scrollElements = [window, ...getScrollParents(referenceElement)];
     scrollElements.forEach(element => {
-      element.addEventListener('scroll', updatePosition, {passive: true});
+      element.addEventListener('scroll', debouncedUpdatePosition, {passive: true});
     });
 
-    // Track window resize
-    window.addEventListener('resize', updatePosition, {passive: true});
+    // Track window resize with debouncing
+    window.addEventListener('resize', debouncedUpdatePosition, {passive: true});
 
     return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+      if (animationFrameId !== undefined) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
       referenceObserver.disconnect();
       popupObserver.disconnect();
       scrollElements.forEach(element => {
-        element.removeEventListener('scroll', updatePosition);
+        element.removeEventListener('scroll', debouncedUpdatePosition);
       });
-      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('resize', debouncedUpdatePosition);
     };
   }, [referenceElement]);
 
