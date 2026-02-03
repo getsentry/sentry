@@ -20,7 +20,6 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
-import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -67,7 +66,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -119,7 +117,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
-  const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
@@ -206,23 +203,10 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     return [];
   }, []);
 
-  const refreshTable = useCallback(async () => {
+  const refreshTableAndChart = useCallback(async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
-    queryClient.setQueryData(
-      tableData.queryKey,
-      (data: InfiniteData<OurLogsResponseItem[]>) => {
-        if (data?.pages) {
-          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-          return {
-            pages: data.pages.slice(0, 1),
-            pageParams: data.pageParams.slice(0, 1),
-          };
-        }
-        return data;
-      }
-    );
     await tableData.refetch();
-  }, [tableData, queryClient]);
+  }, [tableData]);
 
   const onColumnsChange = useCallback(
     (newFields: string[]) => {
@@ -405,7 +389,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
                   size="sm"
                   icon={<IconRefresh />}
                   disabled={canManuallyRefresh ? false : true}
-                  onClick={refreshTable}
+                  onClick={refreshTableAndChart}
                   aria-label={t('Refresh')}
                 />
                 <TableActionButton
