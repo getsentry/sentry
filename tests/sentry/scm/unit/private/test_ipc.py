@@ -16,3 +16,8 @@ def test_subscription_event_serialization():
     }
 
     assert deserialize_event(serialize_event(event), lambda _: None) == event
+
+
+def test_subscription_event_deserialization_failure():
+    assert deserialize_event(b"hello, world", lambda _: None) is None
+    assert deserialize_event(b"", lambda _: None) is None
