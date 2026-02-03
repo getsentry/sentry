@@ -4,12 +4,26 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Text} from 'sentry/components/core/text/text';
 import type {JsonPathOpTreeNode} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/models/jsonPathOpTreeNode';
+import {
+  getJsonPathCombinedLabelAndTooltip,
+  getJsonPathOperandValue,
+} from 'sentry/views/alerts/rules/uptime/assertions/utils';
 
 export function JsonPathOpRow({node}: {node: JsonPathOpTreeNode}) {
+  const operandValue = getJsonPathOperandValue(node.value.operand);
+  const {combinedLabel, combinedTooltip} = getJsonPathCombinedLabelAndTooltip(node.value);
+
   const content = (
     <Fragment>
       <Text variant="danger">[Failed] </Text>
-      JSON Path | Rule: <Text variant="primary">{node.value.value}</Text>
+      JSON Path | Rule:{' '}
+      <Text variant="primary">
+        {node.value.value}{' '}
+        <Tooltip skipWrapper title={combinedTooltip}>
+          {combinedLabel}
+        </Tooltip>{' '}
+        {operandValue}
+      </Text>
     </Fragment>
   );
 

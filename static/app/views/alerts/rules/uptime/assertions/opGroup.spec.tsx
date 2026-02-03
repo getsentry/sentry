@@ -296,6 +296,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-1',
         op: 'json_path',
         value: '',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const value: AndOp = {
@@ -319,6 +321,8 @@ describe('AssertionOpGroup', () => {
             id: 'test-id-1',
             op: 'json_path',
             value: 'x',
+            operator: {cmp: 'equals'},
+            operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
       });
@@ -377,6 +381,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-2',
         op: 'json_path',
         value: '$.status',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const headerOp: HeaderCheckOp = {
