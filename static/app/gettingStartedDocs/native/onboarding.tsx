@@ -1,5 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -7,6 +8,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
+import {logsVerify} from 'sentry/gettingStartedDocs/native/logs';
 import {getVerifySnippet} from 'sentry/gettingStartedDocs/native/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -17,10 +19,15 @@ int main(void) {
   sentry_options_t *options = sentry_options_new();
   sentry_options_set_dsn(options, "${params.dsn.public}");
   // This is also the default-path. For further information and recommendations:
-  // https://docs.sentry.io/platforms/native/configuration/options/#database-path
+  // https://docs.sentry.io/platforms/native/configuration/options/#database_path
   sentry_options_set_database_path(options, ".sentry-native");
   sentry_options_set_release(options, "my-project-name@2.3.12");
-  sentry_options_set_debug(options, 1);
+  sentry_options_set_debug(options, 1);${
+    params.isLogsSelected
+      ? `
+  sentry_options_set_enable_logs(options, 1);`
+      : ''
+  }
   sentry_init(options);
 
   /* ... */
@@ -107,6 +114,28 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
+    {
+      title: t('Further Settings'),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <StoreCrashReportsConfig
+              organization={params.organization}
+              projectSlug={params.project.slug}
+            />
+          ),
+        },
+      ],
+    },
   ],
 };

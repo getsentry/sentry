@@ -14,12 +14,14 @@ describe('aspnet onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
     });
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
@@ -37,6 +39,16 @@ describe('aspnet onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

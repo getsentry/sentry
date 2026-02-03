@@ -2,12 +2,15 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
+  DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
+
+import {logsVerify} from './logs';
 
 const getVerifySnippet = () => `
 using Sentry; // On the top of the script
@@ -59,6 +62,19 @@ export const onboarding: OnboardingConfig = {
           text: t("And that's it! Now Sentry can capture errors automatically."),
         },
         {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable structured logging, check the [code:Enable Logs] option in the Sentry configuration window.',
+                {code: <code />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             'If you like additional contexts you could enable [link:Screenshots].',
@@ -72,7 +88,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -89,6 +105,14 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Troubleshooting'),
       content: [

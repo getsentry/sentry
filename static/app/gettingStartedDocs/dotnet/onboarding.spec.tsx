@@ -14,6 +14,7 @@ describe('dotnet onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
     });
 
     // Renders main headings
@@ -21,6 +22,7 @@ describe('dotnet onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
@@ -51,6 +53,16 @@ describe('dotnet onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

@@ -1,10 +1,21 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from '.';
 
+function renderMockRequests() {
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/',
+    body: ProjectFixture(),
+  });
+}
+
 describe('getting started with native', () => {
   it('renders docs correctly', () => {
+    renderMockRequests();
+
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
