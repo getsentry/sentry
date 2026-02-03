@@ -57,8 +57,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         # Ignore statsPeriod so old links don't fail when opened later
-        request.GET = request.GET.copy()
-        request.GET.pop("statsPeriod", None)
+        mutable_query = request.GET.copy()
+        mutable_query.pop("statsPeriod", None)
+        request.GET = mutable_query  # type: ignore[assignment]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
