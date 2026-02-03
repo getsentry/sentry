@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {BaseAvatar} from '@sentry/scraps/avatar';
+import {Avatar} from '@sentry/scraps/avatar';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -119,11 +119,12 @@ export function GithubInstallationSelect({
           {installation.installation_id === '-1' ? (
             <IconAdd />
           ) : (
-            <StyledAvatar
-              type="upload"
-              uploadUrl={installation.avatar_url}
+            <Avatar
               size={16}
-              title={installation.github_account}
+              type="upload"
+              identifier={installation.installation_id}
+              uploadUrl={installation.avatar_url}
+              name={installation.github_account}
             />
           )}
           <span>{`${installation.github_account}`}</span>
@@ -226,10 +227,6 @@ const StyledContainer = styled('div')`
 const StyledHeader = styled('h3')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const StyledAvatar = styled(BaseAvatar)`
-  flex-shrink: 0;
 `;
 
 const StyledSelect = styled(CompactSelect)`

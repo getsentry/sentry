@@ -351,7 +351,7 @@ export function getContextIcon({
     case 'user': {
       const user = userContextToActor(value);
       const iconSize = SvgIcon.ICON_SIZES[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);

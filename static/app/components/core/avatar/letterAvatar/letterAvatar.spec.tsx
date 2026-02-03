@@ -4,100 +4,113 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {LetterAvatar} from './letterAvatar';
 
 describe('LetterAvatar', () => {
-  const USER_1 = {
-    identifier: 'janebloggs@example.com',
-    displayName: 'Jane Bloggs',
-  };
-  const USER_2 = {
-    identifier: 'johnsmith@example.com',
-    displayName: 'johnsmith@example.com',
-  };
-  const USER_3 = {
-    identifier: 'foo@example.com',
-    displayName: 'foo@example.com',
-  };
-  const USER_4 = {
-    identifier: '2',
-    displayName: '',
-  };
-  const USER_5 = {
-    identifier: '127.0.0.1',
-    displayName: '',
-  };
-  const USER_6 = {
-    identifier: 'janebloggs@example.com',
-    displayName: 'Jane Bloggs ',
-  };
-  const USER_7 = {
-    identifier: 'janebloggs@example.com',
-    displayName: ' ',
-  };
-  const USER_8 = {
-    identifier: 'janebloggs@example.com',
-    displayName: '\u2603super \u2603duper',
-  };
-  const USER_9 = {
-    identifier: 'janebloggs@example.com',
-    displayName: 'jane austen bloggs',
-  };
-
-  describe('display name', () => {
-    it('should get initials based on name', () => {
-      render(<LetterAvatar {...USER_1} />);
+  describe('initials rendering', () => {
+    it('renders first and last initial for two-word names', () => {
+      render(<LetterAvatar identifier="jane.bloggs@example.com" name="Jane Bloggs" />);
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
-    it('should get initials based on email', () => {
-      render(<LetterAvatar {...USER_2} />);
+    it('renders first initial only for single-word names', () => {
+      render(<LetterAvatar identifier="jane@example.com" name="Jane" />);
       expect(screen.getByText('J')).toBeInTheDocument();
     });
 
-    it('should get initials based on username', () => {
-      render(<LetterAvatar {...USER_3} />);
-      expect(screen.getByText('F')).toBeInTheDocument();
-    });
-
-    it('should show question mark if user has no display name', () => {
-      render(<LetterAvatar {...USER_4} />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
-
-    it('should show question mark even if display name is a space', () => {
-      render(<LetterAvatar {...USER_7} />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
-
-    it('should get initials based on name even if there are trailing spaces', () => {
-      render(<LetterAvatar {...USER_6} />);
+    it('renders first and last initial for three or more word names', () => {
+      render(
+        <LetterAvatar identifier="jane.bloggs@example.com" name="Jane Austen Bloggs" />
+      );
       expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
-    it('should not slice multibyte characters in half', () => {
-      render(<LetterAvatar {...USER_8} />);
-      expect(screen.getByText('\u2603\u2603')).toBeInTheDocument();
+    it('renders first letter of email addresses', () => {
+      render(
+        <LetterAvatar identifier="johnsmith@example.com" name="johnsmith@example.com" />
+      );
+      expect(screen.getByText('J')).toBeInTheDocument();
     });
 
-    it('should pick most last name', () => {
-      render(<LetterAvatar {...USER_9} />);
+    it('renders first letter for single character input', () => {
+      render(<LetterAvatar identifier="x@example.com" name="X" />);
+      expect(screen.getByText('X')).toBeInTheDocument();
+    });
+
+    it('renders initials in uppercase', () => {
+      render(<LetterAvatar identifier="jane.bloggs@example.com" name="jane bloggs" />);
       expect(screen.getByText('JB')).toBeInTheDocument();
+    });
+
+    it('trims trailing spaces from names', () => {
+      render(<LetterAvatar identifier="jane.bloggs@example.com" name="Jane Bloggs " />);
+      expect(screen.getByText('JB')).toBeInTheDocument();
+    });
+
+    it('trims leading spaces from names', () => {
+      render(<LetterAvatar identifier="jane.bloggs@example.com" name=" Jane Bloggs" />);
+      expect(screen.getByText('JB')).toBeInTheDocument();
+    });
+
+    it('handles multibyte characters without slicing them', () => {
+      render(<LetterAvatar identifier="snowman@example.com" name="☃super ☃duper" />);
+      expect(screen.getByText('☃☃')).toBeInTheDocument();
+    });
+
+    it('handles numeric input', () => {
+      render(<LetterAvatar identifier="user123" name="123" />);
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
+
+    it('handles IP addresses', () => {
+      render(<LetterAvatar identifier="127.0.0.1" name="127.0.0.1" />);
+      expect(screen.getByText('1')).toBeInTheDocument();
     });
   });
 
-  describe('color', () => {
-    it('should return a color based on email', () => {
-      render(<LetterAvatar {...USER_1} />);
+  describe('fallback rendering', () => {
+    it('renders question mark for empty string', () => {
+      render(<LetterAvatar identifier="unknown" name="" />);
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
 
-    it('should return a color based on username', () => {
-      render(<LetterAvatar {...USER_3} />);
+    it('renders question mark for whitespace-only string', () => {
+      render(<LetterAvatar identifier="unknown" name="   " />);
+      expect(screen.getByText('?')).toBeInTheDocument();
     });
 
-    it('should return a color based on id', () => {
-      render(<LetterAvatar {...USER_4} />);
+    it('renders question mark for single space', () => {
+      render(<LetterAvatar identifier="unknown" name=" " />);
+      expect(screen.getByText('?')).toBeInTheDocument();
+    });
+  });
+
+  describe('identifier vs name separation', () => {
+    it('uses identifier prop for color hashing', () => {
+      // Render with identifier - this should determine the color
+      render(<LetterAvatar identifier="user123" name="Jane Doe" />);
+      expect(screen.getByText('JD')).toBeInTheDocument();
     });
 
-    it('should return a color based on ip address', () => {
-      render(<LetterAvatar {...USER_5} />);
+    it('uses name prop for initials, not identifier', () => {
+      // Different identifiers but same name should show same initials
+      const {rerender} = render(
+        <LetterAvatar identifier="jane.doe@example.com" name="Jane Doe" />
+      );
+      expect(screen.getByText('JD')).toBeInTheDocument();
+
+      rerender(<LetterAvatar identifier="jane.smith@example.com" name="Jane Doe" />);
+      // Initials still come from name, not identifier
+      expect(screen.getByText('JD')).toBeInTheDocument();
+    });
+
+    it('handles initials change while keeping same identifier', () => {
+      // Same identifier (for color) but different name (for initials)
+      const {rerender} = render(
+        <LetterAvatar identifier="user@example.com" name="Jane Doe" />
+      );
+      expect(screen.getByText('JD')).toBeInTheDocument();
+
+      // Change name but keep identifier the same
+      rerender(<LetterAvatar identifier="user@example.com" name="Jane Smith" />);
+      expect(screen.getByText('JS')).toBeInTheDocument();
     });
   });
 });

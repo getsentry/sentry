@@ -1,56 +1,46 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
+
+import {ImageAvatar} from '@sentry/scraps/avatar/imageAvatar/imageAvatar';
 
 import ConfigStore from 'sentry/stores/configStore';
 
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
-import {
-  baseAvatarStyles,
-  type BaseAvatarStyleProps,
-} from '../baseAvatar/baseAvatarComponentStyles';
+import {type BaseAvatarStyleProps} from '../avatarComponentStyles';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import {type ImageAvatarProps} from '../imageAvatar/imageAvatar';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import {LetterAvatar} from '../letterAvatar/letterAvatar';
 
-interface GravatarProps extends BaseAvatarStyleProps {
+/**
+ * Note that avatars currently do not support refs. This is because they are only exposed
+ * through the main Avatar component, which wraps the avatar in a container element, and has
+ * histrically hijacked the ref and attached it to the container element, and we would need
+ * to eliminate the wrapper before we can enable ref support.
+ */
+export interface GravatarProps
+  extends BaseAvatarStyleProps, Omit<ImageAvatarProps, 'src'> {
   gravatarId: string;
-  remoteSize: number;
-  onError?: () => void;
-  onLoad?: () => void;
-  placeholder?: string;
-  ref?: React.Ref<HTMLImageElement>;
 }
 
-export function Gravatar({
-  ref,
-  remoteSize,
-  gravatarId,
-  placeholder,
-  round,
-  onError,
-  onLoad,
-  suggested,
-}: GravatarProps) {
+export function Gravatar({gravatarId, ...props}: GravatarProps) {
   const avatarHash = useGravatarHash(gravatarId);
 
   if (avatarHash === null) {
-    // @TODO(jonasbadalic): Do we need a placeholder here?
-    Sentry.captureMessage('Gravatar: avatar hash is undefined');
-    return null;
+    return <LetterAvatar {...props} />;
   }
 
   return (
-    <Image
-      ref={ref}
-      round={round}
+    <ImageAvatar
+      {...props}
       src={`${ConfigStore.get('gravatarBaseUrl')}/avatar/${avatarHash}?${qs.stringify({
-        s: remoteSize,
+        // Default remote size to 120px
+        s: 120,
         // If gravatar is not found we need the request to return an error,
         // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
-        d: placeholder ?? '404',
+        d: '404',
       })}`}
-      onLoad={onLoad}
-      onError={onError}
-      suggested={suggested}
     />
   );
 }
@@ -59,38 +49,28 @@ function useGravatarHash(gravatarId: string) {
   const [avatarHash, setAvatarHash] = useState<string | null>(null);
 
   useEffect(() => {
-    // @TODO(jonasbadalic): why is trim required?
     const trimmedGravatarId = gravatarId.trim();
-    if (!trimmedGravatarId) {
-      return;
-    }
-
-    if (
-      !!window.crypto &&
-      !!window.crypto.subtle &&
-      typeof window.crypto.subtle.digest === 'undefined'
-    ) {
+    if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+      setAvatarHash(null);
       return;
     }
 
     hashGravatarId(trimmedGravatarId)
-      .then(setAvatarHash)
+      .then(hash => setAvatarHash(hash))
       .catch(error => {
+        setAvatarHash(null);
         Sentry.withScope(scope => {
           scope.setFingerprint(['gravatar-hash-error']);
           Sentry.captureException(error);
         });
       });
-
-    return;
   }, [gravatarId]);
 
   return avatarHash;
 }
 
 /**
- * Available only in secure contexts. (https)
- * Gravatar will not work in http
+ * Gravatars require HTTPS to work.
  */
 async function hashGravatarId(message: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -100,7 +80,3 @@ async function hashGravatarId(message: string): Promise<string> {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 }
-
-const Image = styled('img')<BaseAvatarStyleProps>`
-  ${baseAvatarStyles};
-`;

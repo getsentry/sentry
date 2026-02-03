@@ -130,17 +130,6 @@ There are multiple avatar components which represent users, teams, organizations
   <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
 </Storybook.Demo>
 
-## Props
-
-All avatar components accept common props, to customize `size` and render tooltips with `hasTooltip`, `tooltip`, and `tooltipOptions`.
-
-<Storybook.Demo>
-  <UserAvatar user={USER} size={64} hasTooltip tooltip="This avatar has a tooltip" />
-</Storybook.Demo>
-```jsx
-<UserAvatar user={user} size={64} hasTooltip tooltip="This avatar has a tooltip" />
-```
-
 ## Types
 
 To distinguish between individuals (users) and groups (teams, organizations, etc) at glance, avatars may use different shapes. Individuals are displayed with a round avatar, but groups are displayed with a square avatar.

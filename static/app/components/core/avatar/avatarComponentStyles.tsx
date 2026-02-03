@@ -1,7 +1,9 @@
 import {css} from '@emotion/react';
 
+/** Defines the styling interface for all avatar components */
 export interface BaseAvatarStyleProps {
   round?: boolean;
+  size?: number;
   suggested?: boolean;
 }
 

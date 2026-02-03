@@ -1,33 +1,88 @@
-import type React from 'react';
-
 import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
+import {
+  Avatar,
+  type AvatarProps,
+  type GravatarBaseAvatarProps,
+  type LetterBaseAvatarProps,
+  type UploadBaseAvatarProps,
+} from './avatar';
 
-export interface TeamAvatarProps extends BaseAvatarProps {
-  team: Team | undefined;
-  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
+export interface TeamAvatarProps extends AvatarProps {
+  team: Team;
 }
 
-export function TeamAvatar({ref, team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
-  if (!team) {
-    // @TODO(jonasbadalic): Do we need a placeholder here?
-    return null;
-  }
-
-  const slug = team?.slug || '';
-  const title = explodeSlug(slug);
-  const tooltip = tooltipProp ?? `#${title}`;
-
+export function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
+  const teamAvatarProps = getTeamAvatarProps(team);
   return (
-    <BaseAvatar
+    <Avatar
       {...props}
-      ref={ref}
-      type={team.avatar?.avatarType || 'letter_avatar'}
-      letterId={slug}
-      tooltip={tooltip}
-      title={title}
+      {...teamAvatarProps}
+      tooltip={tooltipProp ?? `#${explodeSlug(team?.slug ?? '')}`}
     />
   );
+}
+
+function getTeamAvatarProps(
+  team: Team
+): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
+  const identifier = team.slug;
+  const name = team.name || team.slug;
+
+  if (!team.avatar?.avatarType) {
+    return {
+      type: 'letter_avatar',
+      identifier,
+      name,
+      title: name,
+    };
+  }
+
+  switch (team.avatar.avatarType) {
+    case 'letter_avatar':
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
+      };
+    case 'upload':
+      if (!team.avatar.avatarUrl) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'upload',
+        uploadUrl: team.avatar.avatarUrl,
+        identifier,
+        name,
+      };
+    case 'gravatar':
+      if (!team.avatar.avatarUrl) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'gravatar',
+        gravatarId: team.avatar.avatarUrl,
+        identifier,
+        name,
+      };
+    default:
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
+      };
+  }
 }

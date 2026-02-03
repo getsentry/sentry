@@ -1,38 +1,88 @@
-import * as Sentry from '@sentry/react';
-
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
+import {
+  Avatar,
+  type AvatarProps,
+  type GravatarBaseAvatarProps,
+  type LetterBaseAvatarProps,
+  type UploadBaseAvatarProps,
+} from './avatar';
 
-interface OrganizationAvatarProps extends BaseAvatarProps {
-  organization: OrganizationSummary | undefined;
-  ref?: React.Ref<HTMLSpanElement>;
+interface OrganizationAvatarProps extends AvatarProps {
+  organization: OrganizationSummary;
 }
 
-export function OrganizationAvatar({
-  ref,
-  organization,
-  ...props
-}: OrganizationAvatarProps) {
-  if (!organization) {
-    // @TODO(jonasbadalic): Do we need a placeholder here?
-    Sentry.captureMessage('OrganizationAvatar: organization summary is undefined');
-    return null;
-  }
-
-  const slug = organization.slug || '';
-  const title = explodeSlug(slug);
-
+export function OrganizationAvatar({organization, ...props}: OrganizationAvatarProps) {
   return (
-    <BaseAvatar
-      ref={ref}
+    <Avatar
       {...props}
-      type={organization.avatar?.avatarType || 'letter_avatar'}
-      uploadUrl={organization.avatar?.avatarUrl}
-      letterId={slug}
-      tooltip={slug}
-      title={title}
+      {...getOrganizationAvatarProps(organization)}
+      tooltip={organization.slug ?? ''}
+      title={explodeSlug(organization.slug ?? '')}
     />
   );
+}
+
+function getOrganizationAvatarProps(
+  organization: OrganizationSummary
+): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
+  const identifier = organization.slug;
+  const name = organization.name || organization.slug;
+
+  if (!organization.avatar?.avatarType) {
+    return {
+      type: 'letter_avatar',
+      identifier,
+      name,
+      title: name,
+    };
+  }
+
+  switch (organization.avatar?.avatarType) {
+    case 'letter_avatar':
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
+      };
+    case 'upload':
+      if (!organization.avatar.avatarUrl) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'upload',
+        uploadUrl: organization.avatar.avatarUrl,
+        identifier,
+        name,
+      };
+    case 'gravatar':
+      if (!organization.avatar.avatarUrl) {
+        return {
+          type: 'letter_avatar',
+          identifier,
+          name,
+          title: name,
+        };
+      }
+      return {
+        type: 'gravatar',
+        gravatarId: organization.avatar.avatarUrl,
+        identifier,
+        name,
+      };
+    default:
+      return {
+        type: 'letter_avatar',
+        identifier,
+        name,
+        title: name,
+      };
+  }
 }
