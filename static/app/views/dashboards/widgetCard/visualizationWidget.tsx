@@ -14,6 +14,7 @@ import {
   type DataUnit,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -157,6 +158,7 @@ function VisualizationWidgetContent({
     return {
       ...widget,
       displayType: DisplayType.TABLE,
+      limit: widget.limit ?? TOP_N,
       queries: widget.queries.map(query => {
         const aggregates = [...(query.aggregates ?? [])];
         const columns = [...(query.columns ?? [])];
@@ -209,20 +211,31 @@ function VisualizationWidgetContent({
   const columns = widget.queries[0]?.columns ?? [];
   const hasGroupBy = columns.length > 0;
 
+  // Filter out "Other" series for the legend breakdown
+  const filteredSeriesWithIndex = hasBreakdownData
+    ? timeseriesResults
+        .map((series, index) => ({series, index}))
+        .filter(({series}) => {
+          // Series names are formatted as "aggregate : groupValue"
+          const groupValue = series.seriesName.split(' : ').slice(1).join(' : ');
+          return groupValue !== 'Other';
+        })
+    : [];
+
   const footerTable = hasBreakdownData ? (
     tableErrorMessage ? (
       <PanelAlert variant="danger">{tableErrorMessage}</PanelAlert>
     ) : (
       <WidgetFooterTable>
-        {timeseriesResults.map((series, index) => {
+        {filteredSeriesWithIndex.map(({series, index}, filteredIndex) => {
           const plottable = plottables[index];
 
           let value: number | null = null;
           if (tableDataRows) {
             if (hasGroupBy) {
-              // With group by: match by index (both timeseries and table are ordered by aggregate desc)
+              // With group by: match by filteredIndex (both timeseries and table are ordered by aggregate desc, excluding "Other")
               const aggregate = aggregates[0];
-              const row = tableDataRows[index];
+              const row = tableDataRows[filteredIndex];
               if (aggregate && row?.[aggregate] !== undefined) {
                 value = row[aggregate] as number;
               }
