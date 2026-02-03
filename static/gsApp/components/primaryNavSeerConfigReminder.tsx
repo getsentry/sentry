@@ -144,8 +144,9 @@ export default function PrimaryNavSeerConfigReminder() {
   // Track impression on mount
   useEffect(() => {
     if (canSeeReminder) {
-      trackAnalytics('seer_config_reminder.rendered', {
+      trackAnalytics('navigation.primary_item_rendered', {
         organization,
+        item: 'seer-config-reminder',
         ...analyticsParams,
       });
     }
@@ -159,11 +160,9 @@ export default function PrimaryNavSeerConfigReminder() {
     <Fragment>
       <SeerButton
         analyticsKey="seer-config-reminder"
+        analyticsParams={analyticsParams}
         label={t('Configure Seer')}
-        buttonProps={{
-          ...overlayTriggerProps,
-          analyticsParams,
-        }}
+        buttonProps={overlayTriggerProps}
       >
         <IconSeer />
         <SidebarItemUnreadIndicator
@@ -208,6 +207,7 @@ export default function PrimaryNavSeerConfigReminder() {
                 }}
                 priority="primary"
                 onClick={() => state.close()}
+                analyticsEventName="Seer Config Reminder: Configure Now Clicked"
                 analyticsParams={analyticsParams}
               >
                 {t('Configure Now')}

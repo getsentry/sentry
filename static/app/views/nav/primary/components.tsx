@@ -32,6 +32,7 @@ interface SidebarItemLinkProps {
   group: PrimaryNavGroup;
   to: string;
   activeTo?: string;
+  analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
 }
 
@@ -39,6 +40,7 @@ interface SidebarItemDropdownProps {
   analyticsKey: string;
   items: MenuItemProps[];
   label: string;
+  analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
   disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
@@ -49,15 +51,21 @@ interface SidebarButtonProps {
   analyticsKey: string;
   children: React.ReactNode;
   label: string;
+  analyticsParams?: Record<string, unknown>;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
   className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
-function recordPrimaryItemClick(analyticsKey: string, organization: Organization) {
+function recordPrimaryItemClick(
+  analyticsKey: string,
+  organization: Organization,
+  analyticsParams?: Record<string, unknown>
+) {
   trackAnalytics('navigation.primary_item_clicked', {
     item: analyticsKey,
     organization,
+    ...analyticsParams,
   });
 }
 
@@ -111,6 +119,7 @@ export function SidebarMenu({
   items,
   children,
   analyticsKey,
+  analyticsParams,
   label,
   onOpen,
   disableTooltip,
@@ -140,7 +149,7 @@ export function SidebarMenu({
                 aria-label={showLabel ? undefined : label}
                 onClick={event => {
                   if (organization) {
-                    recordPrimaryItemClick(analyticsKey, organization);
+                    recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
                   }
                   props.onClick?.(event);
                   onOpen?.(event);
@@ -168,6 +177,7 @@ function SidebarNavLink({
   to,
   activeTo = to,
   analyticsKey,
+  analyticsParams,
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
@@ -188,7 +198,7 @@ function SidebarNavLink({
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
       onClick={() => {
-        recordPrimaryItemClick(analyticsKey, organization);
+        recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
       }}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
@@ -214,6 +224,7 @@ export function SidebarLink({
   to,
   activeTo = to,
   analyticsKey,
+  analyticsParams,
   group,
   ...props
 }: SidebarItemLinkProps) {
@@ -225,6 +236,7 @@ export function SidebarLink({
         to={to}
         activeTo={activeTo}
         analyticsKey={analyticsKey}
+        analyticsParams={analyticsParams}
         group={group}
       >
         {children}
@@ -236,6 +248,7 @@ export function SidebarLink({
 export function SidebarButton({
   className,
   analyticsKey,
+  analyticsParams,
   children,
   buttonProps = {},
   onClick,
@@ -249,10 +262,11 @@ export function SidebarButton({
     <SidebarItem label={label} showLabel={showLabel} className={className}>
       <NavButton
         {...buttonProps}
+        analyticsParams={analyticsParams}
         isMobile={layout === NavLayout.MOBILE}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          recordPrimaryItemClick(analyticsKey, organization);
+          recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
@@ -424,12 +438,12 @@ type NavButtonProps = ButtonProps & {
   isMobile: boolean;
 };
 
-const NavButton = styled((p: NavButtonProps) => {
+const NavButton = styled((props: NavButtonProps) => {
   return (
     <StyledNavButton
-      {...p}
-      aria-label={p['aria-label'] ?? ''}
-      size={p.isMobile ? 'zero' : undefined}
+      {...props}
+      aria-label={props['aria-label'] ?? ''}
+      size={props.isMobile ? 'zero' : undefined}
     />
   );
 })``;
