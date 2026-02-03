@@ -107,7 +107,12 @@ export function ConversationSummary({
         <Text variant="muted" monospace>
           {conversationId.slice(0, 8)}
         </Text>
-        <CopyToClipboardButton borderless size="zero" text={conversationId} />
+        <CopyToClipboardButton
+          aria-label={t('Copy conversation ID')}
+          borderless
+          size="zero"
+          text={conversationId}
+        />
       </Flex>
       <Divider />
       <StatsRow>
