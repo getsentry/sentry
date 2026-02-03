@@ -208,6 +208,7 @@ class SeerExplorerClient:
     def start_run(
         self,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
@@ -250,6 +251,9 @@ class SeerExplorerClient:
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
@@ -297,6 +301,7 @@ class SeerExplorerClient:
         self,
         run_id: int,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
@@ -339,10 +344,17 @@ class SeerExplorerClient:
             "enable_coding": self.enable_coding,
         }
 
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
+
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:

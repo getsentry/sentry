@@ -191,5 +191,18 @@ export function isEapAlertType(alertType?: AlertType) {
     'trace_item_failure_rate',
     'trace_item_lcp',
     'trace_item_logs',
+    'trace_item_metrics',
   ].includes(alertType);
+}
+
+/**
+ * Converts frontend-only alert types to their backend equivalents.
+ * `trace_item_logs` and `trace_item_metrics` are frontend-only types
+ * that should be sent to the backend as `eap_metrics`.
+ */
+export function getBackendAlertType(alertType: AlertType): AlertType {
+  if (alertType === 'trace_item_logs' || alertType === 'trace_item_metrics') {
+    return 'eap_metrics';
+  }
+  return alertType;
 }

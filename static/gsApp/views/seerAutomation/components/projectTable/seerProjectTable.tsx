@@ -2,8 +2,8 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {InputGroup} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
 
 import {
   useGetBulkAutofixAutomationSettings,
@@ -82,7 +82,10 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-projects', {query: {query: searchTerm, sort}}];
+  const queryKey: ApiQueryKey = [
+    'seer-projects',
+    {query: {query: searchTerm, sort}},
+  ] as unknown as ApiQueryKey;
 
   const sortedProjects = useMemo(() => {
     return projects.toSorted((a, b) => {

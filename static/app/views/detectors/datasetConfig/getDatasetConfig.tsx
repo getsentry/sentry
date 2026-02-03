@@ -1,5 +1,6 @@
 import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
 import {DetectorLogsConfig} from 'sentry/views/detectors/datasetConfig/logs';
+import {DetectorMetricsConfig} from 'sentry/views/detectors/datasetConfig/metrics';
 import {DetectorReleasesConfig} from 'sentry/views/detectors/datasetConfig/releases';
 import {DetectorSpansConfig} from 'sentry/views/detectors/datasetConfig/spans';
 import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
@@ -11,6 +12,7 @@ const DATASET_CONFIG_MAP = {
   [DetectorDataset.RELEASES]: DetectorReleasesConfig,
   [DetectorDataset.SPANS]: DetectorSpansConfig,
   [DetectorDataset.LOGS]: DetectorLogsConfig,
+  [DetectorDataset.METRICS]: DetectorMetricsConfig,
 } as const satisfies Record<DetectorDataset, any>;
 
 export function getDatasetConfig<T extends DetectorDataset>(

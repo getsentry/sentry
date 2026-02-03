@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
@@ -117,7 +116,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
         expected_results: list[WorkflowGroupHistory],
         cursor: Cursor | None = None,
         per_page: int = 25,
-    ) -> CursorResult[Group]:
+    ) -> CursorResult[WorkflowGroupHistory]:
         result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
         assert result.results == expected_results, (result.results, expected_results)
         return result

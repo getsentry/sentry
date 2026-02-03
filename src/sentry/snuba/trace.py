@@ -541,7 +541,16 @@ def query_trace_data(
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
     with sentry_sdk.start_span(op="process.trace_data"):
+        # calculate min & max start as a metric then log as a metric to see if we need to adjust
+        # performance.traces.transaction_query_timebuffer_days
+        span_min_ts = None
+        span_max_ts = None
         for span in spans_data:
+            if span_min_ts is None or span["precise.start_ts"] < span_min_ts:
+                span_min_ts = span["precise.start_ts"]
+            if span_max_ts is None or span["precise.finish_ts"] > span_max_ts:
+                span_max_ts = span["precise.finish_ts"]
+
             if span["parent_span"] in id_to_span:
                 parent = id_to_span[span["parent_span"]]
                 parent["children"].append(span)
@@ -564,6 +573,19 @@ def query_trace_data(
                         for occurrence in id_to_occurrence[span["id"]]
                     ]
                 )
+
+        # These are offset from the params start & end
+        if span_min_ts is not None:
+            sentry_sdk.metrics.distribution(
+                "performance.trace.min_ts_offset",
+                span_min_ts - snuba_params.start_date.timestamp(),
+            )
+        if span_max_ts is not None:
+            sentry_sdk.metrics.distribution(
+                "performance.trace.max_ts_offset",
+                snuba_params.end_date.timestamp() - span_max_ts,
+            )
+
     with sentry_sdk.start_span(op="process.errors_data"):
         for errors in id_to_error.values():
             result.extend(errors)

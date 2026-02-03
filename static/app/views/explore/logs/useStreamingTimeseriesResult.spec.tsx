@@ -105,7 +105,7 @@ describe('useStreamingTimeseriesResult', () => {
       dataScanned: undefined,
       canResumeAutoFetch: false,
       resumeAutoFetch: () => {},
-    } as UseInfiniteLogsQueryResult;
+    } as unknown as UseInfiniteLogsQueryResult;
   }
 
   const getMockSingleAxisTimeseries = () =>
