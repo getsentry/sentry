@@ -1,7 +1,12 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,8 +17,7 @@ interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff>
 
 function DiffModal({
   Body,
-  CloseButton,
-  Header: _Header,
+  Header: Header,
   Footer: _Footer,
   closeModal: _closeModal,
   modalContainerRef: _modalContainerRef,
@@ -31,35 +35,35 @@ function DiffModal({
   );
 
   return (
-    <Body>
-      <CloseButton />
-      <IssueDiff
-        hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
-        {...props}
-      />
-    </Body>
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Issue Diff')}</h4>
+      </Header>
+      <Flex height="100%" flex={1} align="center" justify="center">
+        {p => {
+          return (
+            <Body {...p}>
+              <IssueDiff
+                hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
+                {...props}
+              />
+            </Body>
+          );
+        }}
+      </Flex>
+    </Fragment>
   );
 }
 
 const modalCss = css`
   position: absolute;
-  left: 20px;
-  right: 20px;
-  top: 20px;
-  bottom: 20px;
-  display: flex;
   padding: 0;
-  width: auto;
+  inset: ${space(3)};
+  width: calc(100% - 2 * ${space(3)});
 
   [role='document'] {
     height: 100%;
-    display: flex;
-    flex: 1;
-  }
-
-  section {
-    display: flex;
-    width: 100%;
+    overflow: auto;
   }
 `;
 
