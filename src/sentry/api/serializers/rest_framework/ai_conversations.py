@@ -30,6 +30,8 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
             "-totalTokens",
             "totalCost",
             "-totalCost",
+            "toolErrors",
+            "-toolErrors",
         }
         if value not in allowed_sorts:
             raise serializers.ValidationError(f"Invalid sort option: {value}")
