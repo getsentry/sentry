@@ -7,6 +7,47 @@ type Referrer = Literal["emerge", "shared"]
 type RepositoryId = int | tuple[ProviderName, ExternalId]
 
 
+class Repository(TypedDict):
+    integration_id: int
+    name: str
+    organization_id: int
+    status: str
+
+
+class Provider(Protocol):
+    """
+    Providers abstract over an integration. They map generic commands to service-provider specific
+    commands and they map the results of those commands to generic result-types.
+
+    Providers necessarily offer a larger API surface than what is available in an integration. Some
+    methods may be duplicates in some providers. This is intentional. Providers capture programmer
+    intent and translate it into a concrete interface. Therefore, providers provide a large range
+    of behaviors which may or may not be explicitly defined on a service-provider.
+    """
+
+    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
+
+    def create_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction: Reaction
+    ) -> None:
+        """Create a reaction to an issue."""
+        ...
+
+    # Examples of how you might implement some of the permutations of issue reaction:
+
+    # def create_comment_reaction(
+    #     self, repository: Repository, comment_id: str, reaction: Reaction
+    # ) -> None: ...
+
+    # def create_pull_request_reaction(
+    #     self, repository: Repository, pull_request_id: str, reaction: Reaction
+    # ) -> None: ...
+
+    # def create_pull_request_review_reaction(
+    #     self, repository: Repository, review_id: str, reaction: Reaction
+    # ) -> None: ...
+
+
 class SubscriptionEvent(TypedDict):
     """
     A "SubscriptionEvent" is an event that was sent by a source control management (SCM)
@@ -77,42 +118,69 @@ class SubscriptionEventSentryMeta(TypedDict):
     """
 
 
-class Repository(TypedDict):
-    integration_id: int
-    name: str
-    organization_id: int
-    status: str
+type PullRequestAction = Literal[
+    "assigned",
+    "closed",
+    "edited",
+    "labeled",
+    "opened",
+    "ready_for_review",
+    "reopened",
+    "review_request_removed",
+    "review_requested",
+]
+
+PULL_REQUEST_ACTIONS: set[PullRequestAction] = {
+    "assigned",
+    "closed",
+    "edited",
+    "labeled",
+    "opened",
+    "ready_for_review",
+    "reopened",
+    "review_request_removed",
+    "review_requested",
+}
 
 
-class Provider(Protocol):
-    """
-    Providers abstract over an integration. They map generic commands to service-provider specific
-    commands and they map the results of those commands to generic result-types.
+class PullRequestSubscriptionEvent(TypedDict):
+    action: PullRequestAction
+    """"""
 
-    Providers necessarily offer a larger API surface than what is available in an integration. Some
-    methods may be duplicates in some providers. This is intentional. Providers capture programmer
-    intent and translate it into a concrete interface. Therefore, providers provide a large range
-    of behaviors which may or may not be explicitly defined on a service-provider.
-    """
+    body: str | None
+    """"""
 
-    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
+    draft: bool
+    """"""
 
-    def create_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None:
-        """Create a reaction to an issue."""
-        ...
+    merge_commit_sha: str | None
+    """"""
 
-    # Examples of how you might implement some of the permutations of issue reaction:
+    merged: bool | None
+    """"""
 
-    # def create_comment_reaction(
-    #     self, repository: Repository, comment_id: str, reaction: Reaction
-    # ) -> None: ...
+    private: bool | None
+    """"""
 
-    # def create_pull_request_reaction(
-    #     self, repository: Repository, pull_request_id: str, reaction: Reaction
-    # ) -> None: ...
+    pull_request_id: str
+    """"""
 
-    # def create_pull_request_review_reaction(
-    #     self, repository: Repository, review_id: str, reaction: Reaction
-    # ) -> None: ...
+    subscription_event: SubscriptionEvent
+    """"""
+
+    title: str
+    """"""
+
+    user: "User"
+    """"""
+
+
+class User(TypedDict):
+    id: str
+    """"""
+
+    username: str
+    """"""
+
+    type: str | None
+    """"""
