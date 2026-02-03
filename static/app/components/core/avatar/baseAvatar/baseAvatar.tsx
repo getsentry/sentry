@@ -84,43 +84,6 @@ export function BaseAvatar({
 
   const showBackup = hasError || (type === 'upload' && !uploadUrl);
 
-  // Don't add remote size query parameter if we have a data url
-  const imgSrc = uploadUrl
-    ? uploadUrl.startsWith('data:')
-      ? uploadUrl
-      : `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`
-    : undefined;
-
-  const imageAvatar =
-    type === 'upload' ? (
-      <ImageAvatar
-        ref={ref as React.Ref<HTMLImageElement>}
-        src={imgSrc}
-        round={round}
-        suggested={suggested}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
-    ) : type === 'gravatar' ? (
-      <Gravatar
-        ref={ref as React.Ref<HTMLImageElement>}
-        gravatarId={gravatarId ?? ''}
-        remoteSize={DEFAULT_REMOTE_SIZE}
-        round={round}
-        suggested={suggested}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
-    ) : (
-      <LetterAvatar
-        ref={ref as React.Ref<SVGSVGElement>}
-        round={round}
-        displayName={title === '[Filtered]' ? '?' : title}
-        identifier={letterId}
-        suggested={suggested}
-      />
-    );
-
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
@@ -133,17 +96,51 @@ export function BaseAvatar({
         title={title}
         {...props}
       >
-        {showBackup
-          ? (backupAvatar ?? (
-              <LetterAvatar
-                ref={ref as React.Ref<SVGSVGElement>}
-                round={round}
-                displayName={title === '[Filtered]' ? '?' : title}
-                identifier={letterId}
-                suggested={suggested}
-              />
-            ))
-          : imageAvatar}
+        {showBackup ? (
+          (backupAvatar ?? (
+            <LetterAvatar
+              ref={ref as React.Ref<SVGSVGElement>}
+              round={round}
+              displayName={title === '[Filtered]' ? '?' : title}
+              identifier={letterId}
+              suggested={suggested}
+            />
+          ))
+        ) : type === 'upload' ? (
+          <ImageAvatar
+            ref={ref as React.Ref<HTMLImageElement>}
+            // Don't add remote size query parameter if we have a data url
+            src={
+              uploadUrl
+                ? uploadUrl.startsWith('data:')
+                  ? uploadUrl
+                  : `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`
+                : undefined
+            }
+            round={round}
+            suggested={suggested}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        ) : type === 'gravatar' ? (
+          <Gravatar
+            ref={ref as React.Ref<HTMLImageElement>}
+            gravatarId={gravatarId ?? ''}
+            remoteSize={DEFAULT_REMOTE_SIZE}
+            round={round}
+            suggested={suggested}
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        ) : (
+          <LetterAvatar
+            ref={ref as React.Ref<SVGSVGElement>}
+            round={round}
+            displayName={title === '[Filtered]' ? '?' : title}
+            identifier={letterId}
+            suggested={suggested}
+          />
+        )}
       </AvatarContainer>
     </Tooltip>
   );
