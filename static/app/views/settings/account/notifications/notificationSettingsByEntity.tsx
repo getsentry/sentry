@@ -18,6 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -77,7 +78,9 @@ function NotificationSettingsByEntity({
     refetch,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${orgSlug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: orgSlug!},
+      }),
       {
         host: organization?.links?.regionUrl,
         query: {

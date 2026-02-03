@@ -14,6 +14,7 @@ import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,7 +37,7 @@ export type ChangeAvatarUser = Omit<
     >
   >;
 
-const USER_ENDPOINT = '/users/me/';
+const USER_ENDPOINT = getApiUrl('/users/$userId/', {path: {userId: 'me'}});
 const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 
 function AccountDetails() {

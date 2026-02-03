@@ -21,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -154,7 +155,12 @@ function AccountNotificationFineTuning({
     data: notifications,
     isPending: isPendingNotifications,
     isError: isErrorNotifications,
-  } = useApiQuery<Record<string, any>>(['/users/me/notifications/'], {staleTime: 0});
+  } = useApiQuery<Record<string, any>>(
+    [getApiUrl('/users/$userId/notifications/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+    }
+  );
   const projectsEnabled = isGroupedByProject(fineTuneType);
   const {
     data: projects,
@@ -163,7 +169,7 @@ function AccountNotificationFineTuning({
     getResponseHeader: getProjectsResponseHeader,
   } = useApiQuery<Project[]>(
     [
-      '/projects/',
+      getApiUrl('/projects/'),
       {
         query: {
           organizationId,
@@ -185,20 +191,26 @@ function AccountNotificationFineTuning({
     data: emails = [],
     isPending: isPendingEmails,
     isError: isErrorEmails,
-  } = useApiQuery<UserEmail[]>(['/users/me/emails/'], {
-    staleTime: 0,
-    enabled: isEmail,
-  });
+  } = useApiQuery<UserEmail[]>(
+    [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+      enabled: isEmail,
+    }
+  );
   const {
     data: emailsByProject,
     isPending: isPendingEmailsByProject,
     isError: isErrorEmailsByProject,
     refetch: refetchEmailsByProject,
-  } = useApiQuery<Record<string, any>>(['/users/me/notifications/email/'], {
-    staleTime: 0,
-    enabled: isEmail,
-    placeholderData: keepPreviousData,
-  });
+  } = useApiQuery<Record<string, any>>(
+    [getApiUrl('/users/$userId/notifications/email/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+      enabled: isEmail,
+      placeholderData: keepPreviousData,
+    }
+  );
 
   const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
   const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType]!;

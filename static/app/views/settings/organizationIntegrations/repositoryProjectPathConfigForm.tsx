@@ -18,6 +18,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -50,7 +51,12 @@ function RepositoryProjectPathConfigForm({
    */
   const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
     [
-      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
+        }
+      ),
       {query: {search: selectedRepo?.label}},
     ],
     {

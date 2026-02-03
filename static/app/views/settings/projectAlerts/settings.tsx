@@ -14,6 +14,7 @@ import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -27,7 +28,11 @@ function makeFetchProjectPluginsQueryKey(
   organizationSlug: string,
   projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${organizationSlug}/${projectSlug}/plugins/`];
+  return [
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/`, {
+      path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
+    }),
+  ];
 }
 
 export default function ProjectAlertSettings() {

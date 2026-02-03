@@ -25,6 +25,7 @@ import type {GroupTombstone} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -167,7 +168,9 @@ function GroupTombstones({project}: GroupTombstonesProps) {
     getResponseHeader,
   } = useApiQuery<GroupTombstone[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/tombstones/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tombstones/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {query: {...location.query}},
     ],
     {staleTime: 0}

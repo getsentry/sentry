@@ -4,6 +4,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -31,14 +32,30 @@ export default function ProjectKeyDetails() {
     isError,
     isPending,
   } = useApiQuery<ProjectKey>(
-    [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          keyId,
+        },
+      }),
+    ],
     {staleTime: 0}
   );
 
   function onDataChange(data: ProjectKey) {
     setApiQueryData<ProjectKey>(
       queryClient,
-      [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
+      [
+        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/`, {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            keyId,
+          },
+        }),
+      ],
       data
     );
   }

@@ -25,6 +25,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
   fetchMutation,
@@ -61,7 +62,9 @@ export default function AddCodeOwnerModal({
     isError: isCodeMappingsError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
     [
-      `/organizations/${organization.slug}/code-mappings/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {project: project.id}},
     ],
     {staleTime: Infinity}
@@ -73,7 +76,9 @@ export default function AddCodeOwnerModal({
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {features: ['codeowners']}},
     ],
     {staleTime: Infinity}
@@ -82,7 +87,17 @@ export default function AddCodeOwnerModal({
   const [codeMappingId, setCodeMappingId] = useState<string | null>(null);
 
   const {data: codeownersFile} = useApiQuery<CodeownersFile>(
-    [`/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`],
+    [
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/`,
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            configId: codeMappingId!,
+          },
+        }
+      ),
+    ],
     {staleTime: Infinity, enabled: Boolean(codeMappingId)}
   );
 

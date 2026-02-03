@@ -23,6 +23,7 @@ import apiApplication from 'sentry/data/forms/apiApplication';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
@@ -36,7 +37,11 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 const PAGE_TITLE = t('Application Details');
 
 function getAppQueryKey(appId: string): ApiQueryKey {
-  return [`/api-applications/${appId}/`];
+  return [
+    getApiUrl(`/api-applications/$appId/`, {
+      path: {appId},
+    }),
+  ];
 }
 
 interface RotateClientSecretResponse {

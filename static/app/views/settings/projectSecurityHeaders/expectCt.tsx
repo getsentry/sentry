@@ -9,6 +9,7 @@ import PreviewFeature from 'sentry/components/previewFeature';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,16 +25,23 @@ function getInstructions(keyList: ProjectKey[]) {
 
 function ProjectExpectCtReports() {
   const organization = useOrganization();
-  const {projectId} = useParams();
+  const {projectId} = useParams<{projectId: string}>();
 
   const {
     data: keyList,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -46,17 +54,13 @@ function ProjectExpectCtReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(
-          t('Certificate Transparency (Expect-CT)'),
-          projectId!,
-          false
-        )}
+        title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
       />
       <SettingsPageHeader title={t('Certificate Transparency')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

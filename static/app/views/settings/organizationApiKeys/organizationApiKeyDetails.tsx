@@ -12,6 +12,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,7 +35,11 @@ function OrganizationApiKeyDetails() {
     isError,
     refetch,
   } = useApiQuery<DeprecatedApiKey>(
-    [`/organizations/${organization.slug}/api-keys/${params.apiKey}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+        path: {organizationIdOrSlug: organization.slug, apiKeyId: params.apiKey},
+      }),
+    ],
     {
       staleTime: 0,
     }
