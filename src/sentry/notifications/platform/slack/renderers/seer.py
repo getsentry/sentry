@@ -178,13 +178,13 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_link_button(
-        cls, *, organization_id: int, project_id: int, group_link: str
+        cls, *, organization_id: int, project_id: int, group_link: str, text: str = "View in Sentry"
     ) -> LinkButtonElement:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
         return LinkButtonElement(
-            text="View in Sentry",
+            text=text,
             url=group_link,
             action_id=encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
@@ -230,17 +230,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         If the issue doesn't have automations, a run will only be triggered manually.
             - So, we can render the autofix button for RCA.
         """
-        from sentry.seer.autofix.issue_summary import get_automation_stopping_point
+        from sentry.seer.autofix.issue_summary import is_group_triggering_automation
         from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 
-        automation_stopping_point = get_automation_stopping_point(group=group)
-        if automation_stopping_point:
-            return cls._render_link_button(
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
-                group_link=SlackEntrypoint.get_group_link(group),
-            )
-        else:
+        if not is_group_triggering_automation(group):
             return cls._render_autofix_button(
                 data=SeerAutofixTrigger(
                     group_id=group.id,
@@ -249,3 +242,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                     stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
                 )
             )
+
+        return cls._render_link_button(
+            organization_id=group.project.organization_id,
+            project_id=group.project_id,
+            group_link=SlackEntrypoint.get_group_link(group),
+            text="Watch Seer Work :sparkles:",
+        )

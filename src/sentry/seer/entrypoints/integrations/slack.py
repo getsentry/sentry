@@ -27,6 +27,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.seer.autofix.issue_summary import (
     STOPPING_POINT_HIERARCHY,
     get_automation_stopping_point,
+    is_group_triggering_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -513,7 +514,9 @@ def handle_prepare_autofix_update(
     )
 
     try:
-        automation_stopping_point = get_automation_stopping_point(group)
+        automation_stopping_point = (
+            get_automation_stopping_point(group) if is_group_triggering_automation(group) else None
+        )
     except Exception as e:
         logger.warning(
             "entrypoint.get_automation_stopping_point_error",
