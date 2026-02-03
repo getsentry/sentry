@@ -1,13 +1,8 @@
-from django.db.models.signals import post_migrate, pre_delete, pre_save
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
 from sentry.workflow_engine.models import DetectorWorkflow
-
-
-@receiver(post_migrate, sender=DetectorWorkflow)
-def invalidate_all_processing_cache(sender, **kwargs) -> None:
-    invalidate_processing_workflows(None, None)
 
 
 @receiver(pre_save, sender=DetectorWorkflow)

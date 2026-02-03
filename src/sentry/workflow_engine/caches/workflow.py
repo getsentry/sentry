@@ -4,33 +4,69 @@ from django.db.models import Q
 
 from sentry.models.environment import Environment
 from sentry.utils.cache import cache
-from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
-# TODO - Make this a sentry option? cache=0?1 could disable it w/o a deploy
-# Cache timeout for 5 minutes
-CACHE_TTL = 300
+# Cache timeout for 1 minute
+CACHE_TTL = 60  # TODO - Increase TTL once we confirm everything
 METRIC_PREFIX = "workflow_engine.cache.processing_workflow"
 
+DEFAULT_VALUE = "default"
+WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
-def processing_workflow_cache_key(detector_id: int | None = None, env_id: int | None = None) -> str:
-    if detector_id is None:
-        detector_id = "*"
 
-    if env_id is None:
-        env_id = "*"
-
-    return f"workflows_by_detector_env:{detector_id}:{env_id}"
+# TODO - make the keys here safer with CacheAccess[T]
+def processing_workflow_cache_key(detector_id: int, env_id: int | None = None) -> str:
+    return f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
 
 
 def invalidate_processing_workflows(
-    detector_id: int | None = None, env_id: int | None = None
+    detector_id: int, env_id: int | None | Literal["default"] = DEFAULT_VALUE
 ) -> bool:
-    cache_key = processing_workflow_cache_key(detector_id, env_id)
+    """
+    Invalidate workflow processing cache entries for a specific detector.
 
+    Queries DetectorWorkflow to find all affected cache keys and deletes them explicitly.
+
+    Note: Global invalidation is not supported. Cache has a 60-second TTL, so migrations
+    can safely wait for natural expiration rather than risking OOM from millions of rows.
+
+    Args:
+        detector_id: Detector ID to invalidate (required)
+        env_id: {int|None} - The environment the workflow is triggered on, if not set,
+                             "default" will be used to invalidate _all_ environments.
+
+    Returns:
+        True if at least one cache entry was deleted, False otherwise
+    """
     metrics_incr(f"{METRIC_PREFIX}.invalidated")
-    return cache.delete(cache_key)
+
+    if env_id is not DEFAULT_VALUE:
+        cache_key = processing_workflow_cache_key(detector_id, env_id)
+        return cache.delete(cache_key)
+
+    # Lookup all of the environment_ids associated with the Detector,
+    # TODO - improve this to track active keys in Redis
+    environment_ids = (
+        DetectorWorkflow.objects.filter(detector_id=detector_id)
+        .select_related("workflow")
+        .values_list("workflow__environment_id", flat=True)
+    )
+
+    # Build explicit cache keys from relationships
+    keys: set[str] = set()
+
+    for environment_id in environment_ids:
+        keys.add(processing_workflow_cache_key(detector_id, environment_id))
+
+    # Also add key for workflows with no environment
+    keys.add(processing_workflow_cache_key(detector_id, None))
+
+    if keys:
+        cache.delete_many(keys)
+        metrics_incr(f"{METRIC_PREFIX}.keys_deleted", value=len(keys))
+
+    return len(keys) > 0
 
 
 def get_processing_workflows(detector: Detector, environment: Environment | None) -> set[Workflow]:
