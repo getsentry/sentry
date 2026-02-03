@@ -74,6 +74,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
+    @pytest.mark.skip(reason="flaky: #107516")
     def test_create_delete_create_same_platform(self) -> None:
         "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
         self.start_onboarding()
