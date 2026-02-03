@@ -2326,7 +2326,7 @@ describe('useWidgetBuilderState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            limit: 20,
+            limit: 25,
           }),
         }),
         expect.anything()

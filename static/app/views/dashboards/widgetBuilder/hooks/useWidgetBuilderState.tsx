@@ -365,7 +365,7 @@ function useWidgetBuilderState(): {
             setLegendAlias([], options);
             // Fetch more rows than displayed (10 categories max) to ensure accurate
             // "Other" aggregation when there are many unique category values
-            setLimit(20, options);
+            setLimit(25, options);
 
             // Build the aggregate list from existing state, similar to time-series charts
             const nextAggregates = [
@@ -506,7 +506,7 @@ function useWidgetBuilderState(): {
               setSort([], options);
             }
             // Fetch more rows than displayed to ensure accurate data
-            setLimit(20, options);
+            setLimit(25, options);
           } else {
             setYAxis([], options);
             setFields(
