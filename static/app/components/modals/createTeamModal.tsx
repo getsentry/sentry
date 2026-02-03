@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {Heading} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createTeam} from 'sentry/actionCreators/teams';
 import CreateTeamForm from 'sentry/components/teams/createTeamForm';
@@ -34,7 +36,9 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
 
   return (
     <Fragment>
-      <Header closeButton>{t('Create Team')}</Header>
+      <Header closeButton>
+        <Heading as="h5">{t('Create Team')}</Heading>
+      </Header>
       <Body>
         <CreateTeamForm {...props} onSubmit={handleSubmit} />
       </Body>
