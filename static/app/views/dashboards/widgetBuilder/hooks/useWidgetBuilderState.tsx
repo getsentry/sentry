@@ -462,17 +462,7 @@ function useWidgetBuilderState(): {
           setDataset(action.payload, options);
           setDisplayType(nextDisplayType, options);
 
-          if (usesTimeSeriesData(nextDisplayType)) {
-            setFields([], options);
-            setYAxis(
-              config.defaultWidgetQuery.aggregates?.map(aggregate =>
-                explodeField({field: aggregate})
-              ),
-              options
-            );
-            setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
-            setLimit(undefined, options);
-          } else if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
+          if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
             // Categorical bar charts need both an X-axis field and aggregate
             setYAxis([], options);
 
@@ -507,6 +497,16 @@ function useWidgetBuilderState(): {
             }
             // Fetch more rows than displayed to ensure accurate data
             setLimit(25, options);
+          } else if (usesTimeSeriesData(nextDisplayType)) {
+            setFields([], options);
+            setYAxis(
+              config.defaultWidgetQuery.aggregates?.map(aggregate =>
+                explodeField({field: aggregate})
+              ),
+              options
+            );
+            setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
+            setLimit(undefined, options);
           } else {
             setYAxis([], options);
             setFields(
