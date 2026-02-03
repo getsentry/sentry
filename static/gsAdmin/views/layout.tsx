@@ -189,7 +189,8 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: currentColor;
   }
 
   &:hover {
