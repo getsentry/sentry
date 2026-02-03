@@ -12,13 +12,12 @@ optimization and a convenient, typed deserialization library.
 from collections.abc import Callable
 
 import msgspec
-from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Topic as ArroyoTopic
+import sentry_sdk
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.scm.types import ProviderName, SubscriptionEvent
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
-from sentry.utils.kafka_config import get_topic_definition
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import scm_tasks
 
 
 # GC is disabled. You MUST NEVER use this in such a way that a reference cycle is created.
@@ -137,22 +136,48 @@ def serialize_event(event: SubscriptionEvent) -> bytes:
 # \__|       \______/ \_______/ \__|\__|\_______/ \__|  \__| \_______|\__|
 
 
-ingest_scm_subscription_events = SingletonProducer(
-    lambda: get_arroyo_producer(
-        name="sentry.scm.subscription_events",
-        topic=Topic.INGEST_SCM_SUBSCRIPTION_EVENTS,
-    )
+@instrumented_task(
+    silo_mode=SiloMode.CONTROL,
+    name="sentry.scm.run_webhook_handler_control_task",
+    namespace=scm_tasks,
+    processing_deadline_duration=10,
 )
-
-
-def publish_subscription_event(event: SubscriptionEvent) -> None:
-    """
-    Publish source code management service provider subscription events to the
-    ingest-scm-subscription-events topic.
-
-    Events are encoded with msgpack. Exact details listed in the msgspec structs above.
-    """
-    ingest_scm_subscription_events.produce(
-        ArroyoTopic(get_topic_definition(Topic.INGEST_SCM_SUBSCRIPTION_EVENTS)["real_topic_name"]),
-        payload=KafkaPayload(None, serialize_event(event), []),
+def run_webhook_handler_control_task(handler_name: str, event_bytes: bytes) -> None:
+    run_webhook_handler(
+        handler_name,
+        event_bytes,
+        get_handler=lambda s: lambda e: None,
+        report_exception=report_exception,
     )
+
+
+@instrumented_task(
+    silo_mode=SiloMode.REGION,
+    name="sentry.scm.run_webhook_handler_region_task",
+    namespace=scm_tasks,
+    processing_deadline_duration=10,
+)
+def run_webhook_handler_region_task(handler_name: str, event_bytes: bytes) -> None:
+    run_webhook_handler(
+        handler_name,
+        event_bytes,
+        get_handler=lambda s: lambda e: None,
+        report_exception=report_exception,
+    )
+
+
+def run_webhook_handler(
+    handler_name: str,
+    event_bytes: bytes,
+    *,
+    get_handler: Callable[[str], Callable[[SubscriptionEvent], None]],
+    report_exception: Callable[[Exception], None],
+):
+    event = deserialize_event(event_bytes, report_exception=report_exception)
+    if event:
+        handler = get_handler(handler_name)
+        handler(event)
+
+
+def report_exception(e: Exception) -> None:
+    sentry_sdk.capture_exception(e)

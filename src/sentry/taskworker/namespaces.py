@@ -195,6 +195,11 @@ reports_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+scm_tasks = app.taskregistry.create_namespace(
+    "scm",
+    app_feature="scm",
+)
+
 sdk_tasks = app.taskregistry.create_namespace(
     "sdk",
     app_feature="shared",

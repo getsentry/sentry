@@ -66,7 +66,6 @@ class Topic(Enum):
     EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
-    INGEST_SCM_SUBSCRIPTION_EVENTS = "ingest-scm-subscription-events"
 
     # Taskworker topics
     TASKWORKER = "taskworker"
