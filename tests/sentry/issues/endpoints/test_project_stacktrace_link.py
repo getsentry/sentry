@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -411,7 +412,9 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         cm3 = self._create_code_mapping(stack_root="Services/", source_root="ProjectC/Services/")
 
         # Simulate that the file is not found in ProjectA or ProjectB, but is found in ProjectC
-        def mock_get_stacktrace_link(repo, src_path, branch, version):
+        def mock_get_stacktrace_link(
+            repo: Repository, src_path: str, branch: str, version: str | None
+        ) -> str | None:
             if "ProjectC" in src_path:
                 return "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs"
             return None
