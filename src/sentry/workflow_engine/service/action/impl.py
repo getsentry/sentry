@@ -36,7 +36,7 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int | None,
+        sentry_app_id: int | None = None,
     ) -> None:
         actions = None
         if sentry_app_id:
@@ -58,7 +58,7 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int | None,
+        sentry_app_id: int | None = None,
     ) -> None:
         actions = None
         if sentry_app_id:
