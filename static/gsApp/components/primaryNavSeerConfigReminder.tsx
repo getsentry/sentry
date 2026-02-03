@@ -7,7 +7,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
@@ -24,10 +27,64 @@ import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCa
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
+// See also: `IntegrationProviderSlug` in sentry/integrations/types.py
+// `vsts` is ignored for now, not on the early roadmap in January 2026.
+const SCM_PROVIDER_KEYS = [
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'bitbucket',
+  'bitbucket_server',
+];
+
+/**
+ * Fetches all SCM integrations for an organization, filtering for Seer related SCM providers.
+ */
+function useScmIntegrations() {
+  const organization = useOrganization();
+  const {data, isPending} = useApiQuery<Integration[]>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {includeConfig: 0}},
+    ],
+    {
+      staleTime: 120000, // Cache for 2 minutes
+    }
+  );
+
+  // Filter to only SCM integrations
+  const scmIntegrations = data?.filter(integration =>
+    SCM_PROVIDER_KEYS.includes(integration.provider.key)
+  );
+
+  const hasGithub = scmIntegrations?.some(integration =>
+    ['github', 'github_enterprise'].includes(integration.provider.key)
+  );
+
+  const hasOnlyNonGithubScm =
+    scmIntegrations &&
+    scmIntegrations.length > 0 &&
+    !hasGithub &&
+    scmIntegrations.every(integration =>
+      ['gitlab', 'bitbucket', 'bitbucket_server'].includes(integration.provider.key)
+    );
+
+  return {
+    scmIntegrations,
+    hasGithub,
+    hasOnlyNonGithubScm,
+    isPending,
+  };
+}
+
 export default function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isPending, initialStep} = useSeerOnboardingStep();
+
+  const {hasOnlyNonGithubScm, isPending: isScmPending} = useScmIntegrations();
 
   const {
     isOpen,
@@ -50,7 +107,14 @@ export default function PrimaryNavSeerConfigReminder() {
     return null;
   }
 
-  if (isPending || initialStep === Steps.WRAP_UP) {
+  if (isPending || isScmPending || initialStep === Steps.WRAP_UP) {
+    return null;
+  }
+
+  // If org has zero SCM integrations  => show icon
+  // If org has 1 or more GitHub SCM connections => show icon
+  // If org has only BitBucket and/or GitLab SCM's => no icon
+  if (hasOnlyNonGithubScm) {
     return null;
   }
 

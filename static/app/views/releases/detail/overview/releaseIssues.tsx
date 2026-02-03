@@ -377,24 +377,28 @@ class ReleaseIssues extends Component<Props, State> {
             )}
             position="top-start"
           >
-            <SegmentedControl
-              aria-label={t('Issue type')}
-              size="xs"
-              value={issuesType}
-              onChange={key => this.handleIssuesTypeSelection(key)}
-            >
-              {issuesTypes.map(({value, label, issueCount}) => (
-                <SegmentedControl.Item key={value} textValue={label}>
-                  {label}&nbsp;
-                  <QueryCount
-                    count={issueCount}
-                    max={99}
-                    hideParens
-                    hideIfEmpty={false}
-                  />
-                </SegmentedControl.Item>
-              ))}
-            </SegmentedControl>
+            {tourProps => (
+              <div {...tourProps}>
+                <SegmentedControl
+                  aria-label={t('Issue type')}
+                  size="xs"
+                  value={issuesType}
+                  onChange={key => this.handleIssuesTypeSelection(key)}
+                >
+                  {issuesTypes.map(({value, label, issueCount}) => (
+                    <SegmentedControl.Item key={value} textValue={label}>
+                      {label}&nbsp;
+                      <QueryCount
+                        count={issueCount}
+                        max={99}
+                        hideParens
+                        hideIfEmpty={false}
+                      />
+                    </SegmentedControl.Item>
+                  ))}
+                </SegmentedControl>
+              </div>
+            )}
           </DemoTourElement>
 
           <OpenInButtonBar>

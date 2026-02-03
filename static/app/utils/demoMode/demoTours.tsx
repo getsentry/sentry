@@ -206,7 +206,11 @@ export function DemoTourElement({
   const tourContextValue = useDemoTour(tourKey);
 
   if (!isDemoModeActive() || !tourContextValue || disabled) {
-    return children;
+    // Tour is not active, render children with no-op props
+    return children({
+      'aria-expanded': false,
+      ref: () => {},
+    });
   }
 
   return (

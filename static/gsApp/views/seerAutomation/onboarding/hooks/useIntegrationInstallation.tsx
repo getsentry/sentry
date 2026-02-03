@@ -1,4 +1,5 @@
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -12,7 +13,9 @@ export function useIntegrationInstallation(provider_key: string) {
   const organization = useOrganization();
   const {data, isPending} = useApiQuery<OrganizationIntegration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           includeConfig: 0,

@@ -221,105 +221,111 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
         )}
       >
-        <NavigationWrapper>
-          {currentTab === Tab.DETAILS && (
-            <Fragment>
-              <IssueDetailsEventNavigation
-                event={event}
-                group={group}
-                isSmallNav={isSmallNav}
-              />
-              {issueTypeConfig.pages.events.enabled && (
-                <Feature features="discover-basic" organization={organization}>
+        {tourProps => (
+          <div {...tourProps}>
+            <NavigationWrapper>
+              {currentTab === Tab.DETAILS && (
+                <Fragment>
+                  <IssueDetailsEventNavigation
+                    event={event}
+                    group={group}
+                    isSmallNav={isSmallNav}
+                  />
+                  {issueTypeConfig.pages.events.enabled && (
+                    <Feature features="discover-basic" organization={organization}>
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_events_clicked"
+                        analyticsEventName="Issue Details: All Events Clicked"
+                      >
+                        {isSmallNav
+                          ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                          : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                      </LinkButton>
+                    </Feature>
+                  )}
+                  {issueTypeConfig.pages.openPeriods.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_open_periods_clicked"
+                      analyticsEventName="Issue Details: All Open Periods Clicked"
+                    >
+                      {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
+                    </LinkButton>
+                  )}
+                  {issueTypeConfig.pages.checkIns.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_checks_ins_clicked"
+                      analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                    >
+                      {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
+                    </LinkButton>
+                  )}
+                  {issueTypeConfig.pages.uptimeChecks.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                      analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                    >
+                      {isSmallNav
+                        ? t('More Uptime Checks')
+                        : t('View More Uptime Checks')}
+                    </LinkButton>
+                  )}
+                </Fragment>
+              )}
+              {isListView && (
+                <ButtonBar>
+                  {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
+                    <LinkButton
+                      to={{
+                        pathname: discoverUrl.pathname,
+                        query: {
+                          ...discoverUrl.query,
+                          sort: location.query.sort ?? '-timestamp',
+                        },
+                      }}
+                      aria-label={t('Open in Discover')}
+                      size="xs"
+                      icon={<IconTelescope />}
+                      analyticsEventKey="issue_details.discover_clicked"
+                      analyticsEventName="Issue Details: Discover Clicked"
+                    >
+                      {t('Open in Discover')}
+                    </LinkButton>
+                  )}
                   <LinkButton
                     to={{
-                      pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                      query: location.query,
+                      pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                      query: {...location.query, cursor: undefined},
                     }}
+                    aria-label={t('Return to event details')}
                     size="xs"
-                    analyticsEventKey="issue_details.all_events_clicked"
-                    analyticsEventName="Issue Details: All Events Clicked"
                   >
-                    {isSmallNav
-                      ? t('More %s', issueTypeConfig.customCopy.eventUnits)
-                      : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                    {t('Close')}
                   </LinkButton>
-                </Feature>
+                </ButtonBar>
               )}
-              {issueTypeConfig.pages.openPeriods.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_open_periods_clicked"
-                  analyticsEventName="Issue Details: All Open Periods Clicked"
-                >
-                  {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
-                </LinkButton>
-              )}
-              {issueTypeConfig.pages.checkIns.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_checks_ins_clicked"
-                  analyticsEventName="Issue Details: All Checks-Ins Clicked"
-                >
-                  {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
-                </LinkButton>
-              )}
-              {issueTypeConfig.pages.uptimeChecks.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_uptime_checks_clicked"
-                  analyticsEventName="Issue Details: All Uptime Checks Clicked"
-                >
-                  {isSmallNav ? t('More Uptime Checks') : t('View More Uptime Checks')}
-                </LinkButton>
-              )}
-            </Fragment>
-          )}
-          {isListView && (
-            <ButtonBar>
-              {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
-                <LinkButton
-                  to={{
-                    pathname: discoverUrl.pathname,
-                    query: {
-                      ...discoverUrl.query,
-                      sort: location.query.sort ?? '-timestamp',
-                    },
-                  }}
-                  aria-label={t('Open in Discover')}
-                  size="xs"
-                  icon={<IconTelescope />}
-                  analyticsEventKey="issue_details.discover_clicked"
-                  analyticsEventName="Issue Details: Discover Clicked"
-                >
-                  {t('Open in Discover')}
-                </LinkButton>
-              )}
-              <LinkButton
-                to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-                  query: {...location.query, cursor: undefined},
-                }}
-                aria-label={t('Return to event details')}
-                size="xs"
-              >
-                {t('Close')}
-              </LinkButton>
-            </ButtonBar>
-          )}
-        </NavigationWrapper>
+            </NavigationWrapper>
+          </div>
+        )}
       </TourElement>
     </EventNavigationWrapper>
   );

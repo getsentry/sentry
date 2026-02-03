@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,7 +31,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
 const ENDPOINT = '/users/me/authenticators/';
-const getAuthenticatorQueryKey = (authId: string) => [`${ENDPOINT}${authId}/`] as const;
+const getAuthenticatorQueryKey = (authId: string) =>
+  [
+    getApiUrl('/users/$userId/authenticators/$authId/', {
+      path: {userId: 'me', authId},
+    }),
+  ] as const;
 
 interface AuthenticatorDateProps {
   /**
