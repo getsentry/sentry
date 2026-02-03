@@ -3399,6 +3399,51 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_fixability_score is below MEDIUM threshold
         mock_run_automation.assert_not_called()
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @with_feature(
+        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
+    )
+    def test_triage_signals_skips_automation_for_old_issues(
+        self,
+        mock_run_automation,
+        mock_generate_summary_and_run_automation,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Test that automation is skipped for issues older than 14 days."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Old issue with >= 10 events
+        group = event.group
+        group.first_seen = timezone.now() - timedelta(days=20)
+        group.times_seen = 1
+        group.save()
+
+        from sentry import buffer
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Automation should be skipped for old issues
+        mock_generate_summary_and_run_automation.assert_not_called()
+        mock_run_automation.assert_not_called()
+
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
