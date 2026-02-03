@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from sentry.models.environment import Environment
 from sentry.utils.cache import cache
-from sentry.workflow_engine.caches.cache_access import CacheAccess
+from sentry.workflow_engine.caches import CacheAccess
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
