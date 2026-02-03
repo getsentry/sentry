@@ -129,15 +129,15 @@ def run_automation_only_task(group_id: int) -> None:
         extra={"org_id": organization.id, "org_slug": organization.slug},
     )
 
-    # Track issue age when running automation
-    issue_age_days = (timezone.now() - group.first_seen).days
-    metrics.distribution("seer.automation.issue_age_since_first_seen", issue_age_days, unit="day")
-
     event = group.get_latest_event()
 
     if not event:
         logger.warning("run_automation_only_task.no_event_found", extra={"group_id": group_id})
         return
+
+    # Track issue age when running automation
+    issue_age_days = (timezone.now() - group.first_seen).days
+    metrics.distribution("seer.automation.issue_age_since_first_seen", issue_age_days, unit="day")
 
     run_automation(
         group=group, user=AnonymousUser(), event=event, source=SeerAutomationSource.POST_PROCESS
