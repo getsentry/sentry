@@ -282,7 +282,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <TextAlignRight>
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
         </TextAlignRight>
       );
     default:

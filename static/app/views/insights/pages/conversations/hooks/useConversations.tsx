@@ -22,11 +22,12 @@ interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
 export interface Conversation {
   conversationId: string;
   duration: number;
+  endTimestamp: number;
   errors: number;
   firstInput: string | null;
   lastOutput: string | null;
   llmCalls: number;
-  timestamp: number;
+  startTimestamp: number;
   toolCalls: number;
   totalCost: number | null;
   totalTokens: number;
