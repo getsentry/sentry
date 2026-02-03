@@ -23,6 +23,7 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 interface Props {
   aggregate: string;
   onChange: (value: string, meta: Record<string, any>) => void;
+  environment?: string | null;
   onLoadingChange?: (isLoading: boolean) => void;
   projectId?: string;
 }
@@ -67,11 +68,17 @@ export default function EAPMetricsField({
   onChange,
   onLoadingChange,
   projectId,
+  environment,
 }: Props) {
   const [search, setSearch] = useState('');
-  const {data: metricOptionsData, isFetching} = useMetricOptions({
+  const {
+    data: metricOptionsData,
+    isFetching,
+    isMetricOptionsEmpty,
+  } = useMetricOptions({
     search,
     projectIds: projectId ? [parseInt(projectId, 10)] : undefined,
+    environments: environment ? [environment] : undefined,
   });
 
   useEffect(() => {
@@ -181,6 +188,8 @@ export default function EAPMetricsField({
     }
   }, [metricOptions, onChange, traceMetric.name]);
 
+  const hasNoMetrics = isMetricOptionsEmpty && !search;
+
   return (
     <Flex gap="md">
       <FlexWrapper>
@@ -193,6 +202,7 @@ export default function EAPMetricsField({
           placeholder={t('Select a metric')}
           noOptionsMessage={() => t('No metrics found')}
           onChange={(option: MetricSelectOption) => handleMetricChange(option)}
+          disabled={hasNoMetrics}
         />
       </FlexWrapper>
       <StyledSelectControl
@@ -201,6 +211,7 @@ export default function EAPMetricsField({
         options={operationOptions}
         value={aggregation}
         onChange={handleOperationChange}
+        disabled={hasNoMetrics || !traceMetric.name}
       />
     </Flex>
   );

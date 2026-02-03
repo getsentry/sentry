@@ -270,6 +270,7 @@ export default function WizardField({
               <EAPMetricsField
                 aggregate={aggregate}
                 projectId={project.id}
+                environment={model.getValue('environment')}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}
