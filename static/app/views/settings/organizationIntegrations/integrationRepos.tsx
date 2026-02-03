@@ -15,6 +15,7 @@ import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +34,9 @@ function IntegrationRepos(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const ENDPOINT = `/organizations/${organization.slug}/repos/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const {
     data: fetchedItemList,

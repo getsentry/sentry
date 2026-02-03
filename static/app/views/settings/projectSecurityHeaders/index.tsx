@@ -13,6 +13,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -27,16 +28,23 @@ function ProjectSecurityHeaders() {
   const organization = useOrganization();
   const routes = useRoutes();
   const params = useParams();
-  const {projectId} = useParams();
+  const {projectId} = useParams<{projectId: string}>();
 
   const {
     data: keyList,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<ProjectKey[]>(
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const reports = useMemo(
     () => [
@@ -67,11 +75,11 @@ function ProjectSecurityHeaders() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Security Headers'), projectId!, false)}
+        title={routeTitleGen(t('Security Headers'), projectId, false)}
       />
       <SettingsPageHeader title={t('Security Header Reports')} />
 
-      <ReportUri keyList={keyList} projectId={projectId!} orgId={organization.slug} />
+      <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
 
       <Panel>
         <PanelHeader>{t('Additional Configuration')}</PanelHeader>
