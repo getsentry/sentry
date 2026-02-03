@@ -11,7 +11,7 @@ import {
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useMetricVisualizes} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import {
@@ -81,7 +81,8 @@ function useMetricAggregatesTableImp({
   queryExtras,
 }: UseMetricAggregatesTableOptions): MetricAggregatesTableResult {
   const {selection} = usePageFilters();
-  const visualize = useMetricVisualize();
+  const visualizes = useMetricVisualizes();
+
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
   const sortBys = useQueryParamsAggregateSortBys();
@@ -97,12 +98,14 @@ function useMetricAggregatesTableImp({
     }
 
     // Add the yAxis aggregate
-    if (visualize.yAxis && !allFields.includes(visualize.yAxis)) {
-      allFields.push(visualize.yAxis);
+    for (const visualize of visualizes) {
+      if (visualize.yAxis && !allFields.includes(visualize.yAxis)) {
+        allFields.push(visualize.yAxis);
+      }
     }
 
     return allFields.filter(Boolean);
-  }, [groupBys, visualize.yAxis]);
+  }, [groupBys, visualizes]);
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
