@@ -461,6 +461,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "trigger_comment_id": None,
                     "trigger_comment_type": None,
                     "trigger_user": None,
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -510,6 +512,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "trigger_comment_id": None,
                     "trigger_comment_type": None,
                     "trigger_user": None,
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -565,6 +569,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -606,6 +612,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -652,6 +660,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
@@ -698,6 +708,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                 "config": {
                     "features": {"bug_prediction": True},
                     "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
                 },
             },
         }
