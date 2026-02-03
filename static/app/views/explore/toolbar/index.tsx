@@ -1,9 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Container} from '@sentry/scraps/layout';
 
-import type {TourRenderProps} from 'sentry/components/tours/components';
-import {defined} from 'sentry/utils';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
@@ -19,11 +15,10 @@ type Extras = 'equations';
 
 interface ExploreToolbarProps {
   extras?: Extras[];
-  tourProps?: TourRenderProps;
   width?: number;
 }
 
-export function ExploreToolbar({extras, width, tourProps}: ExploreToolbarProps) {
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -34,7 +29,6 @@ export function ExploreToolbar({extras, width, tourProps}: ExploreToolbarProps) 
     <Container
       data-test-id="explore-span-toolbar"
       minWidth={typeof width === 'undefined' ? undefined : `${width}px`}
-      {...tourProps}
     >
       <ToolbarVisualize
         visualizes={visualizes}

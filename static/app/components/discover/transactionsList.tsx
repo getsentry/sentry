@@ -207,20 +207,21 @@ function TableRender({
         )}
       >
         {props => (
-          <TransactionsTable
-            tourProps={props}
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            isLoading={isLoading}
-            tableData={tableData}
-            columnOrder={columnOrder}
-            titles={titles}
-            generateLink={generateLink}
-            handleCellAction={handleCellAction}
-            useAggregateAlias={useAggregateAlias}
-            referrer={referrer}
-          />
+          <div {...props}>
+            <TransactionsTable
+              eventView={eventView}
+              organization={organization}
+              location={location}
+              isLoading={isLoading}
+              tableData={tableData}
+              columnOrder={columnOrder}
+              titles={titles}
+              generateLink={generateLink}
+              handleCellAction={handleCellAction}
+              useAggregateAlias={useAggregateAlias}
+              referrer={referrer}
+            />
+          </div>
         )}
       </DemoTourElement>
     </Fragment>

@@ -177,7 +177,9 @@ function SpanTabControlSection({
       >
         {tourProps =>
           controlSectionExpanded && (
-            <ExploreToolbar width={300} extras={toolbarExtras} tourProps={tourProps} />
+            <div {...tourProps}>
+              <ExploreToolbar width={300} extras={toolbarExtras} />
+            </div>
           )
         }
       </TourElement>
