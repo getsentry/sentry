@@ -54,7 +54,7 @@ def main(context: dict[str, str]) -> int:
             not_installed = dpkgs_not_installed(REQUIRED_APT_PKGS)
             if not_installed:
                 raise SystemExit(
-                    f"Please install the following apt packages: {' '.join(REQUIRED_APT_PKGS)}"
+                    f"Please install the following apt packages: {' '.join(not_installed)}"
                 )
     else:
         print(
