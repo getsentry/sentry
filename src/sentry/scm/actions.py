@@ -91,6 +91,11 @@ class SourceCodeManager:
             fetch_service_provider=lambda _, __: provider,
         )
 
+    # Warning: the following is not enforced by tooling:
+    #   To be usable as-is in the RPC endpoint, methods below must
+    #   accept only JSON-serializable arguments, by names, and
+    #   return a JSON-serializable type.
+
     def get_issue_comments(self, issue_id: str) -> list[Comment]:
         """Get comments on an issue."""
         return exec_provider_fn(
