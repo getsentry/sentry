@@ -1,7 +1,7 @@
 import {useId} from 'react';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';

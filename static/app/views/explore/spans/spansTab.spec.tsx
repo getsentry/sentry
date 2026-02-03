@@ -666,5 +666,62 @@ describe('SpansTabContent', () => {
         'true'
       );
     });
+
+    it('disables Attribute Breakdowns tab when cross events are present', () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'performance-spans-suspect-attributes'],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+          },
+        },
+      });
+
+      const attributeBreakdownsTab = screen.getByRole('tab', {
+        name: /Attribute Breakdowns/,
+      });
+      expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('switches from Attribute Breakdowns to Span tab when cross event is added', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'performance-spans-suspect-attributes'],
+        },
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {table: 'attribute_breakdowns'},
+          },
+        },
+      });
+
+      // Initially on Attribute Breakdowns tab
+      expect(screen.getByRole('tab', {name: /Attribute Breakdowns/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Add a cross event
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+      // Should switch to Span tab
+      await waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'Span Samples'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+    });
   });
 });
