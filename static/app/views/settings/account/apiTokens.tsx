@@ -12,6 +12,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   getApiQueryData,
@@ -26,7 +27,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const PAGE_TITLE = t('Personal Tokens');
-const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
+const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
 
 function ApiTokens() {
   const api = useApi();
