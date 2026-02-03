@@ -5,6 +5,7 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -16,6 +17,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import type {
   Artifact,
   Block,
@@ -298,6 +300,7 @@ export function useExplorerAutofix(
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const user = useUser();
   const orgSlug = organization.slug;
 
   const intelligenceLevel = useMemo(() => {
@@ -436,6 +439,14 @@ export function useExplorerAutofix(
     async (runId: number, integration: CodingAgentIntegration) => {
       setWaitingForResponse(true);
 
+      trackAnalytics('coding_integration.send_to_agent_clicked', {
+        organization,
+        group_id: groupId,
+        provider: integration.provider,
+        source: 'explorer',
+        user_id: user.id,
+      });
+
       addLoadingMessage('Launching coding agent...');
 
       const data: Record<string, string | number> = {
@@ -485,7 +496,7 @@ export function useExplorerAutofix(
         setWaitingForResponse(false);
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, queryClient, organization, user.id]
   );
 
   // Clear waiting state when we get a response

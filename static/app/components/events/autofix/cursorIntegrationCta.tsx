@@ -50,6 +50,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
       organization,
       project_slug: project.slug,
       provider: 'cursor',
+      source: 'cta',
       user_id: user.id,
     });
   }, [organization, project.slug, user.id]);
@@ -63,6 +64,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
       organization,
       project_slug: project.slug,
       provider: 'cursor',
+      source: 'cta',
       user_id: user.id,
     });
 
