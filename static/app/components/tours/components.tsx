@@ -550,7 +550,7 @@ function getTourElementStyles(
     return undefined;
   }
 
-  return css`
+  return `
     position: relative;
     z-index: ${theme.zIndex.tour.element};
     user-select: none;
