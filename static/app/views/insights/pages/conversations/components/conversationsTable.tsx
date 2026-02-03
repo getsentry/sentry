@@ -174,7 +174,12 @@ const BodyCell = memo(function BodyCell({
       return (
         <ConversationIdButton
           priority="link"
-          onClick={() => openConversationViewDrawer(dataRow)}
+          onClick={() =>
+            openConversationViewDrawer({
+              conversation: dataRow,
+              source: 'table_conversation_id',
+            })
+          }
         >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
@@ -209,7 +214,9 @@ const BodyCell = memo(function BodyCell({
         <Stack width="100%">
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_input'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -233,7 +240,9 @@ const BodyCell = memo(function BodyCell({
           </InputOutputRow>
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_output'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">

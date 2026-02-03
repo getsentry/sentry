@@ -2,8 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {BarSeriesOption} from 'echarts';
 
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

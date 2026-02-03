@@ -2,8 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Prose} from '@sentry/scraps/text';
 
