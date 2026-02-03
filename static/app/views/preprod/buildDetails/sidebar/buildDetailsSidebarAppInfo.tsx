@@ -24,6 +24,7 @@ import {
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
+  isInstallable: boolean;
   projectId: string | null;
 }
 
@@ -115,6 +116,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                   artifactId={props.artifactId}
                   platform={props.appInfo.platform ?? null}
                   source="build_details_sidebar"
+                  disabled={!props.isInstallable}
                 />
               ) : null}
             </Text>
