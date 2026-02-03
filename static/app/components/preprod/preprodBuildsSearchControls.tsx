@@ -2,6 +2,7 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {MOBILE_BUILDS_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
@@ -30,6 +31,12 @@ interface PreprodBuildsSearchControlsProps {
    */
   projects: number[];
   /**
+   * List of attribute keys to show in the search bar. When provided, only these
+   * keys will be available. When omitted, all keys except HIDDEN_PREPROD_ATTRIBUTES
+   * are shown.
+   */
+  allowedKeys?: string[];
+  /**
    * Called on every keystroke (for controlled input with debounce)
    */
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
@@ -47,6 +54,7 @@ export function PreprodBuildsSearchControls({
   initialQuery,
   display,
   projects,
+  allowedKeys = MOBILE_BUILDS_ALLOWED_KEYS,
   onChange,
   onSearch,
   onDisplayChange,
@@ -66,6 +74,7 @@ export function PreprodBuildsSearchControls({
       <Container flex="1">
         <PreprodSearchBar
           initialQuery={initialQuery}
+          allowedKeys={allowedKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}
