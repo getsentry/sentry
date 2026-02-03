@@ -1,4 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   TourAction,
@@ -38,38 +38,6 @@ describe('Tour Components', () => {
         </TourContextProvider>
       );
       expect(screen.getByText('Child Content')).toBeInTheDocument();
-    });
-
-    it('does render blur based on omitBlur', () => {
-      mockUseTourReducer.mockReturnValue({
-        ...emptyTourContext,
-        isRegistered: true,
-        currentStepId: TestTour.NAME,
-      });
-      const {container: blurContainer} = render(
-        <TourContextProvider<TestTour>
-          isCompleted={false}
-          orderedStepIds={ORDERED_TEST_TOUR}
-          TourContext={TestTourContext}
-        >
-          <div>Child Content</div>
-        </TourContextProvider>
-      );
-      expect(within(blurContainer).getByTestId('tour-blur-window')).toBeInTheDocument();
-
-      const {container: noBlurContainer} = render(
-        <TourContextProvider<TestTour>
-          isCompleted={false}
-          orderedStepIds={ORDERED_TEST_TOUR}
-          TourContext={TestTourContext}
-          omitBlur
-        >
-          <div>Child Content</div>
-        </TourContextProvider>
-      );
-      expect(
-        within(noBlurContainer).queryByTestId('tour-blur-window')
-      ).not.toBeInTheDocument();
     });
 
     it('just updates the assistant when opened', async () => {

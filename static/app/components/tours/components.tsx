@@ -47,10 +47,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * Whether to omit the blurring window.
-   */
-  omitBlur?: boolean;
-  /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
   onEndTour?: () => void;
@@ -77,7 +73,6 @@ export function TourContextProvider<T extends TourEnumType>({
   isCompleted,
   tourKey,
   TourContext,
-  omitBlur,
   orderedStepIds,
   onEndTour,
   onStartTour,
@@ -138,7 +133,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <TourContext value={tourContextValue}>
-      {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
+      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </TourContext>
   );

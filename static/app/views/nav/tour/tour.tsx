@@ -251,6 +251,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
+  const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useStackedNavigationTour();
@@ -258,7 +259,6 @@ export function useTourModal() {
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
-  const user = useUser();
   const [localTourState, setLocalTourState] = useLocalStorageState(
     STACKED_NAVIGATION_TOUR_GUIDE_KEY,
     {hasSeen: false}
