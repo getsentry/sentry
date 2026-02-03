@@ -352,6 +352,10 @@ class SeerExplorerClient:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
 
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
+
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
             payload["conduit_channel_id"] = conduit_channel_id
