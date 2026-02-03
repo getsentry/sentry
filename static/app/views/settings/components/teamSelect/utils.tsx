@@ -109,7 +109,6 @@ export function DropdownAddTeam({
             onClick={() => {
               openCreateTeamModal({
                 organization,
-                project,
                 onClose: onCreateTeam,
               });
               closeOverlay();

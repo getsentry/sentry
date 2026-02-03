@@ -12,8 +12,7 @@ interface Props extends ModalRenderProps {
   onClose?: (team: Team) => void;
 }
 
-function CreateTeamModal({Body, Header, ...props}: Props) {
-  const {onClose, closeModal, organization} = props;
+function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Props) {
   const api = useApi();
 
   const handleSubmit: React.ComponentProps<typeof CreateTeamForm>['onSubmit'] = async (
@@ -34,9 +33,11 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
 
   return (
     <Fragment>
-      <Header closeButton>{t('Create Team')}</Header>
+      <Header closeButton>
+        <h5>{t('Create Team')}</h5>
+      </Header>
       <Body>
-        <CreateTeamForm {...props} onSubmit={handleSubmit} />
+        <CreateTeamForm organization={organization} onSubmit={handleSubmit} />
       </Body>
     </Fragment>
   );

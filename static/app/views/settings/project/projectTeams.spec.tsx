@@ -301,7 +301,7 @@ describe('ProjectTeams', () => {
     renderGlobalModal();
     const modal = await screen.findByRole('dialog');
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Slug'}), 'new-team');
     await userEvent.click(within(modal).getByRole('button', {name: 'Create Team'}));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
