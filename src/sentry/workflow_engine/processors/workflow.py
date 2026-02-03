@@ -12,7 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.caches.workflow import get_cached_workflows
+from sentry.workflow_engine.caches.workflow import get_workflows_by_detector
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -378,43 +378,6 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
-@scopedstats.timer()
-def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None, event_data: WorkflowEventData
-) -> set[Workflow]:
-    """
-    This is a wrapper method to get the workflows associated with a detector and environment.
-    Used in process_workflows to wrap the query + logging into a single method
-    """
-    workflows = get_cached_workflows(detector, environment)
-
-    if workflows:
-        metrics_incr(
-            "process_workflows",
-            len(workflows),
-        )
-
-        event_id = (
-            event_data.event.event_id
-            if isinstance(event_data.event, GroupEvent)
-            else event_data.event.id
-        )
-        logger.debug(
-            "workflow_engine.process_workflows",
-            extra={
-                "payload": event_data,
-                "group_id": event_data.group.id,
-                "event_id": event_id,
-                "event_data": asdict(event_data),
-                "event_environment_id": environment.id if environment else None,
-                "workflows": [workflow.id for workflow in workflows],
-                "detector_types": detector_types,
-            },
-        )
-
-    return workflows
-
-
 @log_context.root()
 def process_workflows(
     batch_client: DelayedWorkflowClient,
@@ -487,7 +450,11 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(event_detectors.detectors, environment, event_data)
+    workflows = get_workflows_by_detector(detector, environment)
+
+    if workflows:
+        metrics_incr("process_workflows", len(workflows))
+
     workflow_evaluation_data.workflows = workflows
 
     if not workflows:

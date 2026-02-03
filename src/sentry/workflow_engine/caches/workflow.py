@@ -6,6 +6,7 @@ from sentry.models.environment import Environment
 from sentry.utils.cache import cache
 from sentry.workflow_engine.caches import CacheAccess
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 # Cache timeout for 1 minute
@@ -25,6 +26,7 @@ class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
         return self._key
 
 
+@scopedstats.timer()
 def invalidate_processing_workflows(
     detector_id: int, env_id: int | None | Literal["default"] = DEFAULT_VALUE
 ) -> bool:
@@ -71,7 +73,8 @@ def invalidate_processing_workflows(
     return len(keys) > 0
 
 
-def get_cached_workflows(detector: Detector, environment: Environment | None) -> set[Workflow]:
+@scopedstats.timer()
+def get_workflows_by_detector(detector: Detector, environment: Environment | None) -> set[Workflow]:
     env_id = environment.id if environment is not None else None
     cache_access = _WorkflowCacheAccess(detector.id, env_id)
     workflows = cache_access.get()
