@@ -149,6 +149,11 @@ export function useMetricLabel(): string {
   return `${visualize.parsedFunction.name}(${metric.name})`;
 }
 
+export function useTraceMetric(): TraceMetric {
+  const {metric} = useTraceMetricContext();
+  return metric;
+}
+
 export function useSetTraceMetric() {
   const {setTraceMetric} = useTraceMetricContext();
   return setTraceMetric;

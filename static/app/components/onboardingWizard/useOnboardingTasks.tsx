@@ -9,6 +9,7 @@ import {
   type OnboardingTask,
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -56,22 +57,31 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
 
   const {data: serverTasks = {onboardingTasks: []}, refetch} = useApiQuery<{
     onboardingTasks: OnboardingTaskStatus[];
-  }>([`/organizations/${organization.slug}/onboarding-tasks/`], {
-    staleTime: 0,
-    enabled:
-      !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
-    refetchInterval: query => {
-      const data = query.state.data?.[0]?.onboardingTasks;
-      if (!data) {
-        return false;
-      }
+  }>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled:
+        !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
+      refetchInterval: query => {
+        const data = query.state.data?.[0]?.onboardingTasks;
+        if (!data) {
+          return false;
+        }
 
-      const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
+        const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
 
-      // Stop polling if all tasks are complete
-      return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
-    },
-  });
+        // Stop polling if all tasks are complete
+        return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
+      },
+    }
+  );
 
   const mergedTasks = mergeTasks({
     supportedTasks,
