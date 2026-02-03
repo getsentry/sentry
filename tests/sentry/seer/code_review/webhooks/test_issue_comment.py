@@ -170,3 +170,5 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_at"] == datetime(
                 2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc
             )
+            # trigger_received_at is set to current time when transform happens
+            assert isinstance(payload["data"]["config"]["trigger_received_at"], datetime)

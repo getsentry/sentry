@@ -257,6 +257,9 @@ class TestTransformWebhookToCodegenRequest:
             result["data"]["config"]["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
         )
         assert result["data"]["config"]["trigger_at"] == "2024-01-15T10:30:00Z"
+        # trigger_received_at is set to current time when transform happens
+        assert isinstance(result["data"]["config"]["trigger_received_at"], str)
+        datetime.fromisoformat(result["data"]["config"]["trigger_received_at"])
 
     def test_issue_comment_on_pr(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -296,6 +299,9 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
         assert config["trigger_at"] == "2024-01-15T14:00:00Z"
+        # trigger_received_at is set to current time when transform happens
+        assert isinstance(config["trigger_received_at"], str)
+        datetime.fromisoformat(config["trigger_received_at"])
 
     def test_invalid_repo_name_format_raises(
         self, setup_entities: tuple[User, Organization, Project, Repository]
