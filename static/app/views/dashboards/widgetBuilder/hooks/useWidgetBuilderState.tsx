@@ -471,6 +471,42 @@ function useWidgetBuilderState(): {
               options
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
+            setLimit(undefined, options);
+          } else if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
+            // Categorical bar charts need both an X-axis field and aggregate
+            setYAxis([], options);
+
+            const categoricalBarFields: Column[] = [];
+            // Add X-axis field from dataset config
+            if (config.defaultCategoryField) {
+              categoricalBarFields.push({
+                kind: FieldValueKind.FIELD,
+                field: config.defaultCategoryField,
+              });
+            }
+            // Add aggregate from dataset config
+            if (config.defaultField) {
+              categoricalBarFields.push({
+                ...config.defaultField,
+                alias: undefined,
+              });
+            }
+            setFields(categoricalBarFields, options);
+
+            // Sort by the aggregate descending
+            const aggregateField = categoricalBarFields.find(
+              f => f.kind === FieldValueKind.FUNCTION
+            );
+            if (aggregateField) {
+              setSort(
+                [{kind: 'desc', field: generateFieldAsString(aggregateField)}],
+                options
+              );
+            } else {
+              setSort([], options);
+            }
+            // Fetch more rows than displayed to ensure accurate data
+            setLimit(20, options);
           } else {
             setYAxis([], options);
             setFields(
@@ -483,13 +519,13 @@ function useWidgetBuilderState(): {
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
             );
+            setLimit(undefined, options);
           }
 
           setThresholds(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
-          setLimit(undefined, options);
           setLinkedDashboards([], options);
           break;
         }

@@ -2267,5 +2267,70 @@ describe('useWidgetBuilderState', () => {
         expect.anything()
       );
     });
+
+    it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            dataset: WidgetType.SPANS,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'browser.name'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', 'span.duration', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ERRORS,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Each state setter makes a separate navigate call - check each one
+      // Should set default X-axis field and aggregate for new dataset
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            // Errors dataset defaults: transaction (X-axis) + count_unique(user) (aggregate)
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count_unique', 'user', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count_unique(user)'],
+          }),
+        }),
+        expect.anything()
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            limit: 20,
+          }),
+        }),
+        expect.anything()
+      );
+    });
   });
 });
