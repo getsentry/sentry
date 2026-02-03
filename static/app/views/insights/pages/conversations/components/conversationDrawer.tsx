@@ -50,7 +50,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       setConversationDrawerQueryState({
         spanId: node.id,
       });
-      trackAnalytics('agent-monitoring.conversation-drawer.span-select', {
+      trackAnalytics('conversations.drawer.span-select', {
         organization,
       });
     },
@@ -118,7 +118,7 @@ export function useConversationViewDrawer({
 
   const openConversationViewDrawer = useCallback(
     (conversation: UseConversationsOptions, initialSpanId?: string) => {
-      trackAnalytics('agent-monitoring.conversation-drawer.open', {
+      trackAnalytics('conversations.drawer.open', {
         organization,
       });
 
@@ -168,6 +168,20 @@ function ConversationView({
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
+  const handleTabChange = useCallback(
+    (newTab: ConversationTab) => {
+      if (activeTab !== newTab) {
+        trackAnalytics('conversations.drawer.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: newTab,
+        });
+      }
+      setActiveTab(newTab);
+    },
+    [organization, activeTab]
+  );
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" flex="1" height="100%">
@@ -189,7 +203,7 @@ function ConversationView({
       <LeftPanel>
         <StyledTabs
           value={activeTab}
-          onChange={key => setActiveTab(key as ConversationTab)}
+          onChange={key => handleTabChange(key as ConversationTab)}
         >
           <Container padding="xs lg">
             <TabList>
