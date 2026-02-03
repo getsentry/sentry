@@ -118,7 +118,7 @@ export function ConversationSummary({
       <StatsRow>
         <StatItem
           icon={
-            <span style={{color: colors[2]}}>
+            <span style={{color: colors[2], display: 'flex'}}>
               <IconChat size="sm" />
             </span>
           }
@@ -129,7 +129,7 @@ export function ConversationSummary({
         />
         <StatItem
           icon={
-            <span style={{color: colors[5]}}>
+            <span style={{color: colors[5], display: 'flex'}}>
               <IconFix size="sm" />
             </span>
           }
@@ -140,7 +140,7 @@ export function ConversationSummary({
         />
         <StatItem
           icon={
-            <span style={{color: colors[6]}}>
+            <span style={{color: colors[6], display: 'flex'}}>
               <IconFire size="sm" />
             </span>
           }
