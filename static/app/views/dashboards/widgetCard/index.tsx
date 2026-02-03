@@ -180,7 +180,6 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     useTimeseriesVisualization,
-    showLegendBreakdown,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -354,7 +353,6 @@ function WidgetCard(props: Props) {
               renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
-              showLegendBreakdown={showLegendBreakdown}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
