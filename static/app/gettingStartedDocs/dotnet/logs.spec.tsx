@@ -6,19 +6,18 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from '.';
 
-describe('python logs onboarding docs', () => {
+describe('dotnet logs onboarding docs', () => {
   it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.LOGS],
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/enable_logs=True/))
+      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
-    expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
@@ -26,13 +25,13 @@ describe('python logs onboarding docs', () => {
       selectedProducts: [],
     });
 
-    expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Install'})).toBeInTheDocument();
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True/))
+      screen.queryByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).not.toBeInTheDocument();
   });
 });
