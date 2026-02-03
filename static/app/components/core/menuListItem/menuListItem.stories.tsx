@@ -1,4 +1,4 @@
-import documentation from '!!type-loader!sentry/components/core/menuListItem';
+import documentation from '!!type-loader!@sentry/scraps/menuListItem';
 import styled from '@emotion/styled';
 
 import {MenuListItem} from '@sentry/scraps/menuListItem';

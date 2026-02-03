@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';

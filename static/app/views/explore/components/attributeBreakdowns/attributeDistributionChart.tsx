@@ -1,9 +1,9 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
 import {IconExpand} from 'sentry/icons';
