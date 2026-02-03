@@ -139,6 +139,9 @@ def assemble_preprod_artifact(
         return
 
     try:
+        # Note: requested_features is no longer used for filtering - all features are
+        # requested here, and the actual quota/filter checks happen in the update endpoint
+        # (project_preprod_artifact_update.py) after preprocessing completes.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
