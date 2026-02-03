@@ -1,6 +1,6 @@
 from typing import Literal, Protocol, TypedDict
 
-type ProviderName = Literal["bitbucket", "github", "github-enterprise", "gitlab"]
+type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type ExternalId = str
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
 type Referrer = Literal["emerge", "shared"]

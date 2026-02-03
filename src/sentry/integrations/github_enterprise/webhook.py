@@ -330,7 +330,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 },
                 "received_at": int(time.time()),
                 "sentry_meta": None,
-                "type": "github-enterprise",
+                "type": "github_enterprise",
             }
         )
 
