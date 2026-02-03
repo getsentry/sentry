@@ -380,6 +380,7 @@ const MessageBubble = styled('div')<{
   isSelected?: boolean;
 }>`
   position: relative;
+  z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
@@ -394,6 +395,8 @@ const MessageBubble = styled('div')<{
     inset: 0;
     border: 1px solid ${p => p.theme.tokens.border.primary};
     border-radius: inherit;
+    box-sizing: border-box;
+    z-index: 1;
     pointer-events: none;
   }
   ${p =>
@@ -413,8 +416,13 @@ const MessageBubble = styled('div')<{
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
-    outline-offset: -2px;
+    &::after {
+      border-color: ${p.theme.tokens.focus.default};
+      border-width: 2px;
+    }
+    &:hover::after {
+      border-color: ${p.theme.tokens.focus.default};
+    }
   `}
 `;
 
