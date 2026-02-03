@@ -215,7 +215,7 @@ function _getWidgetExploreUrl(
         : widget.queries[0]!.aggregates
       )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
-  ].slice(0, 3);
+  ];
 
   const chartType = getChartType(widget.displayType);
   let exploreMode: Mode | undefined = preferMode;
