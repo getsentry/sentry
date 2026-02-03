@@ -8,8 +8,8 @@ from sentry.users.models import User
 @control_silo_test
 @override_settings(SENTRY_SELF_HOSTED=True)
 class BackfillSelfHostedSentryAppEmailsTest(TestMigrations):
-    migrate_from = "1015_backfill_self_hosted_sentry_app_emails"
-    migrate_to = "1016_delete_never_active_users_without_emails_self_hosted"
+    migrate_from = "1023_add_commitcomparison_unique_constraints"
+    migrate_to = "1024_delete_never_active_users_without_emails_self_hosted"
     connection = "control"
 
     def setup_before_migration(self, apps):

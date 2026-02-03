@@ -46,7 +46,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1015_backfill_self_hosted_sentry_app_emails"),
+        ("sentry", "1023_add_commitcomparison_unique_constraints"),
     ]
 
     operations = [
