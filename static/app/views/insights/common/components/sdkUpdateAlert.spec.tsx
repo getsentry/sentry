@@ -170,11 +170,10 @@ describe('SDKUpdateAlert', () => {
       ],
     });
 
-    expect(sdkUpdatesResponse).not.toHaveBeenCalled();
-
     const {container} = render(<SDKUpdateAlert />, {organization});
 
     expect(container).toBeEmptyDOMElement();
+    expect(sdkUpdatesResponse).not.toHaveBeenCalled();
   });
 
   it('dismisses alert and saves to localStorage when dismiss button is clicked', async () => {
