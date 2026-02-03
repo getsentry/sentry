@@ -257,8 +257,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_at"] == datetime(
                 2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc
             )
-            # trigger_received_at is set to current time when transform happens
-            assert isinstance(payload["data"]["config"]["trigger_received_at"], datetime)
+            # sentry_received_trigger_at is set to current time when transform happens
+            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:

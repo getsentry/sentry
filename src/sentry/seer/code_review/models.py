@@ -50,7 +50,7 @@ class SeerCodeReviewConfig(BaseModel):
     trigger_user: str | None = None
     trigger_user_id: int | None = None
     trigger_at: datetime
-    trigger_received_at: datetime  # When Sentry received the webhook
+    sentry_received_trigger_at: datetime  # When Sentry received the webhook
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)

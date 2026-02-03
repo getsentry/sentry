@@ -274,7 +274,7 @@ def transform_issue_comment_to_codegen_request(
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
     config["trigger_at"] = trigger_metadata["trigger_at"]
-    config["trigger_received_at"] = datetime.now(timezone.utc).isoformat()
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
@@ -316,7 +316,7 @@ def transform_pull_request_to_codegen_request(
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
     config["trigger_at"] = trigger_metadata["trigger_at"]
-    config["trigger_received_at"] = datetime.now(timezone.utc).isoformat()
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
