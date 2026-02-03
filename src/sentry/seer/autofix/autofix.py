@@ -45,6 +45,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.snuba import UnqualifiedQueryError
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +250,12 @@ def _get_trace_tree_for_event(
                 "project_id": project.id,
                 "timeout": timeout,
             },
+        )
+        return None
+    except UnqualifiedQueryError:
+        logger.info(
+            "[Autofix] Skipping trace fetch: no projects with event data",
+            extra={"event_id": event.event_id, "trace_id": trace_id, "project_id": project.id},
         )
         return None
     except Exception:
