@@ -252,25 +252,21 @@ def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
     enforce_config_schema(instance)
 
 
-@receiver(post_save, sender=Detector)
-def invalidate_detector_cache_on_save(sender, instance: Detector, **kwargs):
+def _schedule_detector_cache_invalidation(instance: Detector) -> None:
     data_sources = list(instance.data_sources.values_list("source_id", "type"))
 
     def invalidate_cache():
         for source_id, source_type in data_sources:
             invalidate_detectors_by_data_source_cache(source_id, source_type)
 
-    # Ensure invalidation only happens if save commits.
     transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+
+
+@receiver(post_save, sender=Detector)
+def invalidate_detector_cache_on_save(sender, instance: Detector, **kwargs):
+    _schedule_detector_cache_invalidation(instance)
 
 
 @receiver(pre_delete, sender=Detector)
 def invalidate_detector_cache_on_delete(sender, instance: Detector, **kwargs):
-    data_sources = list(instance.data_sources.values_list("source_id", "type"))
-
-    def invalidate_cache():
-        for source_id, source_type in data_sources:
-            invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-    # Ensure invalidation only happens if delete commits.
-    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+    _schedule_detector_cache_invalidation(instance)
