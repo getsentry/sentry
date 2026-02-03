@@ -4,6 +4,7 @@ import {logger} from '@sentry/react';
 import {type ApiResult} from 'sentry/api';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -151,7 +152,9 @@ function useLogsQueryKey({
     frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${endpointSuffix}/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/${endpointSuffix}/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     params,
   ];
 
@@ -393,7 +396,11 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinite'];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+  'infinite',
+];
 
 export function useInfiniteLogsQuery({
   disabled,
