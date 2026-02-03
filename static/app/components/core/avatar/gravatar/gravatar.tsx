@@ -33,8 +33,6 @@ export function Gravatar({
   const avatarHash = useGravatarHash(gravatarId);
 
   if (avatarHash === null) {
-    // @TODO(jonasbadalic): Do we need a placeholder here?
-    Sentry.captureMessage('Gravatar: avatar hash is undefined');
     return null;
   }
 
@@ -65,11 +63,7 @@ function useGravatarHash(gravatarId: string) {
       return;
     }
 
-    if (
-      !!window.crypto &&
-      !!window.crypto.subtle &&
-      typeof window.crypto.subtle.digest === 'undefined'
-    ) {
+    if (typeof window.crypto?.subtle?.digest === 'undefined') {
       return;
     }
 
