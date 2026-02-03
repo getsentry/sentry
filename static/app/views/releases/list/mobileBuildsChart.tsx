@@ -100,6 +100,9 @@ export function MobileBuildsChart({
       const data: Array<{name: number; value: number}> = [];
 
       sortedBuilds.forEach(build => {
+        if (!isSizeInfoCompleted(build.size_info)) {
+          return;
+        }
         const mainMetric = getMainArtifactSizeMetric(build.size_info);
         if (!mainMetric) {
           return;
