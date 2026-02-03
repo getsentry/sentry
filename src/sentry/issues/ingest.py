@@ -342,6 +342,7 @@ def save_issue_from_occurrence(
                 reason=PriorityChangeReason.ISSUE_PLATFORM,
                 project=project,
                 is_regression=is_regression,
+                event_id=occurrence.event_id,
             )
 
             open_period = get_latest_open_period(group)

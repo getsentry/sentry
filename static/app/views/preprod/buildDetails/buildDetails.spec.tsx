@@ -337,7 +337,8 @@ describe('BuildDetails', () => {
     });
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
+    // First call returns PENDING state - shows queued message
+    expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
 
     await waitFor(
       () => {
@@ -346,7 +347,7 @@ describe('BuildDetails', () => {
       {timeout: 12000}
     );
 
-    // Still showing processing state (not completed yet)
+    // Second call returns PROCESSING state - shows processing message
     expect(screen.getByText('Running size analysis')).toBeInTheDocument();
 
     // Size analysis should not be refetched since we're still processing
@@ -432,7 +433,7 @@ describe('BuildDetails', () => {
       });
 
       expect(
-        await screen.findByText("You've exceeded your size analysis quota.")
+        await screen.findByText(/You've exceeded your Size Analysis quota/)
       ).toBeInTheDocument();
     });
 
@@ -471,7 +472,7 @@ describe('BuildDetails', () => {
       });
 
       expect(
-        await screen.findByText("You've exceeded your build distribution quota.")
+        await screen.findByText(/You've exceeded your Build Distribution quota/)
       ).toBeInTheDocument();
     });
 
@@ -511,7 +512,7 @@ describe('BuildDetails', () => {
 
       expect(
         await screen.findByText(
-          "You've exceeded your size analysis and build distribution quota."
+          /You've exceeded your Size Analysis and Build Distribution quota/
         )
       ).toBeInTheDocument();
     });

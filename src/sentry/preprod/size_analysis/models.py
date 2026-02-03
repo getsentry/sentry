@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.insight_models import (
@@ -31,6 +32,7 @@ from sentry.preprod.size_analysis.insight_models import (
 
 
 class AndroidInsightResults(BaseModel):
+    platform: Literal["android"] = "android"
     duplicate_files: DuplicateFilesInsightResult | None = None
     webp_optimization: WebPOptimizationInsightResult | None = None
     large_images: LargeImageFileInsightResult | None = None
@@ -41,6 +43,7 @@ class AndroidInsightResults(BaseModel):
 
 
 class AppleInsightResults(BaseModel):
+    platform: Literal["apple"] = "apple"
     duplicate_files: DuplicateFilesInsightResult | None = None
     large_images: LargeImageFileInsightResult | None = None
     large_audios: LargeAudioFileInsightResult | None = None
@@ -78,6 +81,7 @@ class TreemapElement(BaseModel):
     """ Some files (like zip files) are not directories but have children. """
     children: list[TreemapElement]
     misc: TreemapElementMisc | None = None
+    flagged_insights: list[str] = []
 
 
 class TreemapResults(BaseModel):
@@ -134,7 +138,10 @@ class SizeAnalysisResults(BaseModel):
     download_size: int
     install_size: int
     treemap: TreemapResults | None = None
-    insights: AndroidInsightResults | AppleInsightResults | None = None
+    insights: (
+        Annotated[AndroidInsightResults | AppleInsightResults, Field(discriminator="platform")]
+        | None
+    ) = None
     analysis_version: str | None = None
     file_analysis: FileAnalysis | None = None
     app_components: list[AppComponent] | None = None

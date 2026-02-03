@@ -2,7 +2,9 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
@@ -99,7 +101,11 @@ function Event({
       onShowSnippet={() => {}}
     />
   ));
-  const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
+  const title = (
+    <Container maxHeight="80vh" overflow="auto">
+      {buttons}
+    </Container>
+  );
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
@@ -213,9 +219,4 @@ const IconNode = styled('button')<{
   ${getBackgroundGradient}
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
-`;
-
-const TooltipWrapper = styled('div')`
-  max-height: 80vh;
-  overflow: auto;
 `;

@@ -1422,77 +1422,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
 
-    def test_integrity_error(self) -> None:
+    def test_duplicate_title_auto_increments(self) -> None:
         response = self.do_request("post", self.url, data={"title": self.dashboard.title})
-        assert response.status_code == 409
-        assert response.data == "Dashboard title already taken"
-
-    def test_duplicate_dashboard(self) -> None:
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": self.dashboard.title, "duplicate": True},
-        )
+        response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
     def test_many_duplicate_dashboards(self) -> None:
         title = "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "My Awesome Dashboard copy"
 
         for i in range(1, 10):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": title, "duplicate": True},
-            )
-
+            response = self.do_request("post", self.url, data={"title": title})
             assert response.status_code == 201, response.data
             assert response.data["title"] == f"My Awesome Dashboard copy {i}"
 
     def test_duplicate_a_duplicate(self) -> None:
         title = "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 3"
 
-        response = self.do_request(
-            "post",
-            self.url,
-            data={"title": title, "duplicate": True},
-        )
-
+        response = self.do_request("post", self.url, data={"title": title})
         assert response.status_code == 201, response.data
         assert response.data["title"] == "An Amazing Dashboard copy 4"
 

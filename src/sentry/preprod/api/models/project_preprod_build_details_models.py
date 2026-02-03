@@ -17,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class Platform(StrEnum):
-    IOS = "ios"
+    APPLE = "apple"
     ANDROID = "android"
-    MACOS = "macos"
 
 
 class AppleAppInfo(BaseModel):
@@ -126,8 +125,16 @@ class SizeInfoFailed(BaseModel):
     error_message: str
 
 
+class SizeInfoNotRan(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+    )
+    error_code: int
+    error_message: str
+
+
 SizeInfo = Annotated[
-    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed,
+    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed | SizeInfoNotRan,
     Field(discriminator="state"),
 ]
 
@@ -149,7 +156,7 @@ class BuildDetailsApiResponse(BaseModel):
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
     match artifact_type:
         case PreprodArtifact.ArtifactType.XCARCHIVE:
-            return Platform.IOS
+            return Platform.APPLE
         case PreprodArtifact.ArtifactType.AAB:
             return Platform.ANDROID
         case PreprodArtifact.ArtifactType.APK:
@@ -166,7 +173,7 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         platform = platform_from_artifact_type(artifact.artifact_type)
 
     apple_app_info = None
-    if platform == Platform.IOS or platform == Platform.MACOS:
+    if platform == Platform.APPLE:
         legacy_missing_dsym_binaries = (
             artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
         )
@@ -264,6 +271,12 @@ def to_size_info(
             if error_code is None or error_message is None:
                 raise ValueError("FAILED state requires both error_code and error_message")
             return SizeInfoFailed(error_code=error_code, error_message=error_message)
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
+            if error_code is None or error_message is None:
+                raise ValueError("NOT_RAN state requires both error_code and error_message")
+            return SizeInfoNotRan(error_code=error_code, error_message=error_message)
         case _:
             raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 

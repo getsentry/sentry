@@ -3,14 +3,14 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -406,7 +406,11 @@ export function MetricDetectorChart({
           value={selectedTimePeriod}
           onChange={opt => setSelectedTimePeriod(opt.value)}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless prefix={t('Display')} />
+            <OverlayTrigger.Button
+              {...triggerProps}
+              priority="transparent"
+              prefix={t('Display')}
+            />
           )}
         />
       </ChartFooter>

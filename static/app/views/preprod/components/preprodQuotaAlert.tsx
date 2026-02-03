@@ -1,10 +1,11 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function PreprodQuotaAlert() {
+export function PreprodQuotaAlert({system}: {system?: boolean}) {
   const organization = useOrganization();
 
   const {data: quotaData} = useApiQuery<{
@@ -19,23 +20,30 @@ export function PreprodQuotaAlert() {
     return null;
   }
 
-  let message: string;
+  let quotaType: string;
 
   if (!quotaData.hasSizeQuota && !quotaData.hasDistributionQuota) {
-    message = t("You've exceeded your size analysis and build distribution quota.");
+    quotaType = t('Size Analysis and Build Distribution');
   } else if (quotaData.hasSizeQuota) {
-    message = t("You've exceeded your build distribution quota.");
+    quotaType = t('Build Distribution');
   } else {
-    message = t("You've exceeded your size analysis quota.");
+    quotaType = t('Size Analysis');
   }
+
+  const link = quotaData.hasSizeQuota
+    ? 'https://sentry.io/pricing/'
+    : 'https://docs.sentry.io/pricing/#size-analysis';
 
   return (
     <Alert.Container>
-      <Alert variant="warning" system>
-        {tct('[message] [link:Get more.]', {
-          message,
-          link: <ExternalLink href="https://sentry.io/pricing/" />,
-        })}
+      <Alert variant="warning" system={system}>
+        {tct(
+          "You've exceeded your [quotaType] quota. See details on getting more quota in the [link:pricing docs].",
+          {
+            quotaType,
+            link: <ExternalLink href={link} />,
+          }
+        )}
       </Alert>
     </Alert.Container>
   );

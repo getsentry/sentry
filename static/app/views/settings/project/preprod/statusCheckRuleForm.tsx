@@ -1,14 +1,16 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {NumberInput} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
@@ -29,6 +31,7 @@ interface Props {
 }
 
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
+  const {project} = useProjectSettingsOutlet();
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
   const displayUnit = getDisplayUnit(measurement);
@@ -36,14 +39,21 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
 
+  const currentValueInBytes =
+    displayUnit === '%' ? displayValue : mbToBytes(displayValue);
+  const isDirty =
+    metric !== rule.metric ||
+    measurement !== rule.measurement ||
+    currentValueInBytes !== rule.value ||
+    filterQuery !== (rule.filterQuery ?? '');
+
   const handleSave = () => {
-    const valueInBytes = displayUnit === '%' ? displayValue : mbToBytes(displayValue);
     onSave({
       ...rule,
       filterQuery,
       measurement,
       metric,
-      value: valueInBytes,
+      value: currentValueInBytes,
     });
   };
 
@@ -106,6 +116,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
         <SectionLabel>{t('For')}</SectionLabel>
         <PreprodSearchBar
           initialQuery={filterQuery}
+          projects={[Number(project.id)]}
           onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
           portalTarget={document.body}
@@ -122,7 +133,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave}>
+        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

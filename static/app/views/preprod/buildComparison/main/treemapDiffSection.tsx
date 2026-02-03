@@ -199,11 +199,10 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
     },
     formatter: function (params: any) {
       const sizeDiff = params.data?.size_diff || 0;
-      const diffType = params.data?.diff_type || 'unchanged';
-      const diffCategoryInfo = getAppSizeDiffCategoryInfo(theme)[diffType];
-      if (!diffCategoryInfo) {
-        throw new Error(`Diff type ${diffType} not found`);
-      }
+      const diffType = params.data?.diff_type;
+      const diffCategoryInfo = diffType
+        ? getAppSizeDiffCategoryInfo(theme)[diffType]
+        : null;
 
       const diffString = formattedSizeDiff(sizeDiff);
       let tagType: TagType = 'muted';
@@ -219,7 +218,11 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
             <Text bold>{params.name}</Text>
           </Flex>
           {params.data?.path ? <Text size="sm">{params.data.path}</Text> : null}
-          <Tag variant={tagType}>{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          {diffCategoryInfo ? (
+            <Tag
+              variant={tagType}
+            >{`${diffString} (${diffCategoryInfo.displayName})`}</Tag>
+          ) : null}
         </Stack>
       );
     },

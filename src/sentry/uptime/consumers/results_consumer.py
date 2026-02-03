@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+import base64
 import logging
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from uuid import UUID
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_DISALLOWED_BY_ROBOTS,
+    CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
+    CHECKSTATUS_SUCCESS,
     CheckResult,
 )
 
 from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.locks import locks
+from sentry.models.files.file import File
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -23,6 +28,8 @@ from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
 from sentry.uptime.models import (
+    RESPONSE_BODY_SEPARATOR,
+    UptimeResponseCapture,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_detector,
@@ -33,6 +40,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
     delete_uptime_subscription,
     disable_uptime_detector,
+    set_response_capture_enabled,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
@@ -45,6 +53,7 @@ from sentry.uptime.utils import (
     build_backlog_task_scheduled_key,
     build_last_interval_change_timestamp_key,
     build_last_update_key,
+    generate_scheduled_check_times_ms,
     get_cluster,
 )
 from sentry.utils import json, metrics
@@ -69,6 +78,93 @@ TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
 # The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
 MAX_SYNTHETIC_MISSED_CHECKS = 100
+
+
+def format_response_for_storage(
+    headers: list[tuple[str, str]] | None,
+    body: bytes,
+) -> bytes:
+    """
+    Format response headers and body for storage.
+
+    Format: headers (one per line), separator, body
+    Split on RESPONSE_BODY_SEPARATOR to parse.
+    """
+    lines = []
+    if headers:
+        for name, value in headers:
+            lines.append(f"{name}: {value}")
+    header_bytes = "\r\n".join(lines).encode("utf-8")
+    return header_bytes + RESPONSE_BODY_SEPARATOR + body
+
+
+def create_uptime_response_capture(
+    subscription: UptimeSubscription,
+    result: CheckResult,
+) -> UptimeResponseCapture | None:
+    """
+    Create a response capture from a check result if it contains response data.
+
+    Returns the created capture, or None if response capture is disabled,
+    there's no response data in result, or a capture already exists for this
+    scheduled check time.
+    """
+    if not subscription.response_capture_enabled:
+        return None
+
+    # Check if we already have a capture for this scheduled check time
+    # to avoid creating duplicates on retries.
+    scheduled_check_time_ms = int(result["scheduled_check_time_ms"])
+    if UptimeResponseCapture.objects.filter(
+        uptime_subscription=subscription,
+        scheduled_check_time_ms=scheduled_check_time_ms,
+    ).exists():
+        return None
+
+    request_info_list = result.get("request_info_list")
+    if not request_info_list:
+        return None
+
+    request_info = request_info_list[-1]
+    response_body_b64 = request_info.get("response_body")
+    if not response_body_b64:
+        return None
+
+    try:
+        response_body = base64.b64decode(response_body_b64)
+    except Exception:
+        logger.exception("Failed to decode response body")
+        return None
+
+    raw_headers = request_info.get("response_headers")
+    response_headers: list[tuple[str, str]] | None = (
+        [(str(h[0]), str(h[1])) for h in raw_headers] if raw_headers else None
+    )
+    response_content = format_response_for_storage(
+        headers=response_headers,
+        body=response_body,
+    )
+    file = File.objects.create(
+        name=f"uptime-response-{uuid.uuid4().hex}",
+        type="uptime.response",
+    )
+    file.putfile(BytesIO(response_content))
+    capture = UptimeResponseCapture.objects.create(
+        uptime_subscription=subscription,
+        file_id=file.id,
+        scheduled_check_time_ms=result["scheduled_check_time_ms"],
+    )
+
+    metrics.incr("uptime.response_capture.created", sample_rate=1.0)
+    metrics.distribution(
+        "uptime.response_capture.size",
+        len(response_content),
+        sample_rate=1.0,
+        unit="byte",
+    )
+
+    result["had_response_body"] = True  # type: ignore[typeddict-unknown-key]
+    return capture
 
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
@@ -108,18 +204,20 @@ def should_run_region_checks(subscription: UptimeSubscription, result: CheckResu
 
 def try_check_and_update_regions(
     subscription: UptimeSubscription, regions: list[UptimeSubscriptionRegion]
-):
+) -> bool:
     """
-    This method will check if regions have been added or removed from our region configuration,
-    and updates regions associated with this uptime monitor to reflect the new state.
+    Check if regions have been added or removed from our region configuration,
+    and update regions associated with this uptime monitor to reflect the new state.
+
+    Returns True if regions were updated and a config push is needed, False otherwise.
     """
     if not check_and_update_regions(subscription, regions):
-        return
+        return False
 
     # Regardless of whether we added or removed regions, we need to send an updated config to all active
     # regions for this subscription so that they all get an update set of currently active regions.
     subscription.update(status=UptimeSubscription.Status.UPDATING.value)
-    update_remote_uptime_subscription.delay(subscription.id)
+    return True
 
 
 def is_shadow_region_result(result: CheckResult, regions: list[UptimeSubscriptionRegion]) -> bool:
@@ -249,7 +347,12 @@ def create_backfill_misses(
 
         synthetic_metric_tags = metric_tags.copy()
         synthetic_metric_tags["status"] = CHECKSTATUS_MISSED_WINDOW
-        for i in range(0, num_missed_checks):
+        missed_times = generate_scheduled_check_times_ms(
+            last_update_ms + subscription_interval_ms,
+            subscription_interval_ms,
+            num_missed_checks,
+        )
+        for scheduled_time_ms in missed_times:
             missed_result: CheckResult = {
                 "guid": uuid.uuid4().hex,
                 "subscription_id": result["subscription_id"],
@@ -261,10 +364,11 @@ def create_backfill_misses(
                 "trace_id": uuid.uuid4().hex,
                 "span_id": uuid.uuid4().hex,
                 "region": result["region"],
-                "scheduled_check_time_ms": last_update_ms + ((i + 1) * subscription_interval_ms),
+                "scheduled_check_time_ms": scheduled_time_ms,
                 "actual_check_time_ms": result["actual_check_time_ms"],
                 "duration_ms": 0,
                 "request_info": None,
+                "assertion_failure_data": None,
             }
             produce_eap_uptime_result(
                 detector,
@@ -279,13 +383,31 @@ def process_result_internal(
     result: CheckResult,
     metric_tags: dict[str, str],
     cluster,
+    subscription_regions: list[UptimeSubscriptionRegion],
 ) -> None:
     """
     Core result processing logic shared by main consumer and retry task.
 
     Does NOT include: dedup check, backfill detection, queue check.
-    Contains: metrics, mode handling, EAP production, state updates.
+    Contains: metrics, mode handling, EAP production, state updates,
+    response capture toggle, and region updates.
     """
+    needs_update = False
+
+    if result["status"] == CHECKSTATUS_SUCCESS:
+        needs_update |= set_response_capture_enabled(uptime_subscription, True)
+    elif result["status"] == CHECKSTATUS_FAILURE:
+        needs_update |= set_response_capture_enabled(uptime_subscription, False)
+        # Force an update if there was a response body, to make sure we properly sync things here.
+        if result.get("had_response_body"):
+            needs_update = True
+
+    if should_run_region_checks(uptime_subscription, result):
+        needs_update |= try_check_and_update_regions(uptime_subscription, subscription_regions)
+
+    if needs_update and uptime_subscription.subscription_id:
+        update_remote_uptime_subscription.delay(uptime_subscription.id)
+
     mode_name = UptimeMonitorMode(detector.config["mode"]).name.lower()
 
     # We log the result stats here after the duplicate check so that we
@@ -398,7 +520,20 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
 
         try:
-            result_json = json.dumps(result)
+            # Strip response body and headers to save Redis memory.
+            # Safe because we've already stored these in UptimeResponseCapture before queuing.
+            result_for_queue = dict(result)
+            request_info_list = result.get("request_info_list")
+            if request_info_list:
+                result_for_queue["request_info_list"] = [
+                    {
+                        k: v
+                        for k, v in info.items()
+                        if k not in ("response_body", "response_headers")
+                    }
+                    for info in request_info_list
+                ]
+            result_json = json.dumps(result_for_queue)
             pipeline = cluster.pipeline()
             pipeline.zadd(backlog_key, {result_json: int(result["scheduled_check_time_ms"])})
             pipeline.expire(backlog_key, 600)
@@ -479,9 +614,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        if should_run_region_checks(subscription, result):
-            try_check_and_update_regions(subscription, subscription_regions)
-
         try:
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
@@ -542,6 +674,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
+        if result["status"] == CHECKSTATUS_FAILURE and features.has(
+            "organizations:uptime-response-capture", organization
+        ):
+            create_uptime_response_capture(subscription, result)
+
         if last_update_ms > 0:
             subscription_interval_ms = subscription.interval_seconds * 1000
             expected_next_ms = last_update_ms + subscription_interval_ms
@@ -556,7 +693,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     detector, subscription, result, last_update_ms, metric_tags, cluster
                 )
 
-        process_result_internal(detector, subscription, result, metric_tags, cluster)
+        process_result_internal(
+            detector, subscription, result, metric_tags, cluster, subscription_regions
+        )
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

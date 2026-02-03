@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconArrow} from 'sentry/icons';
