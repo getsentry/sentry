@@ -74,7 +74,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         if not logic_type:
             logic_type = instance.logic_type
 
-        condition_data = validated_data.get("conditions")
+        condition_data = validated_data.get("conditions", [])
         if not condition_data:
             conditions = DataCondition.objects.filter(
                 condition_group=instance,
