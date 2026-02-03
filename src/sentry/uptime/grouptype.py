@@ -18,7 +18,7 @@ from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
@@ -238,7 +238,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
 
         assertion_failure_data = result.get("assertion_failure_data")
         if assertion_failure_data is not None:
-            evidence_data["assertion_failure_data"] = assertion_failure_data
+            evidence_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
 
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",
