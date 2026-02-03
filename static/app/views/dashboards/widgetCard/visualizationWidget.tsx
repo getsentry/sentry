@@ -1,15 +1,26 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import trimStart from 'lodash/trimStart';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  type AggregationOutputType,
+  type DataUnit,
+  type Sort,
+} from 'sentry/utils/discover/fields';
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -82,6 +93,8 @@ export function VisualizationWidget({
         return (
           <VisualizationWidgetContent
             widget={widget}
+            selection={selection}
+            dashboardFilters={dashboardFilters}
             timeseriesResults={timeseriesResults}
             timeseriesResultsTypes={timeseriesResultsTypes}
             timeseriesResultsUnits={timeseriesResultsUnits}
@@ -101,8 +114,10 @@ export function VisualizationWidget({
 interface VisualizationWidgetContentProps {
   loading: boolean;
   releases: Array<{timestamp: string; version: string}>;
+  selection: PageFilters;
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   errorMessage?: string;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showLegendBreakdown?: boolean;
@@ -113,6 +128,8 @@ interface VisualizationWidgetContentProps {
 
 function VisualizationWidgetContent({
   widget,
+  selection,
+  dashboardFilters,
   timeseriesResults,
   timeseriesResultsTypes,
   timeseriesResultsUnits,
@@ -124,6 +141,8 @@ function VisualizationWidgetContent({
   renderErrorMessage,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const {selection: pageFiltersSelection} = usePageFilters();
 
   const plottables = transformLegacySeriesToPlottables(
     timeseriesResults,
@@ -131,6 +150,47 @@ function VisualizationWidgetContent({
     timeseriesResultsUnits,
     widget
   );
+
+  const config = getDatasetConfig(widget.widgetType);
+
+  const tableWidget = useMemo((): Widget => {
+    return {
+      ...widget,
+      displayType: DisplayType.TABLE,
+      queries: widget.queries.map(query => {
+        const aggregates = [...(query.aggregates ?? [])];
+        const columns = [...(query.columns ?? [])];
+
+        // Table requests require the orderby field to be included in the fields, but series results don't always need that
+        if (query.orderby) {
+          const orderbyField = trimStart(query.orderby, '-');
+          if (isAggregateField(orderbyField) && !aggregates.includes(orderbyField)) {
+            aggregates.push(orderbyField);
+          }
+          if (!isAggregateField(orderbyField) && !columns.includes(orderbyField)) {
+            columns.push(orderbyField);
+          }
+        }
+        return {
+          ...query,
+          fields: [...columns, ...aggregates],
+          aggregates,
+          columns,
+        };
+      }),
+    };
+  }, [widget]);
+
+  const tableQueryResult = config.useTableQuery?.({
+    widget: tableWidget,
+    organization,
+    pageFilters: selection ?? pageFiltersSelection,
+    enabled: showLegendBreakdown ?? false,
+    dashboardFilters,
+  });
+
+  const tableResults = tableQueryResult?.tableResults;
+  const tableLoading = tableQueryResult?.loading ?? false;
 
   const errorDisplay =
     renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
@@ -143,34 +203,64 @@ function VisualizationWidgetContent({
   const hasBreakdownData =
     showLegendBreakdown && timeseriesResults && timeseriesResults.length > 0;
 
+  const tableDataRows = tableResults?.[0]?.data;
+  const tableErrorMessage = tableQueryResult?.errorMessage;
+  const aggregates = widget.queries[0]?.aggregates ?? [];
+  const columns = widget.queries[0]?.columns ?? [];
+  const hasGroupBy = columns.length > 0;
+
   const footerTable = hasBreakdownData ? (
-    <WidgetFooterTable>
-      {timeseriesResults.map((series, index) => {
-        const plottable = plottables[index];
-        const total = series.data.reduce((sum: number, d) => sum + (d.value ?? 0), 0);
-        const dataType = plottable?.dataType ?? 'number';
-        const dataUnit = plottable?.dataUnit ?? undefined;
-        const label = plottable?.label ?? series.seriesName;
-        return (
-          <Fragment key={series.seriesName}>
-            <div>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
-            </div>
-            <Tooltip title={label} showOnlyOnOverflow>
-              <SeriesNameCell>{label}</SeriesNameCell>
-            </Tooltip>
-            <div>{formatYAxisValue(total, dataType, dataUnit)}</div>
-          </Fragment>
-        );
-      })}
-    </WidgetFooterTable>
+    tableErrorMessage ? (
+      <PanelAlert variant="danger">{tableErrorMessage}</PanelAlert>
+    ) : (
+      <WidgetFooterTable>
+        {timeseriesResults.map((series, index) => {
+          const plottable = plottables[index];
+
+          let value: number | null = null;
+          if (tableDataRows) {
+            if (hasGroupBy) {
+              // With group by: match by index (both timeseries and table are ordered by aggregate desc)
+              const aggregate = aggregates[0];
+              const row = tableDataRows[index];
+              if (aggregate && row?.[aggregate] !== undefined) {
+                value = row[aggregate] as number;
+              }
+            } else {
+              // Without group by: single row with multiple aggregates
+              const aggregate = aggregates[index];
+              const row = tableDataRows[0];
+              if (aggregate && row?.[aggregate] !== undefined) {
+                value = row[aggregate] as number;
+              }
+            }
+          }
+          const dataType = plottable?.dataType ?? 'number';
+          const dataUnit = plottable?.dataUnit ?? undefined;
+          const label = plottable?.label ?? series.seriesName;
+          return (
+            <Fragment key={series.seriesName}>
+              <div>
+                <SeriesColorIndicator
+                  style={{
+                    backgroundColor: colorPalette[index],
+                  }}
+                />
+              </div>
+              <Tooltip title={label} showOnlyOnOverflow>
+                <SeriesNameCell>{label}</SeriesNameCell>
+              </Tooltip>
+              <div>
+                {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
+              </div>
+            </Fragment>
+          );
+        })}
+      </WidgetFooterTable>
+    )
   ) : null;
 
-  if (loading) {
+  if (loading || (showLegendBreakdown && tableLoading)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
   if (errorDisplay) {
