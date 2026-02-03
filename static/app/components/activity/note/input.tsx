@@ -318,8 +318,8 @@ const FooterButton = styled(Button)<{error?: boolean}>`
       &:active,
       &:focus,
       &:hover {
-        border-bottom-color: ${p.theme.tokens.content.danger};
-        border-right-color: ${p.theme.tokens.content.danger};
+        border-bottom-color: ${p.theme.tokens.border.danger};
+        border-right-color: ${p.theme.tokens.border.danger};
       }
     `}
 `;
