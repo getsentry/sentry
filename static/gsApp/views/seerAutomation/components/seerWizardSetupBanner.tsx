@@ -3,13 +3,9 @@ import styled from '@emotion/styled';
 
 import seerConfigMainBg from 'sentry-images/spot/seer-config-main-bg.svg';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Grid} from '@sentry/scraps/layout/grid';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
