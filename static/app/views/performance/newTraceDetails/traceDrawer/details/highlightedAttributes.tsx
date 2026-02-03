@@ -26,6 +26,11 @@ type HighlightedAttribute = {
   value: React.ReactNode;
 };
 
+type CaptureRule = {
+  messages: string[];
+  shouldCapture: boolean;
+};
+
 function tryParseJson(value: string) {
   try {
     return JSON.parse(value);
@@ -157,52 +162,57 @@ function getAISpanAttributes({
     });
   }
 
-  const integration = attributes['gen_ai.system'];
-  const platform = attributes.platform ?? attributes['sdk.name'];
-  const version = attributes['sdk.version'];
-  const orgId =
-    attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
-  const hasCost = totalCosts && Number(totalCosts) !== 0;
-  const contextData: CaptureContext | null = model
-    ? {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: hasCost ? 'true' : 'false',
-          model: model.toString(),
-          integration: integration?.toString() ?? 'unknown',
-          platform: platform?.toString() ?? 'unknown',
-          version: version?.toString() ?? 'unknown',
-          org_id: orgId?.toString() ?? 'unknown',
-        },
-        extra: {
-          total_costs: totalCosts,
-          attributes,
-        },
-      }
-    : null;
+  const captureRules: CaptureRule[] = [
+    {
+      shouldCapture: Boolean(
+        model &&
+          (inputTokens || outputTokens) &&
+          (!totalCosts || Number(totalCosts) === 0)
+      ),
+      messages: [
+        'Gen AI span missing cost calculation',
+        `Gen AI cost data missing for model: ${model?.toString()}`,
+      ],
+    },
+    {
+      shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
+      messages: [`Gen AI span with negative cost: ${model?.toString()}`],
+    },
+  ];
+  const shouldCapture = captureRules.some(rule => rule.shouldCapture);
 
-  if (
-    contextData &&
-    model &&
-    (inputTokens || outputTokens) &&
-    (!totalCosts || Number(totalCosts) === 0)
-  ) {
-    Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
+  if (shouldCapture && model) {
+    const integration = attributes['gen_ai.system'];
+    const platform = attributes.platform ?? attributes['sdk.name'];
+    const version = attributes['sdk.version'];
+    const orgId =
+      attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
+    const hasCost = totalCosts && Number(totalCosts) !== 0;
+    const contextData: CaptureContext = {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: hasCost ? 'true' : 'false',
+        model: model.toString(),
+        integration: integration?.toString() ?? 'unknown',
+        platform: platform?.toString() ?? 'unknown',
+        version: version?.toString() ?? 'unknown',
+        org_id: orgId?.toString() ?? 'unknown',
+      },
+      extra: {
+        total_costs: totalCosts,
+        attributes,
+      },
+    };
 
-    Sentry.captureMessage(
-      `Gen AI cost data missing for model: ${model.toString()}`,
-      contextData
-    );
-  }
-
-  if (contextData && model && totalCosts && Number(totalCosts) < 0) {
-    Sentry.captureMessage(
-      `Gen AI span with negative cost: ${model.toString()}`,
-      contextData
-    );
+    captureRules
+      .filter(rule => rule.shouldCapture)
+      .flatMap(rule => rule.messages)
+      .forEach(message => {
+        Sentry.captureMessage(message, contextData);
+      });
   }
 
   const toolName = attributes['gen_ai.tool.name'];
