@@ -1,4 +1,4 @@
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
