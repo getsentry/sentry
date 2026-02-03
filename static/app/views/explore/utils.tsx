@@ -98,8 +98,8 @@ export function getExploreUrl({
     project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -219,8 +219,8 @@ export function getExploreMultiQueryUrl({
     project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     queries: queries.map(
       ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
