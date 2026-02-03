@@ -39,7 +39,7 @@ class DatabaseBackedActionService(ActionService):
         sentry_app_id: int | None,
     ) -> None:
         actions = None
-        if sentry_app_id is not None:
+        if sentry_app_id:
             actions = Action.objects.filter(
                 Q(config__target_identifier=sentry_app_install_uuid)
                 | Q(config__target_identifier=str(sentry_app_id)),
