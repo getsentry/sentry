@@ -41,7 +41,7 @@ function CreateTeamForm({organization, onSubmit}: Props) {
           name="slug"
           label={t('Team Slug')}
           transformInput={slugify}
-          placeholder={t('e.g. api-team, web-frontend, mobile-ios')}
+          placeholder={t('e.g. operations, web-frontend, mobile-ios')}
           help={t('Use lowercase letters, numbers, dashes, and underscores.')}
           flexibleControlStateSize
           inline={false}
