@@ -8,6 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
+import {isNumericString} from 'sentry/utils';
 import type {JsonPathOp, JsonPathOperand} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
@@ -29,15 +30,7 @@ export function AssertionOpJsonPath({
   const operandValue = getJsonPathOperandValue(value.operand);
   const {combinedLabel, combinedTooltip} = getJsonPathCombinedLabelAndTooltip(value);
 
-  const isNumericOperandValue = (raw: string): boolean => {
-    const s = raw.trim();
-    if (!s) {
-      return false;
-    }
-    return /^-?(?:\d+|\d*\.\d+)(?:[eE][+-]?\d+)?$/.test(s);
-  };
-
-  const isNumeric = isNumericOperandValue(operandValue);
+  const isNumeric = isNumericString(operandValue);
 
   const comparisonOptions = COMPARISON_OPTIONS.filter(
     opt => !['always', 'never'].includes(opt.value)
@@ -70,6 +63,8 @@ export function AssertionOpJsonPath({
       {flexProps => (
         <InputGroup {...flexProps}>
           <InputGroup.Input
+            data-test-id="json-path-value-input"
+            aria-label={t('JSON path value input')}
             id={inputId}
             value={value.value}
             onChange={e => onChange({...value, value: e.target.value})}
@@ -90,26 +85,28 @@ export function AssertionOpJsonPath({
               size="xs"
               trigger={props => (
                 <OverlayTrigger.Button
+                  data-test-id="json-path-operators-trigger"
                   {...props}
                   size="zero"
                   priority="transparent"
                   showChevron={false}
                   title={combinedTooltip}
-                  aria-label={t('JSON path comparison %s', combinedLabel)}
+                  aria-label={t('JSON path operators trigger')}
                 >
                   <Text monospace>{combinedLabel}</Text>
                 </OverlayTrigger.Button>
               )}
             >
               <CompositeSelect.Region
-                label={t('Comparison')}
+                data-test-id="json-path-operator-options"
+                aria-label={t('JSON path operator options')}
                 value={value.operator.cmp}
                 onChange={option => onChange({...value, operator: {cmp: option.value}})}
                 options={comparisonOptions}
               />
               {!isNumeric && (
                 <CompositeSelect.Region
-                  label={t('String type')}
+                  label={t('String operand types')}
                   value={value.operand.jsonpath_op}
                   onChange={option => {
                     const newOperand: JsonPathOperand =
@@ -127,7 +124,7 @@ export function AssertionOpJsonPath({
             value={operandValue}
             onChange={e => {
               const nextValue = e.target.value;
-              const nextIsNumeric = isNumericOperandValue(nextValue);
+              const nextIsNumeric = isNumericString(nextValue);
 
               const newOperand: JsonPathOperand = nextIsNumeric
                 ? {jsonpath_op: 'literal', value: nextValue}
@@ -136,7 +133,8 @@ export function AssertionOpJsonPath({
                   : {jsonpath_op: 'literal', value: nextValue};
               onChange({...value, operand: newOperand});
             }}
-            aria-label={t('JSON path expected value')}
+            data-test-id="json-path-operand-value"
+            aria-label={t('JSON path operand value')}
             placeholder="ok"
             monospace
           />

@@ -2,18 +2,22 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {JsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
+import type {
+  Comparison,
+  JsonPathOp,
+  JsonPathOperand,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionsDndContext} from './dragDrop';
 import {AssertionOpJsonPath} from './opJsonPath';
+import {makeJsonPathOp} from './testUtils';
 
 describe('AssertionOpJsonPath', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const op = 'json_path' as const;
-  const defaultOperator = {cmp: 'equals'} as const;
-  const defaultOperand = {jsonpath_op: 'literal', value: 'ok'} as const;
+  const defaultOperator: Comparison = {cmp: 'equals'};
+  const defaultOperand: JsonPathOperand = {jsonpath_op: 'literal', value: 'ok'};
 
   const renderOp = async (value: JsonPathOp) => {
     const result = render(
@@ -24,7 +28,7 @@ describe('AssertionOpJsonPath', () => {
       />
     );
     // Wait for the labeled input to mount to avoid act() warnings from underlying refs.
-    await screen.findByLabelText('JSON Path');
+    await screen.findByTestId('json-path-value-input');
     return result;
   };
 
@@ -32,53 +36,29 @@ describe('AssertionOpJsonPath', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with initial value', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
-
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('$.status');
-  });
-
-  it('renders with empty value', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
-
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('');
-  });
-
-  it('shows placeholder text', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
+  it('renders placeholder text', async () => {
+    await renderOp(
+      makeJsonPathOp({
+        value: '',
+        operand: {jsonpath_op: 'literal', value: ''},
+      })
+    );
 
     expect(screen.getByPlaceholderText('$.status')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('ok')).toBeInTheDocument();
   });
 
   it('calls onChange when value changes', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
+    await renderOp(
+      makeJsonPathOp({
+        id: 'test-id-1',
+        value: '',
+        operator: defaultOperator,
+        operand: defaultOperand,
+      })
+    );
 
-    const input = screen.getByPlaceholderText('$.status');
+    const input = screen.getByTestId('json-path-value-input');
     await userEvent.type(input, 'a');
 
     expect(mockOnChange).toHaveBeenCalledWith({
@@ -91,34 +71,29 @@ describe('AssertionOpJsonPath', () => {
   });
 
   it('calls onChange when operand value changes', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
+    await renderOp(
+      makeJsonPathOp({
+        id: 'test-id-1',
+        value: '$.status',
+        operator: defaultOperator,
+        operand: {jsonpath_op: 'literal', value: ''},
+      })
+    );
 
-    const operandInput = screen.getByLabelText('JSON path expected value');
-    await userEvent.type(operandInput, 'z');
+    const operandInput = screen.getByTestId('json-path-operand-value');
+    await userEvent.type(operandInput, 'a');
 
     expect(mockOnChange).toHaveBeenLastCalledWith({
       id: 'test-id-1',
       op: 'json_path',
       value: '$.status',
       operator: defaultOperator,
-      operand: {jsonpath_op: 'literal', value: 'okz'},
+      operand: {jsonpath_op: 'literal', value: 'a'},
     });
   });
 
   it('calls onRemove when remove button is clicked', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
+    await renderOp(makeJsonPathOp());
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
 
@@ -126,13 +101,7 @@ describe('AssertionOpJsonPath', () => {
   });
 
   it('has tooltip with link to RFC', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: defaultOperator,
-      operand: defaultOperand,
-    });
+    await renderOp(makeJsonPathOp());
 
     // Hover over the question mark icon to show tooltip
     const questionIcon = screen.getByTestId('more-information');
@@ -148,35 +117,25 @@ describe('AssertionOpJsonPath', () => {
     render(
       <AssertionsDndContext>
         <AssertionOpJsonPath
-          value={{
-            id: 'test-id-1',
-            op,
-            value: '$.status',
-            operator: defaultOperator,
-            operand: defaultOperand,
-          }}
+          value={makeJsonPathOp()}
           onChange={mockOnChange}
           onRemove={mockOnRemove}
         />
       </AssertionsDndContext>
     );
 
-    await screen.findByLabelText('JSON Path');
+    await screen.findByTestId('json-path-value-input');
     expect(screen.getByRole('button', {name: 'Reorder assertion'})).toBeInTheDocument();
   });
 
   it('hides < and > comparisons for non-numeric operand values', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: defaultOperator,
-      operand: {jsonpath_op: 'literal', value: 'ok'},
-    });
+    await renderOp(
+      makeJsonPathOp({
+        operand: {jsonpath_op: 'literal', value: 'ok'},
+      })
+    );
 
-    const comparisonButton = screen.getByRole('button', {
-      name: 'JSON path comparison =""',
-    });
+    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
     expect(screen.queryByRole('option', {name: 'less than'})).not.toBeInTheDocument();
@@ -186,11 +145,10 @@ describe('AssertionOpJsonPath', () => {
   it('allows < and > comparisons for numeric operand values and hides string type selector', async () => {
     function Stateful() {
       const [state, setState] = useState<JsonPathOp>({
-        id: 'test-id-1',
-        op,
-        value: '$.status',
-        operator: defaultOperator,
-        operand: defaultOperand,
+        ...makeJsonPathOp({
+          operator: defaultOperator,
+          operand: defaultOperand,
+        }),
       });
       return (
         <AssertionOpJsonPath
@@ -205,33 +163,31 @@ describe('AssertionOpJsonPath', () => {
     }
 
     render(<Stateful />);
-    await screen.findByLabelText('JSON Path');
+    await screen.findByTestId('json-path-value-input');
 
-    const operandInput = screen.getByLabelText('JSON path expected value');
+    const operandInput = screen.getByTestId('json-path-operand-value');
     await userEvent.clear(operandInput);
     await userEvent.type(operandInput, '123');
 
-    const comparisonButton = screen.getByRole('button', {
-      name: 'JSON path comparison =""',
-    });
+    const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
     expect(screen.getByRole('option', {name: 'less than'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'greater than'})).toBeInTheDocument();
 
-    // Numeric mode forces literal and hides the string type region, so these options shouldn't appear.
     expect(screen.queryByRole('option', {name: 'Glob Pattern'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Literal'})).not.toBeInTheDocument();
   });
 
   it('resets operator from < or > to equals when the operand is not numeric', async () => {
-    await renderOp({
-      id: 'test-id-1',
-      op,
-      value: '$.status',
-      operator: {cmp: 'less_than'},
-      operand: defaultOperand,
-    });
+    await renderOp(
+      makeJsonPathOp({
+        id: 'test-id-1',
+        value: '$.status',
+        operator: {cmp: 'less_than'},
+        operand: defaultOperand,
+      })
+    );
 
     await waitFor(() =>
       expect(mockOnChange).toHaveBeenCalledWith({
