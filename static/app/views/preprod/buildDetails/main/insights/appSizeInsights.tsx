@@ -2,10 +2,8 @@ import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

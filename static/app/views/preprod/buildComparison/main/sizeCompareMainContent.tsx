@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Stack} from '@sentry/scraps/layout';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {NoAccess} from 'sentry/components/noAccess';

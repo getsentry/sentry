@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import tracingTelescopeImg from 'sentry-images/spot/tracing-telescope.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Image} from '@sentry/scraps/image/image';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 

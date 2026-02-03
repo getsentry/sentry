@@ -47,7 +47,9 @@ class UncompressedAssetsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = UncompressedAssetSpanDetector(self._settings, event)
+        detector = UncompressedAssetSpanDetector(
+            self._settings[UncompressedAssetSpanDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -417,7 +419,9 @@ class UncompressedAssetsDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = UncompressedAssetSpanDetector(settings, event)
+        detector = UncompressedAssetSpanDetector(
+            settings[UncompressedAssetSpanDetector.settings_key], event
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -428,6 +432,8 @@ class UncompressedAssetsDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = UncompressedAssetSpanDetector(settings, event)
+        detector = UncompressedAssetSpanDetector(
+            settings[UncompressedAssetSpanDetector.settings_key], event
+        )
 
         assert not detector.is_creation_allowed_for_project(project)

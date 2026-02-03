@@ -5,6 +5,12 @@ import type {
 import {t} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
+import {
+  getGradleProfilingSnippet,
+  getMavenProfilingSnippet,
+  getSbtProfilingSnippet,
+} from './profiling';
+
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
@@ -82,7 +88,14 @@ sentry {
   org = "${params.organization.slug}"
   projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}`;
+}
+${params.isProfilingSelected ? `${wrappedGradleSnippet(params)}` : ''}`;
+
+const wrappedGradleSnippet = (params: Params) => `
+dependencies {
+  ${getGradleProfilingSnippet(params)}
+}
+`;
 
 export const getMavenInstallSnippet = (params: Params) => `
 <build>
@@ -121,7 +134,18 @@ export const getMavenInstallSnippet = (params: Params) => `
     </plugin>
   </plugins>
   ...
-</build>`;
+</build>
+
+${params.isProfilingSelected ? getMavenProfilingSnippet(params, true) : ''}`;
+
+export const getSbtInstallSnippet = (params: Params) => `
+libraryDependencies += "io.sentry" % "sentry" % "${getPackageVersion(
+  params,
+  'sentry.java',
+  '6.27.0'
+)}"
+${params.isProfilingSelected ? getSbtProfilingSnippet(params) : ''}
+`;
 
 export const getOpenTelemetryRunSnippet = (params: Params) => `
 SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
