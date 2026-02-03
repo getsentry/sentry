@@ -85,9 +85,11 @@ function McpOverviewPage({datePageFilterProps}: McpOverviewPageProps) {
                 </ToolRibbon>
               </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                <SDKUpdateAlert />
-              </ModuleLayout.Full>
+              {!showOnboarding && (
+                <ModuleLayout.Full>
+                  <SDKUpdateAlert />
+                </ModuleLayout.Full>
+              )}
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
