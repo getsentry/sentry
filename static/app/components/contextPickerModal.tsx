@@ -257,7 +257,7 @@ class ContextPickerModal extends Component<Props> {
 
     if (projectsLoading) {
       return (
-        <Flex justify="center" align="center" minHeight="320px">
+        <Flex justify="center" align="center" minHeight="345px">
           <LoadingIndicator />
         </Flex>
       );
