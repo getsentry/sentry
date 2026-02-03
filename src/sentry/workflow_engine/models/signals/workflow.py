@@ -5,5 +5,5 @@ from sentry.workflow_engine.models.workflow import Workflow
 
 
 @receiver(pre_save, sender=Workflow)
-def enforce_config_schema(sender, instance: Workflow, **kwargs):
+def enforce_workflow_config_schema(sender, instance: Workflow, **kwargs):
     instance.validate_config(instance.config_schema)

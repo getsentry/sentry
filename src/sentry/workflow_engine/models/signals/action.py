@@ -6,7 +6,7 @@ from sentry.workflow_engine.models.action import Action
 
 
 @receiver(pre_save, sender=Action)
-def enforce_config_schema(sender, instance: Action, **kwargs):
+def enforce_action_config_schema(sender, instance: Action, **kwargs):
     handler = instance.get_handler()
 
     config_schema = handler.config_schema
