@@ -9,6 +9,8 @@ class EventProcessingErrorRecorded(analytics.Event):
     group_id: int | None
     error_type: str
     platform: str | None
+    name: str | None = None
+    value: str | None = None
 
 
 analytics.register(EventProcessingErrorRecorded)
