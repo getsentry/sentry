@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
-import {AlertLink} from '@sentry/scraps/alert/alertLink';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
