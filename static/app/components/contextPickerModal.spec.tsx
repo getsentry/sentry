@@ -46,7 +46,9 @@ describe('ContextPickerModal', () => {
     jest.clearAllMocks();
   });
 
-  const getComponent = (props = {}) => (
+  const getComponent = (
+    props: Partial<React.ComponentProps<typeof ContextPickerModal>> = {}
+  ) => (
     <ContextPickerModal
       Header={() => <div />}
       Body={ModalBody}
@@ -145,8 +147,11 @@ describe('ContextPickerModal', () => {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    // Wait for projects to load before checking focus
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    // Project selector should have focus (there are two textboxes: org and project)
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes[1]).toHaveFocus();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
@@ -176,7 +181,6 @@ describe('ContextPickerModal', () => {
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations,
       })
     );
 
