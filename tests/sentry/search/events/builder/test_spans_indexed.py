@@ -513,6 +513,49 @@ def test_span_module_optimization_where_clause(params) -> None:
 
 
 @pytest.mark.parametrize(
+    ["field", "expected"],
+    [
+        pytest.param(
+            "tags[my_field, string]",
+            Column("attr_str[my_field]"),
+            id="tags-string",
+        ),
+        pytest.param(
+            "tags[my_field, number]",
+            Column("attr_num[my_field]"),
+            id="tags-number",
+        ),
+        pytest.param(
+            "tags[my_field, integer]",
+            Column("attr_num[my_field]"),
+            id="tags-integer",
+        ),
+    ],
+)
+@django_db_all
+def test_eap_typed_tags(params, field, expected) -> None:
+    builder = SpansEAPQueryBuilder(
+        Dataset.EventsAnalyticsPlatform,
+        params,
+        selected_columns=["count()"],
+    )
+    result = builder.resolve_field(field, alias=False)
+    assert result == expected
+
+
+@django_db_all
+def test_eap_typed_tags_invalid_type(params) -> None:
+    builder = SpansEAPQueryBuilder(
+        Dataset.EventsAnalyticsPlatform,
+        params,
+        selected_columns=["count()"],
+    )
+    with pytest.raises(InvalidSearchQuery) as err:
+        builder.resolve_field("tags[my_field, invalid]", alias=False)
+    assert "only string, number, and integer are supported" in str(err.value)
+
+
+@pytest.mark.parametrize(
     ["attribute", "expected"],
     [
         pytest.param(

@@ -92,14 +92,14 @@ class SpansEAPQueryBuilder(BaseQueryBuilder):
         ):
             return super().resolve_field(raw_field, alias)
 
-        if field_type not in ["number", "string"]:
+        if field_type not in ["number", "string", "integer"]:
             raise InvalidSearchQuery(
-                f"Unknown type for field {raw_field}, only string and number are supported"
+                f"Unknown type for field {raw_field}, only string, number, and integer are supported"
             )
 
         if field_type == "string":
             field_col = Column(f"attr_str[{field}]")
-        else:
+        else:  # "number" or "integer"
             field_col = Column(f"attr_num[{field}]")
 
         if alias:
