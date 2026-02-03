@@ -2,6 +2,7 @@ import {Component, Fragment, useState, type Dispatch, type SetStateAction} from 
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {StylesConfig} from '@sentry/scraps/select';
@@ -9,7 +10,6 @@ import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
