@@ -23,7 +23,6 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
-import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -194,25 +193,6 @@ function getAggregateArguments(yAxis: string): string[] {
   });
 }
 
-/**
- * Transforms performance score yAxes to equation format.
- * This is necessary because performance_score is only valid in equation format in Explore.
- */
-function transformPerformanceScoreYAxes(yAxes: string[]): string[] {
-  const transformedYAxes: string[] = [];
-
-  yAxes.forEach(yAxis => {
-    const match = yAxis.match(/^performance_score\(measurements\.score\.(\w+)\)$/);
-    if (match) {
-      transformedYAxes.push(`equation|${yAxis}`);
-    } else {
-      transformedYAxes.push(yAxis);
-    }
-  });
-
-  return transformedYAxes;
-}
-
 function _getWidgetExploreUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
@@ -226,23 +206,14 @@ function _getWidgetExploreUrl(
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
 
-  const query = widget.queries[0]!;
-  const isScoreBreakdownChart = isPerformanceScoreBreakdownChart(query);
-
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-  const aggregatesToUse =
-    widget.displayType === DisplayType.TABLE
-      ? query.fields?.filter(isAggregateFieldOrEquation)
-      : query.aggregates;
-
-  // Performance score breakdown charts use aggregates that may not be in yAxisOptions
-  // so we skip the filter for those specific charts
   locationQueryParams.yAxes = [
     ...new Set(
-      isScoreBreakdownChart
-        ? aggregatesToUse
-        : aggregatesToUse?.filter(aggregate => yAxisOptions.includes(aggregate))
+      (widget.displayType === DisplayType.TABLE
+        ? widget.queries[0]!.fields?.filter(isAggregateFieldOrEquation)
+        : widget.queries[0]!.aggregates
+      )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ];
 
@@ -279,6 +250,8 @@ function _getWidgetExploreUrl(
     utc: decodeBoolean(locationQueryParams.utc) ?? null,
   };
 
+  const query = widget.queries[0]!;
+
   let groupBy: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
       ? query.fields.filter(
@@ -298,10 +271,6 @@ function _getWidgetExploreUrl(
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
-
-  const transformedYAxes = isScoreBreakdownChart
-    ? transformPerformanceScoreYAxes(locationQueryParams.yAxes)
-    : locationQueryParams.yAxes;
 
   let sort: string | undefined = undefined;
   if (isAggregateField(sortColumn)) {
@@ -330,7 +299,7 @@ function _getWidgetExploreUrl(
   const visualize = [
     {
       chartType,
-      yAxes: transformedYAxes,
+      yAxes: locationQueryParams.yAxes,
     },
     // Explore widgets do not allow sorting by arbitrary aggregates
     // so dashboard widgets need to inject another visualize to plot the sort
@@ -417,21 +386,14 @@ function _getWidgetExploreUrlForMultipleQueries(
     organization,
     title: widget.title,
     selection: currentSelection,
-    queries: widget.queries.map(query => {
-      const isScoreBreakdownChart = isPerformanceScoreBreakdownChart(query);
-      const yAxes = isScoreBreakdownChart
-        ? transformPerformanceScoreYAxes(query.aggregates)
-        : query.aggregates;
-
-      return {
-        chartType: getChartType(widget.displayType),
-        query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
-        sortBys: decodeSorts(query.orderby),
-        yAxes,
-        fields: [],
-        groupBys: query.columns,
-      };
-    }),
+    queries: widget.queries.map(query => ({
+      chartType: getChartType(widget.displayType),
+      query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
+      sortBys: decodeSorts(query.orderby),
+      yAxes: query.aggregates,
+      fields: [],
+      groupBys: query.columns,
+    })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
     referrer,
   });
