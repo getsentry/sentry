@@ -96,6 +96,7 @@ class IssueDetectionRequest(BaseModel):
     traces: list[TraceMetadata]
     organization_id: int
     project_id: int
+    org_slug: str | None = None
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -285,6 +286,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         traces=traces_to_send,
         organization_id=organization_id,
         project_id=project_id,
+        org_slug=organization.slug,
     )
 
     response = make_signed_seer_api_request(
