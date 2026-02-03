@@ -7,5 +7,5 @@ class Config(AppConfig):
     def ready(self) -> None:
         # Import items that use registries or respond to events
         import sentry.workflow_engine.handlers  # NOQA
-        import sentry.workflow_engine.models.signals  # NOQA
+        import sentry.workflow_engine.models.receivers  # NOQA
         from sentry.workflow_engine.endpoints import serializers  # NOQA
