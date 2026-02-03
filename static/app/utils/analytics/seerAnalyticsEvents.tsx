@@ -18,25 +18,19 @@ export type SeerAnalyticsEventsParameters = {
     setup_write_integration?: boolean;
   };
   'coding_integration.install_clicked': {
-    organization: Organization;
     project_slug: string;
     provider: string;
     source: 'cta' | 'settings';
-    user_id: string;
   };
   'coding_integration.send_to_agent_clicked': {
     group_id: string;
-    organization: Organization;
     provider: string;
     source: 'autofix' | 'explorer';
-    user_id: string;
   };
   'coding_integration.setup_handoff_clicked': {
-    organization: Organization;
     project_slug: string;
     provider: string;
     source: 'cta' | 'settings_dropdown' | 'settings_toggle';
-    user_id: string;
   };
   'seer.autofix.feedback_submitted': {
     autofix_run_id: string;

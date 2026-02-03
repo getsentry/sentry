@@ -41,7 +41,6 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -198,7 +197,6 @@ function CodingAgentSettings({
 
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
-  const user = useUser();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
@@ -245,7 +243,6 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           project_slug: project.slug,
           provider: 'cursor',
           source: 'settings_dropdown',
-          user_id: user.id,
         });
         updateProjectSeerPreferences({
           repositories: preference?.repositories || [],
@@ -268,7 +265,6 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     [
       organization,
       project.slug,
-      user.id,
       updateProjectSeerPreferences,
       preference?.repositories,
       cursorIntegration,
@@ -363,7 +359,6 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           project_slug: project.slug,
           provider: 'cursor',
           source: 'settings_toggle',
-          user_id: user.id,
         });
         updateProjectSeerPreferences(
           {
@@ -416,7 +411,6 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     [
       organization,
       project.slug,
-      user.id,
       updateProjectSeerPreferences,
       preference?.repositories,
       cursorIntegration,
