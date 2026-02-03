@@ -6,8 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
-from django.db import models
-from django.db.models.signals import pre_save
+from django.db import models, router, transaction
+from django.db.models.signals import post_migrate, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from jsonschema import ValidationError
 
@@ -22,7 +22,7 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
-from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.models import DataCondition, DataSource
 from sentry.workflow_engine.types import DetectorSettings
 
 from .json_config import JSONConfigBase
@@ -48,6 +48,15 @@ def invalidate_detectors_by_data_source_cache(source_id: str, source_type: str) 
     """Invalidate the cache for detectors associated with a data source."""
     cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
     cache.delete(cache_key)
+
+
+def invalidate_all_detector_caches() -> None:
+    """
+    Invalidate all detector caches.
+    Used after migrations to ensure stale cache entries are cleared.
+    """
+    for source_id, source_type in DataSource.objects.values_list("source_id", "type"):
+        invalidate_detectors_by_data_source_cache(source_id, source_type)
 
 
 class DetectorSnapshot(TypedDict):
@@ -250,3 +259,34 @@ def enforce_config_schema_signal(sender, instance: Detector, **kwargs):
     This needs to be a signal because the grouptype registry's entries are not available at import time.
     """
     enforce_config_schema(instance)
+
+
+@receiver(post_save, sender=Detector)
+def invalidate_detector_cache_on_save(sender, instance: Detector, **kwargs):
+    data_sources = list(instance.data_sources.values_list("source_id", "type"))
+
+    def invalidate_cache():
+        for source_id, source_type in data_sources:
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+    # Ensure invalidation only happens if save commits.
+    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+
+
+@receiver(pre_delete, sender=Detector)
+def invalidate_detector_cache_on_delete(sender, instance: Detector, **kwargs):
+    data_sources = list(instance.data_sources.values_list("source_id", "type"))
+
+    def invalidate_cache():
+        for source_id, source_type in data_sources:
+            invalidate_detectors_by_data_source_cache(source_id, source_type)
+
+    # Ensure invalidation only happens if delete commits.
+    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
+
+
+@receiver(post_migrate)
+def invalidate_detector_caches_on_migrate(sender, **_kwargs):
+    """Ensures stale cache entries are cleared when schema changes occur."""
+    if sender.name == "sentry.workflow_engine":
+        invalidate_all_detector_caches()

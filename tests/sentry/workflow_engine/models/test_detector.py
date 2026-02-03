@@ -5,7 +5,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSourceDetector, Detector
 from sentry.workflow_engine.models.detector import (
     get_detector_project_type_cache_key,
     get_detectors_by_data_source_cache_key,
@@ -303,3 +303,175 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
             assert len(cached_result) == 1
             assert cached_result[0].workflow_condition_group is not None
             assert list(cached_result[0].workflow_condition_group.conditions.all())
+
+
+class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):
+    def test_cache_invalidated_on_detector_save(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="signal_test_1", type="test")
+        data_source.detectors.set([detector])
+
+        bulk_fetch_enabled_detectors("signal_test_1", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("signal_test_1", "test")
+            assert result[0].name == "Test Detector"
+
+        detector.name = "Updated Detector Name"
+        detector.save()
+
+        # Updating the detector should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("signal_test_1", "test")
+            assert result[0].name == "Updated Detector Name"
+
+    def test_cache_invalidated_on_detector_enabled_change(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="signal_test_2", type="test")
+        data_source.detectors.set([detector])
+
+        bulk_fetch_enabled_detectors("signal_test_2", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("signal_test_2", "test")
+            assert len(result) == 1
+
+        detector.enabled = False
+        detector.save()
+
+        # Updating the enabled status should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("signal_test_2", "test")
+            assert len(result) == 0
+
+    def test_cache_invalidated_on_detector_delete(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="signal_test_3", type="test")
+        data_source.detectors.set([detector])
+
+        bulk_fetch_enabled_detectors("signal_test_3", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("signal_test_3", "test")
+            assert len(result) == 1
+
+        detector.delete()
+
+        # Deleting the detector should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("signal_test_3", "test")
+            assert len(result) == 0
+
+    def test_cache_invalidated_for_multiple_data_sources(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source_1 = self.create_data_source(source_id="signal_test_4a", type="test")
+        data_source_2 = self.create_data_source(source_id="signal_test_4b", type="test")
+        data_source_1.detectors.set([detector])
+        data_source_2.detectors.set([detector])
+
+        bulk_fetch_enabled_detectors("signal_test_4a", "test")
+        bulk_fetch_enabled_detectors("signal_test_4b", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the caches
+        with self.assertNumQueries(0):
+            result_1 = bulk_fetch_enabled_detectors("signal_test_4a", "test")
+            result_2 = bulk_fetch_enabled_detectors("signal_test_4b", "test")
+            assert result_1[0].name == "Test Detector"
+            assert result_2[0].name == "Test Detector"
+
+        detector.name = "Updated Name"
+        detector.save()
+
+        # Updating the detector should invalidate the caches for both data sources
+        with self.assertNumQueries(2):
+            result_1 = bulk_fetch_enabled_detectors("signal_test_4a", "test")
+            result_2 = bulk_fetch_enabled_detectors("signal_test_4b", "test")
+            assert result_1[0].name == "Updated Name"
+            assert result_2[0].name == "Updated Name"
+
+
+class TestDataSourceDetectorCacheInvalidationSignals(BaseWorkflowTest):
+    def test_cache_invalidated_on_data_source_detector_create(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="dsd_signal_test_1", type="test")
+
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        bulk_fetch_enabled_detectors("dsd_signal_test_1", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_1", "test")
+            assert len(result) == 1
+            assert result[0].id == detector.id
+
+        detector2 = self.create_detector(
+            project=self.project, name="Test Detector 2", type=MetricIssue.slug
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector2)
+
+        # Creating another detector should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_1", "test")
+            assert len(result) == 2
+            assert {d.id for d in result} == {detector.id, detector2.id}
+
+    def test_cache_invalidated_on_data_source_detector_delete(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="dsd_signal_test_2", type="test")
+        data_source.detectors.set([detector])
+
+        bulk_fetch_enabled_detectors("dsd_signal_test_2", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_2", "test")
+            assert len(result) == 1
+
+        DataSourceDetector.objects.filter(data_source=data_source, detector=detector).delete()
+
+        # Deleting the DataSourceDetector should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_2", "test")
+            assert len(result) == 0
+
+    def test_cache_invalidated_on_data_source_detectors_set(self) -> None:
+        detector1 = self.create_detector(
+            project=self.project, name="Detector 1", type=MetricIssue.slug
+        )
+        detector2 = self.create_detector(
+            project=self.project, name="Detector 2", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="dsd_signal_test_3", type="test")
+        data_source.detectors.set([detector1])
+
+        bulk_fetch_enabled_detectors("dsd_signal_test_3", "test")
+
+        # bulk_fetch_enabled_detectors should have warmed the cache
+        with self.assertNumQueries(0):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_3", "test")
+            assert len(result) == 1
+            assert result[0].id == detector1.id
+
+        data_source.detectors.set([detector2])
+
+        # Replacing the detector should invalidate the cache
+        with self.assertNumQueries(1):
+            result = bulk_fetch_enabled_detectors("dsd_signal_test_3", "test")
+            assert len(result) == 1
+            assert result[0].id == detector2.id

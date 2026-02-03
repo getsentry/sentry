@@ -29,7 +29,6 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
-from sentry.workflow_engine.models.detector import invalidate_detectors_by_data_source_cache
 
 logger = logging.getLogger(__name__)
 
@@ -447,20 +446,11 @@ def ensure_cron_detector_deletion(monitor: Monitor):
         except Detector.DoesNotExist:
             pass
 
-        # Capture values for cache invalidation before deletion
-        source_id = data_source.source_id
-        source_type = data_source.type
-
         # We don't want to end up in a loop when attempting to delete monitors, so just delete these directly.
         # This is just temporary until we move completely over to the detector apis.
         data_source.delete()
         if detector:
             detector.delete()
-
-        transaction.on_commit(
-            lambda: invalidate_detectors_by_data_source_cache(source_id, source_type),
-            using=router.db_for_write(DataSource),
-        )
 
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:

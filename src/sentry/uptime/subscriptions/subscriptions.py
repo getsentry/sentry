@@ -53,7 +53,6 @@ from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
-from sentry.workflow_engine.models.detector import invalidate_detectors_by_data_source_cache
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -470,15 +469,6 @@ def update_uptime_detector(
                 case ObjectStatus.ACTIVE:
                     enable_uptime_detector(detector, ensure_assignment=ensure_assignment)
 
-        # Invalidate cache after transaction commits
-        data_sources = list(detector.data_sources.values_list("source_id", "type"))
-
-        def invalidate_cache():
-            for source_id, source_type in data_sources:
-                invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-        transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
-
     # Detector may have been updated as part of
     # {enable,disable}_uptime_detector
     detector.refresh_from_db()
@@ -532,15 +522,6 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
-        # Invalidate cache after transaction commits
-        data_sources = list(detector.data_sources.values_list("source_id", "type"))
-
-        def invalidate_cache():
-            for source_id, source_type in data_sources:
-                invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-        transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
-
 
 def ensure_uptime_seat(detector: Detector) -> None:
     """
@@ -581,15 +562,6 @@ def enable_uptime_detector(
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
 
-    # Invalidate cache after transaction commits (may be called from within a transaction)
-    data_sources = list(detector.data_sources.values_list("source_id", "type"))
-
-    def invalidate_cache():
-        for source_id, source_type in data_sources:
-            invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
-
     # The subscription was disabled, it can be re-activated now
     if uptime_subscription.status == UptimeSubscription.Status.DISABLED.value:
         uptime_subscription.update(status=UptimeSubscription.Status.CREATING.value)
@@ -607,16 +579,10 @@ def remove_uptime_seat(detector: Detector):
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
 
-    # Capture data source info before any state changes
-    data_sources = list(detector.data_sources.values_list("source_id", "type"))
-
     remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
     delete_uptime_subscription(uptime_subscription)
-
-    for source_id, source_type in data_sources:
-        invalidate_detectors_by_data_source_cache(source_id, source_type)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:

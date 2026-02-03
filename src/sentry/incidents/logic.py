@@ -103,10 +103,7 @@ from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
 from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
-from sentry.workflow_engine.models.detector import (
-    Detector,
-    invalidate_detectors_by_data_source_cache,
-)
+from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -1078,15 +1075,6 @@ def update_detector(detector: Detector, enabled: bool) -> None:
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
-
-    # Invalidate cache after transaction commits (may be called from within a larger transaction)
-    data_sources = list(detector.data_sources.values_list("source_id", "type"))
-
-    def invalidate_cache():
-        for source_id, source_type in data_sources:
-            invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
 
 
 def delete_alert_rule(
