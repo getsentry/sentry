@@ -16,7 +16,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
-  isChartDisplayType,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -133,7 +133,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
 
-  const isChartDisplay = isChartDisplayType(widget.displayType);
+  const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
@@ -144,7 +144,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     mepSetting,
     samplingMode,
-    enabled: isChartDisplay && !disabled && !propsLoading,
+    enabled: isTimeSeriesData && !disabled && !propsLoading,
     limit,
     cursor,
   });
@@ -158,12 +158,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     mepSetting,
     samplingMode,
-    enabled: !isChartDisplay && !disabled && !propsLoading,
+    enabled: !isTimeSeriesData && !disabled && !propsLoading,
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
   });
 
-  const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
+  const hookResults = isTimeSeriesData ? hookSeriesResults : hookTableResults;
 
   // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
@@ -196,7 +196,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     prevRawDataRef.current = hookResults.rawData;
 
     // Call afterFetch callbacks with raw data
-    if (isChartDisplay) {
+    if (isTimeSeriesData) {
       hookResults.rawData.forEach((data: any) => {
         afterFetchSeriesData?.(data as SeriesResponse);
       });
@@ -226,7 +226,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     }
   }, [
     hookResults,
-    isChartDisplay,
+    isTimeSeriesData,
     afterFetchSeriesData,
     afterFetchTableData,
     onDataFetched,

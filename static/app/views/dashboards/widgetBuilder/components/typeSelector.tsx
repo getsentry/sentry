@@ -13,7 +13,7 @@ import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEv
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -50,7 +50,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     return (
       state.dataset === WidgetType.ISSUE &&
       !allowIssueWidgetSeriesDisplayType &&
-      isChartDisplayType(value)
+      usesTimeSeriesData(value)
     );
   };
 
@@ -71,8 +71,8 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   // Therefore we need to handle resetting the query on display type change due to incompatibility.
   const handleIssueWidgetDisplayTypeChange = (newValue: DisplayType) => {
     if (state.dataset === WidgetType.ISSUE && config.defaultSeriesWidgetQuery) {
-      const newDisplayIsChart = isChartDisplayType(newValue);
-      const oldDisplayIsChart = isChartDisplayType(state.displayType);
+      const newDisplayIsChart = usesTimeSeriesData(newValue);
+      const oldDisplayIsChart = usesTimeSeriesData(state.displayType);
       if (newDisplayIsChart === oldDisplayIsChart) {
         // Data source does not change, so we just do a normal display type change.
         dispatch({
