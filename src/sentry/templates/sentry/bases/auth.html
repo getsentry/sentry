@@ -41,10 +41,9 @@
 {{ block.super }}
 {% script %}
 <script>
-  // HACK(jferge+claude): inline getCookie function from our utils,
-  // update the csrf token value in a rudimentary way (timer based)
-  // on auth forms to help out when users have multiple sentry tabs
-  // and are logged out
+  // HACK(jferge+claude): Sync CSRF tokens from cookie to form fields for multi-tab scenarios.
+  // When users have multiple auth tabs open and one tab logs in (rotating the CSRF token),
+  // other tabs need to pick up the new token before form submission.
   (function() {
     function getCookie(name) {
       if (document.cookie && document.cookie !== '') {
@@ -59,7 +58,7 @@
       return null;
     }
 
-    setInterval(function() {
+    function syncCsrfTokens() {
       var csrfCookieVal = getCookie(window.csrfCookieName || 'sc');
       // combine strings for csrf name as some tests grep on the token name :(
       var csrfName = 'csrf' + 'middleware' + 'token';
@@ -69,7 +68,19 @@
           csrfEls[i].value = csrfCookieVal;
         }
       }
-    }, 200);
+    }
+
+    // Periodic sync for visual consistency (user sees correct token in DevTools)
+    setInterval(syncCsrfTokens, 200);
+
+    // Sync on form submit to guarantee fresh token even if submit happens
+    // within the 200ms polling window. Capture phase ensures this runs
+    // before the form's default submit action.
+    document.addEventListener('submit', function(e) {
+      if (e.target && e.target.tagName === 'FORM') {
+        syncCsrfTokens();
+      }
+    }, true);
   })();
 </script>
 {% endscript %}
