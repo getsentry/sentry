@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
@@ -22,6 +23,7 @@ from sentry.seer.autofix.utils import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -126,6 +128,10 @@ def run_automation_only_task(group_id: int) -> None:
         "Task: run_automation_only_task",
         extra={"org_id": organization.id, "org_slug": organization.slug},
     )
+
+    # Track issue age when running automation
+    issue_age_days = (timezone.now() - group.first_seen).days
+    metrics.distribution("seer.automation.issue_age_since_first_seen", issue_age_days, unit="day")
 
     event = group.get_latest_event()
 
