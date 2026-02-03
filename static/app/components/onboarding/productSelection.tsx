@@ -154,26 +154,31 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-log4j2': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-logback': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-spring': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-spring-boot': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
