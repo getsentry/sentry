@@ -108,7 +108,7 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             group_open_period=self.group_open_period,
             type=OpenPeriodActivityType.OPENED,
             value=self.group.priority,
-            event_id=self.event.id,
+            event_id="a" * 32,
         )
         serialized_incident = serialize(
             self.group_open_period,
@@ -122,5 +122,5 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
             "type": OpenPeriodActivityType.OPENED.to_str(),
             "value": PriorityLevel(self.group.priority).to_str(),
             "dateCreated": gopa.date_added,
-            "eventId": self.event.id,
+            "eventId": "a" * 32,
         }
