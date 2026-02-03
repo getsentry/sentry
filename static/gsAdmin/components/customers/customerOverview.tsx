@@ -516,7 +516,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const getTrialManagementActions = (
     category: DataCategory,
     apiName: string,
-    trialName: string
+    trialName: string,
+    isAdminOnly = false
   ) => {
     const formattedApiName = upperFirst(apiName);
     const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
@@ -560,7 +561,9 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 hasActiveProductTrial
                   ? `A product trial is currently active for ${formattedTrialName}`
                   : hasUsedProductTrial
-                    ? `Allow customer to start a new trial for ${formattedTrialName}`
+                    ? isAdminOnly
+                      ? `Reset trial eligibility for ${formattedTrialName}`
+                      : `Allow customer to start a new trial for ${formattedTrialName}`
                     : `A product trial is already available for ${formattedTrialName}`
               }
             >
@@ -794,7 +797,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 return getTrialManagementActions(
                   categoryInfo.plural,
                   categoryInfo.plural,
-                  categoryName
+                  categoryName,
+                  !!categoryInfo.adminOnlyProductTrialFeature
                 );
               })}
               {productTrialAddOns.map(addOn => {
