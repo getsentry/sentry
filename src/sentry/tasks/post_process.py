@@ -1658,8 +1658,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.seer_autofix_last_triggered is not None:
                 return
 
-            # Don't run automation on old issues - TODO: Remove this when all orgs are on Seer new pricing
-            if group.first_seen < (timezone.utcnow() - timedelta(days=14)):
+            # Don't run automation on old issues
+            if group.first_seen < (timezone.now() - timedelta(days=14)):
                 return
 
             # Triage signals will not run issues if they are not fixable at MEDIUM threshold
