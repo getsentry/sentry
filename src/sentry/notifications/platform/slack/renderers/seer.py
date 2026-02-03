@@ -132,7 +132,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         action_elements: list[InteractiveElement] = []
         if not data.has_progressed:
             action_elements.append(link_button)
-        if not data.has_progressed and data.current_point != AutofixStoppingPoint.OPEN_PR:
+
+        if not data.has_progressed and data.has_next_trigger:
             action_elements.append(
                 cls._render_autofix_button(data=SeerAutofixTrigger.from_update(data))
             )

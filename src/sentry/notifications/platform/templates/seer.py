@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TypedDict
 
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
@@ -13,6 +14,7 @@ from sentry.notifications.platform.types import (
     ParagraphBlock,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 
@@ -81,6 +83,22 @@ class SeerAutofixUpdate(NotificationData):
     @property
     def next_point(self) -> AutofixStoppingPoint | None:
         return _get_next_stopping_point(self.current_point)
+
+    @property
+    def has_next_trigger(self) -> bool:
+        match self.current_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return True
+            case AutofixStoppingPoint.SOLUTION | AutofixStoppingPoint.CODE_CHANGES:
+                return (
+                    organization_service.get_option(
+                        organization_id=self.organization_id,
+                        key="sentry:enable_seer_coding",
+                    )
+                    or ENABLE_SEER_CODING_DEFAULT
+                )
+            case AutofixStoppingPoint.OPEN_PR:
+                return False
 
 
 @template_registry.register(SeerAutofixUpdate.source)

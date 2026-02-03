@@ -255,15 +255,16 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
             logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
         logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
 
-        # Special case for solution stopping point, we always progress beyond it.
+        # Special case for solution stopping point, we progress beyond it if coding is enabled.
         if data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION:
-            enable_seer_coding = organization_service.get_option(
-                organization_id=cache_payload["organization_id"],
-                key="sentry:enable_seer_coding",
+            has_coding_enabled = (
+                organization_service.get_option(
+                    organization_id=cache_payload["organization_id"],
+                    key="sentry:enable_seer_coding",
+                )
+                or ENABLE_SEER_CODING_DEFAULT
             )
-            data_kwargs["has_progressed"] = (
-                enable_seer_coding if enable_seer_coding is not None else ENABLE_SEER_CODING_DEFAULT
-            )
+            data_kwargs["has_progressed"] = has_coding_enabled
 
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
