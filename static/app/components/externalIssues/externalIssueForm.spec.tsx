@@ -309,6 +309,14 @@ describe('ExternalIssueForm', () => {
       expect(getFormConfigRequest).toHaveBeenCalled();
     });
 
+    it('shows placeholder for async select fields', async () => {
+      await renderComponent('Link');
+
+      // The Issue field has a url property (async select), so it should display our placeholder
+      expect(screen.getByRole('textbox', {name: 'Issue'})).toBeInTheDocument();
+      expect(screen.getByText('Type to search')).toBeInTheDocument();
+    });
+
     describe('options loaded', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({

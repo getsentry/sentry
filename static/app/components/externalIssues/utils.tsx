@@ -6,7 +6,7 @@ import {Client} from 'sentry/api';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 
@@ -226,6 +226,7 @@ export function getFieldProps({
     onBlurResetsInput: false,
     onCloseResetsInput: false,
     onSelectResetsInput: false,
+    placeholder: t('Type to search'),
   };
 }
 
