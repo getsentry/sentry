@@ -45,6 +45,8 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
           id: uniqueId(),
           op: 'json_path',
           value: '',
+          operator: {cmp: 'equals'},
+          operand: {jsonpath_op: 'literal', value: ''},
         };
         onAddOp(jsonPathOp);
       },

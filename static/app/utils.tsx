@@ -170,3 +170,13 @@ export function urlEncode(object: Record<string, any>): string {
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');
 }
+
+export function isNumericString(value: string): boolean {
+  const s = value.trim();
+
+  if (!s) {
+    return false;
+  }
+
+  return /^-?(?:\d+|\d*\.\d+)(?:[eE][+-]?\d+)?$/.test(s);
+}

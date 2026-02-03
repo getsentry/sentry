@@ -107,6 +107,11 @@ export type HeaderOperand =
   | {header_op: 'literal'; value: string}
   | {header_op: 'glob'; pattern: {value: string}};
 
+export type JsonPathOperand =
+  | {jsonpath_op: 'none'}
+  | {jsonpath_op: 'literal'; value: string}
+  | {jsonpath_op: 'glob'; pattern: {value: string}};
+
 export interface AndOp {
   children: Op[];
   id: string;
@@ -135,6 +140,8 @@ export interface StatusCodeOp {
 export interface JsonPathOp {
   id: string;
   op: 'json_path';
+  operand: JsonPathOperand;
+  operator: Comparison;
   value: string;
 }
 

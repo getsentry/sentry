@@ -148,3 +148,10 @@ export const COMPARISON_OPTIONS: Array<
     trailingItems: <Text monospace>{'\u2205'}</Text>,
   },
 ];
+
+export const STRING_OPERAND_OPTIONS: Array<
+  SelectOption<'literal' | 'glob'> & {symbol: string}
+> = [
+  {value: 'literal', label: t('Literal'), symbol: '""'},
+  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
+];

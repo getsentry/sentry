@@ -77,6 +77,8 @@ describe('UptimeAssertionsField', () => {
             id: 'json-1',
             op: 'json_path',
             value: '$.data.status',
+            operator: {cmp: 'equals'},
+            operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
       },

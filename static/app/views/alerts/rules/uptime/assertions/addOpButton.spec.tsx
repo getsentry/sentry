@@ -79,6 +79,8 @@ describe('AddOpButton', () => {
         id: expect.any(String),
         op: 'json_path',
         value: '',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       });
     });
 
