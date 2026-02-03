@@ -17,7 +17,6 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import type {
   Artifact,
   Block,
@@ -300,7 +299,6 @@ export function useExplorerAutofix(
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const user = useUser();
   const orgSlug = organization.slug;
 
   const intelligenceLevel = useMemo(() => {
@@ -444,7 +442,6 @@ export function useExplorerAutofix(
         group_id: groupId,
         provider: integration.provider,
         source: 'explorer',
-        user_id: user.id,
       });
 
       addLoadingMessage('Launching coding agent...');
@@ -496,7 +493,7 @@ export function useExplorerAutofix(
         setWaitingForResponse(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id]
+    [api, orgSlug, groupId, queryClient, organization]
   );
 
   // Clear waiting state when we get a response
