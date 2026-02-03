@@ -1,5 +1,13 @@
+export type ConversationDrawerOpenSource =
+  | 'direct_link'
+  | 'table_conversation_id'
+  | 'table_input'
+  | 'table_output';
+
 export type ConversationsEventParameters = {
-  'conversations.drawer.open': Record<string, unknown>;
+  'conversations.drawer.open': {
+    source: ConversationDrawerOpenSource;
+  };
   'conversations.drawer.span-select': Record<string, unknown>;
   'conversations.drawer.tab-switch': {
     fromTab: string;
