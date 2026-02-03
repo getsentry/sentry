@@ -8,6 +8,7 @@ import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -28,6 +29,8 @@ export default function BuildList() {
   });
   const projects = Array.from(new Set(projectList.filter(Boolean)));
   const projectId = projects[0];
+  const singleProject =
+    projectId === undefined ? undefined : ProjectsStore.getById(projectId);
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -77,13 +80,13 @@ export default function BuildList() {
         <Layout.Header>
           <Layout.Title>Builds</Layout.Title>
           <Layout.HeaderActions>
-            {projects.length === 1 && (
+            {singleProject && (
               <Feature features="organizations:preprod-frontend-routes">
                 <LinkButton
                   size="sm"
                   icon={<IconSettings />}
                   aria-label={t('Settings')}
-                  to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
+                  to={`/settings/${organization.slug}/projects/${singleProject.slug}/mobile-builds/`}
                 />
               </Feature>
             )}
