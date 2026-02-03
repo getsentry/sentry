@@ -12,22 +12,18 @@ type Payload = {
 
 type Props = {
   organization: Organization;
-  formProps?: Partial<typeof Form>;
   onSubmit?: (
     data: Payload,
     onSuccess: (team: Team) => void,
     onError: (team: Team) => void
   ) => void;
-  onSuccess?: (data: Payload) => void;
 };
 
-function CreateTeamForm({organization, formProps, ...props}: Props) {
+function CreateTeamForm({organization, ...props}: Props) {
   return (
     <Fragment>
       <p>
-        {t(
-          'Members of a team have access to specific areas, such as a new release or a new application feature.'
-        )}
+        {t('Teams group members for issue assignment, ownership, and notifications.')}
       </p>
 
       <Form
@@ -37,19 +33,16 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
         onSubmit={(data, onSuccess, onError) =>
           props.onSubmit?.(data as Payload, onSuccess, onError)
         }
-        onSubmitSuccess={data => props.onSuccess?.(data)}
         requireChanges
-        data-test-id="create-team-form"
-        {...formProps}
       >
         <TextField
           stacked
           required
           name="slug"
-          label={t('Team Name')}
+          label={t('Team Slug')}
           transformInput={slugify}
-          placeholder={t('e.g. operations, web-frontend, desktop')}
-          help={t('May contain lowercase letters, numbers, dashes and underscores.')}
+          placeholder={t('e.g. api-team, web-frontend, mobile-ios')}
+          help={t('Use lowercase letters, numbers, dashes, and underscores.')}
           flexibleControlStateSize
           inline={false}
           autoFocus
