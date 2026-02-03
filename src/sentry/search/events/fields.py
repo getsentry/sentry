@@ -1156,7 +1156,7 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_mri(value):
             return value
         match = TYPED_TAG_KEY_RE.search(value)
-        if match and match.group("type") == "number":
+        if match and match.group("type") in ("number", "integer"):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
