@@ -226,6 +226,19 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             # We've reached the stopping point
             return
 
+        # Stop if current step is code_changes and enable_seer_coding is False
+        if current_step == AutofixStep.CODE_CHANGES and not organization.get_option(
+            "sentry:enable_seer_coding", True
+        ):
+            logger.warning(
+                "autofix.on_completion_hook.code_changes_step_disabled",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                },
+            )
+            return
+
         # Check if we should trigger coding agent handoff instead of continuing
         handoff_config = cls._get_handoff_config_if_applicable(
             stopping_point, current_step, group_id

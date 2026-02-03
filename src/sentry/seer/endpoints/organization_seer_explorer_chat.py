@@ -125,11 +125,12 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 sentry_sdk.capture_exception(e, level="warning")
 
         try:
+            enable_coding = organization.get_option("sentry:enable_seer_coding", True)
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_coding=True,
+                enable_coding=enable_coding,
             )
             if run_id:
                 # Continue existing conversation
