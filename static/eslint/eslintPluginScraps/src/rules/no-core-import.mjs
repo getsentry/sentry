@@ -4,7 +4,7 @@
  * Disallows imports from 'sentry/components/core' and autofixes them to '@sentry/scraps'.
  */
 
-const FORBIDDEN_PATH = 'sentry/components/core';
+const FORBIDDEN_PATH = 'sentry/components/core/';
 const REPLACEMENT_PATH = '@sentry/scraps';
 
 /**
@@ -43,7 +43,7 @@ export const noCoreImport = {
               let newPath = REPLACEMENT_PATH;
 
               // Check if we are importing from a subpath and extract the component
-              if (importPath.startsWith(`${FORBIDDEN_PATH}/`)) {
+              if (importPath.startsWith(FORBIDDEN_PATH)) {
                 const firstComponent = importPath.split('/')[3];
                 newPath = `${REPLACEMENT_PATH}/${firstComponent}`;
               }

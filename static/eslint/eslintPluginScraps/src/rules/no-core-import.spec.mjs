@@ -26,24 +26,6 @@ ruleTester.run('no-core-import', noCoreImport, {
 
   invalid: [
     {
-      code: 'import {Button} from "sentry/components/core";',
-      filename: '/static/app/index.tsx',
-      errors: [{messageId: 'forbidden'}],
-      output: "import {Button} from '@sentry/scraps';",
-    },
-    {
-      code: 'import {Button, Text} from "sentry/components/core";',
-      filename: '/static/app/components/test.tsx',
-      errors: [{messageId: 'forbidden'}],
-      output: "import {Button, Text} from '@sentry/scraps';",
-    },
-    {
-      code: 'import * as Core from "sentry/components/core";',
-      filename: '/static/app/views/test.tsx',
-      errors: [{messageId: 'forbidden'}],
-      output: "import * as Core from '@sentry/scraps';",
-    },
-    {
       code: 'import {Button} from "sentry/components/core/button";',
       filename: '/static/app/views/test.tsx',
       errors: [{messageId: 'forbidden'}],
