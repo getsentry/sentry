@@ -47,11 +47,11 @@ function TimesTag({lastSeen, firstSeen}: Props) {
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Separator = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconClock = styled(IconClock)`

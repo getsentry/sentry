@@ -9,15 +9,18 @@ import {
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {InputProps} from 'sentry/components/core/input';
-import {Input as _Input, Input as CoreInput} from 'sentry/components/core/input';
-import type {TextAreaProps} from 'sentry/components/core/textarea';
-import {
-  TextArea as _TextArea,
-  TextArea as CoreTextArea,
-} from 'sentry/components/core/textarea';
+import type {InputProps} from '@sentry/scraps/input';
+
 import {space} from 'sentry/styles/space';
 import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+
+// There is a cycle here if we import textarea from scraps.
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {TextAreaProps} from '../textarea';
+// eslint-disable-next-line  no-relative-import-paths/no-relative-import-paths
+import {TextArea as CoreTextArea} from '../textarea';
+
+import {Input as CoreInput} from './input';
 
 interface InputStyleProps {
   leadingWidth?: number;
@@ -31,9 +34,11 @@ const InputItemsWrap = styled('div')`
   align-items: center;
   gap: ${space(1)};
 
+  /* Do not use transform here to do alignment as it will create a new stacking
+   * context, breaking things like dropdown menus */
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
 `;
 
 const itemsPadding = {
@@ -265,9 +270,7 @@ InputGroup.TextArea = TextArea;
 InputGroup.LeadingItems = LeadingItems;
 InputGroup.TrailingItems = TrailingItems;
 
-export type {InputProps, TextAreaProps};
-
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
-  ${p => p.disabled && `color: ${p.theme.disabled};`};
+  ${p => p.disabled && `color: ${p.theme.tokens.content.disabled};`};
 `;

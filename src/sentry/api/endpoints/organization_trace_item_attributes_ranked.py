@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,7 +30,6 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
-from sentry.seer.workflows.compare import keyed_rrf_score
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
@@ -60,247 +59,46 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         except NoProjects:
             return Response({"rankedAttributes": []})
 
-        resolver_config = SearchResolverConfig(
-            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-        )
-
-        resolver = SearchResolver(
-            params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
-        )
-
-        meta = resolver.resolve_meta(
-            referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
-            sampling_mode=snuba_params.sampling_mode,
-        )
-
         function_string = request.GET.get("function", "count(span.duration)")
         above = request.GET.get("above") == "1"
-
-        match = fields.is_function(function_string)
-        if match is None:
-            raise InvalidSearchQuery(f"{function_string} is not a function")
-
-        function_name = match.group("function")
-        columns = match.group("columns")
-        arguments = fields.parse_arguments(function_name, columns)
-
-        should_segment_suspect_cohort = len(arguments) == 1 and function_name in [
-            "avg",
-            "p50",
-            "p75",
-            "p90",
-            "p95",
-            "p99",
-            "p100",
-        ]
-
-        function_parameter = arguments[0] if len(arguments) == 1 else None
-
         query_1 = request.GET.get("query_1", "")  # Suspect query
         query_2 = request.GET.get("query_2", "")  # Query for all the spans with the base query
-
-        # Only segment on percentile functions
-        function_value = None
-        if should_segment_suspect_cohort:
-            function_result = Spans.run_table_query(
-                params=snuba_params,
-                query_string=query_1,
-                selected_columns=[f"{function_name}({function_parameter})"],
-                orderby=None,
-                config=resolver_config,
-                offset=0,
-                limit=1,
-                sampling_mode=snuba_params.sampling_mode,
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-            )
-            function_value = (
-                function_result["data"][0][f"{function_name}({function_parameter})"]
-                if function_result["data"]
-                else None
-            )
-            if function_value is not None:
-                query_1 = (
-                    f"({query_1}) AND {function_parameter}:>={function_value}"
-                    if above
-                    else f"({query_1}) AND {function_parameter}:<={function_value}"
-                )
 
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
-        cohort_1, _, _ = resolver.resolve_query(query_1)
-        cohort_2, _, _ = resolver.resolve_query(query_2)
-
-        # Fetch attribute names for parallelization
-        adjusted_start_date, adjusted_end_date = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
-        attrs_snuba_params = snuba_params.copy()
-        attrs_snuba_params.start = adjusted_start_date
-        attrs_snuba_params.end = adjusted_end_date
-        attrs_resolver = SearchResolver(
-            params=attrs_snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
-        )
-        attrs_meta = attrs_resolver.resolve_meta(
-            referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value
-        )
-        attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
-
-        attr_type = AttributeKey.Type.TYPE_STRING
-        max_attributes = options.get("explore.trace-items.keys.max")
-
-        with handle_query_errors():
-            attrs_request = TraceItemAttributeNamesRequest(
-                meta=attrs_meta,
-                limit=max_attributes,
-                type=attr_type,
-            )
-            attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
-
-        # Chunk attributes for parallel processing
-        chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
-        for i, attr_proto in enumerate(attrs_response.attributes):
-            if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
-                continue
-
-            chunked_attributes[i % PARALLELIZATION_FACTOR].append(
-                AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
-            )
-
-        def run_stats_request_with_error_handling(filter, attributes):
-            with handle_query_errors():
-                request = TraceItemStatsRequest(
-                    filter=filter,
-                    meta=meta,
-                    stats_types=[
-                        StatsType(
-                            attribute_distributions=AttributeDistributionsRequest(
-                                max_buckets=75,
-                                attributes=attributes,
-                            )
-                        )
-                    ],
-                )
-                return trace_item_stats_rpc(request)
-
-        def run_table_query_with_error_handling(query_string):
-            with handle_query_errors():
-                return Spans.run_table_query(
-                    params=snuba_params,
-                    query_string=query_string,
-                    selected_columns=["count(span.duration)"],
-                    orderby=None,
-                    config=resolver_config,
-                    offset=0,
-                    limit=1,
-                    sampling_mode=snuba_params.sampling_mode,
-                    referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-                )
-
-        with ThreadPoolExecutor(
-            thread_name_prefix=__name__,
-            max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
-        ) as query_thread_pool:
-            cohort_1_futures = [
-                query_thread_pool.submit(
-                    run_stats_request_with_error_handling, cohort_1, attributes
-                )
-                for attributes in chunked_attributes.values()
-            ]
-            cohort_2_futures = [
-                query_thread_pool.submit(
-                    run_stats_request_with_error_handling, cohort_2, attributes
-                )
-                for attributes in chunked_attributes.values()
-            ]
-
-            totals_1_future = query_thread_pool.submit(run_table_query_with_error_handling, query_1)
-            totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
-
-            # Merge cohort 1 results
-            cohort_1_data = []
-            for future in cohort_1_futures:
-                result = future.result()
-                if result.results:
-                    cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
-
-            # Merge cohort 2 results
-            cohort_2_data = []
-            for future in cohort_2_futures:
-                result = future.result()
-                if result.results:
-                    cohort_2_data.extend(result.results[0].attribute_distributions.attributes)
-
-            totals_1_result = totals_1_future.result()
-            totals_2_result = totals_2_future.result()
-
-        cohort_1_distribution = []
-        cohort_1_distribution_map = defaultdict(list)
-
-        cohort_2_distribution = []
-        cohort_2_distribution_map = defaultdict(list)
-        processed_cohort_2_buckets = set()
-
-        for attribute in cohort_2_data:
-            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
-                continue
-
-            for bucket in attribute.buckets:
-                cohort_2_distribution_map[attribute.attribute_name].append(
-                    {"label": bucket.label, "value": bucket.value}
-                )
-
-        for attribute in cohort_1_data:
-            if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
-                continue
-            for bucket in attribute.buckets:
-                cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
-                cohort_1_distribution_map[attribute.attribute_name].append(
-                    {"label": bucket.label, "value": bucket.value}
-                )
-
-                # Calculate the baseline value for the suspect cohort
-                # If a value exists in the suspect, but not the baseline we should clip the value to 0
-                for cohort_2_bucket in cohort_2_distribution_map[attribute.attribute_name]:
-                    if cohort_2_bucket["label"] == bucket.label:
-                        baseline_value = max(
-                            0, cast(float, cohort_2_bucket["value"]) - bucket.value
-                        )
-                        cohort_2_bucket["value"] = baseline_value
-                        cohort_2_distribution.append(
-                            (attribute.attribute_name, bucket.label, baseline_value)
-                        )
-                        processed_cohort_2_buckets.add((attribute.attribute_name, bucket.label))
-                        break
-
-        # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
-        cohort_2_distribution.extend(
-            [
-                (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
-                for attribute_name, buckets in cohort_2_distribution_map.items()
-                for bucket in buckets
-                if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
-            ]
+        distributions_result = query_attribute_distributions(
+            snuba_params=snuba_params,
+            function_string=function_string,
+            above=above,
+            query_1=query_1,
+            query_2=query_2,
         )
 
-        total_outliers = (
-            int(totals_1_result["data"][0]["count(span.duration)"])
-            if totals_1_result.get("data")
-            else 0
-        )
-        total_spans = (
-            int(totals_2_result["data"][0]["count(span.duration)"])
-            if totals_2_result.get("data")
-            else 0
-        )
-        total_baseline = total_spans - total_outliers
+        cohort_2_distribution = distributions_result["cohort_2_distribution"]
+        cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]
+        total_baseline = distributions_result["total_cohort_2"]
 
-        scored_attrs_rrf = keyed_rrf_score(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
-            total_outliers=total_outliers,
-            total_baseline=total_baseline,
-        )
+        cohort_1_distribution = distributions_result["cohort_1_distribution"]
+        cohort_1_distribution_map = distributions_result["cohort_1_distribution_map"]
+        total_outliers = distributions_result["total_cohort_1"]
+        function_value = distributions_result["cohort_1_function_value"]
+
+        ranked_distribution: dict[str, Any] = {
+            "rankedAttributes": [],
+            "rankingInfo": {
+                "function": function_string,
+                "value": function_value if function_value else "N/A",
+                "above": above,
+            },
+            "cohort1Total": total_outliers,
+            "cohort2Total": total_baseline,
+        }
+
+        # If baseline is empty or negative, comparison is not meaningful
+        if total_baseline <= 0:
+            logger.warning("total_baseline is <= 0 (%s). Returning empty response", total_baseline)
+            return Response(ranked_distribution)
 
         logger.info(
             "compare_distributions params: baseline=%s, outliers=%s, total_outliers=%s, total_baseline=%s, config=%s, meta=%s",
@@ -327,25 +125,9 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         )
         logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
-        # Create RRR order mapping from compare_distributions results
-        # scored_attrs_rrr returns a dict with 'results' key containing list of [attribute_name, score] pairs
         rrr_results = scored_attrs_rrr.get("results", [])
-        rrr_order_map = {attr_name: i for i, (attr_name, _) in enumerate(rrr_results)}
 
-        ranked_distribution: dict[str, Any] = {
-            "rankedAttributes": [],
-            "rankingInfo": {
-                "function": function_string,
-                "value": function_value if function_value else "N/A",
-                "above": above,
-            },
-            "cohort1Total": total_outliers,
-            "cohort2Total": total_baseline,
-        }
-
-        for i, scored_attr_tuple in enumerate(scored_attrs_rrf):
-            attr = scored_attr_tuple[0]
-
+        for i, (attr, _) in enumerate(rrr_results):
             public_alias, _, _ = translate_internal_to_public_alias(
                 attr, "string", SupportedTraceItemType.SPANS
             )
@@ -360,11 +142,291 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
                     "attributeName": public_alias,
                     "cohort1": cohort_1_distribution_map.get(attr),
                     "cohort2": cohort_2_distribution_map.get(attr),
-                    "order": {  # TODO: aayush-se remove this once we have selected a single ranking method
-                        "rrf": i,
-                        "rrr": rrr_order_map.get(attr),
-                    },
+                    # TODO(aayush-se): Remove order field once frontend stops using it
+                    "order": {"rrr": i},
                 }
                 ranked_distribution["rankedAttributes"].append(distribution)
 
         return Response(ranked_distribution)
+
+
+class AttributeDistributionsResponse(TypedDict):
+    """
+    Response structure for query_attribute_distributions.
+
+    Contains distribution data and total counts for both cohorts.
+    `distribution_map` and `distribution` data structures contain the same data points, just in different formats.
+
+    The result of applying the function to cohort 1 is also returned in `cohort_1_function_value`.
+    """
+
+    cohort_2_distribution: list[tuple[str, str, float]]  # list of (attribute_name, label, value)
+    # map of attribute_name to list of {label: str, value: float}
+    cohort_2_distribution_map: dict[str, list[dict[str, Any]]]
+    total_cohort_2: int
+
+    cohort_1_distribution: list[tuple[str, str, float]]  # list of (attribute_name, label, value)
+    # map of attribute_name to list of {label: str, value: float}
+    cohort_1_distribution_map: dict[str, list[dict[str, Any]]]
+    total_cohort_1: int
+    cohort_1_function_value: float | None
+
+
+def query_attribute_distributions(
+    snuba_params,
+    function_string: str,
+    above: bool,
+    query_1: str,
+    query_2: str,
+) -> AttributeDistributionsResponse:
+    """
+    Query for and compute span attribute distributions for outlier (query_1) and baseline (query_2) cohorts.
+
+    Args:
+        snuba_params: Snuba query parameters
+        function_string: Function to apply (e.g., "count(span.duration)")
+        above: Whether to filter above or below the function value
+        query_1: Query for outlier cohort (suspect spans)
+        query_2: Query for baseline cohort (all other spans)
+
+    Returns:
+        AttributeDistributionsResponse with distribution data and total counts for both cohorts
+    """
+    resolver_config = SearchResolverConfig(
+        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+    )
+
+    resolver = SearchResolver(
+        params=snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
+    )
+
+    meta = resolver.resolve_meta(
+        referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value,
+        sampling_mode=snuba_params.sampling_mode,
+    )
+
+    match = fields.is_function(function_string)
+    if match is None:
+        raise InvalidSearchQuery(f"{function_string} is not a function")
+
+    function_name = match.group("function")
+    columns = match.group("columns")
+    arguments = fields.parse_arguments(function_name, columns)
+
+    should_segment_suspect_cohort = len(arguments) == 1 and function_name in [
+        "avg",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99",
+        "p100",
+    ]
+
+    function_parameter = arguments[0] if len(arguments) == 1 else None
+
+    # For failure_rate and failure_count, we want the selected cohort to be
+    # specifically failed spans. Sentry treats spans with status other than
+    # "ok", "cancelled", and "unknown" as failures.
+    # The baseline remains all other spans (not filtered to failures) to provide
+    # a meaningful comparison with enough data points.
+    is_failure_function = function_name in ("failure_rate", "failure_count")
+    if is_failure_function:
+        failure_filter = "has:span.status !span.status:[ok,cancelled,unknown]"
+        query_1 = f"({query_1}) {failure_filter}" if query_1 else failure_filter
+        # query_2 (baseline) intentionally not filtered - compare failed spans vs all other spans
+
+    # Only segment on percentile functions
+    function_value = None
+    if should_segment_suspect_cohort:
+        function_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=query_1,
+            selected_columns=[f"{function_name}({function_parameter})"],
+            orderby=None,
+            config=resolver_config,
+            offset=0,
+            limit=1,
+            sampling_mode=snuba_params.sampling_mode,
+            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        )
+        function_value = (
+            function_result["data"][0][f"{function_name}({function_parameter})"]
+            if function_result["data"]
+            else None
+        )
+        if function_value is not None:
+            query_1 = (
+                f"({query_1}) AND {function_parameter}:>={function_value}"
+                if above
+                else f"({query_1}) AND {function_parameter}:<={function_value}"
+            )
+
+    cohort_1, _, _ = resolver.resolve_query(query_1)
+    cohort_2, _, _ = resolver.resolve_query(query_2)
+
+    # Fetch attribute names for parallelization
+    adjusted_start_date, adjusted_end_date = adjust_start_end_window(
+        snuba_params.start_date, snuba_params.end_date
+    )
+    attrs_snuba_params = snuba_params.copy()
+    attrs_snuba_params.start = adjusted_start_date
+    attrs_snuba_params.end = adjusted_end_date
+    attrs_resolver = SearchResolver(
+        params=attrs_snuba_params, config=resolver_config, definitions=SPAN_DEFINITIONS
+    )
+    attrs_meta = attrs_resolver.resolve_meta(referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC.value)
+    attrs_meta.trace_item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+
+    attr_type = AttributeKey.Type.TYPE_STRING
+    max_attributes = options.get("explore.trace-items.keys.max")
+
+    with handle_query_errors():
+        attrs_request = TraceItemAttributeNamesRequest(
+            meta=attrs_meta,
+            limit=max_attributes,
+            type=attr_type,
+        )
+        attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
+
+    # Chunk attributes for parallel processing
+    chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
+    for i, attr_proto in enumerate(attrs_response.attributes):
+        if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
+            continue
+
+        chunked_attributes[i % PARALLELIZATION_FACTOR].append(
+            AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
+        )
+
+    def run_stats_request_with_error_handling(filter, attributes):
+        with handle_query_errors():
+            request = TraceItemStatsRequest(
+                filter=filter,
+                meta=meta,
+                stats_types=[
+                    StatsType(
+                        attribute_distributions=AttributeDistributionsRequest(
+                            max_buckets=75,
+                            attributes=attributes,
+                        )
+                    )
+                ],
+            )
+            return trace_item_stats_rpc(request)
+
+    def run_table_query_with_error_handling(query_string):
+        with handle_query_errors():
+            return Spans.run_table_query(
+                params=snuba_params,
+                query_string=query_string,
+                selected_columns=["count(span.duration)"],
+                orderby=None,
+                config=resolver_config,
+                offset=0,
+                limit=1,
+                sampling_mode=snuba_params.sampling_mode,
+                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+            )
+
+    with ThreadPoolExecutor(
+        thread_name_prefix=__name__,
+        max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
+    ) as query_thread_pool:
+        cohort_1_futures = [
+            query_thread_pool.submit(run_stats_request_with_error_handling, cohort_1, attributes)
+            for attributes in chunked_attributes.values()
+        ]
+        cohort_2_futures = [
+            query_thread_pool.submit(run_stats_request_with_error_handling, cohort_2, attributes)
+            for attributes in chunked_attributes.values()
+        ]
+
+        totals_1_future = query_thread_pool.submit(run_table_query_with_error_handling, query_1)
+        totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
+
+        # Merge cohort 1 results
+        cohort_1_data = []
+        for future in cohort_1_futures:
+            result = future.result()
+            if result.results:
+                cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
+
+        # Merge cohort 2 results
+        cohort_2_data = []
+        for future in cohort_2_futures:
+            result = future.result()
+            if result.results:
+                cohort_2_data.extend(result.results[0].attribute_distributions.attributes)
+
+        totals_1_result = totals_1_future.result()
+        totals_2_result = totals_2_future.result()
+
+    cohort_1_distribution = []
+    cohort_1_distribution_map = defaultdict(list)
+
+    cohort_2_distribution = []
+    cohort_2_distribution_map = defaultdict(list)
+    processed_cohort_2_buckets = set()
+
+    for attribute in cohort_2_data:
+        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+            continue
+
+        for bucket in attribute.buckets:
+            cohort_2_distribution_map[attribute.attribute_name].append(
+                {"label": bucket.label, "value": bucket.value}
+            )
+
+    for attribute in cohort_1_data:
+        if not can_expose_attribute(attribute.attribute_name, SupportedTraceItemType.SPANS):
+            continue
+        for bucket in attribute.buckets:
+            cohort_1_distribution.append((attribute.attribute_name, bucket.label, bucket.value))
+            cohort_1_distribution_map[attribute.attribute_name].append(
+                {"label": bucket.label, "value": bucket.value}
+            )
+
+            # Calculate the baseline value for the suspect cohort
+            # If a value exists in the suspect, but not the baseline we should clip the value to 0
+            for cohort_2_bucket in cohort_2_distribution_map[attribute.attribute_name]:
+                if cohort_2_bucket["label"] == bucket.label:
+                    baseline_value = max(0, cast(float, cohort_2_bucket["value"]) - bucket.value)
+                    cohort_2_bucket["value"] = baseline_value
+                    cohort_2_distribution.append(
+                        (attribute.attribute_name, bucket.label, baseline_value)
+                    )
+                    processed_cohort_2_buckets.add((attribute.attribute_name, bucket.label))
+                    break
+
+    # Add remaining cohort_2 buckets that weren't in cohort_1 (exist only in baseline)
+    cohort_2_distribution.extend(
+        [
+            (attribute_name, cast(str, bucket["label"]), cast(float, bucket["value"]))
+            for attribute_name, buckets in cohort_2_distribution_map.items()
+            for bucket in buckets
+            if (attribute_name, bucket["label"]) not in processed_cohort_2_buckets
+        ]
+    )
+
+    total_outliers = (
+        int(totals_1_result["data"][0]["count(span.duration)"])
+        if totals_1_result.get("data")
+        else 0
+    )
+    total_spans = (
+        int(totals_2_result["data"][0]["count(span.duration)"])
+        if totals_2_result.get("data")
+        else 0
+    )
+    total_baseline = total_spans - total_outliers
+
+    return AttributeDistributionsResponse(
+        cohort_2_distribution=cohort_2_distribution,
+        cohort_2_distribution_map=cohort_2_distribution_map,
+        total_cohort_2=total_baseline,
+        cohort_1_distribution=cohort_1_distribution,
+        cohort_1_distribution_map=cohort_1_distribution_map,
+        total_cohort_1=total_outliers,
+        cohort_1_function_value=function_value,
+    )

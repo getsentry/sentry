@@ -1,10 +1,10 @@
 import {Component} from 'react';
 
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select, SelectOption} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {SelectOption} from 'sentry/components/core/select/option';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   OptionsType,
   OptionTypeBase,
@@ -102,7 +102,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     }
 
     onChange?.(value, {});
-    onBlur?.(value, {});
+
+    // Prevent onBlur from firing when toggling options in a multi-select.
+    // Instead,onBlur is handled once at the component level.
+    if (!this.props.multiple) {
+      onBlur?.(value, {});
+    }
   };
 
   render() {
@@ -219,6 +224,13 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       return;
                     }
                     throw e;
+                  }
+                }}
+                onBlur={() => {
+                  // For multiple selects, trigger onBlur when the component actually loses focus
+                  // (as opposed to on every selection which would close the menu)
+                  if (multiple) {
+                    onBlur?.(props.value, {});
                   }
                 }}
               />

@@ -2,11 +2,12 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
@@ -325,7 +326,7 @@ function CancelSubscriptionWrapper({subscription}: CancelSubscriptionWrapperProp
 
   const title = t('Cancel Subscription');
   return (
-    <SubscriptionPageContainer background="secondary" dataTestId="cancel-subscription">
+    <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <CancelSubscriptionForm />

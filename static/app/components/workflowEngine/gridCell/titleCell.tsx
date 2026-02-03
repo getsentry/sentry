@@ -1,17 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+import * as qs from 'query-string';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconSentry, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 
 export type TitleCellProps = {
-  link: string | null;
+  link: LocationDescriptor | null;
   name: string;
   className?: string;
   details?: React.ReactNode;
@@ -51,7 +54,11 @@ export function TitleCell({
             </Tooltip>
           </Fragment>
         )}
-        {disabled && <DisabledText>&mdash; Disabled</DisabledText>}
+        {disabled && (
+          <Container as="span" flexShrink={0}>
+            &mdash; Disabled
+          </Container>
+        )}
       </Name>
       {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </Fragment>
@@ -66,9 +73,18 @@ export function TitleCell({
   }
 
   if (openInNewTab) {
+    let href: string;
+    if (typeof link === 'string') {
+      href = link;
+    } else {
+      const pathname = link.pathname ?? '';
+      const search = link.search ?? (link.query ? `?${qs.stringify(link.query)}` : '');
+      const hash = link.hash ?? '';
+      href = `${pathname}${search}${hash}`;
+    }
     return (
       <TitleWrapperAnchor
-        href={link}
+        href={href}
         className={className}
         target="_blank"
         rel="noreferrer noopener"
@@ -93,13 +109,12 @@ const Name = styled('div')`
 `;
 
 const NameText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  ${p => p.theme.overflowEllipsis};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: fit-content;
-`;
-
-const DisabledText = styled('span')`
-  flex-shrink: 0;
 `;
 
 const CreatedBySentryIcon = styled(IconSentry)`
@@ -134,6 +149,6 @@ const DetailsWrapper = styled('div')`
   gap: ${space(0.75)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

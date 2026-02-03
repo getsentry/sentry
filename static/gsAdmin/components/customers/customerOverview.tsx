@@ -3,15 +3,17 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -403,7 +405,11 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
-    [`/organizations/${organization.slug}/sampling/effective-sample-rate/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: dynamicSamplingEnabled,
@@ -512,7 +518,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
     return (
       <DetailLabel key={apiName} title={formattedTrialName}>
-        <TrialState>
+        <Stack gap="md">
           <StyledTag
             variant={
               lessThanOneDayLeft
@@ -530,7 +536,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                 ? 'Used'
                 : 'Available'}
           </StyledTag>
-          <TrialActions>
+          <Flex align="center" wrap="wrap" gap="md">
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
@@ -573,8 +579,8 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             >
               Stop Trial
             </Button>
-          </TrialActions>
-        </TrialState>
+          </Flex>
+        </Stack>
       </DetailLabel>
     );
   };
@@ -841,19 +847,6 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-const TrialState = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TrialActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  align-items: center;
-`;
-
 const ProductTrialsDetailListContainer = styled(DetailList)`
   align-items: baseline;
   dt {
@@ -888,7 +881,7 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 }
 
 const ThresholdValue = styled('dd')<{positive: boolean}>`
-  color: ${p => (p.positive ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
 
 export default CustomerOverview;

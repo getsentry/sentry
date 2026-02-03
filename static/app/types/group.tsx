@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -63,6 +63,8 @@ export enum SavedSearchType {
   TRANSACTION = 7,
   LOG = 8,
   TRACEMETRIC = 9,
+  PREPROD_APP_SIZE = 10,
+  // This and src/sentry/models/search_common.py must be updated together.
 }
 
 export enum IssueCategory {
@@ -106,6 +108,8 @@ export enum IssueCategory {
   AI_DETECTED = 'ai_detected',
 
   PREPROD = 'preprod',
+
+  INSTRUMENTATION = 'instrumentation',
 }
 
 /**
@@ -141,6 +145,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
+  [IssueCategory.INSTRUMENTATION]: t(
+    'Improvements to your instrumentation and SDK usage.'
+  ),
 };
 
 export enum IssueType {
@@ -355,7 +362,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
   return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
 }
 
-// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
@@ -992,6 +999,7 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
+  eventId: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;

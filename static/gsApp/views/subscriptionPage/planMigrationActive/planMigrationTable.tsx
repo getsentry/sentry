@@ -294,8 +294,8 @@ const TableContainer = styled('div')`
 `;
 
 const Credits = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default PlanMigrationTable;

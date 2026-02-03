@@ -9,17 +9,16 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
-import Color from 'color';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex, Grid, type FlexProps} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -30,6 +29,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -183,7 +183,9 @@ export function EventGraph({
     data: Array<{'count_unique(user)': number}>;
   }>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
@@ -245,6 +247,9 @@ export function EventGraph({
     event,
     group,
     eventSeries,
+    isFiltered: isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    seriesType: visibleSeries,
   });
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
@@ -355,8 +360,6 @@ export function EventGraph({
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
-    const translucentGray300 = Color(theme.colors.gray400).alpha(0.5).string();
-    const lightGray300 = Color(theme.colors.gray400).alpha(0.2).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -364,8 +367,8 @@ export function EventGraph({
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.colors.gray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -377,8 +380,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.colors.gray200,
-          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: userSeries,
         animation: false,
@@ -390,8 +395,8 @@ export function EventGraph({
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.colors.gray200,
-            color: lightGray300,
+            borderColor: theme.tokens.border.transparent.neutral.muted,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -403,8 +408,10 @@ export function EventGraph({
         seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
-          borderColor: theme.colors.gray200,
-          color: isUnfilteredStatsEnabled ? theme.colors.blue400 : translucentGray300,
+          borderColor: theme.tokens.border.transparent.neutral.muted,
+          color: isUnfilteredStatsEnabled
+            ? theme.tokens.dataviz.semantic.accent
+            : theme.tokens.dataviz.semantic.other,
         },
         data: eventSeries,
         animation: false,
@@ -451,7 +458,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.tokens.content.muted,
+    inactiveColor: theme.tokens.content.secondary,
   });
 
   const onLegendSelectChanged = useMemo(

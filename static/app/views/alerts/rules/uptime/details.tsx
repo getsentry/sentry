@@ -1,14 +1,14 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -30,7 +30,6 @@ import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
-import {monitorName} from 'sentry/views/insights/uptime/utils/monitorName';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {UptimeDetailsSidebar} from './detailsSidebar';
@@ -123,7 +122,7 @@ export default function UptimeAlertDetails() {
 
   return (
     <Layout.Page>
-      <SentryDocumentTitle title={`${monitorName(detector)} — Alerts`} />
+      <SentryDocumentTitle title={`${detector.name} — Alerts`} />
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -147,7 +146,7 @@ export default function UptimeAlertDetails() {
               hideName
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
-            {monitorName(detector)}
+            {detector.name}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
@@ -202,7 +201,7 @@ export default function UptimeAlertDetails() {
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
             detectorId={detector.id}
-            projectSlug={project.slug}
+            project={project}
             traceSampling={uptimeSub.traceSampling}
           />
         </Layout.Main>

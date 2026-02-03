@@ -23,6 +23,7 @@ export const enum SectionKey {
   ACTIVITY = 'activity',
 
   UPTIME = 'uptime', // Only Uptime issues
+  ASSERTIONS = 'assertions', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
   CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
@@ -96,6 +97,10 @@ export const enum SectionKey {
   SPAN_LINKS = 'span-links',
 
   XRAY_DIFF = 'xray-diff',
+
+  INSTRUMENTATION_FIX = 'instrumentation-fix',
+
+  PROFILE_PREVIEW = 'profile-preview',
 }
 
 /**

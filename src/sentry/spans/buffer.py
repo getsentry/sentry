@@ -81,7 +81,14 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    EvalshaData,
+    compare_metrics,
+    emit_observability_metrics,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -124,7 +131,17 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
+def validate_mode_consistency(write_to_zset: bool, write_to_set: bool, read_from_set: bool) -> None:
+    if not write_to_zset and not write_to_set:
+        raise ValueError("must write to at least zset or set")
+    if not write_to_zset and not read_from_set:
+        raise ValueError("cannot read from zset if not writing to zset")
+    if not write_to_set and read_from_set:
+        raise ValueError("cannot read from set if not writing to set")
+
+
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
+add_buffer_set_script = redis.load_redis_script("spans/add-buffer-set.lua")
 
 
 # NamedTuples are faster to construct than dataclasses
@@ -162,10 +179,13 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
+        self.add_buffer_set_sha: str | None = None
         self.any_shard_at_limit = False
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
+        self._buffer_logger = BufferLogger()
+        self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -177,6 +197,9 @@ class SpansBuffer:
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
+    def _get_set_span_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -198,67 +221,168 @@ class SpansBuffer:
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
+        debug_traces = set(options.get("spans.buffer.debug-traces"))
+        write_to_zset = options.get("spans.buffer.write-to-zset")
+        write_to_set = options.get("spans.buffer.write-to-set")
+        read_from_set = options.get("spans.buffer.read-from-set")
+
+        validate_mode_consistency(write_to_zset, write_to_set, read_from_set)
 
         result_meta = []
         is_root_span_count = 0
-        min_redirect_depth = float("inf")
-        max_redirect_depth = float("-inf")
 
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             trees = self._group_by_parent(spans)
+            pipeline_batch_size = options.get("spans.buffer.pipeline-batch-size")
 
-            with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    set_key = self._get_span_key(project_and_trace, parent_span_id)
-                    prepared = self._prepare_payloads(subsegment)
-                    p.zadd(set_key, prepared)
+            # Split large subsegments into chunks to avoid Lua unpack() limits.
+            # Chunks share the same parent_span_id but are processed separately.
+            tree_items: list[tuple[tuple[str, str], list[Span]]] = []
+            for key, subsegment in trees.items():
+                if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
+                    for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
+                        tree_items.append((key, list(chunk)))
+                else:
+                    tree_items.append((key, subsegment))
 
-                p.execute()
+            tree_batches: Sequence[Sequence[tuple[tuple[str, str], list[Span]]]]
+            if pipeline_batch_size > 0:
+                tree_batches = list(itertools.batched(tree_items, pipeline_batch_size))
+            else:
+                tree_batches = [tree_items]
+
+            for batch in tree_batches:
+                with self.client.pipeline(transaction=False) as p:
+                    for (project_and_trace, parent_span_id), subsegment in batch:
+                        prepared = self._prepare_payloads(subsegment)
+                        if write_to_zset:
+                            zset_key = self._get_span_key(project_and_trace, parent_span_id)
+                            p.zadd(zset_key, prepared)
+                        if write_to_set:
+                            set_key = self._get_set_span_key(project_and_trace, parent_span_id)
+                            p.sadd(set_key, *prepared.keys())
+
+                    p.execute()
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
             # Workaround to make `evalsha` work in pipelines. We load ensure the
             # script is loaded just before calling it below. This calls `SCRIPT
             # EXISTS` once per batch.
-            add_buffer_sha = self._ensure_script()
+            add_buffer_sha, add_buffer_set_sha = self._ensure_scripts(write_to_zset, write_to_set)
 
-            with self.client.pipeline(transaction=False) as p:
-                for (project_and_trace, parent_span_id), subsegment in trees.items():
-                    byte_count = sum(len(span.payload) for span in subsegment)
-                    p.execute_command(
-                        "EVALSHA",
-                        add_buffer_sha,
-                        1,
-                        project_and_trace,
-                        len(subsegment),
-                        parent_span_id,
-                        "true" if any(span.is_segment_span for span in subsegment) else "false",
-                        redis_ttl,
-                        max_segment_bytes,
-                        byte_count,
-                        *[span.span_id for span in subsegment],
-                    )
+            zset_results: list[Any] = []
+            set_results: list[Any] = []
+            for batch in tree_batches:
+                with self.client.pipeline(transaction=False) as p:
+                    for (project_and_trace, parent_span_id), subsegment in batch:
+                        byte_count = sum(len(span.payload) for span in subsegment)
 
-                    is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                    result_meta.append((project_and_trace, parent_span_id))
+                        _, _, trace_id = project_and_trace.partition(":")
+                        if trace_id in debug_traces:
+                            try:
+                                if self._debug_trace_logger is None:
+                                    self._debug_trace_logger = DebugTraceLogger(self.client)
+                                self._debug_trace_logger.log_subsegment_info(
+                                    project_and_trace, parent_span_id, subsegment
+                                )
+                            except Exception:
+                                logger.exception("Failed to log debug trace info")
 
-                results = p.execute()
+                        span_ids = [span.span_id for span in subsegment]
+                        is_segment_span = (
+                            "true" if any(span.is_segment_span for span in subsegment) else "false"
+                        )
+
+                        if write_to_zset:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                is_segment_span,
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *span_ids,
+                            )
+
+                        if write_to_set:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_set_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                is_segment_span,
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *span_ids,
+                            )
+
+                        is_root_span_count += sum(span.is_segment_span for span in subsegment)
+                        result_meta.append((project_and_trace, parent_span_id))
+
+                    batch_results = p.execute()
+
+                if write_to_zset and write_to_set:
+                    # EVALSHA results alternate between ZSET and SET
+                    zset_results.extend(batch_results[::2])
+                    set_results.extend(batch_results[1::2])
+                elif write_to_zset:
+                    zset_results.extend(batch_results)
+                elif write_to_set:
+                    set_results.extend(batch_results)
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
             queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
+            latency_entries: list[tuple[str, int]] = []
+            zset_latency_metrics = []
+            zset_gauge_metrics = []
+            set_latency_metrics = []
+            set_gauge_metrics = []
+            longest_zset_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )
+            longest_set_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )
 
-            assert len(result_meta) == len(results)
+            if write_to_zset:
+                assert len(result_meta) == len(zset_results)
+            if write_to_set:
+                assert len(result_meta) == len(set_results)
+            if read_from_set:
+                queue_results = set_results
+                get_span_key_fn = self._get_set_span_key
+            else:
+                queue_results = zset_results
+                get_span_key_fn = self._get_span_key
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
-                redirect_depth, set_key, has_root_span = result
+            for (project_and_trace, parent_span_id), result in zip(result_meta, queue_results):
+                (
+                    segment_key,
+                    has_root_span,
+                    evalsha_latency_ms,
+                    _,
+                    _,
+                ) = result
+
+                latency_entries.append((project_and_trace, evalsha_latency_ms))
 
                 shard = self.assigned_shards[
                     int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
                 ]
                 queue_key = self._get_queue_key(shard)
-
-                min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
                 # if the currently processed span is a root span, OR the buffer
                 # already had a root span inside, use a different timeout than
@@ -269,14 +393,52 @@ class SpansBuffer:
                     offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[set_key] = now + offset
+                zadd_items[segment_key] = now + offset
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.update(
-                    self._get_span_key(project_and_trace, span.span_id) for span in subsegment_spans
+                    get_span_key_fn(project_and_trace, span.span_id) for span in subsegment_spans
                 )
-                delete_set.discard(set_key)
+                delete_set.discard(segment_key)
+
+            if write_to_zset:
+                for result in zset_results:
+                    (
+                        _,
+                        _,
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    ) = result
+                    zset_latency_metrics.append(evalsha_latency_metrics)
+                    zset_gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_zset_evalsha_data[0]:
+                        longest_zset_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
+
+            if write_to_set:
+                for result in set_results:
+                    (
+                        _,
+                        _,
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    ) = result
+                    set_latency_metrics.append(evalsha_latency_metrics)
+                    set_gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_set_evalsha_data[0]:
+                        longest_set_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
+
+            self._buffer_logger.log(latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
                 for queue_key, adds in queue_adds.items():
@@ -295,16 +457,49 @@ class SpansBuffer:
         metrics.incr("spans.buffer.process_spans.count_spans", amount=len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_subsegments", len(trees))
-        metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
-        metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
+        metrics.timing("spans.buffer.process_spans.num_evalsha_calls", len(tree_items))
 
-    def _ensure_script(self):
-        if self.add_buffer_sha is not None:
-            if self.client.script_exists(self.add_buffer_sha)[0]:
-                return self.add_buffer_sha
+        try:
+            if write_to_zset:
+                emit_observability_metrics(
+                    zset_latency_metrics, zset_gauge_metrics, longest_zset_evalsha_data
+                )
+            if write_to_set:
+                emit_observability_metrics(
+                    set_latency_metrics, set_gauge_metrics, longest_set_evalsha_data
+                )
+            if write_to_zset and write_to_set:
+                compare_metrics(zset_latency_metrics, set_latency_metrics)
+                compare_metrics(zset_gauge_metrics, set_gauge_metrics)
+        except Exception as e:
+            logger.exception("Error emitting observability metrics: %s", e)
 
-        self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
-        return self.add_buffer_sha
+    def _ensure_scripts(
+        self, write_to_zset: bool, write_to_set: bool
+    ) -> tuple[str | None, str | None]:
+        """
+        Ensures the required Lua scripts are loaded in Redis.
+
+        :param write_to_zset: Whether to write to ZSET.
+        :param write_to_set: Whether to write to SET.
+        :return: A tuple of (add_buffer_sha, add_buffer_set_sha) where if a mode is not used,
+        the value will be None.
+        """
+        if write_to_zset:
+            if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
+                self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
+
+        if write_to_set:
+            if (
+                not self.add_buffer_set_sha
+                or not self.client.script_exists(self.add_buffer_set_sha)[0]
+            ):
+                self.add_buffer_set_sha = self.client.script_load(add_buffer_set_script.script)
+
+        return (
+            self.add_buffer_sha if write_to_zset else None,
+            self.add_buffer_set_sha if write_to_set else None,
+        )
 
     def _get_queue_key(self, shard: int) -> bytes:
         if self.slice_id is not None:
@@ -580,22 +775,40 @@ class SpansBuffer:
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
+        write_to_zset = options.get("spans.buffer.write-to-zset")
+        write_to_set = options.get("spans.buffer.write-to-set")
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    p.delete(b"span-buf:hrs:" + segment_key)
-                    p.delete(b"span-buf:ic:" + segment_key)
-                    p.delete(b"span-buf:ibc:" + segment_key)
-                    p.unlink(segment_key)
-                    p.zrem(flushed_segment.queue_key, segment_key)
+                    # segment_key could be either span-buf:z:... or span-buf:s:... depending on read mode
+                    if segment_key.startswith(b"span-buf:z:"):
+                        zset_key = segment_key
+                        set_key = segment_key.replace(b"span-buf:z:", b"span-buf:s:", 1)
+                    else:
+                        zset_key = segment_key.replace(b"span-buf:s:", b"span-buf:z:", 1)
+                        set_key = segment_key
+
+                    if write_to_zset:
+                        p.delete(b"span-buf:hrs:" + zset_key)
+                        p.delete(b"span-buf:ic:" + zset_key)
+                        p.delete(b"span-buf:ibc:" + zset_key)
+                        p.unlink(zset_key)
+                    if write_to_set:
+                        p.delete(b"span-buf:hrs:" + set_key)
+                        p.delete(b"span-buf:ic:" + set_key)
+                        p.delete(b"span-buf:ibc:" + set_key)
+                        p.unlink(set_key)
+                    p.zrem(flushed_segment.queue_key, zset_key, set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    zset_redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    set_redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
-                        p.hdel(
-                            redirect_map_key,
-                            *[output_span.payload["span_id"] for output_span in span_batch],
-                        )
+                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                        if write_to_zset:
+                            p.hdel(zset_redirect_map_key, *span_ids)
+                        if write_to_set:
+                            p.hdel(set_redirect_map_key, *span_ids)
 
                 p.execute()

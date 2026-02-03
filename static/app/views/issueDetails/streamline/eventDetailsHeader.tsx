@@ -2,11 +2,15 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from 'sentry/components/core/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -110,7 +114,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             id={IssueDetailsTour.FILTERS}
             title={t('Narrow your focus')}
             description={t(
-              'Filtering data to a specific environment, timeframe, tag value, or user can speed up debugging.'
+              'Filter to a specific environment, timeframe, tag value, or user to speed up debugging.'
             )}
             position="bottom-start"
           >
@@ -161,17 +165,20 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerProps={{
-                      children:
-                        period === defaultStatsPeriod &&
+                    trigger={triggerProps => (
+                      <TimeRangeSelectTrigger
+                        {...triggerProps}
+                        style={{
+                          padding: `${theme.space.md} ${theme.space.lg}`,
+                        }}
+                      >
+                        {period === defaultStatsPeriod &&
                         !defaultStatsPeriod.isMaxRetention &&
                         shouldShowSinceFirstSeenOption
                           ? t('Since First Seen')
-                          : undefined,
-                      style: {
-                        padding: `${theme.space.md} ${theme.space.lg}`,
-                      },
-                    }}
+                          : triggerProps.children}
+                      </TimeRangeSelectTrigger>
+                    )}
                   />
                 </PageFilterBar>
                 {searchBarEnabled && (
@@ -208,7 +215,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
               />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
-              <MetricIssueChart group={group} project={project} />
+              <MetricIssueChart group={group} event={event} />
             )}
             {issueTypeConfig.header.graph.type === 'uptime-checks' && (
               <IssueUptimeCheckTimeline group={group} />
@@ -263,7 +270,7 @@ const DetailsContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.lg};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding-left: ${p => p.theme.space['2xl']};
   padding-right: ${p => p.theme.space['2xl']};
   padding-top: ${p => p.theme.space.lg};
@@ -293,12 +300,12 @@ const OccurrenceSummarySection = styled(OccurrenceSummary)`
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.translucentBorder};
+  border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 0px solid ${p => p.theme.translucentBorder};
+  border: 0px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   border-width: 0 1px 1px 0;
   border-radius: 0;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};

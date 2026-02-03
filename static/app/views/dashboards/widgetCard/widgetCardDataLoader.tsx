@@ -4,17 +4,15 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
+import MobileAppSizeWidgetQueries from './mobileAppSizeWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
 
@@ -29,6 +27,7 @@ type Results = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -64,16 +63,9 @@ export function WidgetCardDataLoader({
   onWidgetSplitDecision,
   onDataFetchStart,
 }: Props) {
-  const api = useApi();
-  const organization = useOrganization();
-  const {queue} = useWidgetQueryQueue();
-
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
-        api={api}
-        queue={queue}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
@@ -106,7 +98,6 @@ export function WidgetCardDataLoader({
     return (
       <ReleaseWidgetQueries
         widget={widget}
-        queue={queue}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
@@ -125,8 +116,6 @@ export function WidgetCardDataLoader({
   if (widget.widgetType === WidgetType.SPANS || shouldForceQueryToSpans(widget)) {
     return (
       <SpansWidgetQueries
-        api={api}
-        queue={queue}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
@@ -142,8 +131,6 @@ export function WidgetCardDataLoader({
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
     return (
       <TraceMetricsWidgetQueries
-        api={api}
-        queue={queue}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
@@ -156,11 +143,20 @@ export function WidgetCardDataLoader({
     );
   }
 
+  if (widget.widgetType === WidgetType.PREPROD_APP_SIZE) {
+    return (
+      <MobileAppSizeWidgetQueries
+        widget={widget}
+        selection={selection}
+        dashboardFilters={dashboardFilters}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </MobileAppSizeWidgetQueries>
+    );
+  }
+
   return (
     <WidgetQueries
-      api={api}
-      queue={queue}
-      organization={organization}
       widget={widget}
       selection={selection}
       limit={tableItemLimit}
@@ -175,6 +171,7 @@ export function WidgetCardDataLoader({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        timeseriesResultsUnits,
         confidence,
       }) => (
         <Fragment>
@@ -184,6 +181,7 @@ export function WidgetCardDataLoader({
             errorMessage,
             loading,
             timeseriesResultsTypes,
+            timeseriesResultsUnits,
             confidence,
           })}
         </Fragment>

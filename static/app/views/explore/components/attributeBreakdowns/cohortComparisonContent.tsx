@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -124,18 +124,18 @@ export function CohortComparison({
         ) : (
           <Fragment>
             {selectedRangeToDates && (
-              <SelectionHintContainer>
-                <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
+              <Stack gap="xs">
+                <SelectionHint backgroundColor={theme.chart.getColorPalette(0)?.[0]}>
                   {t(
                     'Selection is data between %s - %s',
                     selectedRangeToDates.start,
                     selectedRangeToDates.end
                   )}
                 </SelectionHint>
-                <SelectionHint color="#A29FAA">
+                <SelectionHint backgroundColor="#A29FAA">
                   {t('Baseline is all other spans from your query')}
                 </SelectionHint>
-              </SelectionHintContainer>
+              </Stack>
             )}
             {filteredRankedAttributes.length > 0 ? (
               <Fragment>
@@ -176,24 +176,18 @@ export function CohortComparison({
   );
 }
 
-const SelectionHintContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const SelectionHint = styled(Text)<{color?: string}>`
+const SelectionHint = styled(Text)<{backgroundColor?: string}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 
   &::before {
     content: '';
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: ${p => p.color || p.theme.colors.gray500};
+    background-color: ${p => p.backgroundColor || p.theme.colors.gray500};
     margin-right: ${space(0.5)};
     flex-shrink: 0;
   }

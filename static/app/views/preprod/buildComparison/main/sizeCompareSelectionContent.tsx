@@ -26,6 +26,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -35,13 +36,13 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -63,21 +64,18 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
+  const {project: projectId, cursor} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -92,7 +90,9 @@ export function SizeCompareSelectionContent({
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: queryParams},
       ],
       {
@@ -122,7 +122,12 @@ export function SizeCompareSelectionContent({
     },
     onSuccess: () => {
       navigate(
-        `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/${selectedBaseBuild?.id}/`
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          projectId,
+          headArtifactId: headBuildDetails.id,
+          baseArtifactId: selectedBaseBuild?.id,
+        })
       );
     },
     onError: error => {
@@ -167,7 +172,11 @@ export function SizeCompareSelectionContent({
             // Clear cursor when search query changes to avoid pagination issues
             if (cursor) {
               navigate(
-                `/organizations/${organization.slug}/preprod/${projectId}/compare/${headBuildDetails.id}/`,
+                getCompareBuildPath({
+                  organizationSlug: organization.slug,
+                  projectId,
+                  headArtifactId: headBuildDetails.id,
+                }),
                 {replace: true}
               );
             }
@@ -283,7 +292,7 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
             )}
             {versionInfo && (
               <Flex align="center" gap="sm">
-                <IconTag size="xs" color="gray300" />
+                <IconTag size="xs" variant="muted" />
                 <Text>{versionInfo}</Text>
               </Flex>
             )}
@@ -325,7 +334,11 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
 }
 
 const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
-  border: 1px solid ${p => (p.isSelected ? p.theme.focusBorder : p.theme.border)};
+  border: 1px solid
+    ${p =>
+      p.isSelected
+        ? p.theme.tokens.border.accent.vibrant
+        : p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space.md};
   cursor: pointer;
@@ -337,7 +350,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     `
-      background-color: ${p.theme.colors.surface300};
+      background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;
 
@@ -345,7 +358,7 @@ const BuildItemBranchTag = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.colors.blue500};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

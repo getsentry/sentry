@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -19,6 +19,7 @@ import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -219,7 +220,12 @@ export function DebugImageDetails({
     refetch,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${projSlug}/files/dsyms/`,
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projSlug,
+        },
+      }),
       {
         query: {
           debug_id: image?.debug_id,
@@ -269,8 +275,13 @@ export function DebugImageDetails({
   const handleDelete = async (debugId: string) => {
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugId}`,
-        {method: 'DELETE'}
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projSlug,
+          },
+        }),
+        {method: 'DELETE', query: {id: debugId}}
       );
       refetch();
     } catch {
@@ -344,7 +355,7 @@ export function DebugImageDetails({
 const Content = styled('div')`
   display: grid;
   gap: ${space(3)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Title = styled('div')`
@@ -352,13 +363,13 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   max-width: calc(100% - 40px);
   word-break: break-all;
 `;
 
 const FileName = styled('span')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

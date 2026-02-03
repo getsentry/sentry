@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Grid} from 'sentry/components/core/layout';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 

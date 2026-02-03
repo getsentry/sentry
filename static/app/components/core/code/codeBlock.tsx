@@ -3,7 +3,9 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -171,17 +173,17 @@ export function CodeBlock({
                 </Tab>
               ))}
             </TabsWrapper>
-            <FlexSpacer />
+            <Container flexGrow={1} />
           </Fragment>
         )}
         {icon}
         {filename && <FileName>{filename}</FileName>}
-        {!hasTabs && <FlexSpacer />}
+        {!hasTabs && <Container flexGrow={1} />}
         {!hideCopyButton && (
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            priority="transparent"
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{position: 'left'}}
@@ -213,10 +215,6 @@ export function CodeBlock({
   // components
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
-`;
 
 const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
@@ -260,12 +258,15 @@ const Header = styled('div')<{isFloating: boolean}>`
       : css`
           gap: ${space(0.75)};
           padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
-          border-bottom: solid 1px ${p.theme.border};
+          border-bottom: solid 1px ${p.theme.tokens.border.primary};
         `}
 `;
 
 const FileName = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 
@@ -284,7 +285,7 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.colors.blue400};
+      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
       padding-bottom: 5px;
       color: var(--prism-base);`
       : ''}

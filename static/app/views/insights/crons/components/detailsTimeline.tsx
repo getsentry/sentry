@@ -1,6 +1,8 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+
 import {
   deleteMonitorEnvironment,
   setEnvironmentIsMuted,
@@ -10,7 +12,6 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -154,11 +155,11 @@ const Header = styled('div')`
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: subgrid;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
 
   > :last-child {
-    box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+    box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

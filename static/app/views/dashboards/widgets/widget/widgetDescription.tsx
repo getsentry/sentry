@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export interface WidgetDescriptionProps {
   description?: React.ReactNode;
@@ -16,12 +17,12 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
   return (
     <Tooltip
       title={
-        <TooltipContents>
+        <Stack gap="xs" maxHeight="33vh" overflow="hidden">
           {props.title && <TooltipTitle>{props.title}</TooltipTitle>}
           {props.description && (
             <TooltipDescription>{props.description}</TooltipDescription>
           )}
-        </TooltipContents>
+        </Stack>
       }
       containerDisplayMode="grid"
       isHoverable
@@ -29,7 +30,7 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
     >
       <TooltipButton
         aria-label={t('Widget description')}
-        borderless
+        priority="transparent"
         size="xs"
         icon={<IconInfo size="sm" />}
       />
@@ -37,22 +38,14 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
   );
 }
 
-const TooltipContents = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  max-height: 33vh;
-  overflow: hidden;
-`;
-
 const TooltipTitle = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   text-align: left;
 `;
 
 const TooltipDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: left;
 `;
 

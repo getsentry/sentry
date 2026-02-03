@@ -1,23 +1,30 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
+import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconChevron, IconLink} from 'sentry/icons';
+import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 
 import type {Block, TodoItem} from './types';
 import {
   buildToolLinkUrl,
+  getExplorerUrl,
+  getLangfuseUrl,
   getToolsStringFromBlock,
   getValidToolLinks,
   postProcessLLMMarkdown,
@@ -26,6 +33,7 @@ import {
 interface BlockProps {
   block: Block;
   blockIndex: number;
+  getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
@@ -40,7 +48,9 @@ interface BlockProps {
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
   ) => void;
+  readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
+  runId?: number;
 }
 
 function hasValidContent(content: string): boolean {
@@ -129,7 +139,9 @@ function getToolStatus(
 
 function BlockComponent({
   block,
-  blockIndex: _blockIndex,
+  blockIndex,
+  runId,
+  getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLast,
@@ -142,15 +154,16 @@ function BlockComponent({
   onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
+  readOnly = false,
   ref,
 }: BlockProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {projects} = useProjects();
+
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
@@ -194,6 +207,20 @@ function BlockComponent({
     }
   }, [hasValidLinks, selectedLinkIndex, sortedToolLinks.length]);
 
+  // Tool link navigation, with analytics and onNavigate hook.
+  const navigateToToolLink = useCallback(
+    (url: LocationDescriptor, toolKind: string) => {
+      trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+        referrer: getPageReferrer?.() ?? '',
+        organization,
+        tool_kind: toolKind,
+      });
+      navigate(url);
+      onNavigate?.();
+    },
+    [organization, navigate, onNavigate, getPageReferrer]
+  );
+
   // Register the key handler with the parent
   useEffect(() => {
     const handler = (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
@@ -232,8 +259,7 @@ function BlockComponent({
         if (selectedLink) {
           const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
-            navigate(url);
-            onNavigate?.();
+            navigateToToolLink(url, selectedLink.kind);
           }
         }
         return true;
@@ -250,7 +276,70 @@ function BlockComponent({
     navigate,
     onNavigate,
     onRegisterEnterHandler,
+    navigateToToolLink,
   ]);
+
+  // Allow 1 feedback per session. This only writes to session storage on change, not init.
+  const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
+    `seer-explorer-feedback:run-${runId ?? 'null'}:block-${block.id}`,
+    false
+  );
+
+  const trackThumbsFeedback = useCallback(
+    (type: 'positive' | 'negative') => {
+      if (!feedbackSubmitted) {
+        trackAnalytics('seer.explorer.feedback_submitted', {
+          organization,
+          type,
+          run_id: runId,
+          block_index: blockIndex,
+          block_message: block.message.content.slice(0, 100),
+          langfuse_url: runId ? getLangfuseUrl(runId) : undefined,
+          explorer_url: runId ? getExplorerUrl(runId) : undefined,
+          conversations_url:
+            runId && organization.slug
+              ? getConversationsUrl(organization.slug, runId)
+              : undefined,
+        });
+        setFeedbackSubmitted(true); // disable button for rest of the session
+      }
+    },
+    [
+      organization,
+      blockIndex,
+      runId,
+      block.message.content,
+      feedbackSubmitted,
+      setFeedbackSubmitted,
+    ]
+  );
+
+  const thumbsFeedbackButton = (type: 'positive' | 'negative') => {
+    const ariaLabel =
+      type === 'positive' ? t('Seer Explorer Thumbs Up') : t('Seer Explorer Thumbs Down');
+    return (
+      <Button
+        aria-label={ariaLabel}
+        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+        disabled={feedbackSubmitted}
+        priority="transparent"
+        size="xs"
+        title={
+          feedbackSubmitted
+            ? t('Feedback submitted')
+            : type === 'positive'
+              ? t('I like this response')
+              : t("I don't like this response")
+        }
+        onClick={e => {
+          e.stopPropagation();
+          trackThumbsFeedback(type);
+        }}
+      >
+        {undefined}
+      </Button>
+    );
+  };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -268,14 +357,18 @@ function BlockComponent({
     if (selectedLink) {
       const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
-        navigate(url);
-        onNavigate?.();
+        navigateToToolLink(url, selectedLink.kind);
       }
     }
   };
 
   const showActions =
-    isFocused && !block.loading && !isAwaitingFileApproval && !isAwaitingQuestion;
+    isFocused &&
+    !block.loading &&
+    !isAwaitingFileApproval &&
+    !isAwaitingQuestion &&
+    !readOnly; // move this check to inside button bar once there are more actions
+  const showFeedbackButtons = block.message.role === 'assistant';
 
   return (
     <Block
@@ -288,12 +381,12 @@ function BlockComponent({
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <BlockChevronIcon direction="right" size="sm" />
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
-          </BlockRow>
+          </Flex>
         ) : (
-          <BlockRow>
+          <Flex align="start" width="100%">
             <ResponseDot
               status={getToolStatus(block)}
               hasOnlyTools={!hasContent && hasTools}
@@ -345,7 +438,7 @@ function BlockComponent({
                       block.todos.length > 0;
 
                     return (
-                      <ToolCallWithTodos key={`${toolCall.function}-${idx}`}>
+                      <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
                           {hasLink ? (
                             <ToolCallLink
@@ -384,16 +477,18 @@ function BlockComponent({
                         {showTodoList && (
                           <TodoListContent text={todosToMarkdown(block.todos!)} />
                         )}
-                      </ToolCallWithTodos>
+                      </Stack>
                     );
                   })}
                 </ToolCallStack>
               )}
             </BlockContentWrapper>
-          </BlockRow>
+          </Flex>
         )}
         {showActions && !isPolling && (
           <ActionButtonBar gap="xs">
+            {showFeedbackButtons && thumbsFeedbackButton('positive')}
+            {showFeedbackButtons && thumbsFeedbackButton('negative')}
             <Button
               size="xs"
               priority="transparent"
@@ -417,19 +512,13 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
   border-top: 1px solid transparent;
   border-bottom: ${p =>
-    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.border}`};
+    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
 `;
 
-const BlockRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  width: 100%;
-`;
-
 const BlockChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: 18px;
   margin-left: ${space(2)};
   margin-right: ${space(1)};
@@ -449,19 +538,19 @@ const ResponseDot = styled('div')<{
   background: ${p => {
     switch (p.status) {
       case 'loading':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'pending':
-        return p.theme.colors.pink500;
+        return p.theme.tokens.content.promotion;
       case 'content':
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
       case 'success':
-        return p.theme.colors.green500;
+        return p.theme.tokens.content.success;
       case 'failure':
-        return p.theme.colors.red500;
+        return p.theme.tokens.content.danger;
       case 'mixed':
-        return p.theme.colors.yellow500;
+        return p.theme.tokens.content.warning;
       default:
-        return p.theme.colors.blue500;
+        return p.theme.tokens.content.accent;
     }
   }};
 
@@ -511,7 +600,25 @@ const BlockContent = styled(MarkedText)`
   h5,
   h6 {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: ${p => p.theme.space.md} 0;
+  }
+
+  th,
+  td {
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+    text-align: left;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  th {
+    background: ${p => p.theme.tokens.background.secondary};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   p:first-child,
@@ -532,19 +639,13 @@ const UserBlockContent = styled('div')`
   padding: ${space(2)} ${space(2)} ${space(2)} 0;
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToolCallStack = styled(Stack)`
   width: 100%;
   min-width: 0;
   padding-right: ${p => p.theme.space.lg};
-`;
-
-const ToolCallWithTodos = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ToolCallTextContainer = styled('div')`
@@ -562,7 +663,7 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
   ${p =>
     p.isHighlighted &&
     `
-    color: ${p.theme.linkHoverColor};
+    color: ${p.theme.tokens.interactive.link.accent.hover};
   `}
 `;
 
@@ -576,30 +677,33 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   padding: 0;
   cursor: pointer;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 
   &:hover {
     /* Apply highlighted styles and underline to ToolCallText on hover */
     ${ToolCallText} {
-      color: ${p => p.theme.linkHoverColor};
-      text-decoration-color: ${p => p.theme.linkHoverColor};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
     }
   }
 `;
 
 const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
   display: inline-block;
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.linkHoverColor};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.hover};
   flex-shrink: 0;
   margin-left: ${p => p.theme.space.xs};
   visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
-  font-family: ${p => p.theme.text.familyMono};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-family: ${p => p.theme.font.family.mono};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
-  color: ${p => (p.isHighlighted ? p.theme.linkHoverColor : p.theme.subText)};
+  color: ${p =>
+    p.isHighlighted
+      ? p.theme.tokens.interactive.link.accent.hover
+      : p.theme.tokens.content.secondary};
   flex-shrink: 0;
 `;
 
@@ -608,14 +712,14 @@ const ActionButtonBar = styled(Flex)`
   bottom: ${p => p.theme.space['2xs']};
   right: ${p => p.theme.space.md};
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const TodoListContent = styled(MarkedText)`
   margin-top: ${p => p.theme.space.xs};
   margin-bottom: -${p => p.theme.space.xl};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

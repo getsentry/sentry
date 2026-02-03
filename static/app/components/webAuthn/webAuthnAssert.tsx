@@ -6,9 +6,10 @@ import noop from 'lodash/noop';
 
 import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -216,7 +217,7 @@ const DeviceAnimation = styled('div')<{activated: boolean}>`
   border-radius: 50%;
   background-image: url(${deviceAnimation});
   background-size: 100px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   ${p =>
     p.activated &&
     css`

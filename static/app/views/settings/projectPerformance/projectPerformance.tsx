@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -1236,7 +1236,7 @@ const Actions = styled(PanelItem)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: none;
 `;
 
@@ -1248,7 +1248,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${FieldWrapper} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${FieldWrapper} + ${FieldWrapper} {
@@ -1256,7 +1256,7 @@ const StyledJsonForm = styled(JsonForm)`
   }
 
   ${Panel} + ${Panel} {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   ${PanelHeader} {
@@ -1270,7 +1270,7 @@ const StyledJsonForm = styled(JsonForm)`
 
 const StyledPanelFooter = styled(PanelFooter)`
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0 0 calc(${p => p.theme.radius.md} - 1px)
     calc(${p => p.theme.radius.md} - 1px);
 

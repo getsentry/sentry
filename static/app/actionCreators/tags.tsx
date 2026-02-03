@@ -9,6 +9,7 @@ import TagStore from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   keepPreviousData,
   useApiQuery,
@@ -264,7 +265,14 @@ const makeFetchOrganizationTags = ({
   if (end) {
     query.end = end;
   }
-  return [`/organizations/${orgSlug}/tags/`, {query}];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+      },
+    }),
+    {query},
+  ];
 };
 
 export const useFetchOrganizationTags = (

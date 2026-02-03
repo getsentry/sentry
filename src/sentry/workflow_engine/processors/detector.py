@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import NamedTuple
 
 import sentry_sdk
 from django.db import router, transaction
@@ -12,7 +10,6 @@ from rest_framework import status
 
 from sentry import options
 from sentry.api.exceptions import SentryAPIException
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -115,7 +112,7 @@ def _ensure_detector(project: Project, type: str) -> Detector:
         raise UnableToAcquireLockApiError
 
 
-def _ensure_metric_detector(
+def ensure_default_anomaly_detector(
     project: Project, owner_team_id: int | None = None, enabled: bool = True
 ) -> Detector | None:
     """
@@ -127,6 +124,10 @@ def _ensure_metric_detector(
         Detector.objects.filter(type=MetricIssue.slug, project=project).order_by("id").first()
     )
     if existing:
+        logger.info(
+            "create_default_anomaly_detector.already_exists",
+            extra={"project_id": project.id, "detector_id": existing.id},
+        )
         return existing
 
     lock = locks.get(
@@ -148,69 +149,76 @@ def _ensure_metric_detector(
             if existing:
                 return existing
 
-            condition_group = DataConditionGroup.objects.create(
-                logic_type=DataConditionGroup.Type.ANY,
-                organization_id=project.organization_id,
-            )
+            try:
+                condition_group = DataConditionGroup.objects.create(
+                    logic_type=DataConditionGroup.Type.ANY,
+                    organization_id=project.organization_id,
+                )
 
-            DataCondition.objects.create(
-                comparison={
-                    "sensitivity": AnomalyDetectionSensitivity.LOW,
-                    "seasonality": AnomalyDetectionSeasonality.AUTO,
-                    "threshold_type": AnomalyDetectionThresholdType.ABOVE,
-                },
-                condition_result=DetectorPriorityLevel.HIGH,
-                type=Condition.ANOMALY_DETECTION,
-                condition_group=condition_group,
-            )
+                DataCondition.objects.create(
+                    comparison={
+                        "sensitivity": AnomalyDetectionSensitivity.LOW,
+                        "seasonality": AnomalyDetectionSeasonality.AUTO,
+                        "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+                    },
+                    condition_result=DetectorPriorityLevel.HIGH,
+                    type=Condition.ANOMALY_DETECTION,
+                    condition_group=condition_group,
+                )
 
-            detector = Detector.objects.create(
-                project=project,
-                name="High Error Count (Default)",
-                description="Automatically monitors for anomalous spikes in error count",
-                workflow_condition_group=condition_group,
-                type=MetricIssue.slug,
-                config={
-                    "detection_type": AlertRuleDetectionType.DYNAMIC.value,
-                    "comparison_delta": None,
-                },
-                owner_team_id=owner_team_id,
-                enabled=enabled,
-            )
+                detector = Detector.objects.create(
+                    project=project,
+                    name="High Error Count (Default)",
+                    description="Automatically monitors for anomalous spikes in error count",
+                    workflow_condition_group=condition_group,
+                    type=MetricIssue.slug,
+                    config={
+                        "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                        "comparison_delta": None,
+                    },
+                    owner_team_id=owner_team_id,
+                    enabled=enabled,
+                )
 
-            snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="",
-                aggregate="count()",
-                time_window=timedelta(minutes=15),
-                resolution=timedelta(minutes=15),
-                environment=None,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
+                snuba_query = create_snuba_query(
+                    query_type=SnubaQuery.Type.ERROR,
+                    dataset=Dataset.Events,
+                    query="",
+                    aggregate="count()",
+                    time_window=timedelta(minutes=15),
+                    resolution=timedelta(minutes=15),
+                    environment=None,
+                    event_types=[SnubaQueryEventType.EventType.ERROR],
+                )
 
-            query_subscription = create_snuba_subscription(
-                project=project,
-                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-                snuba_query=snuba_query,
-            )
+                query_subscription = create_snuba_subscription(
+                    project=project,
+                    subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                    snuba_query=snuba_query,
+                )
 
-            data_source = DataSource.objects.create(
-                organization_id=project.organization_id,
-                source_id=str(query_subscription.id),
-                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-            )
+                data_source = DataSource.objects.create(
+                    organization_id=project.organization_id,
+                    source_id=str(query_subscription.id),
+                    type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
 
-            DataSourceDetector.objects.create(
-                data_source=data_source,
-                detector=detector,
-            )
+                DataSourceDetector.objects.create(
+                    data_source=data_source,
+                    detector=detector,
+                )
+            except Exception:
+                logger.exception(
+                    "create_default_anomaly_detector.create_models_failed",
+                    extra={"project_id": project.id, "organization_id": project.organization_id},
+                )
+                raise
 
             try:
                 send_new_detector_data(detector)
             except Exception:
                 logger.exception(
-                    "Failed to send new detector data to Seer, detector not created",
+                    "create_default_anomaly_detector.send_to_seer_failed",
                     extra={"project_id": project.id, "organization_id": project.organization_id},
                 )
                 raise
@@ -258,8 +266,9 @@ class EventDetectors:
         return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
 
 
-def get_detectors_for_event(
-    event_data: WorkflowEventData, detector: Detector | None = None
+def get_detectors_for_event_data(
+    event_data: WorkflowEventData,
+    detector: Detector | None = None,
 ) -> EventDetectors | None:
     """
     Returns a list of detectors for the event to process workflows for.
@@ -267,77 +276,53 @@ def get_detectors_for_event(
     We always return at least the issue stream detector, unless excluded via option.
     If the event has an associated detector, we return it too.
 
-    If the detector is passed in, use that instead of searching for a detector.
-    This is used for Activity updates.
+    We expect a detector to be passed in for Activity updates.
     """
     issue_stream_detector: Detector | None = None
-    exclude_issue_stream = options.get("workflow_engine.exclude_issue_stream_detector")
 
-    if not exclude_issue_stream:
-        try:
+    try:
+        if event_data.group.type not in options.get(
+            "workflow_engine.group.type_id.disable_issue_stream_detector"
+        ):
             issue_stream_detector = Detector.get_issue_stream_detector_for_project(
                 event_data.group.project_id
             )
-        except Detector.DoesNotExist:
-            metrics.incr("workflow_engine.detectors.error")
-            logger.exception(
-                "Issue stream detector not found for event",
-                extra={
-                    "project_id": event_data.group.project_id,
-                    "group_id": event_data.group.id,
-                },
-            )
+    except Detector.DoesNotExist:
+        metrics.incr("workflow_engine.detectors.error")
+        logger.exception(
+            "Issue stream detector not found for event",
+            extra={
+                "project_id": event_data.group.project_id,
+                "group_id": event_data.group.id,
+            },
+        )
 
-    if detector is None:
-        try:
-            detector = get_detector_by_event(event_data)
-        except Detector.DoesNotExist:
-            pass
-
+    if detector is None and isinstance(event_data.event, GroupEvent):
+        detector = _get_detector_for_event(event_data.event)
     try:
         return EventDetectors(issue_stream_detector=issue_stream_detector, event_detector=detector)
     except ValueError:
         return None
 
 
-def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
-    evt = event_data.event
-
-    if not isinstance(evt, GroupEvent):
-        raise TypeError(
-            "Can only use `get_detector_by_event` for a new event, Activity updates are not supported"
-        )
-
-    issue_occurrence = evt.occurrence
-
+def _get_detector_for_event(event: GroupEvent) -> Detector | None:
+    """
+    Returns the detector from the GroupEvent in event_data, or None if no detector is found.
+    """
+    issue_occurrence = event.occurrence
     try:
-        if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
-            # if there are no detector settings, default to the error detector
-            detector = Detector.get_error_detector_for_project(evt.project_id)
+        if issue_occurrence is not None:
+            detector_id = issue_occurrence.evidence_data.get("detector_id")
+            if detector_id is None:
+                return None
+            return Detector.objects.get(id=detector_id)
         else:
-            detector = Detector.objects.get(
-                id=issue_occurrence.evidence_data.get("detector_id", None)
-            )
+            return Detector.get_error_detector_for_project(event.group.project_id)
     except Detector.DoesNotExist:
-        metrics.incr("workflow_engine.detectors.error")
-        detector_id = (
-            issue_occurrence.evidence_data.get("detector_id") if issue_occurrence else None
-        )
-
-        logger.exception(
-            "Detector not found for event",
-            extra={
-                "event_id": evt.event_id,
-                "group_id": evt.group_id,
-                "detector_id": detector_id,
-            },
-        )
-        raise Detector.DoesNotExist("Detector not found for event")
-
-    return detector
+        return None
 
 
-def get_detector_by_group(group: Group) -> Detector:
+def _get_detector_for_group(group: Group) -> Detector:
     """
     Returns Detector associated with this group, either based on DetectorGroup,
     (project, type), or if those fail, returns the Issue Stream detector.
@@ -360,12 +345,18 @@ def get_detector_by_group(group: Group) -> Detector:
         return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
 
 
-def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
+def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
+    """
+    Attempts to fetch the specific detector based on the GroupEvent or Activity in event_data
+    """
     try:
         if isinstance(event_data.event, GroupEvent):
-            return get_detector_by_event(event_data)
+            event_detectors = get_detectors_for_event_data(event_data)
+            if event_detectors is None:
+                raise Detector.DoesNotExist("No detectors found for event")
+            return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
-            return get_detector_by_group(event_data.group)
+            return _get_detector_for_group(event_data.group)
         else:
             raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
     except Detector.DoesNotExist:
@@ -382,55 +373,6 @@ def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
             },
         )
         raise
-
-
-class _SplitEvents(NamedTuple):
-    events_with_occurrences: list[tuple[GroupEvent, int]]
-    error_events: list[GroupEvent]
-    events_missing_detectors: list[GroupEvent]
-
-
-def _split_events_by_occurrence(
-    event_list: list[GroupEvent],
-) -> _SplitEvents:
-    events_with_occurrences: list[tuple[GroupEvent, int]] = []
-    error_events: list[GroupEvent] = []  # only error events don't have occurrences
-    events_missing_detectors: list[GroupEvent] = []
-
-    for event in event_list:
-        issue_occurrence = event.occurrence
-        if issue_occurrence is None:
-            assert event.group.issue_type.slug == ErrorGroupType.slug
-            error_events.append(event)
-        elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
-            events_with_occurrences.append((event, detector_id))
-        else:
-            events_missing_detectors.append(event)
-
-    return _SplitEvents(
-        events_with_occurrences,
-        error_events,
-        events_missing_detectors,
-    )
-
-
-def _create_event_detector_map(
-    detectors: BaseQuerySet[Detector],
-    key_event_map: dict[int, list[GroupEvent]],
-    detector_key_extractor: Callable[[Detector], int],
-) -> tuple[dict[str, Detector], set[int]]:
-    result: dict[str, Detector] = {}
-
-    # used to track existing keys (detector_id or project_id) to log missing keys
-    keys = set()
-
-    for detector in detectors:
-        key = detector_key_extractor(detector)
-        keys.add(key)
-        detector_events = key_event_map[key]
-        result.update({event.event_id: detector for event in detector_events})
-
-    return result, keys
 
 
 def create_issue_platform_payload(result: DetectorEvaluationResult, detector_type: str) -> None:

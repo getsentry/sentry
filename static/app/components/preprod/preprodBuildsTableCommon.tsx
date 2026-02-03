@@ -3,20 +3,19 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {getPlatformIconFromPlatform} from 'sentry/views/preprod/utils/labelUtils';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,
@@ -59,9 +58,7 @@ export function PreprodBuildsRowCells({
           <Flex direction="column" gap="xs">
             <Flex align="center" gap="2xs">
               {build.app_info?.platform && (
-                <PlatformIcon
-                  platform={getPlatformIconFromPlatform(build.app_info.platform)}
-                />
+                <PlatformIcon platform={build.app_info.platform} />
               )}
               <Container paddingLeft="xs">
                 <Text size="lg" bold>
@@ -85,7 +82,7 @@ export function PreprodBuildsRowCells({
                         <span>
                           <Button
                             aria-label={t('Not installable')}
-                            icon={<IconNot color="red300" size="xs" />}
+                            icon={<IconNot variant="danger" size="xs" />}
                             priority="transparent"
                             size="zero"
                             disabled
@@ -137,7 +134,7 @@ export function PreprodBuildsRowCells({
                 ({build.app_info?.build_number})
               </Text>
             )}
-            {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
+            {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
           </Flex>
           <Flex align="center" gap="xs">
             <IconCommit size="xs" />

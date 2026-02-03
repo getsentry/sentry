@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
@@ -186,8 +187,7 @@ export default function TableView(props: TableViewProps) {
       if (dataRow['event.type'] !== 'transaction' && !isTransactionsDataset) {
         const project = dataRow.project || dataRow['project.name'];
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -323,8 +323,7 @@ export default function TableView(props: TableViewProps) {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link.
-          // This only works with dev-server or production.
+          // Redirects to the issue group event page via ProjectEventRedirect
           pathname: normalizeUrl(
             `/${organization.slug}/${project}/events/${dataRow.id}/`
           ),
@@ -663,7 +662,6 @@ export default function TableView(props: TableViewProps) {
         location={location}
         onChangeShowTags={onChangeShowTags}
         showTags={showTags}
-        supportsInvestigationRule
         queryDataset={queryDataset}
       />
     );
@@ -705,7 +703,7 @@ export default function TableView(props: TableViewProps) {
 }
 
 const PrependHeader = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -720,7 +718,11 @@ const StyledLink = styled(Link)`
 `;
 
 export const TransactionLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledIcon = styled(IconStack)`

@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Select} from 'sentry/components/core/select';
+import {Alert} from '@sentry/scraps/alert';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -19,6 +20,8 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
+import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
+import {getIncompatibleActionWarning} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -68,6 +71,7 @@ export default function ActionNodeList({
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
+  const {connectedDetectors} = useConnectedDetectors();
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -118,6 +122,9 @@ export default function ActionNodeList({
           return null;
         }
         const error = errors?.[action.id];
+        const warningMessage = getIncompatibleActionWarning(action, {
+          connectedDetectors,
+        });
         return (
           <AutomationBuilderRow
             key={`actionFilters.${conditionGroupId}.action.${action.id}`}
@@ -126,6 +133,7 @@ export default function ActionNodeList({
             }}
             hasError={!!error}
             errorMessage={error}
+            warningMessage={warningMessage}
           >
             <ActionNodeContext.Provider
               value={{

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,7 +33,7 @@ const Badge = styled('div')`
 /* Badge layout and style */
 const FastForwardTooltip = styled(Tooltip)`
   background: ${p => p.theme.colors.gray400};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   padding: ${space(1.5)} ${space(2)};
   border-top-right-radius: ${p => p.theme.radius.md};
   z-index: ${p => p.theme.zIndex.initial};

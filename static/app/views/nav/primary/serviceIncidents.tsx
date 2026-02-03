@@ -62,14 +62,14 @@ export function PrimaryNavigationServiceIncidents() {
 const IncidentItemWrapper = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.tokens.background.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(3)};
 
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
 
 const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.danger};
+  background: ${p => p.theme.tokens.content.danger};
 `;

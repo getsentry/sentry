@@ -1,26 +1,23 @@
-import {Component} from 'react';
+import {useEffect, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   isChartDisplayType,
 } from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -46,10 +43,11 @@ export type OnDataFetchedProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
-export type GenericWidgetQueriesChildrenProps = {
+export type GenericWidgetQueriesResult = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
@@ -60,15 +58,22 @@ export type GenericWidgetQueriesChildrenProps = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
 };
 
-export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
-  api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
+/**
+ * Result type for hook-based queries.
+ */
+export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
+  /**
+   * Raw API response data, used for callbacks in genericWidgetQueries.tsx
+   */
+  rawData: any[];
+};
+
+export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
   afterFetchTableData?: (
@@ -76,13 +81,8 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     response?: ResponseMeta
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
-  customDidUpdateComparator?: (
-    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-    nextProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-  ) => boolean;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
-  forceOnDemand?: boolean;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -95,383 +95,150 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
-  queue?: WidgetQueryQueue;
   samplingMode?: SamplingMode;
+  // Optional selection override - if not provided, usePageFilters hook will be used
+  // This is needed for the widget viewer modal where local zoom state (modalSelection)
+  // needs to override global PageFiltersStore
+  selection?: PageFilters;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
 };
 
-type State<SeriesResponse> = {
-  loading: boolean;
-  errorMessage?: GenericWidgetQueriesChildrenProps['errorMessage'];
-  pageLinks?: GenericWidgetQueriesChildrenProps['pageLinks'];
-  queryFetchID?: symbol;
-  rawResults?: SeriesResponse[];
-  tableResults?: GenericWidgetQueriesChildrenProps['tableResults'];
-  timeseriesResults?: GenericWidgetQueriesChildrenProps['timeseriesResults'];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-};
+export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
+  props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
+): GenericWidgetQueriesResult {
+  const {
+    config,
+    widget,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    cursor,
+    dashboardFilters,
+    disabled,
+    limit,
+    loading: propsLoading,
+    mepSetting,
+    onDataFetchStart,
+    onDataFetched,
+    onDemandControlContext,
+    samplingMode,
+    selection: propsSelection,
+    skipDashboardFilterParens,
+  } = props;
 
-class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
-  GenericWidgetQueriesProps<SeriesResponse, TableResponse>,
-  State<SeriesResponse>
-> {
-  state: State<SeriesResponse> = {
-    loading: true,
-    queryFetchID: undefined,
-    errorMessage: undefined,
-    timeseriesResults: undefined,
-    rawResults: undefined,
-    tableResults: undefined,
-    pageLinks: undefined,
-    timeseriesResultsTypes: undefined,
-  };
+  const organization = useOrganization();
+  const hookPageFilters = usePageFilters();
 
-  componentDidMount() {
-    this._isMounted = true;
-    if (!this.props.loading) {
-      this.fetchDataWithQueueIfAvailable();
+  // Use override selection if provided (for modal zoom), otherwise use hook
+  const selection = propsSelection ?? hookPageFilters.selection;
+
+  const isChartDisplay = isChartDisplayType(widget.displayType);
+
+  const hookSeriesResults = config.useSeriesQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: isChartDisplay && !disabled && !propsLoading,
+    limit,
+    cursor,
+  });
+
+  const hookTableResults = config.useTableQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: !isChartDisplay && !disabled && !propsLoading,
+    limit: limit ?? DEFAULT_TABLE_LIMIT,
+    cursor,
+  });
+
+  const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
+
+  // Track previous raw data to detect when new data arrives
+  const prevRawDataRef = useRef<any[] | undefined>(undefined);
+  // Track previous loading state to detect when fetching starts
+  const prevLoadingRef = useRef(false);
+
+  // Call onDataFetchStart when loading begins
+  useEffect(() => {
+    const isLoadingNow = hookResults?.loading ?? false;
+
+    // Detect transition from not loading to loading (fetch start)
+    if (isLoadingNow && !prevLoadingRef.current) {
+      onDataFetchStart?.();
     }
-  }
 
-  componentDidUpdate(
-    prevProps: GenericWidgetQueriesProps<SeriesResponse, TableResponse>
-  ) {
-    const {selection, widget, cursor, organization, config, customDidUpdateComparator} =
-      this.props;
+    prevLoadingRef.current = isLoadingNow;
+  }, [hookResults?.loading, onDataFetchStart]);
 
-    // We do not fetch data whenever the query name changes.
-    // Also don't count empty fields when checking for field changes
-    const previousQueries = prevProps.widget.queries;
-    const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
-      (
-        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
-        {name, ...rest}
-      ) => {
-        names.push(name);
-        rest.fields = rest.fields?.filter(field => !!field) ?? [];
-
-        // Ignore aliases because changing alias does not need a query
-        rest = omit(rest, 'fieldAliases');
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
-
-    const nextQueries = widget.queries;
-    const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
-      (
-        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
-        {name, ...rest}
-      ) => {
-        names.push(name);
-        rest.fields = rest.fields?.filter(field => !!field) ?? [];
-
-        // Ignore aliases because changing alias does not need a query
-        rest = omit(rest, 'fieldAliases');
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
-
-    if (
-      customDidUpdateComparator
-        ? customDidUpdateComparator(prevProps, this.props)
-        : widget.limit !== prevProps.widget.limit ||
-          !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
-          !isEqual(widget.displayType, prevProps.widget.displayType) ||
-          !isEqual(widget.interval, prevProps.widget.interval) ||
-          !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
-          !isEqual(this.props.dashboardFilters, prevProps.dashboardFilters) ||
-          !isEqual(this.props.forceOnDemand, prevProps.forceOnDemand) ||
-          !isEqual(this.props.disabled, prevProps.disabled) ||
-          !isSelectionEqual(selection, prevProps.selection) ||
-          cursor !== prevProps.cursor
-    ) {
-      this.fetchDataWithQueueIfAvailable();
+  // Watch for when hook data changes and call callbacks
+  useEffect(() => {
+    if (!hookResults?.rawData) {
       return;
     }
 
-    if (
-      !this.state.loading &&
-      !isEqual(prevWidgetQueryNames, widgetQueryNames) &&
-      this.state.rawResults?.length === widget.queries.length
-    ) {
-      // If the query names has changed, then update timeseries labels
+    // Only process if this is new data (not initial mount)
+    if (hookResults.rawData === prevRawDataRef.current) {
+      return;
+    }
 
-      this.setState(prevState => {
-        const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
-          return acc.concat(
-            config.transformSeries!(prevState.rawResults![index]!, query, organization)
-          );
-        }, []);
+    prevRawDataRef.current = hookResults.rawData;
 
-        return {...prevState, timeseriesResults};
+    // Call afterFetch callbacks with raw data
+    if (isChartDisplay) {
+      hookResults.rawData.forEach((data: any) => {
+        afterFetchSeriesData?.(data as SeriesResponse);
       });
-    }
-  }
 
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
-
-  private _isMounted = false;
-
-  applyDashboardFilters(widget: Widget): Widget {
-    const {dashboardFilters, skipDashboardFilterParens} = this.props;
-
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      widget.widgetType
-    );
-    widget.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipDashboardFilterParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-    return widget;
-  }
-
-  widgetForRequest(widget: Widget): Widget {
-    widget = this.applyDashboardFilters(widget);
-    return cleanWidgetForRequest(widget);
-  }
-
-  async fetchTableData(queryFetchID: symbol) {
-    const {
-      widget: originalWidget,
-      limit,
-      config,
-      api,
-      organization,
-      selection,
-      cursor,
-      afterFetchTableData,
-      onDataFetched,
-      onDemandControlContext,
-      mepSetting,
-      samplingMode,
-      disabled,
-    } = this.props;
-    if (disabled) {
-      return;
-    }
-    const widget = this.widgetForRequest(cloneDeep(originalWidget));
-    const responses = await Promise.all(
-      widget.queries.map(query => {
-        const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
-        const requestCreator = config.getTableRequest;
-
-        if (!requestCreator) {
-          throw new Error(
-            t('This display type is not supported by the selected dataset.')
-          );
-        }
-
-        return requestCreator(
-          api,
-          widget,
-          query,
-          organization,
-          selection,
-          onDemandControlContext,
-          requestLimit,
-          cursor,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
-        );
-      })
-    );
-
-    let transformedTableResults: TableDataWithTitle[] = [];
-    let responsePageLinks: string | undefined;
-    let afterTableFetchData: OnDataFetchedProps | undefined;
-    responses.forEach(([data, _textstatus, resp], i) => {
-      afterTableFetchData = afterFetchTableData?.(data, resp) ?? {};
-      // Cast so we can add the title.
-      const transformedData = config.transformTable(
-        data,
-        widget.queries[0]!,
-        organization,
-        selection
-      ) as TableDataWithTitle;
-      transformedData.title = widget.queries[i]?.name ?? '';
-
-      // Overwrite the local var to work around state being stale in tests.
-      transformedTableResults = [...transformedTableResults, transformedData];
-
-      // There is some inconsistency with the capitalization of "link" in response headers
-      responsePageLinks =
-        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
-    });
-
-    if (this._isMounted && this.state.queryFetchID === queryFetchID) {
+      // Call onDataFetched with transformed results
       onDataFetched?.({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
-        ...afterTableFetchData,
+        timeseriesResults: (hookResults as any).timeseriesResults,
+        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
+        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
-      this.setState({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
+    } else {
+      // Collect any results from afterFetchTableData callbacks
+      let mergedCallbackData = {};
+      hookResults.rawData.forEach((data: any) => {
+        const result = afterFetchTableData?.(data as TableResponse);
+        if (result) {
+          mergedCallbackData = {...mergedCallbackData, ...result};
+        }
       });
-    }
-  }
-  async fetchSeriesData(queryFetchID: symbol) {
-    const {
-      widget: originalWidget,
-      config,
-      api,
-      organization,
-      selection,
-      afterFetchSeriesData,
-      onDataFetched,
-      mepSetting,
-      onDemandControlContext,
-      samplingMode,
-      disabled,
-    } = this.props;
-    if (disabled) {
-      return;
-    }
 
-    const widget = this.widgetForRequest(cloneDeep(originalWidget));
-
-    const responses = await Promise.all(
-      widget.queries.map((_query, index) => {
-        return config.getSeriesRequest!(
-          api,
-          widget,
-          index,
-          organization,
-          selection,
-          onDemandControlContext,
-          getReferrer(widget.displayType),
-          mepSetting,
-          samplingMode
-        );
-      })
-    );
-    const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
-    const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
-    responses.forEach(([data], requestIndex) => {
-      afterFetchSeriesData?.(data);
-      rawResultsClone[requestIndex] = data;
-      const transformedResult = config.transformSeries!(
-        data,
-        widget.queries[requestIndex]!,
-        organization
-      );
-      // When charting timeseriesData on echarts, color association to a timeseries result
-      // is order sensitive, ie series at index i on the timeseries array will use color at
-      // index i on the color array. This means that on multi series results, we need to make
-      // sure that the order of series in our results do not change between fetches to avoid
-      // coloring inconsistencies between renders.
-      transformedResult.forEach((result, resultIndex) => {
-        transformedTimeseriesResults[
-          requestIndex * transformedResult.length + resultIndex
-        ] = result;
-      });
-    });
-
-    // Get series result type
-    // Only used by custom measurements in errorsAndTransactions at the moment
-    const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0]![0],
-      widget.queries[0]!
-    );
-
-    if (this._isMounted && this.state.queryFetchID === queryFetchID) {
+      // Always call onDataFetched, merging any callback results
       onDataFetched?.({
-        timeseriesResults: transformedTimeseriesResults,
-        timeseriesResultsTypes,
-      });
-      this.setState({
-        timeseriesResults: transformedTimeseriesResults,
-        rawResults: rawResultsClone,
-        timeseriesResultsTypes,
+        tableResults: (hookResults as any).tableResults,
+        pageLinks: (hookResults as any).pageLinks,
+        ...mergedCallbackData,
       });
     }
-  }
+  }, [
+    hookResults,
+    isChartDisplay,
+    afterFetchSeriesData,
+    afterFetchTableData,
+    onDataFetched,
+  ]);
 
-  fetchDataWithQueueIfAvailable() {
-    const {queue} = this.props;
-    if (queue) {
-      this.setState({
-        loading: true,
-        tableResults: undefined,
-        timeseriesResults: undefined,
-        errorMessage: undefined,
-        queryFetchID: undefined,
-      });
-      queue.addItem({widgetQuery: this});
-      return;
-    }
-    this.fetchData();
-  }
-
-  async fetchData() {
-    const {widget, onDataFetchStart} = this.props;
-
-    const queryFetchID = Symbol('queryFetchID');
-    this.setState({
+  // Return hook results, with a fallback for the loading state
+  return (
+    hookResults ?? {
       loading: true,
-      tableResults: undefined,
-      timeseriesResults: undefined,
-      errorMessage: undefined,
-      queryFetchID,
-    });
-
-    onDataFetchStart?.();
-
-    try {
-      if (isChartDisplayType(widget.displayType)) {
-        await this.fetchSeriesData(queryFetchID);
-      } else {
-        await this.fetchTableData(queryFetchID);
-      }
-    } catch (err: any) {
-      if (this._isMounted) {
-        this.setState({
-          errorMessage:
-            err?.responseJSON?.detail || err?.message || t('An unknown error occurred.'),
-        });
-      }
-    } finally {
-      if (this._isMounted) {
-        this.setState({loading: false});
-      }
+      rawData: [],
     }
-  }
-
-  render() {
-    const {children} = this.props;
-    const {
-      loading,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      pageLinks,
-      timeseriesResultsTypes,
-    } = this.state;
-
-    return children({
-      loading,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      pageLinks,
-      timeseriesResultsTypes,
-    });
-  }
+  );
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {
@@ -484,4 +251,34 @@ export function cleanWidgetForRequest(widget: Widget): Widget {
   return _widget;
 }
 
-export default GenericWidgetQueries;
+/**
+ * Helper to apply dashboard filters and clean widget for API request.
+ */
+export function applyDashboardFiltersToWidget(
+  widget: Widget,
+  dashboardFilters?: DashboardFilters,
+  skipParens?: boolean
+): Widget {
+  let processedWidget = widget;
+
+  if (dashboardFilters) {
+    const filtered = cloneDeep(widget);
+    const dashboardFilterConditions = dashboardFiltersToString(
+      dashboardFilters,
+      filtered.widgetType
+    );
+
+    filtered.queries.forEach(query => {
+      if (dashboardFilterConditions) {
+        if (query.conditions && !skipParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = `${query.conditions} ${dashboardFilterConditions}`;
+      }
+    });
+
+    processedWidget = filtered;
+  }
+
+  return cleanWidgetForRequest(processedWidget);
+}

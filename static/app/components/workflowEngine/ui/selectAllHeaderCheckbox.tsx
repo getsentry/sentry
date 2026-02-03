@@ -1,6 +1,6 @@
-import styled from '@emotion/styled';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 
 type SelectAllHeaderCheckboxProps = {
@@ -17,7 +17,11 @@ export function SelectAllHeaderCheckbox({
   className,
 }: SelectAllHeaderCheckboxProps) {
   return (
-    <Wrapper
+    <Flex
+      align="center"
+      flexShrink={0}
+      width="20px"
+      height="20px"
       className={className}
       onClick={event => {
         event.stopPropagation();
@@ -29,14 +33,6 @@ export function SelectAllHeaderCheckbox({
         onChange={event => onChange(event.target.checked)}
         aria-label={t('Select all on page')}
       />
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-`;

@@ -1,6 +1,8 @@
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
@@ -282,7 +284,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -307,6 +309,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        metricsVerify(params),
         {
           type: 'text',
           text: t(

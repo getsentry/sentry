@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -55,9 +56,12 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -112,7 +116,7 @@ def update_group(
 
     resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
-        _logger.error(
+        _logger.warning(
             "slack.action.update-group-error",
             extra={
                 "group_id": group.id,
@@ -481,8 +485,12 @@ class SlackActionEndpoint(Endpoint):
                     with self.record_event(
                         MessagingInteractionType.SEER_AUTOFIX_START, group, request
                     ).capture():
-                        # TODO(Leander): Implement this
-                        pass
+                        self.handle_seer_autofix_start(
+                            slack_request=slack_request,
+                            action=action,
+                            group=group,
+                            user=identity_user,
+                        )
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
@@ -550,18 +558,42 @@ class SlackActionEndpoint(Endpoint):
         try:
             requests_.post(slack_request.response_url, json=payload)
         except ApiError:
-            _logger.exception("slack.action.response-error")
+            _logger.warning("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
 
-    def handle_seer_context_input(self, slack_request: SlackActionRequest) -> Response:
-        actions_list = slack_request.data.get("actions", [])
-        if not actions_list:
-            return self.respond(status=400)
-
-        # TODO(Leander): Implement this
-        return self.respond()
+    def handle_seer_autofix_start(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        action: BlockKitMessageAction,
+        group: Group,
+        user: RpcUser,
+    ) -> None:
+        entrypoint = SlackEntrypoint(
+            slack_request=slack_request,
+            action=action,
+            group=group,
+            organization_id=group.project.organization_id,
+        )
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
+            group_id=group.id,
+            stopping_point=entrypoint.autofix_stopping_point,
+        )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=entrypoint.autofix_stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            return
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
@@ -569,8 +601,10 @@ class SlackActionEndpoint(Endpoint):
         for action_data in slack_request.data.get("actions", []):
             # Get the _first_ value in the action list.
             value = action_data.get("value")
+
+            routing_data = decode_action_id(action_data.get("action_id", ""))
+            action_id = routing_data.action or None
             if value:
-                action_id = action_data.get("action_id")
                 action_option = value
                 break
 
@@ -654,6 +688,12 @@ class SlackActionEndpoint(Endpoint):
         ):
             return self.respond()
 
+        if action_id in {
+            SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
+            SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+        }:
+            return self.respond()
+
         if action_option in UNFURL_ACTION_OPTIONS:
             return self.handle_unfurl(slack_request, action_option)
 
@@ -662,9 +702,6 @@ class SlackActionEndpoint(Endpoint):
 
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
-
-        if action_id == SlackAction.SEER_CONTEXT_INPUT.value:
-            return self.handle_seer_context_input(slack_request=slack_request)
 
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
@@ -746,7 +783,7 @@ class SlackActionEndpoint(Endpoint):
                 member.reject_member_invitation(identity_user)
         except Exception:
             # shouldn't error but if it does, respond to the user
-            _logger.exception(
+            _logger.warning(
                 "slack.action.member-invitation-error",
                 extra={
                     "organization_id": organization.id,

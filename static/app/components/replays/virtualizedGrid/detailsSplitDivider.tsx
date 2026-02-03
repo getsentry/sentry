@@ -1,8 +1,9 @@
 import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import Stacked from 'sentry/components/container/stacked';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +34,7 @@ export default function DetailsSplitDivider({
       <CloseButtonWrapper>
         <Button
           aria-label={t('Hide details')}
-          borderless
+          priority="transparent"
           icon={<IconClose size="sm" variant="muted" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
@@ -48,8 +49,8 @@ export default function DetailsSplitDivider({
 
 const StyledStacked = styled(Stacked)`
   position: relative;
-  border-top: 1px solid ${p => p.theme.border};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const CloseButtonWrapper = styled('div')`

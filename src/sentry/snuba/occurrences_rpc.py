@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
@@ -9,6 +10,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
+from sentry.utils.snuba import process_value
 
 logger = logging.getLogger(__name__)
 
@@ -111,3 +113,109 @@ class Occurrences(rpc_dataset_common.RPCBase):
             ),
             params.debug,
         )
+
+    @classmethod
+    @sentry_sdk.trace
+    def run_grouped_timeseries_query(
+        cls,
+        *,
+        params: SnubaParams,
+        query_string: str,
+        y_axes: list[str],
+        groupby: list[str],
+        referrer: str,
+        config: SearchResolverConfig,
+        sampling_mode: SAMPLING_MODES | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Run a timeseries query grouped by the specified columns.
+
+        Returns a flat list of dicts, each containing:
+        - The groupby column values (using public aliases)
+        - 'time': The bucket timestamp (as epoch seconds)
+        - The y_axes aggregate values for that bucket
+
+        This is similar to run_top_events_timeseries_query but without the
+        "top N" filtering - it returns all groups matching the query.
+
+        Example:
+            result = Occurrences.run_grouped_timeseries_query(
+                params=snuba_params,
+                query_string="group_id:123 OR group_id:456",
+                y_axes=["count()"],
+                groupby=["project_id", "group_id"],
+                referrer="my_referrer",
+                config=SearchResolverConfig(),
+            )
+            # Returns:
+            # [
+            #     {"project_id": 1, "group_id": 123, "time": 1734220800, "count()": 5},
+            #     {"project_id": 1, "group_id": 123, "time": 1734224400, "count()": 3},
+            #     {"project_id": 1, "group_id": 456, "time": 1734220800, "count()": 10},
+            #     ...
+            # ]
+        """
+        cls.validate_granularity(params)
+        search_resolver = cls.get_resolver(params, config)
+
+        # Build and run the timeseries query with groupby
+        rpc_request, _aggregates, groupbys_resolved = cls.get_timeseries_query(
+            search_resolver=search_resolver,
+            params=params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=groupby,
+            referrer=referrer,
+            sampling_mode=sampling_mode,
+        )
+
+        rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
+
+        # Build a mapping from internal names to public aliases for groupby columns
+        groupby_internal_to_public: dict[str, str] = {
+            col.internal_name: col.public_alias for col in groupbys_resolved
+        }
+
+        # Group timeseries by their groupby attributes, then merge aggregates
+        # This handles multiple y_axes correctly by merging them into the same rows
+        results_by_key: dict[tuple, dict[int, dict[str, Any]]] = {}
+
+        for timeseries in rpc_response.result_timeseries:
+            # Extract groupby values using public aliases
+            groupby_values: dict[str, Any] = {}
+            for internal_name, value in timeseries.group_by_attributes.items():
+                public_alias = groupby_internal_to_public.get(internal_name)
+                if public_alias:
+                    groupby_values[public_alias] = process_value(value)
+
+            # Create a hashable key from groupby values
+            groupby_key = tuple(sorted(groupby_values.items()))
+
+            if groupby_key not in results_by_key:
+                results_by_key[groupby_key] = {}
+
+            # Merge each bucket's aggregate value into the result
+            for i, bucket in enumerate(timeseries.buckets):
+                time_key = bucket.seconds
+
+                if time_key not in results_by_key[groupby_key]:
+                    results_by_key[groupby_key][time_key] = {
+                        **groupby_values,
+                        "time": time_key,
+                    }
+
+                # Add/merge aggregate value
+                if i < len(timeseries.data_points):
+                    data_point = timeseries.data_points[i]
+                    results_by_key[groupby_key][time_key][timeseries.label] = process_value(
+                        data_point.data
+                    )
+                else:
+                    results_by_key[groupby_key][time_key][timeseries.label] = 0
+
+        # Flatten the nested dict into a list
+        results: list[dict[str, Any]] = []
+        for time_dict in results_by_key.values():
+            results.extend(time_dict.values())
+
+        return results

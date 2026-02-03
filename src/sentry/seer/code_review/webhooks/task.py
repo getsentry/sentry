@@ -10,7 +10,10 @@ from urllib3.exceptions import HTTPError
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.code_review.models import (
+    SeerCodeReviewTaskRequestForPrClosed,
+    SeerCodeReviewTaskRequestForPrReview,
+)
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -19,69 +22,52 @@ from sentry.taskworker.retry import Retry
 from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
-from ..utils import SeerEndpoint, make_seer_request
-from .check_run import process_check_run_task_event
+from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
+from ..utils import convert_enum_keys_to_strings, get_seer_endpoint_for_event, make_seer_request
 
 logger = logging.getLogger(__name__)
 
 
 PREFIX = "seer.code_review.task"
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # 1 minute
 RETRYABLE_ERRORS = (HTTPError,)
 METRICS_PREFIX = "seer.code_review.task"
 
 
-def _call_seer_request(
-    *, github_event: GithubWebhookType, event_payload: Mapping[str, Any], **kwargs: Any
-) -> None:
-    """
-    XXX: This is a placeholder processor to send events to Seer.
-    """
-    assert github_event != GithubWebhookType.CHECK_RUN
-    # XXX: Add checking options to prevent sending events to Seer by mistake.
-    make_seer_request(path=SeerEndpoint.OVERWATCH_REQUEST.value, payload=event_payload)
-
-
 def schedule_task(
     github_event: GithubWebhookType,
+    github_event_action: str,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
     target_commit_sha: str,
-    trigger: CodeReviewTrigger,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
 
     transformed_event = transform_webhook_to_codegen_request(
         github_event=github_event,
+        github_event_action=github_event_action,
         event_payload=dict(event),
         organization=organization,
         repo=repo,
         target_commit_sha=target_commit_sha,
-        trigger=trigger,
     )
 
     if transformed_event is None:
-        metrics.incr(
-            f"{METRICS_PREFIX}.{github_event.value}.skipped",
-            tags={"reason": "failed_to_transform", "github_event": github_event.value},
+        record_webhook_filtered(
+            github_event, github_event_action, WebhookFilteredReason.TRANSFORM_FAILED
         )
         return
 
+    # Convert enum to string for Celery serialization
     process_github_webhook_event.delay(
-        github_event=github_event,
+        github_event=github_event.value,
         event_payload=transformed_event,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
     )
-    metrics.incr(
-        f"{METRICS_PREFIX}.{github_event.value}.enqueued",
-        tags={"status": "success", "github_event": github_event.value},
-    )
-
-
-EVENT_TYPE_TO_PROCESSOR = {GithubWebhookType.CHECK_RUN: process_check_run_task_event}
+    record_webhook_enqueued(github_event, github_event_action)
 
 
 @instrumented_task(
@@ -93,7 +79,7 @@ EVENT_TYPE_TO_PROCESSOR = {GithubWebhookType.CHECK_RUN: process_check_run_task_e
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    github_event: GithubWebhookType,
+    github_event: str,
     event_payload: Mapping[str, Any],
     **kwargs: Any,
 ) -> None:
@@ -109,11 +95,30 @@ def process_github_webhook_event(
     status = "success"
     should_record_latency = True
     try:
-        event_processor = EVENT_TYPE_TO_PROCESSOR.get(github_event)
-        if event_processor:
-            event_processor(event_payload=event_payload, **kwargs)
+        path = get_seer_endpoint_for_event(github_event).value
+
+        # Validate payload with Pydantic (except for CHECK_RUN events which use minimal payload)
+        if github_event != GithubWebhookType.CHECK_RUN:
+            # Parse with appropriate model based on request type to enforce
+            # organization_id and integration_id requirements for PR closed
+            request_type = event_payload.get("request_type")
+            validated_payload: (
+                SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
+            )
+            if request_type == "pr-closed":
+                validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(event_payload)
+            else:
+                validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(event_payload)
+            # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
+            # but JSON requires string keys, so we need to convert them back)
+            payload = convert_enum_keys_to_strings(validated_payload.dict())
+            # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
+            # Pydantic v2 will automatically convert enum keys to strings.
+            # payload = validated_payload.model_dump(mode="json")
         else:
-            _call_seer_request(github_event=github_event, event_payload=event_payload, **kwargs)
+            payload = event_payload
+
+        make_seer_request(path=path, payload=payload)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.
@@ -124,7 +129,7 @@ def process_github_webhook_event(
         raise
     finally:
         if status != "success":
-            metrics.incr(f"{PREFIX}.error", tags={"error_status": status})
+            metrics.incr(f"{PREFIX}.error", tags={"error_status": status}, sample_rate=1.0)
         if should_record_latency:
             record_latency(status, enqueued_at_str)
 

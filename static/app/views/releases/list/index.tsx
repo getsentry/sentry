@@ -19,6 +19,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -28,8 +29,10 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
+import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -38,7 +41,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {GetTagValues} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
 import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
 import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
@@ -57,6 +59,10 @@ const RELEASE_FILTER_KEYS = [
   {
     key: 'release',
     name: 'release',
+  },
+  {
+    key: FieldKey.RELEASE_CREATED,
+    name: FieldKey.RELEASE_CREATED,
   },
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag.key] = tag;
@@ -92,7 +98,12 @@ function makeReleaseListQueryKey({
         : ReleaseStatus.ACTIVE,
   };
 
-  return [`/organizations/${organizationSlug}/releases/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+      path: {organizationIdOrSlug: organizationSlug},
+    }),
+    {query},
+  ];
 }
 
 export default function ReleasesList() {
@@ -215,25 +226,35 @@ export default function ReleasesList() {
   const selectedProjectIds = useMemo(() => {
     const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    // If no specific projects selected (All Projects), use all accessible project IDs
+    // If no specific projects selected, pass [-1] to represent "all projects"
+    // This avoids expanding to hundreds of project IDs which causes URL length issues
     return selectedIds.length === 0
-      ? projects.map(p => p.id)
+      ? [`${ALL_ACCESS_PROJECTS}`]
       : selectedIds.map(id => `${id}`);
-  }, [selection.projects, projects]);
+  }, [selection.projects]);
 
   const shouldShowMobileBuildsTab = useMemo(() => {
     if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
     // Check if at least one project has a mobile platform
-    const hasAnyStrictlyMobileProject = selectedProjectIds
+    const hasAnyStrictlyMobileProject = projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform, false));
 
     return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds]);
+  }, [organization.features, selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -348,11 +369,20 @@ export default function ReleasesList() {
   );
 
   const hasAnyMobileProject = useMemo(() => {
-    return selectedProjectIds
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform));
-  }, [selectedProjectIds]);
+  }, [selectedProjectIds, projects]);
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
@@ -427,7 +457,7 @@ export default function ReleasesList() {
                     key="releases"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: undefined},
+                      query: {...location.query, query: undefined, tab: undefined},
                     }}
                     textValue={t('Releases')}
                   >
@@ -437,7 +467,7 @@ export default function ReleasesList() {
                     key="mobile-builds"
                     to={{
                       pathname: location.pathname,
-                      query: {...location.query, tab: 'mobile-builds'},
+                      query: {...location.query, query: undefined, tab: 'mobile-builds'},
                     }}
                     textValue={t('Mobile Builds')}
                   >

@@ -31,7 +31,7 @@ class RpcAuthenticator(RpcModel):
     created_at: datetime.datetime = DEFAULT_DATE
     last_used_at: datetime.datetime | None = None
     type: int = -1
-    config: Any = None
+    config: Any = Field(repr=False, default=None)
 
 
 class RpcUserProfile(RpcModel):
@@ -55,7 +55,7 @@ class RpcUserProfile(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: str | None = None
+    session_nonce: str | None = Field(repr=False, default=None)
 
 
 class RpcUser(RpcUserProfile):
@@ -166,6 +166,8 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
     is_active: bool
+    is_superuser: bool
+    is_staff: bool
 
 
 class UserIdEmailArgs(TypedDict):

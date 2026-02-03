@@ -1,18 +1,20 @@
 import moment from 'moment-timezone';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
@@ -27,14 +29,17 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-type Props = RouteComponentProps<{broadcastId: string}, unknown>;
-
-function BroadcastDetails({params: {broadcastId}}: Props) {
+export default function BroadcastDetails() {
+  const {broadcastId} = useParams<{broadcastId: string}>();
   const api = useApi();
   const queryClient = useQueryClient();
 
   const {data, isPending, isError, refetch} = useApiQuery<any>(
-    [`/broadcasts/${broadcastId}/`],
+    [
+      getApiUrl(`/broadcasts/$broadcastId/`, {
+        path: {broadcastId},
+      }),
+    ],
     {
       staleTime: 0,
     }
@@ -61,7 +66,11 @@ function BroadcastDetails({params: {broadcastId}}: Props) {
       );
       setApiQueryData<Record<string, unknown>>(
         queryClient,
-        [`/broadcasts/${broadcastId}/`],
+        [
+          getApiUrl(`/broadcasts/$broadcastId/`, {
+            path: {broadcastId},
+          }),
+        ],
         prevData => ({
           ...prevData,
           ...response,
@@ -162,4 +171,3 @@ function BroadcastDetails({params: {broadcastId}}: Props) {
     />
   );
 }
-export default BroadcastDetails;

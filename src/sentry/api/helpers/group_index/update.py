@@ -46,8 +46,10 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
@@ -187,10 +189,12 @@ def update_groups(
     if len({p.organization_id for p in projects}) > 1:
         return Response({"detail": "All groups must belong to same organization."}, status=400)
 
+    organization = projects[0].organization if projects else None
+
     if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
-    serializer = validate_request(request, projects, data)
+    serializer = validate_request(request, projects, data, user)
 
     if serializer is None:
         logger.error("Error validating request. Investigate.")
@@ -248,6 +252,7 @@ def update_groups(
         )
 
     return prepare_response(
+        request,
         result,
         groups,
         project_lookup,
@@ -256,6 +261,7 @@ def update_groups(
         data,
         res_type,
         request.META.get("HTTP_REFERER", ""),
+        organization,
     )
 
 
@@ -296,6 +302,7 @@ def validate_request(
     request: Request,
     projects: Sequence[Project],
     data: Mapping[str, Any],
+    user: RpcUser | User | AnonymousUser | None = None,
 ) -> GroupValidator | None:
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
@@ -309,6 +316,15 @@ def validate_request(
                 "project": project,
                 "organization": project.organization,
                 "access": getattr(request, "access", None),
+                "request": request,
+                # Pass user explicitly for cases like Slack webhooks where
+                # request.user may be anonymous but the actual user is known
+                "user": user or getattr(request, "user", None),
+                # Skip team validation in OwnerActorField because:
+                # 1. For bulk updates, each group may have a different current assignee
+                # 2. Team membership validation happens later in validate_bulk_reassignment
+                #    with full access to the groups' current assignments
+                "skip_team_validation": True,
             },
         )
         if not serializer.is_valid():
@@ -751,6 +767,7 @@ def handle_other_status_updates(
 
 
 def prepare_response(
+    request: Request,
     result: dict[str, Any],
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
@@ -759,6 +776,7 @@ def prepare_response(
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
+    organization: Organization | None = None,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
@@ -775,6 +793,13 @@ def prepare_response(
         pass
 
     if "assignedTo" in result:
+        try:
+            validate_bulk_reassignment(
+                request, group_list, result["assignedTo"], acting_user, organization
+            )
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=400)
+
         result["assignedTo"] = handle_assigned_to(
             result["assignedTo"],
             data.get("assignedBy"),
@@ -839,6 +864,7 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
 def most_recent_release(project: Project) -> Release | None:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .extra(select={"sort": "COALESCE(date_released, date_added)"})
         .order_by("-sort")
         .first()
@@ -862,6 +888,7 @@ def greatest_semver_release(project: Project) -> Release | None:
 def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
@@ -1019,6 +1046,84 @@ def handle_is_public(
                 )
 
     return share_id
+
+
+def validate_bulk_reassignment(
+    request: Request,
+    group_list: Sequence[Group],
+    assigned_actor: Actor | None,
+    user: RpcUser | User | None = None,
+    organization: Organization | None = None,
+) -> None:
+    """
+    Validate that the user has permission to assign a team to all groups.
+
+    When assigning to a team, a user is permitted if any of the following are true:
+    - Open Team Membership is enabled for the organization, OR
+    - They have team:admin scope, OR
+    - They are a member of the target team, OR
+    - ALL groups are currently assigned to teams the user is a member of
+      (allows reassignment from own team to any team)
+    """
+    if assigned_actor is None or not assigned_actor.is_team:
+        return
+
+    if organization and organization.flags.allow_joinleave:
+        return
+
+    access = getattr(request, "access", None)
+    if access and access.has_scope("team:admin"):
+        return
+
+    user = user or getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        raise serializers.ValidationError(
+            {"assignedTo": "You can only assign teams you are a member of"}
+        )
+
+    user_is_target_team_member = OrganizationMemberTeam.objects.filter(
+        team_id=assigned_actor.id,
+        organizationmember__user_id=user.id,
+        is_active=True,
+    ).exists()
+
+    if user_is_target_team_member:
+        return
+
+    current_assignees = {
+        assignee.group_id: assignee
+        for assignee in GroupAssignee.objects.filter(group__in=group_list).select_related("team")
+    }
+
+    groups_with_team_assignment = {
+        group_id for group_id, assignee in current_assignees.items() if assignee.team_id is not None
+    }
+    all_group_ids = {group.id for group in group_list}
+
+    if groups_with_team_assignment != all_group_ids:
+        # Some groups are either unassigned or assigned to users (not teams)
+        # User cannot reassign these to a team they're not a member of
+        raise serializers.ValidationError(
+            {"assignedTo": "You can only assign teams you are a member of"}
+        )
+
+    current_team_ids = {
+        current_assignees[group_id].team_id for group_id in groups_with_team_assignment
+    }
+
+    user_team_memberships = set(
+        OrganizationMemberTeam.objects.filter(
+            team_id__in=current_team_ids,
+            organizationmember__user_id=user.id,
+            is_active=True,
+        ).values_list("team_id", flat=True)
+    )
+
+    # If any group is assigned to a team the user is not a member of, deny
+    if current_team_ids - user_team_memberships:
+        raise serializers.ValidationError(
+            {"assignedTo": "You can only assign teams you are a member of"}
+        )
 
 
 def handle_assigned_to(

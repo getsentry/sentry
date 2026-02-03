@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
+import {getEscapedKey} from '@sentry/scraps/compactSelect';
+
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -34,6 +35,7 @@ import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
@@ -121,6 +123,12 @@ export function createItem(
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,
     type: 'item',
+    trailingItems: () => (
+      <TypeBadge
+        kind={(fieldDefinition?.kind || tag?.kind) ?? undefined}
+        valueType={fieldDefinition?.valueType ?? undefined}
+      />
+    ),
   };
 }
 
@@ -136,7 +144,7 @@ export function createRawSearchItem(value: string): RawSearchItem {
     showDetailsInOverlay: true,
     details: null,
     type: 'raw-search',
-    trailingItems: <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+    trailingItems: () => <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
   };
 }
 
@@ -285,10 +293,11 @@ export function createLogicFilterItem({
     textValue: value,
     hideCheck: true,
     showDetailsInOverlay: true,
+    trailingItems: () => <TypeBadge isLogicFilter />,
   };
 }
 
 const SearchItemLabel = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;

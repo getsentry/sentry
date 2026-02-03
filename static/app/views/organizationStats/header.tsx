@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {TabList} from 'sentry/components/core/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,7 +65,7 @@ function StatsHeader({organization, activeTab}: Props) {
 }
 
 const TabsContainer = styled(Layout.HeaderTabs)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(2)};
 `;
 

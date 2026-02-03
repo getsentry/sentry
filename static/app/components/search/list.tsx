@@ -1,10 +1,11 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {Result} from './sources/types';
 import SearchResult from './searchResult';
@@ -69,9 +70,9 @@ function List({
   return (
     <DropdownBox className={dropdownClassName}>
       {isLoading ? (
-        <LoadingWrapper>
+        <Flex justify="center" align="center" padding="md">
           <LoadingIndicator mini relative />
-        </LoadingWrapper>
+        </Flex>
       ) : hasResults ? (
         resultList.map((result, index) => {
           const {item, matches, refIndex} = result;
@@ -137,7 +138,7 @@ export default List;
 
 const DropdownBox = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: absolute;
@@ -159,11 +160,4 @@ const EmptyItem = styled(SearchResultWrapper)`
   text-align: center;
   padding: 16px;
   opacity: 0.5;
-`;
-
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: ${space(1)};
 `;

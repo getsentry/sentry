@@ -5,17 +5,20 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
 
 export interface TimelineItemProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   colorConfig?: {
-    icon: string | Color;
-    iconBorder: string | Color;
-    title: string | Color;
+    icon: string;
+    iconBorder: string;
+    title: string;
   };
+  /**
+   * Used by tanstack virtualizer to track the index of the item.
+   */
+  'data-index'?: number;
   icon?: React.ReactNode;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -42,17 +45,13 @@ function Item({
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
 
-  const iconBorder = theme[config.iconBorder as Color] ?? config.iconBorder;
-  const iconColor = theme[config.icon as Color] ?? config.icon;
-  const titleColor = theme[config.title as Color] ?? config.title;
-
   return (
     <Row ref={ref} {...props}>
       {icon ? (
         <IconWrapper
           style={{
-            borderColor: isActive ? iconBorder : 'transparent',
-            color: iconColor,
+            borderColor: isActive ? config.iconBorder : 'transparent',
+            color: config.icon,
           }}
           className="timeline-icon-wrapper"
         >
@@ -62,7 +61,7 @@ function Item({
         <IconWrapper className="timeline-icon-wrapper" />
       )}
       <Flex align="center" gap="xs" wrap="wrap">
-        <Title style={{color: titleColor}}>{title}</Title>
+        <Title style={{color: config.title}}>{title}</Title>
         {titleTrailingItems}
       </Flex>
       {timestamp ?? <div />}
@@ -75,14 +74,14 @@ function Item({
 function makeDefaultColorConfig(theme: Theme) {
   return {
     title: theme.tokens.content.primary,
-    icon: theme.tokens.content.muted,
-    iconBorder: theme.tokens.content.muted,
+    icon: theme.tokens.content.secondary,
+    iconBorder: theme.tokens.content.secondary,
   };
 }
 
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
   grid-template: auto auto / 22px 1fr auto;
@@ -115,7 +114,7 @@ const Title = styled('div')`
   font-weight: bold;
   text-align: left;
   grid-column: span 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Spacer = styled('div')`
@@ -128,15 +127,15 @@ const Spacer = styled('div')`
 const Content = styled('div')`
   text-align: left;
   grid-column: span 2;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.25)} 0 0;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-wrap: break-word;
 `;
 
 const Text = styled('div')`
   text-align: left;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   &:only-child {
     margin-top: 0;
   }
@@ -147,9 +146,9 @@ const Data = styled('div')`
   padding: ${space(0.25)} ${space(0.75)};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(0.75)} 0 0 -${space(0.75)};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.backgroundSecondary};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  background: ${p => p.theme.tokens.background.secondary};
   position: relative;
   &:only-child {
     margin-top: 0;

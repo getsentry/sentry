@@ -16,13 +16,14 @@ class TaskworkerApp:
     Container for an application's task setup and configuration.
     """
 
-    def __init__(self, taskregistry: TaskRegistry | None = None) -> None:
+    def __init__(self, name: str, taskregistry: TaskRegistry | None = None) -> None:
         self._config = {
             "rpc_secret": None,
             "at_most_once_timeout": None,
         }
+        self.name = name
         self._modules: Iterable[str] = []
-        self._taskregistry = taskregistry or TaskRegistry()
+        self._taskregistry = taskregistry or TaskRegistry(application=name)
         self._at_most_once_store: AtMostOnceStore | None = None
 
     @property

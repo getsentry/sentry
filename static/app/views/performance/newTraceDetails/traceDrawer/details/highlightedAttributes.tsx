@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
@@ -32,6 +32,32 @@ function tryParseJson(value: string) {
   } catch (error) {
     return value;
   }
+}
+
+/**
+ * Gets AI tool definitions, checking attributes in priority order.
+ * Priority: gen_ai.tool.definitions > gen_ai.request.available_tools
+ */
+function getAIToolDefinitions(
+  attributes: Record<string, string | number | boolean>
+): any[] | null {
+  const toolDefinitions = attributes['gen_ai.tool.definitions'];
+  if (toolDefinitions) {
+    const parsed = tryParseJson(toolDefinitions.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  const availableTools = attributes['gen_ai.request.available_tools'];
+  if (availableTools) {
+    const parsed = tryParseJson(availableTools.toString());
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
 }
 
 export function getHighlightedSpanAttributes({
@@ -170,14 +196,8 @@ function getAISpanAttributes({
     });
   }
 
-  const availableTools = attributes['gen_ai.request.available_tools'];
-  const toolsArray = tryParseJson(availableTools?.toString() || '');
-  if (
-    toolsArray &&
-    Array.isArray(toolsArray) &&
-    toolsArray.length > 0 &&
-    getIsAiAgentSpan(genAiOpType)
-  ) {
+  const toolsArray = getAIToolDefinitions(attributes);
+  if (toolsArray && toolsArray.length > 0 && getIsAiAgentSpan(genAiOpType)) {
     highlightedAttributes.push({
       name: t('Available Tools'),
       value: <HighlightedTools availableTools={toolsArray} spanId={spanId} />,
@@ -380,12 +400,12 @@ const TokensTooltipTitle = styled('div')`
 
 const SubTextCell = styled('span')`
   margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TokensSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;

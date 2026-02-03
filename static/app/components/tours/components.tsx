@@ -4,8 +4,9 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
@@ -418,7 +419,6 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
-                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -429,7 +429,11 @@ export function TourGuide({
                         )}
                         {title && <TitleRow>{title}</TitleRow>}
                         {description && <DescriptionRow>{description}</DescriptionRow>}
-                        {actions && <ActionRow>{actions}</ActionRow>}
+                        {actions && (
+                          <Flex justify="end" marginTop="md">
+                            {actions}
+                          </Flex>
+                        )}
                       </TourBody>
                     </TourOverlay>
                   )}
@@ -471,39 +475,33 @@ const TopRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: ${p => p.theme.tokens.content.muted};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TitleRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.4;
   white-space: wrap;
 `;
 
 const DescriptionRow = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.4;
   white-space: wrap;
   opacity: 0.9;
-`;
-
-const ActionRow = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(1)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" borderless />;
+  return <Button {...props} priority="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`
@@ -527,7 +525,7 @@ const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.radius.md};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent.vibrant};
       ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }

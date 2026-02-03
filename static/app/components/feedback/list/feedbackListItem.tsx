@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -78,7 +79,7 @@ export default function FeedbackListItem({
         <InteractionStateLayer />
 
         <Row
-          style={{gridArea: 'checkbox'}}
+          area="checkbox"
           onClick={e => {
             e.stopPropagation();
           }}
@@ -101,20 +102,14 @@ export default function FeedbackListItem({
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow style={{gridArea: 'unread'}}>
+          <DotRow area="unread">
             <Tooltip title={t('Unread')} skipWrapper>
               <UnreadIndicator />
             </Tooltip>
           </DotRow>
         )}
 
-        <PreviewRow
-          align="start"
-          justify="start"
-          style={{
-            gridArea: 'message',
-          }}
-        >
+        <PreviewRow align="start" justify="start" area="message">
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 
@@ -184,10 +179,11 @@ const LinkedFeedbackCard = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.colors.blue100};
-    border: 1px solid ${p => p.theme.colors.blue200};
+    background: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     border-radius: ${space(0.75)};
-    color: ${p => p.theme.colors.blue400};
+    color: ${p => p.theme.tokens.interactive.transparent.accent.content.primary};
   }
 
   display: grid;
@@ -222,7 +218,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const PreviewRow = styled(Row)`
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding-bottom: ${space(0.75)};
 `;
 
@@ -235,7 +231,7 @@ const DotRow = styled(Row)`
 const UnreadIndicator = styled('div')`
   width: 8px;
   height: 8px;
-  background-color: ${p => p.theme.colors.blue500};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   border-radius: 50%;
 `;
 
@@ -245,22 +241,22 @@ const StyledTextOverflow = styled(TextOverflow)`
   -webkit-line-clamp: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const ContactRow = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   grid-area: 'user';
   font-weight: bold;
 `;
 
 const ShortId = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-area: 'time';
 `;
 

@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Flex} from 'sentry/components/core/layout';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -113,11 +114,11 @@ function ReplayDetailsContent() {
 
 const TopHeader = styled(Flex)`
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   flex-wrap: wrap;
 `;
 
 const BottonHeader = styled(Flex)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;

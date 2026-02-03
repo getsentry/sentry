@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -72,7 +73,7 @@ const StyledVersion = styled(Version)<{isPending: boolean}>`
   ${p =>
     p.isPending &&
     css`
-      background-color: ${p.theme.backgroundTertiary};
+      background-color: ${p.theme.tokens.background.tertiary};
       border-radius: ${p.theme.radius.md};
       color: transparent;
       pointer-events: none;

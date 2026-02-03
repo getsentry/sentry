@@ -2,7 +2,8 @@ import {Activity, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -73,14 +74,18 @@ const CollapseButton = styled(Button)<{folded: boolean}>`
   opacity: ${p => (p.folded ? 1 : 0.25)};
   transition: opacity 0.2s ease;
   align-self: ${p => (p.folded ? 'center' : 'baseline')};
-  color: ${p => (p.folded ? p.theme.linkColor : p.theme.subText)};
+  color: ${p =>
+    p.folded
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.content.secondary};
 
   transform: ${p => (p.folded ? 'translateY(1px)' : 'translateY(2px)')};
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   grid-column: 2;
-  color: ${p => (p.isContributing ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.isContributing ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 export const GroupingHint = styled('small')`
@@ -102,7 +107,7 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
   ${p =>
     p.hasFold &&
     css`
-      border-left: 1px solid ${p.theme.innerBorder};
+      border-left: 1px solid ${p.theme.tokens.border.secondary};
     `}
 `;
 

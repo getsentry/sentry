@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.urls import re_path
 
+from sentry.preprod.api.endpoints.builds import BuildsEndpoint
 from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
@@ -15,9 +16,9 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_do
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
 
-from .organization_preprod_app_size_stats import OrganizationPreprodAppSizeStatsEndpoint
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .organization_preprod_list_builds import OrganizationPreprodListBuildsEndpoint
+from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
 from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
 from .preprod_artifact_rerun_analysis import (
@@ -25,6 +26,7 @@ from .preprod_artifact_rerun_analysis import (
     PreprodArtifactRerunAnalysisEndpoint,
 )
 from .preprod_artifact_rerun_status_checks import PreprodArtifactRerunStatusChecksEndpoint
+from .preprod_artifact_snapshot import ProjectPreprodSnapshotEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
@@ -56,6 +58,16 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
         ProjectPreprodArtifactAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-preprod-artifact-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/$",
+        ProjectPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-create",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
+        ProjectPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
@@ -117,9 +129,9 @@ preprod_project_urlpatterns = [
 
 preprod_organization_urlpatterns = [
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/preprod/app-size-stats/$",
-        OrganizationPreprodAppSizeStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-preprod-app-size-stats",
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/quota/$",
+        OrganizationPreprodQuotaEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-quota",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",
@@ -141,6 +153,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
         OrganizationPrCommentsEndpoint.as_view(),
         name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
+        BuildsEndpoint.as_view(),
+        name="sentry-api-0-organization-builds",
     ),
 ]
 

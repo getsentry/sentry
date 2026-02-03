@@ -25,9 +25,8 @@ describe('RelatedIssues', () => {
   });
 
   beforeEach(() => {
-    // NOTE: This mock is jank. `GroupList` concatenates the query string with the URL. This means we have to mock the full URL including the parameters. There are a few other tests that have to do the same.
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: issues,
     });
@@ -69,7 +68,7 @@ describe('RelatedIssues', () => {
 
   it('shows empty state when no issues are found', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/',
       method: 'GET',
       body: [],
     });

@@ -2,10 +2,12 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -83,7 +85,9 @@ function SidebarItem({
         skipWrapper
         delay={0}
       >
-        <SidebarListItem {...props}>{children}</SidebarListItem>
+        <Flex as="li" justify="center" align="center" {...props}>
+          {children}
+        </Flex>
       </Tooltip>
     </IconDefaultsProvider>
   );
@@ -277,12 +281,6 @@ export function SeparatorItem({
   );
 }
 
-const SidebarListItem = styled('li')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
@@ -298,7 +296,7 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;
 
@@ -314,8 +312,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   letter-spacing: -0.05em;
 `;
 
@@ -336,7 +334,7 @@ const NavLink = styled(Link, {
   gap: ${p => (p.isMobile ? space(1) : space(0.5))};
 
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -358,7 +356,7 @@ const NavLink = styled(Link, {
     width: 4px;
     height: 20px;
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
@@ -367,32 +365,34 @@ const NavLink = styled(Link, {
   &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
-      background-color: ${p => p.theme.colors.blue100};
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
   }
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.gray100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.tokens.content.accent};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
       opacity: 1;
     }
     ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      ${NavLinkIconContainer} {
-        background-color: ${p => p.theme.colors.blue100};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
     }
   }
@@ -441,9 +441,9 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSize.xs};
-  background: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.colors.white};
+  font-size: ${p => p.theme.font.size.xs};
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;
   border-radius: 50%;

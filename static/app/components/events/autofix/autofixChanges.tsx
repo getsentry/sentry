@@ -2,14 +2,13 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
@@ -153,9 +152,9 @@ function BranchButton({change}: {change: AutofixCodebaseChange}) {
 const CopyContainer = styled('div')`
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-width: 25rem;
   min-width: 0;
   flex: 1;
@@ -165,15 +164,15 @@ const CopyContainer = styled('div')`
 const CopyButton = styled(Button)`
   border: none;
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
-  border-right: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
   height: auto;
   flex-shrink: 0;
 `;
 
 const CodeText = styled('code')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -277,15 +276,15 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
-          <HeaderWrapper>
+          <Flex justify="between" align="center" wrap="wrap" gap="md">
             <HeaderText>
               <Flex justify="center" align="center" ref={iconCodeRef}>
-                <IconCode size="md" color="blue400" />
+                <IconCode size="md" variant="accent" />
               </Flex>
               {t('Code Changes')}
               <Button
                 size="zero"
-                borderless
+                priority="transparent"
                 title={t('Chat with Seer')}
                 onClick={handleSelectFirstChange}
                 analyticsEventName="Autofix: Changes Chat"
@@ -294,7 +293,7 @@ export function AutofixChanges({
                 <IconChat />
               </Button>
             </HeaderText>
-          </HeaderWrapper>
+          </Flex>
           <AnimatePresence>
             {agentCommentThread && iconCodeRef.current && (
               <AutofixHighlightPopup
@@ -425,7 +424,7 @@ const AnimationWrapper = styled(motion.div)`
 const PrefixText = styled('span')``;
 
 const ChangesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.xl};
@@ -437,17 +436,17 @@ const Content = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.colors.blue400};
+  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;
 
 const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const RepoChangesHeader = styled('div')`
@@ -457,11 +456,11 @@ const RepoChangesHeader = styled('div')`
 `;
 
 const MarkdownAlert = styled(MarkedText)`
-  border: 1px solid ${p => p.theme.alert.warning.border};
-  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  border: 1px solid ${p => p.theme.colors.yellow200};
+  background-color: ${p => p.theme.colors.yellow100};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.alert.warning.color};
+  color: ${p => p.theme.colors.yellow500};
 `;
 
 const NoChangesPadding = styled('div')`
@@ -470,29 +469,21 @@ const NoChangesPadding = styled('div')`
 
 const Separator = styled('hr')`
   border: none;
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
 `;
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
   margin-right: ${space(2)};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-`;
-
 const BottomDivider = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 `;
@@ -505,8 +496,8 @@ const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
 `;
 
 const TerminationReasonText = styled('div')`
-  color: ${p => p.theme.errorText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.danger};
+  font-size: ${p => p.theme.font.size.sm};
   flex: 1;
   min-width: 0;
 `;

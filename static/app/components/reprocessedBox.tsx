@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -77,7 +78,7 @@ function ReprocessedBox({
         <IconCheckmark variant="success" />
         <span>{renderMessage()}</span>
         <StyledIconClose
-          color="successText"
+          variant="success"
           aria-label={t('Dismiss')}
           onClick={handleBannerDismiss}
         />

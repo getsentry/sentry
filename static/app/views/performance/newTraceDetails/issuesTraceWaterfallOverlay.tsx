@@ -1,10 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -195,6 +197,6 @@ const IssuesTraceOverlayContainer = styled(Link)`
   pointer-events: auto;
 
   &:hover {
-    background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+    background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;

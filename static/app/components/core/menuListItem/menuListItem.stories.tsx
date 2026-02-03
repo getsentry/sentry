@@ -1,7 +1,8 @@
 import documentation from '!!type-loader!sentry/components/core/menuListItem';
 import styled from '@emotion/styled';
 
-import {MenuListItem} from 'sentry/components/core/menuListItem/index';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
+
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
@@ -37,7 +38,7 @@ export default Storybook.story('MenuListItem', (story, APIReference) => {
 
 const Container = styled('div')`
   margin-top: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
 

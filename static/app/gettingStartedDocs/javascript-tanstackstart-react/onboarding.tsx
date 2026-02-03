@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -205,6 +206,37 @@ export default createServerEntry(
         {
           type: 'text',
           text: tct(
+            'Add the [code:sentryTanstackStart] Vite plugin to your [configFile:vite.config.ts] file:',
+            {code: <code />, configFile: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'typescript',
+              filename: 'vite.config.ts',
+              code: `import { defineConfig } from "vite";
+import { sentryTanstackStart } from "@sentry/tanstackstart-react";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+
+export default defineConfig({
+  plugins: [
+    tanstackStart(),
+    sentryTanstackStart({
+      org: "${params.organization.slug}",
+      project: "${params.project.slug}",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
             'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
             {
               code: <code />,
@@ -337,7 +369,14 @@ const route = createRoute({
         {
           type: 'text',
           text: tct(
-            "The stack traces in your Sentry errors probably won't look like your actual code. To fix this, upload your source maps to Sentry. Since TanStack Start uses Vite, you can use the Sentry Vite plugin to automatically upload source maps. Follow the [link:Vite source maps guide] to set this up.",
+            'If you configured the [code:sentryTanstackStart] Vite plugin as shown above, source maps will be automatically uploaded to Sentry during the build process and deleted from your build output afterwards.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For alternative source map upload methods, follow the [link:Vite source maps guide].',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />

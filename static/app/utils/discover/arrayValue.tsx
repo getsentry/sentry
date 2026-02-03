@@ -48,7 +48,7 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
     outline: none;
     padding: 0;
     cursor: pointer;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     margin-left: ${space(0.5)};
   }
 `;
@@ -57,7 +57,9 @@ const ArrayItem = styled('span')`
   flex-shrink: 1;
   display: block;
 
-  ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: unset;
 `;
 

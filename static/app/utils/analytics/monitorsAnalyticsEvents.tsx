@@ -15,10 +15,12 @@ type DetectorCreateAnalyticsEventPayload =
 export type MonitorsEventParameters = {
   'automation.created': AutomationAnalyticsEventPayload & {
     organization: Organization;
+    source: 'drawer' | 'full';
     success: boolean;
   };
   'automation.updated': AutomationAnalyticsEventPayload & {
     organization: Organization;
+    success: boolean;
   };
   'landing_page.platform_guide.viewed': {
     guide: string;

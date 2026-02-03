@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {CheckWrap} from '@sentry/scraps/select';
 
-import {MenuListItem} from 'sentry/components/core/menuListItem';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
@@ -65,9 +66,9 @@ export function SelectOption(props: Props) {
               <Fragment>
                 <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
-                    <IconCheckmark
+                    <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}
-                      color={isMultiple ? 'white' : undefined}
+                      isMultiple={isMultiple}
                     />
                   )}
                 </CheckWrap>
@@ -80,3 +81,9 @@ export function SelectOption(props: Props) {
     </ClassNames>
   );
 }
+
+const StyledIconCheckmark = styled(IconCheckmark, {
+  shouldForwardProp: prop => prop !== 'isMultiple',
+})<{isMultiple: boolean}>`
+  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
+`;

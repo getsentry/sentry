@@ -1,3 +1,9 @@
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -6,12 +12,19 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     IntArray,
 )
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.testutils.cases import TestCase
 
 
@@ -75,3 +88,209 @@ class OccurrencesRPCTest(TestCase):
         assert virtual_context is None
         assert resolved_column.public_alias == "count()"
         assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_greater_or_equals(self) -> None:
+        # count_if(filter_key, operator, value) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, greaterOrEquals, 1704067200)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                    value=AttributeValue(val_double=1704067200.0),
+                )
+            ),
+            label="count_if(timestamp, greaterOrEquals, 1704067200)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.public_alias == "count_if(timestamp, greaterOrEquals, 1704067200)"
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_less_than(self) -> None:
+        # count_if(filter_key, operator, value) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, less, 1704067200)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+                    op=ComparisonFilter.OP_LESS_THAN,
+                    value=AttributeValue(val_double=1704067200.0),
+                )
+            ),
+            label="count_if(timestamp, less, 1704067200)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_between(self) -> None:
+        # count_if(filter_key, operator, value1, value2) uses default aggregate key (group_id)
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "count_if(timestamp, between, 1704067200, 1704153600)"
+        )
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE
+                                ),
+                                op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=1704067200.0),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE
+                                ),
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=1704153600.0),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            label="count_if(timestamp, between, 1704067200, 1704153600)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.search_type == "integer"
+
+    def test_count_if_aggregate_invalid_operator(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("count_if(timestamp, invalidOp, 1704067200)")
+
+    def test_count_if_aggregate_between_missing_second_value(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            self.resolver.resolve_column("count_if(timestamp, between, 1704067200)")
+        assert "between operator requires two values" in str(exc_info.value)
+
+    def test_count_if_aggregate_between_invalid_order(self) -> None:
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            self.resolver.resolve_column("count_if(timestamp, between, 1704153600, 1704067200)")
+        assert "must be greater than" in str(exc_info.value)
+
+    def test_min_aggregate(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+        assert resolved_column.public_alias == "min(timestamp)"
+        assert resolved_column.search_type == "string"  # timestamp is processed as string
+
+
+class OccurrencesTimeseriesTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(name="test")
+        self.end = datetime.now(timezone.utc)
+        self.start = self.end - timedelta(days=1)
+        self.snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            granularity_secs=3600,  # 1 hour buckets
+            projects=[self.project],
+        )
+        self.config = SearchResolverConfig()
+
+    def test_get_timeseries_query_without_groupby(self) -> None:
+        """Test that the simple timeseries query is constructed correctly."""
+        resolver = Occurrences.get_resolver(self.snuba_params, self.config)
+
+        _rpc_request, aggregates, groupbys = RPCBase.get_timeseries_query(
+            search_resolver=resolver,
+            params=self.snuba_params,
+            query_string="",
+            y_axes=["count()"],
+            groupby=[],
+            referrer="test_referrer",
+            sampling_mode=None,
+        )
+
+        # Verify no groupby columns
+        assert len(groupbys) == 0
+
+        # Verify aggregate is resolved
+        assert len(aggregates) == 1
+        assert aggregates[0].public_alias == "count()"
+
+    def test_get_timeseries_query_with_groupby(self) -> None:
+        """Test that the grouped timeseries query is constructed correctly."""
+        resolver = Occurrences.get_resolver(self.snuba_params, self.config)
+
+        rpc_request, aggregates, groupbys = RPCBase.get_timeseries_query(
+            search_resolver=resolver,
+            params=self.snuba_params,
+            query_string="group_id:123",
+            y_axes=["count()"],
+            groupby=["project_id", "group_id"],
+            referrer="test_referrer",
+            sampling_mode=None,
+        )
+
+        # Verify groupby columns are resolved
+        assert len(groupbys) == 2
+        assert groupbys[0].public_alias == "project_id"
+        assert groupbys[0].internal_name == "sentry.project_id"
+        assert groupbys[1].public_alias == "group_id"
+        assert groupbys[1].internal_name == "group_id"
+
+        # Verify aggregate is resolved
+        assert len(aggregates) == 1
+        assert aggregates[0].public_alias == "count()"
+
+        # Verify RPC request has correct granularity
+        assert rpc_request.granularity_secs == 3600
+
+    def test_validate_granularity_required_for_timeseries(self) -> None:
+        """Test that granularity validation fails without granularity_secs."""
+        params_no_granularity = SnubaParams(
+            start=self.start,
+            end=self.end,
+            projects=[self.project],
+        )
+
+        with pytest.raises(InvalidSearchQuery):
+            Occurrences.run_timeseries_query(
+                params=params_no_granularity,
+                query_string="",
+                y_axes=["count()"],
+                referrer="test",
+                config=self.config,
+                sampling_mode=None,
+            )
+
+    def test_validate_granularity_required_for_grouped_timeseries(self) -> None:
+        """Test that granularity validation fails without granularity_secs."""
+        params_no_granularity = SnubaParams(
+            start=self.start,
+            end=self.end,
+            projects=[self.project],
+        )
+
+        with pytest.raises(InvalidSearchQuery):
+            Occurrences.run_grouped_timeseries_query(
+                params=params_no_granularity,
+                query_string="",
+                y_axes=["count()"],
+                groupby=["project_id", "group_id"],
+                referrer="test",
+                config=self.config,
+            )

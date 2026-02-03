@@ -3,8 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Link} from '@sentry/scraps/link';
+
 import CollapsePanel from 'sentry/components/collapsePanel';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -200,13 +201,13 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Cell = styled('div')`
   display: flex;
   align-items: center;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)};
 `;

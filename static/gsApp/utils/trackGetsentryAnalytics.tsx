@@ -23,7 +23,6 @@ type AddEventCTA = HasSub & {
   event_types?: string;
 };
 type BillingInfoUpdateEvent = {
-  isStripeComponent: boolean;
   referrer?: string;
 };
 type ManualPaymentEvent = BillingInfoUpdateEvent;
@@ -132,9 +131,6 @@ type GetsentryEventParameters = {
   'growth.clicked_enter_sandbox': {
     scenario: string;
   };
-  'growth.codecov_promotion_accept': HasSub;
-  'growth.codecov_promotion_decline': HasSub;
-  'growth.codecov_promotion_opened': HasSub;
   'growth.disabled_dashboard.viewed': Record<PropertyKey, unknown>;
   'growth.issue_open_in_discover_upsell_clicked': Record<PropertyKey, unknown>;
   'growth.metric_alert_banner.clicked': HasSub;
@@ -271,7 +267,7 @@ type UpdateProps = Pick<Subscription, 'planTier' | 'canSelfServe' | 'channel'> &
 
 export type GetsentryEventKey = keyof GetsentryEventParameters;
 
-export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
+const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'power_icon.clicked': 'Clicked Power Icon',
   'github.multi_org.upsell': 'Github Multi-Org Upsell Clicked',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
@@ -290,9 +286,6 @@ export const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'growth.promo_reminder_modal_keep': 'Growth: Promo Reminder Modal Keep',
   'growth.promo_reminder_modal_continue_downgrade':
     'Growth: Promo Reminder Modal Continue Downgrade',
-  'growth.codecov_promotion_accept': 'Growth: Codecov Promotion Accept',
-  'growth.codecov_promotion_decline': 'Growth: Codecov Promotion Decline',
-  'growth.codecov_promotion_opened': 'Growth: Codecov Promotion Opened',
   'quota_alert.shown': 'Quota Alert: Shown',
   'quota_alert.clicked_snooze': 'Quota Alert: Clicked Snooze',
   'quota_alert.clicked_unsnooze': 'Quota Alert: Clicked Unsnooze',

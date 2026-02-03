@@ -1,21 +1,25 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import type {LocationDescriptor} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import GroupList from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
+import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventOccurrence} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {
   MetricCondition,
   MetricDetectorConfig,
@@ -26,13 +30,17 @@ import {defined} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import useOrganization from 'sentry/utils/useOrganization';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
 
 interface MetricDetectorEvidenceData {
   /**
@@ -55,6 +63,7 @@ interface MetricDetectorEvidenceData {
 
 interface MetricDetectorTriggeredSectionProps {
   event: Event;
+  group: Group;
 }
 
 function isMetricDetectorEvidenceData(
@@ -83,9 +92,6 @@ interface RelatedIssuesProps {
   start: string;
 }
 
-/**
- * Calculates the
- */
 function calculateStartOfInterval({
   eventDateCreated,
   timeWindow,
@@ -107,6 +113,47 @@ function calculateStartOfInterval({
   return startOfInterval;
 }
 
+function getFormattedEvaluatedValue({
+  aggregate,
+  detectionType,
+  value,
+}: {
+  aggregate: string;
+  detectionType: MetricDetectorConfig['detectionType'];
+  value: number;
+}): string {
+  const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  return `${value.toLocaleString()}${unitSuffix}`;
+}
+
+/**
+ * Issues list does not support AND/OR in the query, but Discover does.
+ */
+function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
+  return (
+    <Alert.Container>
+      <Alert
+        variant="info"
+        trailingItems={
+          <Feature features="discover-basic">
+            <LinkButton priority="default" size="xs" to={discoverUrl}>
+              {t('Open in Discover')}
+            </LinkButton>
+          </Feature>
+        }
+      >
+        {t('Contributing issues unavailable for this detector.')}{' '}
+        <QuestionTooltip
+          title={t(
+            'Issues do not support AND/OR queries. Modify your query to see contributing issues.'
+          )}
+          size="xs"
+        />
+      </Alert>
+    </Alert.Container>
+  );
+}
+
 function ContributingIssues({
   projectId,
   query,
@@ -116,6 +163,20 @@ function ContributingIssues({
   start,
 }: RelatedIssuesProps) {
   const organization = useOrganization();
+
+  const queryContainsBooleanLogic = useMemo(() => {
+    try {
+      return treeResultLocator<boolean>({
+        tree: parseSearch(query) ?? [],
+        noResultValue: false,
+        visitorTest: ({token, returnResult}) => {
+          return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
+        },
+      });
+    } catch {
+      return false;
+    }
+  }, [query]);
 
   if (!eventDateCreated) {
     return null;
@@ -130,63 +191,50 @@ function ContributingIssues({
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
   };
 
-  const discoverUrl = `/organizations/${organization.slug}/discover/results/?${qs.stringify(
-    {
+  const discoverUrl: LocationDescriptor = {
+    pathname: makeDiscoverPathname({
+      organization,
+      path: '/results/',
+    }),
+    query: {
       query,
       dataset: SavedQueryDatasets.ERRORS,
       start,
       end,
-    }
-  )}`;
-
-  function renderErrorMessage({detail}: {detail: string}, retry: () => void) {
-    if (detail === RELATED_ISSUES_BOOLEAN_QUERY_ERROR) {
-      return (
-        <Alert.Container>
-          <Alert
-            variant="info"
-            trailingItems={
-              <Feature features="discover-basic">
-                <LinkButton priority="default" size="xs" to={discoverUrl}>
-                  {t('Open in Discover')}
-                </LinkButton>
-              </Feature>
-            }
-          >
-            {t('Contributing issues unavailable for this detector.')}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-    return <LoadingError onRetry={retry} />;
-  }
+    },
+  };
 
   return (
     <InterimSection
       title={t('Contributing Issues')}
       type="contributing_issues"
       actions={
-        <LinkButton
-          size="xs"
-          to={{
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: queryParams,
-          }}
-        >
-          {t('View All')}
-        </LinkButton>
+        queryContainsBooleanLogic ? null : (
+          <LinkButton
+            size="xs"
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: queryParams,
+            }}
+          >
+            {t('View All')}
+          </LinkButton>
+        )
       }
     >
       <GroupListWrapper>
-        <GroupList
-          queryParams={queryParams}
-          canSelectGroups={false}
-          withChart={false}
-          withPagination={false}
-          source="metric-issue-contributing-issues"
-          numPlaceholderRows={3}
-          renderErrorMessage={renderErrorMessage}
-        />
+        {queryContainsBooleanLogic ? (
+          <BooleanLogicError discoverUrl={discoverUrl} />
+        ) : (
+          <GroupList
+            queryParams={queryParams}
+            canSelectGroups={false}
+            withChart={false}
+            withPagination={false}
+            source="metric-issue-contributing-issues"
+            numPlaceholderRows={3}
+          />
+        )}
       </GroupListWrapper>
     </InterimSection>
   );
@@ -226,18 +274,27 @@ function OpenInDestinationButton({
 function TriggeredConditionDetails({
   evidenceData,
   eventDateCreated,
+  eventId,
+  groupId,
   projectId,
 }: {
   eventDateCreated: string | undefined;
+  eventId: string;
   evidenceData: MetricDetectorEvidenceData;
+  groupId: string;
   projectId: string | number;
 }) {
   const {conditions, dataSources, value} = evidenceData;
   const dataSource = dataSources[0];
   const snubaQuery = dataSource?.queryObj?.snubaQuery;
   const triggeredCondition = conditions[0];
-  // TODO: When we can link events to open periods, use the end date from the open period
-  const [endDate] = useState(() => new Date().toISOString());
+  const [fallbackEndDate] = useState(() => new Date().toISOString());
+  const detectionType = evidenceData.config?.detectionType ?? 'static';
+  const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
+    groupId,
+    eventId,
+  });
+  const endDate = openPeriod?.end ?? fallbackEndDate;
 
   if (!triggeredCondition || !snubaQuery || !eventDateCreated) {
     return null;
@@ -247,6 +304,11 @@ function TriggeredConditionDetails({
   const datasetConfig = getDatasetConfig(detectorDataset);
   const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
+  const formattedEvaluatedValue = getFormattedEvaluatedValue({
+    value,
+    aggregate: snubaQuery.aggregate,
+    detectionType,
+  });
   const startDate = calculateStartOfInterval({
     eventDateCreated,
     timeWindow: snubaQuery.timeWindow,
@@ -258,12 +320,14 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         type="triggered_condition"
         actions={
-          <OpenInDestinationButton
-            snubaQuery={snubaQuery}
-            projectId={projectId}
-            start={startDate}
-            end={endDate}
-          />
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
+            />
+          )
         }
       >
         <KeyValueList
@@ -316,22 +380,28 @@ function TriggeredConditionDetails({
             },
             {
               key: 'value',
-              value,
+              value: formattedEvaluatedValue,
               subject: t('Evaluated Value'),
             },
           ]}
         />
       </InterimSection>
-      {isErrorsDataset && (
-        <ContributingIssues
-          projectId={projectId}
-          query={issueSearchQuery}
-          eventDateCreated={eventDateCreated}
-          aggregate={snubaQuery.aggregate}
-          start={startDate}
-          end={endDate}
-        />
-      )}
+      <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
+      {isErrorsDataset &&
+        (isOpenPeriodLoading ? (
+          <InterimSection title={t('Contributing Issues')} type="contributing_issues">
+            <Placeholder height="200px" />
+          </InterimSection>
+        ) : (
+          <ContributingIssues
+            projectId={projectId}
+            query={issueSearchQuery}
+            eventDateCreated={eventDateCreated}
+            aggregate={snubaQuery.aggregate}
+            start={startDate}
+            end={endDate}
+          />
+        ))}
     </Fragment>
   );
 }
@@ -341,6 +411,7 @@ const GroupListWrapper = styled('div')`
 `;
 
 export function MetricDetectorTriggeredSection({
+  group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
   const evidenceData = event.occurrence?.evidenceData;
@@ -361,6 +432,8 @@ export function MetricDetectorTriggeredSection({
         <TriggeredConditionDetails
           evidenceData={evidenceData}
           eventDateCreated={event.dateCreated}
+          eventId={event.eventID}
+          groupId={group.id}
           projectId={event.projectID}
         />
       </ErrorBoundary>

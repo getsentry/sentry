@@ -2,10 +2,10 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -126,7 +126,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
           />
           <ButtonBar gap="xs">
             <SettingsButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
               title={t('Settings')}
@@ -235,7 +235,7 @@ const CardFooter = styled('div')`
 const ChartContainer = styled('div')`
   position: relative;
   margin: 0 -${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HeaderRow = styled('div')`
@@ -246,7 +246,7 @@ const HeaderRow = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
@@ -270,23 +270,23 @@ const SummaryLinks = styled('div')`
   gap: ${space(1)};
   position: relative;
   top: -${space(2)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 
   /* Need to offset for the project icon and margin */
   margin-left: 40px;
 
   a:not(:hover) {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   & > *:not(:last-child)::after {
     content: '|';
     position: relative;
     left: ${space(0.5)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -315,8 +315,8 @@ const ScoreCardWrapper = styled('div')`
     margin: 0;
   }
   ${Title} {
-    font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.font.size.md};
+    color: ${p => p.theme.tokens.content.secondary};
     margin-bottom: ${space(0.5)};
   }
   ${ScoreWrapper} {
@@ -333,8 +333,8 @@ const ScoreCardWrapper = styled('div')`
 `;
 
 const SubHeading = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(0.5)};
 `;
 

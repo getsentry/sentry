@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -102,8 +103,6 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
         to={detectorPath}
         style={{width: '100%'}}
         size="sm"
-        replace
-        preventScrollReset
       >
         {issueConfig.detector.ctaText ?? t('View detector details')}
       </LinkButton>

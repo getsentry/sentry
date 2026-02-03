@@ -2,9 +2,14 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {createPortal} from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
 import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
 import EmptyState from 'sentry/views/seerExplorer/emptyState';
@@ -20,18 +25,25 @@ import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
+import SeerFab from 'sentry/views/seerExplorer/seerFab';
 import TopBar from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
-  RUN_ID_QUERY_PARAM,
+  getExplorerUrl,
+  getLangfuseUrl,
+  isSeerExplorerEnabled,
   useCopySessionDataToClipboard,
+  usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
 function ExplorerPanel() {
-  const {isOpen: isVisible} = useExplorerPanel();
+  const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
+  const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
+  const location = useLocation();
+  const isSeerDrawerOpen = !!location.query?.seerDrawer;
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
@@ -50,6 +62,25 @@ function ExplorerPanel() {
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+
+  // Default to max size when Seer drawer is open
+  useEffect(() => {
+    if (isSeerDrawerOpen) {
+      handleMaxSize();
+    }
+  }, [isSeerDrawerOpen, handleMaxSize]);
+
+  // Panel opened analytic
+  useEffect(() => {
+    if (isVisible && !isMinimized) {
+      trackAnalytics('seer.explorer.global_panel.opened', {
+        referrer: getPageReferrer(),
+        organization,
+      });
+    }
+  }, [isVisible, isMinimized, organization, getPageReferrer]);
+
+  // Session data and management
   const {
     runId,
     sessionData,
@@ -57,8 +88,11 @@ function ExplorerPanel() {
     deleteFromIndex,
     startNewSession,
     isPolling,
+    isError,
     interruptRun,
     interruptRequested,
+    wasJustInterrupted,
+    clearWasJustInterrupted,
     switchToRun,
     respondToUserInput,
     createPR,
@@ -70,7 +104,7 @@ function ExplorerPanel() {
 
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
     blocks: sessionData?.blocks || [],
-    orgSlug: organization?.slug ?? '',
+    organization,
     projects,
     enabled: copySessionEnabled,
   });
@@ -83,7 +117,15 @@ function ExplorerPanel() {
     switchToRun,
     sessionRunId: runId ?? undefined,
     sessionBlocks: sessionData?.blocks,
+    onUnminimize: useCallback(() => setIsMinimized(false), []),
   });
+
+  // Clear wasJustInterrupted when user starts typing
+  useEffect(() => {
+    if (inputValue.length > 0 && wasJustInterrupted) {
+      clearWasJustInterrupted();
+    }
+  }, [inputValue, wasJustInterrupted, clearWasJustInterrupted]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -93,6 +135,26 @@ function ExplorerPanel() {
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
+
+  // Check owner id to determine edit permission. Defensive against any useUser return shape.
+  // Despite the type annotation, useUser can return null or undefined when not logged in.
+  // This component is in the top-level index so we have to guard against this.
+  const rawUser = useUser() as unknown;
+  const ownerUserId = sessionData?.owner_user_id ?? undefined;
+  const readOnly = useMemo(() => {
+    const isUser = (value: unknown): value is User =>
+      Boolean(
+        value &&
+          typeof value === 'object' &&
+          'id' in value &&
+          typeof value.id === 'string'
+      );
+    const userId = isUser(rawUser) ? rawUser.id : undefined;
+    return (
+      userId === undefined ||
+      (ownerUserId !== undefined && ownerUserId?.toString() !== userId)
+    );
+  }, [rawUser, ownerUserId]);
 
   // Get PR widget data for menu
   const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
@@ -129,9 +191,9 @@ function ExplorerPanel() {
     }
   }, [isVisible]);
 
-  // Detect clicks outside the panel to minimize it
+  // Detect clicks outside the panel to minimize it (but not when seer drawer is open)
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || isSeerDrawerOpen) {
       return undefined;
     }
 
@@ -145,7 +207,7 @@ function ExplorerPanel() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible, focusedBlockIndex]);
+  }, [isVisible, focusedBlockIndex, isSeerDrawerOpen]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -210,6 +272,10 @@ function ExplorerPanel() {
   }, [focusedBlockIndex]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (readOnly) {
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
@@ -254,9 +320,11 @@ function ExplorerPanel() {
     setIsMinimized(false);
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const langfuseUrl = runId
-    ? `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`
-    : undefined;
+  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
+  const conversationsUrl =
+    runId && organization?.slug
+      ? getConversationsUrl(organization.slug, runId)
+      : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -267,6 +335,7 @@ function ExplorerPanel() {
 
   const openFeedbackForm = useFeedbackForm();
 
+  // Generic feedback handler
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
       openFeedbackForm({
@@ -274,11 +343,15 @@ function ExplorerPanel() {
         messagePlaceholder: 'How can we make Seer Explorer better for you?',
         tags: {
           ['feedback.source']: 'seer_explorer',
+          ['feedback.owner']: 'ml-ai',
+          ...(runId === null ? {} : {['seer.run_id']: runId}),
+          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
           ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
+          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
         },
       });
     }
-  }, [openFeedbackForm, langfuseUrl]);
+  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
 
   const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
     useExplorerMenu({
@@ -405,22 +478,26 @@ function ExplorerPanel() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-      if (
-        e.key === 'Escape' &&
-        isPolling &&
-        !interruptRequested &&
-        !isFileApprovalPending
-      ) {
-        e.preventDefault();
-        interruptRun();
-      } else if (e.key === 'Escape' && !isFileApprovalPending) {
-        // Don't minimize if file approval is pending (Escape is used to reject)
-        e.preventDefault();
-        setIsMinimized(true);
-      } else if (isPrintableChar) {
-        // Don't auto-type if file approval or question is pending (textarea isn't visible)
-        if (focusedBlockIndex !== -1 && !isFileApprovalPending && !isQuestionPending) {
-          // If a block is focused, auto-focus input when user starts typing.
+      if (e.key === 'Escape') {
+        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
+          e.preventDefault();
+          interruptRun();
+        } else if (readOnly || !isFileApprovalPending) {
+          // Don't minimize if file approval is pending (Escape is used to reject)
+          e.preventDefault();
+          setIsMinimized(true);
+        }
+      }
+
+      if (isPrintableChar) {
+        // If a block is focused, auto-focus input when user starts typing.
+        // Don't do this if file approval or question is pending (textarea isn't visible)
+        if (
+          !readOnly &&
+          focusedBlockIndex !== -1 &&
+          !isFileApprovalPending &&
+          !isQuestionPending
+        ) {
           e.preventDefault();
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
@@ -444,6 +521,7 @@ function ExplorerPanel() {
     isVisible,
     isMenuOpen,
     isPolling,
+    readOnly,
     focusedBlockIndex,
     interruptRun,
     interruptRequested,
@@ -495,14 +573,15 @@ function ExplorerPanel() {
     }
 
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
-      await navigator.clipboard.writeText(url.toString());
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
       addSuccessMessage('Copied link to current chat');
     } catch {
       addErrorMessage('Failed to copy link to current chat');
     }
-  }, [runId]);
+
+    trackAnalytics('seer.explorer.session_link_copied', {organization});
+  }, [runId, organization]);
 
   const panelContent = (
     <PanelContainers
@@ -510,20 +589,21 @@ function ExplorerPanel() {
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
+      blocks={blocks}
+      isPolling={isPolling}
+      isSeerDrawerOpen={isSeerDrawerOpen}
       onUnminimize={handleUnminimize}
     >
       <TopBar
-        blocks={blocks}
         isEmptyState={isEmptyState}
         isPolling={isPolling}
+        isSeerDrawerOpen={isSeerDrawerOpen}
         isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        onCreatePR={createPR}
         onFeedbackClick={handleFeedback}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
-        onPRWidgetClick={openPRWidget}
         onCopySessionClick={copySessionToClipboard}
         onCopyLinkClick={handleCopyLink}
         onSessionHistoryClick={openSessionHistory}
@@ -531,14 +611,16 @@ function ExplorerPanel() {
         isCopyLinkEnabled={!!runId}
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
-        prWidgetButtonRef={prWidgetButtonRef}
-        repoPRStates={repoPRStates}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isWaitingForSessionData} />
+          <EmptyState
+            isLoading={isWaitingForSessionData}
+            isError={isError}
+            runId={runId}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
@@ -549,6 +631,8 @@ function ExplorerPanel() {
                 }}
                 block={block}
                 blockIndex={index}
+                runId={runId ?? undefined}
+                getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
@@ -557,6 +641,7 @@ function ExplorerPanel() {
                 }
                 isFocused={focusedBlockIndex === index}
                 isPolling={isPolling}
+                readOnly={readOnly}
                 onClick={() => handleBlockClick(index)}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -581,20 +666,25 @@ function ExplorerPanel() {
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={() => setIsMinimized(true)}
+                onNavigate={() => {
+                  setIsMinimized(true);
+                  // child handles navigation
+                }}
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}
               />
             ))}
-            {isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches && (
-              <FileChangeApprovalBlock
-                currentIndex={fileApprovalIndex}
-                isLast
-                pendingInput={pendingInput!}
-              />
-            )}
-            {isQuestionPending && currentQuestion && (
+            {!readOnly &&
+              isFileApprovalPending &&
+              fileApprovalIndex < fileApprovalTotalPatches && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  isLast
+                  pendingInput={pendingInput!}
+                />
+              )}
+            {!readOnly && isQuestionPending && currentQuestion && (
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
@@ -610,17 +700,24 @@ function ExplorerPanel() {
         )}
       </BlocksContainer>
       <InputSection
+        blocks={blocks}
+        enabled={!readOnly}
         focusedBlockIndex={focusedBlockIndex}
         inputValue={inputValue}
         interruptRequested={interruptRequested}
         isMinimized={isMinimized}
         isPolling={isPolling}
         isVisible={isVisible}
+        wasJustInterrupted={wasJustInterrupted}
         onClear={() => setInputValue('')}
+        onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onPRWidgetClick={openPRWidget}
+        prWidgetButtonRef={prWidgetButtonRef}
+        repoPRStates={repoPRStates}
         textAreaRef={textareaRef}
         fileApprovalActions={
           isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
@@ -649,12 +746,21 @@ function ExplorerPanel() {
     </PanelContainers>
   );
 
-  if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {
+  if (
+    !organization ||
+    organization.hideAiFeatures ||
+    !isSeerExplorerEnabled(organization)
+  ) {
     return null;
   }
 
-  // Render to portal for proper z-index management
-  return createPortal(panelContent, document.body);
+  return createPortal(
+    <Fragment>
+      {panelContent}
+      <SeerFab hide={isVisible || isSeerDrawerOpen} onOpen={openExplorerPanel} />
+    </Fragment>,
+    document.body
+  );
 }
 
 export default ExplorerPanel;

@@ -265,7 +265,7 @@ const DEFAULT_COUNT_FORMATTING = {
   unitType: 'count' as const,
   reservedMultiplier: 1,
   bigNumUnit: 0 as const,
-  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  priceFormatting: {minFractionDigits: 5, maxFractionDigits: 7},
   projectedAbbreviated: true,
 };
 
@@ -277,7 +277,7 @@ const BYTES_FORMATTING = {
   unitType: 'bytes' as const,
   reservedMultiplier: GIGABYTE,
   bigNumUnit: 1 as const,
-  priceFormatting: {minIntegerDigits: 2, maxIntegerDigits: 2},
+  priceFormatting: {minFractionDigits: 2, maxFractionDigits: 2},
   projectedAbbreviated: true,
 };
 
@@ -289,7 +289,7 @@ const DURATION_HOURS_FORMATTING = {
   unitType: 'durationHours' as const,
   reservedMultiplier: MILLISECONDS_IN_HOUR,
   bigNumUnit: 0 as const,
-  priceFormatting: {minIntegerDigits: 5, maxIntegerDigits: 7},
+  priceFormatting: {minFractionDigits: 5, maxFractionDigits: 7},
   projectedAbbreviated: true,
 };
 
@@ -658,6 +658,30 @@ export const DATA_CATEGORY_INFO = {
     },
     getProductLink: (organization: Organization) =>
       `/settings/${organization.slug}/seer/`,
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.SIZE_ANALYSIS]: {
+    name: DataCategoryExact.SIZE_ANALYSIS,
+    plural: DataCategory.SIZE_ANALYSIS,
+    singular: 'sizeAnalysis',
+    displayName: 'size analysis build',
+    titleName: t('Size Analysis Builds'),
+    productName: t('Size Analysis Build'),
+    uid: 35,
+    isBilledCategory: true,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
+    formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.INSTALLABLE_BUILD]: {
+    name: DataCategoryExact.INSTALLABLE_BUILD,
+    plural: DataCategory.INSTALLABLE_BUILD,
+    singular: 'installableBuild',
+    displayName: 'build distribution',
+    titleName: t('Build Distributions'),
+    productName: t('Build Distribution'),
+    uid: 36,
+    isBilledCategory: false,
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

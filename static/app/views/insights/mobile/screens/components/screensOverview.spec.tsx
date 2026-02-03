@@ -67,8 +67,8 @@ describe('ScreensOverview', () => {
     expect(await screen.findByRole('table')).toBeInTheDocument();
   });
 
-  it('queries both dataset correctly', async () => {
-    const transactionMetricsMock = MockApiClient.addMockResponse({
+  it('queries correctly', async () => {
+    const metricsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
@@ -80,6 +80,9 @@ describe('ScreensOverview', () => {
             'count()': 10000,
             'avg(measurements.app_start_cold)': 300,
             'avg(measurements.app_start_warm)': 400,
+            'avg(mobile.frozen_frames)': 1,
+            'avg(mobile.frames_delay)': 2,
+            'avg(mobile.slow_frames)': 3,
           },
           {
             transaction: 'Screen B',
@@ -89,6 +92,9 @@ describe('ScreensOverview', () => {
             'count()': 5000,
             'avg(measurements.app_start_cold)': 700,
             'avg(measurements.app_start_warm)': 800,
+            'avg(mobile.frozen_frames)': 4,
+            'avg(mobile.frames_delay)': 5,
+            'avg(mobile.slow_frames)': 6,
           },
         ],
         meta: {
@@ -100,6 +106,9 @@ describe('ScreensOverview', () => {
             'count()': 'integer',
             'avg(measurements.app_start_cold)': 'duration',
             'avg(measurements.app_start_warm)': 'duration',
+            'avg(mobile.frozen_frames)': 'number',
+            'avg(mobile.frames_delay)': 'number',
+            'avg(mobile.slow_frames)': 'number',
           },
           units: {
             transaction: null,
@@ -109,56 +118,11 @@ describe('ScreensOverview', () => {
             'count()': null,
             'avg(measurements.app_start_cold)': 'millisecond',
             'avg(measurements.app_start_warm)': 'millisecond',
-          },
-          isMetricsData: true,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'spans',
-        },
-      },
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.insights.mobile-screens-screen-table-metrics',
-        }),
-      ],
-    });
-
-    const spanMetricsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [
-          {
-            'project.id': project.id,
-            transaction: 'Screen A',
-            'avg(mobile.frozen_frames)': 1,
-            'avg(mobile.frames_delay)': 2,
-            'avg(mobile.slow_frames)': 3,
-          },
-          {
-            'project.id': project.id,
-            transaction: 'Screen B',
-            'avg(mobile.frozen_frames)': 4,
-            'avg(mobile.frames_delay)': 5,
-            'avg(mobile.slow_frames)': 6,
-          },
-        ],
-        meta: {
-          fields: {
-            'project.id': 'integer',
-            transaction: 'string',
-            'avg(mobile.frozen_frames)': 'number',
-            'avg(mobile.frames_delay)': 'number',
-            'avg(mobile.slow_frames)': 'number',
-          },
-          units: {
-            'project.id': null,
-            transaction: null,
             'avg(mobile.frozen_frames)': null,
             'avg(mobile.frames_delay)': null,
             'avg(mobile.slow_frames)': null,
           },
-          isMetricsData: false,
+          isMetricsData: true,
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
@@ -178,11 +142,9 @@ describe('ScreensOverview', () => {
     });
 
     render(<ScreensOverview />, {organization});
+
     await waitFor(() => {
-      expect(transactionMetricsMock).toHaveBeenCalled();
-    });
-    await waitFor(() => {
-      expect(spanMetricsMock).toHaveBeenCalled();
+      expect(metricsMock).toHaveBeenCalled();
     });
   });
 });

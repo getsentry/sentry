@@ -2,7 +2,8 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,7 +12,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -455,7 +455,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <StyledIconCircleFilled size="xs" color={node.makeBarColor(props.theme) as Color} />
+      <StyledIconCircleFilled size="xs" fill={node.makeBarColor(props.theme)} />
       <TabButton>{node.drawerTabsTitle}</TabButton>
       <TabPinButton
         pinned={props.pinned}
@@ -479,7 +479,6 @@ function TraceLayoutMinimizeButton(props: {
     <CloseButton
       priority="link"
       size="xs"
-      borderless
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
       onClick={props.onClick}
@@ -495,8 +494,8 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const CloseButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {
@@ -504,8 +503,9 @@ const CloseButton = styled(Button)`
   }
 `;
 
-const StyledIconCircleFilled = styled(IconCircleFill)`
+const StyledIconCircleFilled = styled(IconCircleFill)<{fill: string}>`
   margin-right: ${space(0.25)};
+  fill: ${p => p.fill};
 `;
 
 const ResizeableHandle = styled('div')<{
@@ -532,11 +532,11 @@ const PanelWrapper = styled('div')<{
   overflow: hidden;
   width: 100%;
   border-top: ${p =>
-    p.layout === 'drawer bottom' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer bottom' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-left: ${p =>
-    p.layout === 'drawer right' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer right' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   border-right: ${p =>
-    p.layout === 'drawer left' ? `1px solid ${p.theme.border}` : 'none'};
+    p.layout === 'drawer left' ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   bottom: 0;
   right: 0;
   position: relative;
@@ -556,7 +556,7 @@ const TabsHeightContainer = styled('div')<{
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
   height: 38px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
 `;
 
@@ -599,7 +599,7 @@ const TabSeparator = styled('span')`
   margin-right: ${space(0.5)};
   height: 16px;
   width: 1px;
-  background-color: ${p => p.theme.border};
+  background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
 
@@ -633,12 +633,12 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      background-color: ${p => p.theme.border};
+      background-color: ${p => p.theme.tokens.border.primary};
     }
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.colors.blue200};
+    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -647,7 +647,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.colors.blue500};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -672,7 +672,7 @@ const TabButton = styled('button')`
   border-radius: 0;
   margin: 0;
   padding: 0 ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
 `;

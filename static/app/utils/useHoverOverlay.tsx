@@ -13,7 +13,7 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
@@ -137,7 +137,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: ColorOrAlias | 'warning' | 'danger' | 'success';
+  underlineColor?: 'warning' | 'danger' | 'success' | 'muted';
 }
 
 export function isOverflown(el: Element): boolean {
@@ -159,6 +159,27 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
     ref.current = undefined;
   }
 }
+
+const tooltipUnderline = (
+  theme: Theme,
+  underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
+) =>
+  ({
+    textDecoration: 'underline',
+    textDecorationThickness: '0.75px',
+    textUnderlineOffset: '1.25px',
+    textDecorationColor:
+      underlineColor === 'warning'
+        ? theme.tokens.content.warning
+        : underlineColor === 'danger'
+          ? theme.tokens.content.danger
+          : underlineColor === 'success'
+            ? theme.tokens.content.success
+            : underlineColor === 'muted'
+              ? theme.tokens.content.secondary
+              : undefined,
+    textDecorationStyle: 'dotted',
+  }) as const;
 
 /**
  * A hook used to trigger a positioned overlay on hover.
@@ -286,7 +307,7 @@ function useHoverOverlay({
         if (showUnderline) {
           const triggerStyle = {
             ...(triggerChildren.props as any).style,
-            ...theme.tooltipUnderline(underlineColor),
+            ...tooltipUnderline(theme, underlineColor),
           };
 
           return cloneElement<any>(
@@ -310,7 +331,7 @@ function useHoverOverlay({
 
       const containerProps = Object.assign(providedProps, {
         style: {
-          ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
+          ...(showUnderline ? tooltipUnderline(theme, underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
           maxWidth: '100%',
           ...style,

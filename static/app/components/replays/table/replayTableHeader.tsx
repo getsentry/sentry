@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import DeleteReplays from 'sentry/components/replays/table/deleteReplays';
 import {
   ReplaySelectColumn,
@@ -67,13 +68,13 @@ export default function ReplayTableHeader({
               replays={replays}
             />
           </TableCellFirst>
-          <TableCellsRemaining>
+          <Flex align="center" flex="1" column="2 / -1">
             <DeleteReplays
               queryOptions={queryOptions}
               replays={replays}
               selectedIds={selectedIds}
             />
-          </TableCellsRemaining>
+          </Flex>
         </TableHeader>
       ) : null}
 
@@ -127,13 +128,6 @@ const TableHeader = styled(SimpleTable.Header)`
 
 const TableCellFirst = styled(SimpleTable.HeaderCell)`
   grid-column: 1;
-`;
-
-const TableCellsRemaining = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  grid-column: 2 / -1;
 `;
 
 const FullGridAlert = styled(Alert)`

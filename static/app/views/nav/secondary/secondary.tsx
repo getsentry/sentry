@@ -4,9 +4,11 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link, type LinkProps} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
@@ -68,18 +70,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
       <div>{children}</div>
       <div>
         <Button
-          borderless={isCollapsed ? false : true}
           size="xs"
-          icon={
-            <IconChevron
-              direction={isCollapsed ? 'right' : 'left'}
-              isDouble
-              color={isCollapsed ? 'white' : undefined}
-            />
-          }
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
           onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : undefined}
+          priority={isCollapsed ? 'primary' : 'transparent'}
           analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
           analyticsEventKey="sidebar_secondary_toggle_button_clicked"
           analyticsParams={{
@@ -116,7 +111,7 @@ function SectionTitle({
     return (
       <SectionTitleCollapsible
         size="sm"
-        borderless
+        priority="transparent"
         isMobile={layout === NavLayout.MOBILE}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
@@ -124,7 +119,7 @@ function SectionTitle({
         isCollapsed={isCollapsed}
       >
         <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
-        <TrailingItems>
+        <Flex align="center" flexShrink={0}>
           {trailingItems ? (
             <div
               onClick={e => {
@@ -138,11 +133,11 @@ function SectionTitle({
               <IconChevron
                 direction={isCollapsed ? 'down' : 'up'}
                 size="xs"
-                color="subText"
+                variant="muted"
               />
             )
           )}
-        </TrailingItems>
+        </Flex>
       </SectionTitleCollapsible>
     );
   }
@@ -273,17 +268,13 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: 0 ${space(1)} 0 ${space(2)};
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  button {
-    color: inherit;
-  }
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
@@ -321,7 +312,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.fontWeight.bold};
+  font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
@@ -343,7 +334,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > span:last-child {
     flex: 1;
@@ -353,14 +344,12 @@ const SectionTitleCollapsible = styled(Button, {
 `;
 
 const SectionTitleLabelWrap = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
-`;
-
-const TrailingItems = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 `;
 
 const SeparatorWrapper = styled('div')`
@@ -370,7 +359,7 @@ const SeparatorWrapper = styled('div')`
 
 const Separator = styled('hr')`
   height: 1px;
-  background: ${p => p.theme.innerBorder};
+  background: ${p => p.theme.tokens.border.secondary};
   margin: 0 ${space(1)};
   border: none;
 `;
@@ -385,7 +374,7 @@ const Item = styled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.component.link.muted.default};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
       ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
@@ -407,37 +396,45 @@ const Item = styled(Link)<ItemProps>`
     height: 20px;
     left: -${space(1.5)};
     border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.component.link.muted.default};
-    background-color: ${p => p.theme.colors.gray100};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.component.link.accent.default};
-    background-color: ${p => p.theme.colors.blue100};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
     &::before {
       opacity: 1;
     }
     /* Override the default hover styles */
     &:hover {
-      background-color: ${p => p.theme.colors.blue200};
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;
 
 const ItemText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
   padding: ${space(1)} ${space(1)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&

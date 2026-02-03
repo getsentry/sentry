@@ -1,14 +1,12 @@
 import moment from 'moment-timezone';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any) => [
   <td key="user">
@@ -33,7 +31,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function Users(props: Props) {
+export default function Users() {
   return (
     <div>
       <PageHeader title="Users" />
@@ -67,10 +65,7 @@ function Users(props: Props) {
         }}
         sortOptions={[['date', 'Date Joined']]}
         defaultSort="date"
-        {...props}
       />
     </div>
   );
 }
-
-export default Users;

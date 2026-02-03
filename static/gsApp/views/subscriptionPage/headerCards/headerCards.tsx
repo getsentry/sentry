@@ -1,4 +1,5 @@
-import {Grid} from 'sentry/components/core/layout';
+import {Grid} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -85,7 +86,7 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
           md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
           lg: `repeat(${cards.length}, minmax(0, 1fr))`,
         }}
-        gap="xl"
+        gap="lg"
         data-test-id="subscription-header-cards"
       >
         {cards}

@@ -1,7 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
@@ -42,7 +43,6 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
           }}
           size="zero"
           priority="link"
-          borderless
           aria-label={t('Dismiss')}
           icon={<IconClose size="xs" />}
         />
@@ -75,7 +75,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
     case undefined:
     case 'muted':
       return {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         background: theme.colors.gray100,
       };
 
@@ -83,17 +83,17 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
     case 'info':
       return {
         color: theme.tokens.content.accent,
-        background: theme.colors.blue100,
+        background: theme.tokens.background.transparent.accent.muted,
       };
     case 'promotion':
       return {
         color: theme.tokens.content.promotion,
-        background: theme.colors.pink100,
+        background: theme.tokens.background.transparent.promotion.muted,
       };
     case 'danger':
       return {
         color: theme.tokens.content.danger,
-        background: theme.colors.red100,
+        background: theme.tokens.background.transparent.danger.muted,
       };
     case 'warning':
       return {
@@ -103,7 +103,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
     case 'success':
       return {
         color: theme.tokens.content.success,
-        background: theme.colors.green100,
+        background: theme.tokens.background.transparent.success.muted,
       };
     default:
       unreachable(type);

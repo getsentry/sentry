@@ -2,15 +2,14 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -40,6 +39,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerDrawerProps {
   event: Event;
@@ -108,10 +108,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -164,10 +164,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               crumbs={[
                 {
                   label: (
-                    <CrumbContainer>
+                    <Flex align="center" gap="md">
                       <ProjectAvatar project={project} />
                       <ShortId>{group.shortId}</ShortId>
-                    </CrumbContainer>
+                    </Flex>
                   ),
                 },
                 {label: getShortEventId(event.id)},
@@ -193,10 +193,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             crumbs={[
               {
                 label: (
-                  <CrumbContainer>
+                  <Flex align="center" gap="md">
                     <ProjectAvatar project={project} />
                     <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
+                  </Flex>
                 ),
               },
               {label: getShortEventId(event.id)},
@@ -213,7 +213,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   // Route to Explorer-based drawer if both feature flags are enabled
   if (
-    organization.features.includes('seer-explorer') &&
+    isSeerExplorerEnabled(organization) &&
     organization.features.includes('autofix-on-explorer')
   ) {
     return (
@@ -380,10 +380,10 @@ function LegacySeerDrawer({group, project, event, aiConfig}: LegacySeerDrawerPro
           crumbs={[
             {
               label: (
-                <CrumbContainer>
+                <Flex align="center" gap="md">
                   <ProjectAvatar project={project} />
                   <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
+                </Flex>
               ),
             },
             {label: getShortEventId(event.id)},
@@ -520,6 +520,10 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const isExplorerVersion =
+      isSeerExplorerEnabled(organization) &&
+      organization.features.includes('autofix-on-explorer');
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
@@ -527,6 +531,8 @@ export const useOpenSeerDrawer = ({
         height: fit-content;
         max-height: 100%;
       `,
+      resizable: !isExplorerVersion,
+      drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
         return false;
       },
@@ -558,7 +564,7 @@ const PlaceholderStack = styled('div')`
 const StyledCard = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   overflow: visible;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(2)} ${space(2)};
   box-shadow: ${p => p.theme.dropShadowMedium};
@@ -570,14 +576,14 @@ const SeerDrawerContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   position: relative;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SeerDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const SeerDrawerNavigator = styled('div')`
@@ -587,7 +593,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
 const SeerDrawerBody = styled(DrawerBody)`
@@ -604,8 +610,8 @@ const SeerDrawerBody = styled(DrawerBody)`
 `;
 
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -614,15 +620,9 @@ const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

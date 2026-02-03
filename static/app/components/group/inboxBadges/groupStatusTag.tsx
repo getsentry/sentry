@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import TimeSince from 'sentry/components/timeSince';
 import type {TagVariant} from 'sentry/utils/theme';
 
@@ -47,10 +48,9 @@ export function GroupStatusTag({
 const StyledTag = styled(Tag, {
   shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
+  font-size: ${p => (p.fontSize === 'sm' ? p.theme.font.size.sm : p.theme.font.size.md)};
 `;
 
 const Separator = styled('span')<{variant: TagVariant}>`
-  color: ${p => p.theme.tag[p.variant].border};
   opacity: 80%;
 `;

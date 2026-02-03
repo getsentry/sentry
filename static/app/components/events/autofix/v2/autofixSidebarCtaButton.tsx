@@ -1,8 +1,11 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -113,7 +116,7 @@ export function ExplorerSeerSectionCtaButton({
   }
 
   return (
-    <Container>
+    <Stack>
       <StyledButton
         to={seerLink}
         onClick={handleOpenDrawer}
@@ -129,35 +132,21 @@ export function ExplorerSeerSectionCtaButton({
         priority="primary"
       >
         {getButtonText()}
-        <ChevronContainer>
+        <Flex justify="center" align="center" marginLeft="xs" width="16px" height="16px">
           {isProcessing ? (
             <StyledLoadingIndicator size={14} />
           ) : (
             <IconChevron direction="right" size="xs" />
           )}
-        </ChevronContainer>
+        </Flex>
       </StyledButton>
-    </Container>
+    </Stack>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const StyledButton = styled(LinkButton)`
   margin-top: ${p => p.theme.space.md};
   width: 100%;
-`;
-
-const ChevronContainer = styled('div')`
-  margin-left: ${p => p.theme.space.xs};
-  height: 16px;
-  width: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -165,8 +154,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-left: ${p => p.theme.space.md};
 
   .loading-indicator {
-    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
-    border-left-color: ${p => p.theme.button.primary.color};
+    border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.colors.white};
   }
 `;
 

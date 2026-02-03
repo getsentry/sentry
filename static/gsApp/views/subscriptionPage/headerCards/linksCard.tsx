@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,7 +24,7 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconList />}
-                to="/settings/billing/receipts/"
+                to={`/settings/${organization.slug}/billing/receipts/`}
                 size="xs"
               >
                 {t('View all receipts')}
@@ -31,7 +32,7 @@ function LinksCard({organization}: {organization: Organization}) {
               <LinkButton
                 priority="link"
                 icon={<IconTimer />}
-                to="/settings/billing/activity-logs/"
+                to={`/settings/${organization.slug}/billing/activity-logs/`}
                 size="xs"
               >
                 {t('View activity')}
@@ -40,7 +41,7 @@ function LinksCard({organization}: {organization: Organization}) {
                 <LinkButton
                   priority="link"
                   icon={<IconSubscribed />}
-                  to="/settings/billing/notifications/"
+                  to={`/settings/${organization.slug}/billing/notifications/`}
                   size="xs"
                 >
                   {t('Manage spend notifications')}
@@ -51,7 +52,7 @@ function LinksCard({organization}: {organization: Organization}) {
             <LinkButton
               priority="link"
               icon={<IconTimer />}
-              to="/settings/billing/activity-logs/"
+              to={`/settings/${organization.slug}/billing/activity-logs/`}
               size="xs"
             >
               {t('View activity')}

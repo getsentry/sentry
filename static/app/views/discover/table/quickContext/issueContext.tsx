@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
@@ -93,7 +94,7 @@ function IssueContext(props: BaseContextProps) {
               {issue.status === 'ignored' ? (
                 <IconMute
                   data-test-id="quick-context-ignored-icon"
-                  color="gray500"
+                  variant="muted"
                   size="xs"
                 />
               ) : issue.status === 'resolved' ? (
@@ -152,7 +153,11 @@ function IssueContext(props: BaseContextProps) {
 const IssueTitleBody = styled(ContextBody)`
   margin: 0;
   max-width: 300px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IssueContextContainer = styled(ContextContainer)`

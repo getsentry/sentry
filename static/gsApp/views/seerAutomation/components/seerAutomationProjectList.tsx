@@ -1,17 +1,17 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import LoadingError from 'sentry/components/loadingError';
@@ -22,9 +22,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {
   makeDetailedProjectQueryKey,
@@ -90,22 +90,17 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
 }
 
 const ValueWrapper = styled('span')<{isDangerous?: boolean}>`
-  color: ${p => (p.isDangerous ? p.theme.errorText : p.theme.subText)};
+  color: ${p =>
+    p.isDangerous ? p.theme.tokens.content.danger : p.theme.tokens.content.secondary};
 `;
 
 const Subheading = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const SeerDropdownLabel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SeerDropdownDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 function getSeerLabel(key: string, seerScannerAutomation: boolean) {
@@ -121,18 +116,18 @@ function getSeerDropdownLabel(key: string) {
   const option = SEER_THRESHOLD_OPTIONS.find(opt => opt.value === key);
   if (!option) {
     return (
-      <SeerDropdownLabel>
+      <Stack gap="2xs">
         <div>{key}</div>
         <SeerDropdownDescription />
-      </SeerDropdownLabel>
+      </Stack>
     );
   }
 
   return (
-    <SeerDropdownLabel>
+    <Stack gap="2xs">
       <div>{option.label}</div>
       <SeerDropdownDescription>{option.details}</SeerDropdownDescription>
-    </SeerDropdownLabel>
+    </Stack>
   );
 }
 
@@ -370,9 +365,9 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <div style={{padding: space(2), textAlign: 'center', color: '#888'}}>
+            <SimpleTable.Empty>
               {t('No projects found matching "%(search)s"', {search})}
-            </div>
+            </SimpleTable.Empty>
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
@@ -418,9 +413,8 @@ export function SeerAutomationProjectList() {
 }
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -429,10 +423,10 @@ const SearchBarWrapper = styled('div')`
 `;
 
 const SeerValue = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   justify-content: flex-end;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const ActionDropdownMenu = styled(DropdownMenu)`
@@ -452,10 +446,11 @@ const StyledCheckbox = styled(Checkbox)`
 const ClickablePanelItem = styled(PanelItem)`
   cursor: pointer;
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
 const ProjectName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

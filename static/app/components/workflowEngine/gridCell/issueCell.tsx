@@ -1,10 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text/text';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import TimeSince from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tct} from 'sentry/locale';
@@ -60,7 +61,7 @@ const IssueWrapper = styled(Link)`
   flex-direction: column;
   gap: ${p => p.theme.space.sm};
   flex: 1;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p => css`
     &:hover [data-group-title] {

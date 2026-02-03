@@ -5,9 +5,10 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import GridEditable from 'sentry/components/tables/gridEditable';
@@ -487,7 +488,7 @@ export default function EventsTable({
       ].join('&');
 
       const res: IssueAttachment[] = await api.requestPromise(
-        `/api/0/issues/${issueId}/attachments/?${queries}`
+        `/api/0/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
       );
 
       let newHasMinidumps = false;
@@ -502,7 +503,7 @@ export default function EventsTable({
       setAttachments(res);
       setHasMinidumps(newHasMinidumps);
     },
-    [api, customColumns, issueId]
+    [api, customColumns, issueId, organization.slug]
   );
 
   const totalEventsView = eventView.clone();

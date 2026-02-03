@@ -10,13 +10,14 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconChevron} from 'sentry/icons';
@@ -39,7 +40,6 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
-import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -144,7 +144,11 @@ function DetectorListTable({
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
+  const {
+    additionalColumns = [],
+    renderVisualization,
+    renderTimelineOverlay,
+  } = useMonitorViewContext();
   const hasVisualization = defined(renderVisualization);
 
   return (
@@ -198,7 +202,7 @@ function DetectorListTable({
               <VisualizationExpandButton>
                 <Button
                   size="xs"
-                  borderless
+                  priority="transparent"
                   icon={
                     <IconChevron
                       isDouble
@@ -247,7 +251,7 @@ function DetectorListTable({
             allowZoom
             showCursor
             cursorOffsets={{right: 40}}
-            additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+            additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
             timeWindowConfig={timeWindowConfig}
             cursorOverlayAnchor="top"
             cursorOverlayAnchorOffset={10}

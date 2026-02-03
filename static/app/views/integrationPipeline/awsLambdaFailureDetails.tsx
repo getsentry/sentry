@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
@@ -28,7 +29,7 @@ export default function AwsLambdaFailureDetails({
       <HeaderWithHelp docsUrl={baseDocsUrl} />
       <Wrapper>
         <div>
-          <StyledCheckmark color="successText" />
+          <StyledCheckmark variant="success" />
           <h3>
             {tn(
               'successfully updated %s function',
@@ -38,7 +39,7 @@ export default function AwsLambdaFailureDetails({
           </h3>
         </div>
         <div>
-          <StyledWarning color="errorText" />
+          <StyledWarning variant="danger" />
           <h3>
             {tn(
               'Failed to update %s function',
@@ -78,7 +79,7 @@ const StyledRow = styled(PanelItem)`
 `;
 
 const Error = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledPanel = styled(Panel)`

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,7 +44,7 @@ const CloseIcon = styled('div')`
 const StyledIconClose = styled(IconClose)`
   color: ${p => p.theme.colors.gray200};
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
   cursor: pointer;
 `;

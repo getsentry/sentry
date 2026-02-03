@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -54,7 +55,7 @@ const LinkSection = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   text-decoration: underline;
-  text-decoration-color: ${p => p.theme.linkUnderline};
+  text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.rest};
   gap: ${space(1)};
   margin-top: ${space(1)};
 `;

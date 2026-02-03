@@ -42,8 +42,8 @@ const WaitingNotice = styled('div')`
 
 const WaitingHelpText = styled('small')`
   grid-column: 2;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const WaitingIndicator = styled('div')`

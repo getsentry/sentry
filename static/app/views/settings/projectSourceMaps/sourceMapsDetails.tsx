@@ -2,13 +2,13 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -325,7 +325,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
-                    <TimeAndDistWrapper>
+                    <Flex align="center" marginTop="md" width="100%">
                       <TimeWrapper>
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
@@ -338,7 +338,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                           {data.dist ?? t('none')}
                         </StyledTag>
                       </Tooltip>
-                    </TimeAndDistWrapper>
+                    </Flex>
                   }
                 />
               );
@@ -401,7 +401,7 @@ const TypeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SizeColumn = styled('div')`
@@ -409,23 +409,16 @@ const SizeColumn = styled('div')`
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-  color: ${p => p.theme.subText};
-`;
-
-const TimeAndDistWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledTag = styled(Tag)`
@@ -433,7 +426,7 @@ const StyledTag = styled(Tag)`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const VersionAndDetails = styled('div')`

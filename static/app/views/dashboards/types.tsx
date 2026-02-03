@@ -5,6 +5,7 @@ import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -27,6 +28,7 @@ export enum DisplayType {
   DETAILS = 'details',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
+  CATEGORICAL_SERIES = 'categorical_series',
 }
 
 export enum WidgetType {
@@ -39,6 +41,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -95,6 +98,8 @@ export type WidgetQuery = {
   // Table column alias.
   // We may want to have alias for y-axis in the future too
   fieldAliases?: string[];
+  // Used to define the units of the fields in the widget queries, currently not saved
+  fieldMeta?: Array<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'> | null>;
   // Fields is replaced with aggregates + columns. It
   // is currently used to track column order on table
   // widgets.

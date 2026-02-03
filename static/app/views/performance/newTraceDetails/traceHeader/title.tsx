@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ReplayContextKey} from 'sentry/types/event';
@@ -80,7 +80,7 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
 }
 
 const ReplayButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

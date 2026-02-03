@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -269,26 +271,20 @@ function AttributesHighlights({
         }
 
         return (
-          <HighlightsContainer key={highlight.key}>
+          <Flex align="center" gap="md" key={highlight.key}>
             <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
             <HighlightsDescription>{summary.description}</HighlightsDescription>
-          </HighlightsContainer>
+          </Flex>
         );
       })}
     </ScrollCarousel>
   );
 }
 
-const HighlightsContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const HighlightsDescription = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const HighlightsIconWrapper = styled('div')`
@@ -300,11 +296,11 @@ const HighlightsIconWrapper = styled('div')`
 
 const HighlightsSubtitle = styled(Tooltip)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledVersion = styled(Version)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

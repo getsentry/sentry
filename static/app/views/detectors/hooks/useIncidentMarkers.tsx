@@ -25,6 +25,7 @@ import type {
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
 const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
+const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persistent__';
 const INCIDENT_MARKER_HEIGHT = 6;
 
 // Default X-axis configuration (when incidents are hidden)
@@ -162,14 +163,25 @@ function IncidentMarkerSeries({
     const [incidentStartX, incidentStartY] = startCoord;
     const [incidentEndX] = endCoord;
 
-    // Width between two timestamps
-    const width = Math.max(incidentEndX - incidentStartX, 2);
+    // ECharts provides coordinate system boundaries via params.coordSys
+    // https://echarts.apache.org/en/option.html#series-custom.renderItem.arguments.params
+    const coordSys = params.coordSys as any;
+    const chartLeft = coordSys.x ?? 0;
+    const chartRight = (coordSys.x ?? 0) + (coordSys.width ?? 0);
+
+    // Clip bubble coordinates to stay within visible chart area
+    // This prevents overflow when incidents start before or extend past the visible time range
+    const clippedStartX = Math.max(incidentStartX, chartLeft);
+    const clippedEndX = Math.min(incidentEndX, chartRight);
+
+    // Width between two timestamps, adjusted for clipping
+    const width = Math.max(clippedEndX - clippedStartX, 2);
 
     const renderMarkerPadding = 2;
 
     const shape = {
-      // Position the rectangle in the space created by the grid/xAxis offset
-      x: incidentStartX,
+      // Position the rectangle using clipped coordinates to prevent overflow
+      x: clippedStartX,
       y: incidentStartY + renderMarkerPadding - 1,
       width,
       height: INCIDENT_MARKER_HEIGHT,
@@ -283,6 +295,7 @@ interface UseIncidentMarkersProps {
   /**
    * Provide a custom tooltip for the mark line items
    */
+  highlightedIncidentId?: string;
   markLineTooltip?: (context: {period: IncidentPeriod; theme: Theme}) => string;
   onClick?: (context: {item: 'line' | 'bubble'; period: IncidentPeriod}) => void;
   seriesId?: string;
@@ -294,6 +307,7 @@ interface UseIncidentMarkersProps {
 }
 
 interface UseIncidentMarkersResult {
+  highlightedIncidentAreaSeries: CustomSeriesOption | null;
   incidentMarkerGrid: GridComponentOption;
   incidentMarkerSeries: CustomSeriesOption | null;
   incidentMarkerXAxis: {
@@ -309,6 +323,7 @@ interface UseIncidentMarkersResult {
  */
 export function useIncidentMarkers({
   incidents,
+  highlightedIncidentId,
   seriesId = INCIDENT_MARKER_SERIES_ID,
   seriesName,
   seriesTooltip,
@@ -508,6 +523,42 @@ export function useIncidentMarkers({
     markLineTooltip,
   ]);
 
+  const highlightedIncidentAreaSeries = useMemo<CustomSeriesOption | null>(() => {
+    if (!highlightedIncidentId || !incidentPeriods.length) {
+      return null;
+    }
+
+    const highlightedPeriods = incidentPeriods.filter(
+      period => period.id === highlightedIncidentId && period.type !== 'trigger-interval'
+    );
+
+    if (!highlightedPeriods.length) {
+      return null;
+    }
+
+    return {
+      id: INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID,
+      type: 'custom',
+      renderItem: () => null,
+      silent: true,
+      markArea: {
+        data: highlightedPeriods.map(period => {
+          const color = getPriorityColor({priority: period.priority, theme});
+          return [
+            {
+              xAxis: period.start,
+              itemStyle: {
+                color,
+                opacity: 0.2,
+              },
+            },
+            {xAxis: period.end},
+          ];
+        }),
+      },
+    };
+  }, [highlightedIncidentId, incidentPeriods, theme]);
+
   return {
     onChartReady,
     incidentMarkerSeries,
@@ -516,5 +567,6 @@ export function useIncidentMarkers({
     incidentMarkerXAxis: incidentPeriods.length
       ? incidentMarkerXAxis
       : DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG,
+    highlightedIncidentAreaSeries,
   };
 }

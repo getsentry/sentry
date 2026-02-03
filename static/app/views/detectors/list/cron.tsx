@@ -4,13 +4,13 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -39,6 +39,7 @@ import {
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
   platformGuides,
   type SupportedPlatform,
@@ -216,6 +217,9 @@ export default function CronDetectorsList() {
   const contextValue = useMemo<MonitorViewContextValue>(() => {
     return {
       additionalColumns: ADDITIONAL_COLUMNS,
+      renderTimelineOverlay: ({timeWindowConfig}) => (
+        <CronServiceIncidents timeWindowConfig={timeWindowConfig} />
+      ),
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (

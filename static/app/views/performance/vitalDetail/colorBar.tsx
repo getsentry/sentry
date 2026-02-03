@@ -2,10 +2,9 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
 
 type ColorStop = {
-  color: Color | string;
+  color: string;
   percent: number;
   renderBarStatus?: (barStatus: ReactNode, key: string) => ReactNode;
 };
@@ -23,9 +22,7 @@ function ColorBar(props: Props) {
       {...props}
     >
       {props.colorStops.map(colorStop => {
-        const barStatus = (
-          <BarStatus color={colorStop.color as Color} key={colorStop.color} />
-        );
+        const barStatus = <BarStatus color={colorStop.color} key={colorStop.color} />;
 
         return colorStop.renderBarStatus?.(barStatus, colorStop.color) ?? barStatus;
       })}
@@ -50,12 +47,8 @@ const VitalBar = styled('div')<VitalBarProps>`
   border-radius: 2px;
 `;
 
-type ColorProps = {
-  color: Color;
-};
-
-const BarStatus = styled('div')<ColorProps>`
-  background-color: ${p => p.theme[p.color] ?? p.color};
+const BarStatus = styled('div')<{color: string}>`
+  background-color: ${p => p.color};
 `;
 
 export default ColorBar;

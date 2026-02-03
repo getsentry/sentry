@@ -7,12 +7,12 @@ import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
 import {Alert} from '@sentry/scraps/alert/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image as ImageBase} from '@sentry/scraps/image';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {Heading} from '@sentry/scraps/text/heading';
 import {Text} from '@sentry/scraps/text/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image as ImageBase} from 'sentry/components/core/image/image';
 import {
   AutofixConfigureSeer,
   ImageContainer,
@@ -69,7 +69,7 @@ function AutofixConfigureQuota() {
             <Stack align="center">
               {hasAccessToSubscriptionOverview(subscription, organization) ? (
                 <LinkButton
-                  to="/settings/billing/overview/?product=seer"
+                  to={`/settings/${organization.slug}/billing/overview/?product=seer`}
                   priority="primary"
                   icon={<IconUpgrade />}
                 >

@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -293,7 +293,7 @@ export function GroupTagValues() {
   return (
     <Layout.Body>
       <Layout.Main width="full">
-        <TitleWrapper>
+        <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>
             <LinkButton
@@ -314,7 +314,7 @@ export function GroupTagValues() {
               }}
             />
           </ButtonBar>
-        </TitleWrapper>
+        </Flex>
         <StyledPanelTable
           isLoading={isLoading}
           isEmpty={!isError && tagValueList?.length === 0}
@@ -351,22 +351,13 @@ function GroupTagValuesRoute() {
   return <GroupTagValues />;
 }
 
-const TitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
-
 const Title = styled('h3')`
   margin: 0;
 `;
 
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -411,13 +402,19 @@ function RightAlignColumn(props: FlexProps) {
 }
 
 const NameColumn = styled(Column)`
-  ${p => p.theme.overflowEllipsis};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: auto;
 `;
 

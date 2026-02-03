@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -53,7 +54,7 @@ export function CronsLandingPanel() {
         <BackButton
           icon={<IconChevron direction="left" />}
           onClick={() => setPlatformGuide(null)}
-          borderless
+          priority="transparent"
         >
           {t('Back to Platforms')}
         </BackButton>
@@ -92,8 +93,8 @@ export function CronsLandingPanel() {
 }
 
 const BackButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(1)} 0 0 ${space(1)};
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};

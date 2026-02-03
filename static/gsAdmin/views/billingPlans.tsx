@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+
 import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -442,7 +443,7 @@ const TOCContainer = styled('nav')`
   }
   a {
     text-decoration: none;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     &:hover {
       text-decoration: underline;
     }

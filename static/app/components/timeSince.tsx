@@ -2,11 +2,11 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useUser} from 'sentry/utils/useUser';
 
 import {useTimezone} from './timezoneProvider';
@@ -81,7 +81,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * Change the color of the underline
    */
-  tooltipUnderlineColor?: ColorOrAlias | 'warning' | 'danger' | 'success';
+  tooltipUnderlineColor?: 'warning' | 'danger' | 'success' | 'muted';
   /**
    * How much text should be used for the suffix:
    *

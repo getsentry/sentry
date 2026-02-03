@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -35,9 +35,9 @@ function DateRangeQueryLimitFooter({
   const canTrial = subscription.canTrial;
 
   return (
-    <Container>
+    <Stack padding="xs" gap="md">
       <DescriptionContainer>{description}</DescriptionContainer>
-      <ButtonContainer>
+      <Flex gap="md">
         <UpgradeOrTrialButton
           subscription={subscription}
           priority="primary"
@@ -66,26 +66,14 @@ function DateRangeQueryLimitFooter({
             {t('Learn More')}
           </Button>
         )}
-      </ButtonContainer>
-    </Container>
+      </Flex>
+    </Stack>
   );
 }
 
 export default withOrganization(
   withSubscription(DateRangeQueryLimitFooter, {noLoader: true})
 );
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(0.5)};
-`;
 
 const DescriptionContainer = styled('div')`
   font-size: 12px;

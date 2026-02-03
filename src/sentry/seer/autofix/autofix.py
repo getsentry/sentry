@@ -25,6 +25,12 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.seer.autofix.types import (
+    AutofixCreatePRPayload,
+    AutofixSelectRootCausePayload,
+    AutofixSelectSolutionPayload,
+    AutofixUpdateRequest,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_repos_from_project_code_mappings,
@@ -473,7 +479,9 @@ def _call_autofix(
     return response.json().get("run_id")
 
 
-def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
+def get_all_tags_overview(
+    group: Group, start: datetime | None = None, end: datetime | None = None
+) -> dict[str, Any] | None:
     """
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
@@ -484,6 +492,8 @@ def get_all_tags_overview(group: Group) -> dict[str, Any] | None:
         keys=None,  # Get all tags
         value_limit=3,  # Get top 3 values per tag
         tenant_ids={"organization_id": group.project.organization_id},
+        start=start,
+        end=end,
     )
 
     all_tags: list[dict] = []
@@ -703,3 +713,35 @@ def trigger_autofix(
         },
         status=202,
     )
+
+
+def update_autofix(
+    *,
+    organization_id: int,
+    run_id: int,
+    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload,
+) -> Response:
+    """
+    Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
+    """
+
+    path = "/v1/automation/autofix/update"
+    data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
+    body = orjson.dumps(data)
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={"content-type": "application/json;charset=utf-8", **sign_with_seer_secret(body)},
+    )
+
+    try:
+        response.raise_for_status()
+    except Exception:
+        return Response({"detail": "Failed to update autofix run"}, status=500)
+
+    try:
+        response_data = response.json()
+    except Exception:
+        return Response({"detail": "Seer returned an invalid response"}, status=500)
+
+    return Response(response_data, status=200)

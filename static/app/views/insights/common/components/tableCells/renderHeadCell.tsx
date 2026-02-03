@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
@@ -120,7 +121,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
       align={alignment}
       canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
       direction={sort?.field === column.key ? sort.kind : undefined}
-      title={hasTooltip ? <TooltipHeader>{name}</TooltipHeader> : name}
+      title={name}
       generateSortLink={() => {
         return {
           ...location,
@@ -138,7 +139,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
 
     return (
       <AlignmentContainer>
-        <StyledTooltip isHoverable title={column.tooltip}>
+        <StyledTooltip isHoverable showUnderline title={column.tooltip}>
           {sortLink}
         </StyledTooltip>
       </AlignmentContainer>
@@ -181,8 +182,4 @@ const AlignRight = styled('span')`
 const StyledTooltip = styled(Tooltip)`
   top: 1px;
   position: relative;
-`;
-
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
 `;

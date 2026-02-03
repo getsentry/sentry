@@ -90,6 +90,7 @@ const CenteredStack = styled(Stacked)`
 `;
 
 const VisibleStack = styled(Stacked)`
+  background: ${p => p.theme.tokens.background.secondary};
   height: 100%;
   width: 100%;
 `;
@@ -100,5 +101,5 @@ const VisiblePanel = styled('div')`
   width: 100%;
   margin: 0;
   border: 0;
-  background: ${p => p.theme.translucentInnerBorder};
+  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 `;

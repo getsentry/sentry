@@ -2,7 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -56,9 +57,11 @@ const ArrayContainer = styled('div')<{expanded: boolean}>`
 
 const ArrayItem = styled('span')`
   flex-shrink: 1;
-  display: block;
 
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: unset;
 `;
 
@@ -71,7 +74,7 @@ const ButtonContainer = styled('div')`
     outline: none;
     padding: 0;
     cursor: pointer;
-    color: ${p => p.theme.linkColor};
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     margin-left: ${space(0.5)};
   }
 `;

@@ -228,6 +228,20 @@ class EventRedisData:
                     result[dcg_id] = timestamp
         return result
 
+    def filter_by_workflow_ids(self, valid_workflow_ids: set[WorkflowId]) -> EventRedisData:
+        """
+        Return a new EventRedisData containing only events for the given workflow IDs.
+        """
+        if not valid_workflow_ids:
+            return EventRedisData(events={})
+
+        filtered_events = {
+            key: instance
+            for key, instance in self.events.items()
+            if key.workflow_id in valid_workflow_ids
+        }
+        return EventRedisData(events=filtered_events)
+
 
 @dataclass
 class GroupQueryParams:
@@ -804,32 +818,29 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
     return {key: sorted(values) for key, values in result.items()}
 
 
-@sentry_sdk.trace
-def process_delayed_workflows(
-    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
-) -> None:
-    """
-    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
-    """
+def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
+    """Process workflows for a project - evaluate conditions and fire actions."""
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
-        project = fetch_project(project_id)
-        if not project:
-            return
-
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
             log_context.set_verbose(True)
 
-        redis_data = batch_client.for_project(project_id).get_hash_data(batch_key)
-        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
-
-        metrics.incr(
-            "workflow_engine.delayed_workflow",
-            amount=len(event_data.events),
-        )
-
+        original_count = len(event_data.events)
         workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
+
+        event_data = event_data.filter_by_workflow_ids(set(workflows_to_envs.keys()))
+
+        filtered_count = original_count - len(event_data.events)
+        if filtered_count > 0:
+            metrics.incr(
+                "workflow_engine.delayed_workflow.filtered_deleted_workflows",
+                amount=filtered_count,
+            )
+
+        if not event_data.events:
+            return
+
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
         dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
 
@@ -918,4 +929,33 @@ def process_delayed_workflows(
     )
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
-    cleanup_redis_buffer(batch_client.for_project(project_id), event_data.events.keys(), batch_key)
+
+
+@sentry_sdk.trace
+def process_delayed_workflows(
+    batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
+) -> None:
+    """
+    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
+    project_client = batch_client.for_project(project_id)
+    redis_data = project_client.get_hash_data(batch_key)
+    event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
+    event_keys = set(event_data.events.keys())
+
+    metrics.incr(
+        "workflow_engine.delayed_workflow",
+        amount=len(event_data.events),
+    )
+
+    project = fetch_project(project_id)
+    if not project:
+        # Project is gone, all done here, but let's not leave a mess.
+        cleanup_redis_buffer(project_client, event_keys, batch_key)
+        return
+
+    _process_workflows_for_project(project, event_data)
+    # if processing returns cleanly, that means we successfully processed the
+    # redis data and can delete it. If we fail, it'll raise and we'll either
+    # read it again on retry or let it ttl out.
+    cleanup_redis_buffer(project_client, event_keys, batch_key)

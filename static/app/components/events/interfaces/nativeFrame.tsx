@@ -2,12 +2,12 @@ import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
@@ -34,6 +34,7 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -48,7 +49,6 @@ import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
@@ -60,7 +60,7 @@ type Props = {
   frame: Frame;
   frameMeta: Record<any, any>;
   hiddenFrameCount: number | undefined;
-  image: React.ComponentProps<typeof DebugImage>['image'];
+  image: ImageWithCombinedStatus;
   isFirstInAppFrame: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
@@ -311,7 +311,7 @@ function NativeFrame({
               >
                 <IconWarning
                   size="sm"
-                  color="yellow300"
+                  variant="warning"
                   data-test-id="symbolication-warning-icon"
                 />
               </Tooltip>
@@ -401,7 +401,7 @@ function NativeFrame({
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
               size="zero"
-              borderless
+              priority="transparent"
               onClick={e => {
                 onShowFramesToggle?.(e);
               }}
@@ -440,7 +440,7 @@ function NativeFrame({
               <ToggleButton
                 type="button"
                 size="zero"
-                borderless
+                priority="transparent"
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
                 icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
@@ -472,9 +472,9 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const AddressCell = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   ${p => p.onClick && `cursor: pointer`};
-  ${p => p.onClick && `color:` + p.theme.linkColor};
+  ${p => p.onClick && `color:` + p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FunctionNameCell = styled('div')`
@@ -507,18 +507,18 @@ const ExpandCell = styled('div')`
 
 const ToggleButton = styled(Button)`
   display: block;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Registers = styled(Context)`
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding: 0;
   margin: 0;
 `;
 
 const PackageNote = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const Package = styled('span')`
@@ -530,8 +530,8 @@ const Package = styled('span')`
 `;
 
 const FileName = styled('span')`
-  color: ${p => p.theme.subText};
-  border-bottom: 1px dashed ${p => p.theme.border};
+  color: ${p => p.theme.tokens.content.secondary};
+  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
 
 const RowHeader = styled('span')<{
@@ -550,9 +550,9 @@ const RowHeader = styled('span')<{
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.colors.surface200}`
       : `${p.theme.tokens.background.secondary}`};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1)};
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
@@ -566,7 +566,7 @@ const RowHeader = styled('span')<{
 const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
-      border-bottom: 1px solid ${p => p.theme.border};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     }
   }
 `;
@@ -576,12 +576,12 @@ const SymbolicatorIcon = styled('div')`
 `;
 
 const ShowHideButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

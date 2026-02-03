@@ -1,12 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -44,7 +43,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
   const isConfigured = Boolean(preference?.automation_handoff) && isAutomationEnabled;
 
   const handleSetupClick = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration?.id) {
       throw new Error('Cursor integration not found');
     }
 
@@ -183,7 +182,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
 const Card = styled('div')`
   position: relative;
   padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space['2xl']};

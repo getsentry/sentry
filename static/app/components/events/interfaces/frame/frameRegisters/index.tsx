@@ -71,7 +71,7 @@ const Register = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: 3em 1fr;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     text-align: right;

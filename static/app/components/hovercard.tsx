@@ -104,8 +104,6 @@ function HovercardContent({
         arrowProps={{
           ...arrowProps,
           size: 20,
-          background: theme.tokens.background.primary,
-          border: theme.tokens.border.primary,
         }}
         originPoint={arrowData}
         placement={placement}
@@ -189,18 +187,18 @@ const StyledHovercard = styled(Overlay)`
   width: 295px;
   line-height: 1.2;
   h6 {
-    color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSize.xs};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.xs};
     margin-bottom: ${space(1)};
     text-transform: uppercase;
   }
 `;
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   word-wrap: break-word;
   padding: ${space(1.5)};
 `;

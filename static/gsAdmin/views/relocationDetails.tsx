@@ -1,6 +1,9 @@
 import {useState} from 'react';
 import moment from 'moment-timezone';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,14 +12,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -184,7 +186,12 @@ function RelocationDetails() {
   const regionApi = useApi({api: regionClient});
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
-    [`/relocations/${relocationUuid}/`, {host: region ? region.url : ''}],
+    [
+      getApiUrl(`/relocations/$relocationUuid/`, {
+        path: {relocationUuid},
+      }),
+      {host: region ? region.url : ''},
+    ],
     {
       staleTime: 0,
     }

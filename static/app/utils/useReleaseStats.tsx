@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -46,7 +47,9 @@ export function useReleaseStats(
   } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
     queryKey: [
       'infinite' as const,
-      `/organizations/${organization.slug}/releases/stats/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           environment: environments,

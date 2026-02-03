@@ -21,6 +21,7 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json, snuba
+from sentry.utils.eap import hex_to_item_id
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -63,16 +64,16 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         if event_type == EventStreamEventType.Transaction:
-            assert produce_kwargs["topic"] == "transactions"
-            assert produce_kwargs["key"] is None
+            assert produce_kwargs["destination"].name == "transactions"
+            assert produce_kwargs["payload"].key is None
         elif event_type == EventStreamEventType.Generic:
-            assert produce_kwargs["topic"] == "generic-events"
-            assert produce_kwargs["key"] is None
+            assert produce_kwargs["destination"].name == "generic-events"
+            assert produce_kwargs["payload"].key is None
         else:
-            assert produce_kwargs["topic"] == "events"
-            assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
+            assert produce_kwargs["destination"].name == "events"
+            assert produce_kwargs["payload"].key == str(self.project.id).encode("utf-8")
 
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
         assert version == 2
         assert type_ == "insert"
 
@@ -97,10 +98,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
 
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
 
         # only return headers and body payload
-        return produce_kwargs["headers"], payload2
+        return produce_kwargs["payload"].headers, payload2
 
     def test_init_options(self) -> None:
         # options in the constructor shouldn't cause errors
@@ -250,9 +251,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert produce_kwargs["topic"] == "generic-events"
-        assert produce_kwargs["key"] is None
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["payload"].value)
+        assert produce_kwargs["destination"].name == "generic-events"
+        assert produce_kwargs["payload"].key is None
         assert version == 2
         assert type_ == "insert"
         occurrence_data = group_event.occurrence.to_dict()
@@ -463,7 +464,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
                 trace_item = send.call_args[0][0]
 
-                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_id == hex_to_item_id(event.event_id)
                 assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
                 assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
                 assert trace_item.project_id == event.project_id
@@ -514,7 +515,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 mock_send_item.assert_called_once()
 
                 trace_item = mock_send_item.call_args[0][0]
-                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_id == hex_to_item_id(event.event_id)
                 assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
                 assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
                 assert trace_item.project_id == event.project_id

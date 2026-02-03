@@ -1,3 +1,4 @@
+import pytest
 from django.core import mail
 
 from sentry.eventstream.types import EventStreamEventType
@@ -134,6 +135,15 @@ class NotifyEmailFormTest(TestCase):
 class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
     rule_cls = NotifyEmailAction
 
+    @pytest.fixture(autouse=True)
+    def with_feature_flags(self):
+        with override_options(
+            {
+                "workflow_engine.issue_alert.group.type_id.ga": [1],
+            }
+        ):
+            yield
+
     def setUp(self):
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
@@ -170,7 +180,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         )
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration(self) -> None:
         action_config = {
@@ -197,7 +206,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_all_members_fallthrough(self) -> None:
@@ -223,7 +231,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_noone_fallthrough(self) -> None:
@@ -246,7 +253,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_fallthrough_not_provided(self) -> None:
@@ -270,7 +276,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_hack_mail_workflow(self) -> None:
@@ -340,9 +345,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -368,9 +374,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -396,9 +403,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.NO_ONE.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -420,9 +428,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -453,9 +462,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with (
@@ -496,9 +506,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(team_workflow.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data, inject_workflow]},
+            condition_data=[self.condition_data],
+            action_data=[action_data, inject_workflow],
         )
 
         with self.tasks():

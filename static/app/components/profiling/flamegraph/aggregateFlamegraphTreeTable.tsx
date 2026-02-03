@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
@@ -526,8 +527,8 @@ const FrameBar = styled('div')<{withoutBorders?: boolean}>`
   overflow: auto;
   width: 100%;
   position: relative;
-  background-color: ${p => p.theme.colors.surface300};
-  ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.border};`}
+  background-color: ${p => p.theme.tokens.background.tertiary};
+  ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.tokens.border.primary};`}
   flex: 1 1 100%;
 `;
 

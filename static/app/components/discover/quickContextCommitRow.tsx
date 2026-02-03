@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
@@ -72,13 +72,14 @@ const CommitLinks = styled('div')`
 `;
 
 const LinkToPullRequest = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
-  font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
-  color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.tokens.content.primary)};
+  font-size: ${p => (p.hasPrTitle ? p.theme.font.size.sm : p.theme.font.size.lg)};
+  color: ${p =>
+    p.hasPrTitle ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
   line-height: 1.5;
   margin: 0;
 `;

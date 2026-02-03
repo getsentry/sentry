@@ -45,5 +45,5 @@ export default class RRWebJsonViewer extends Component<ViewerProps, State> {
 
 const StyledPanelAlert = styled(PanelAlert)<{border: boolean}>`
   margin: 0;
-  border-bottom: ${p => (p.border ? `1px solid ${p.theme.border}` : null)};
+  border-bottom: ${p => (p.border ? `1px solid ${p.theme.tokens.border.primary}` : null)};
 `;

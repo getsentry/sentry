@@ -1,8 +1,14 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Stack} from 'sentry/components/core/layout/stack';
+import {
+  Stack,
+  type StackProps,
+  type StackPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Stack', () => {
   it('renders children', () => {
@@ -80,6 +86,15 @@ describe('Stack', () => {
     expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
   });
 
+  it('as=label props are correctly inferred', () => {
+    render(
+      <Stack as="label" htmlFor="test-id">
+        Hello World
+      </Stack>
+    );
+    expectTypeOf<StackProps<'label'>>().toHaveProperty('htmlFor');
+  });
+
   it('attaches ref to the underlying element', () => {
     const ref = createRef<HTMLOListElement>();
     render(
@@ -131,5 +146,27 @@ describe('Stack', () => {
       'aria-orientation',
       'horizontal'
     );
+  });
+
+  describe('types', () => {
+    it('has a limited display prop', () => {
+      const props: StackProps<any> = {};
+      expectTypeOf(props.display).toEqualTypeOf<
+        Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
+
+    it('default signature limits children to React.ReactNode', () => {
+      const props: StackProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: StackPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });

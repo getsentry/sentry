@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -14,7 +13,6 @@ describe('Subscription Usage Log', () => {
     access: ['org:billing'],
   });
   const sub = SubscriptionFixture({organization});
-  const mockLocation = LocationFixture();
 
   beforeEach(() => {
     organization.features = [];
@@ -78,7 +76,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [UsageLogFixture()], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} />, {organization});
+    render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByRole('heading', {name: /Activity Logs/i})).toBeInTheDocument();
@@ -96,7 +94,7 @@ describe('Subscription Usage Log', () => {
       body: {rows: [], eventNames},
     });
 
-    render(<UsageLog location={mockLocation} />, {organization});
+    render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText(/No entries available/i)).toBeInTheDocument();
@@ -115,7 +113,7 @@ describe('Subscription Usage Log', () => {
       },
     });
 
-    render(<UsageLog location={mockLocation} />, {organization});
+    render(<UsageLog />, {organization});
 
     await screen.findByText(/Select Action/i);
     expect(screen.getByText('On-demand Edit')).toBeInTheDocument();

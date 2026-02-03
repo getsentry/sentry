@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import NotFound from 'sentry/components/errors/notFound';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -24,12 +26,24 @@ export default function EventDetails() {
   const datetimeSelection = normalizeDateTimeParams(location.query);
   const navigate = useNavigate();
 
+  const [projectSlug, eventId] = eventSlug.split(':');
   const {
     data: event,
     isPending,
     error,
   } = useApiQuery<Event>(
-    [`/organizations/${organization.slug}/events/${eventSlug}/`],
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug!,
+            eventId: eventId!,
+          },
+        }
+      ),
+    ],
     {staleTime: 2 * 60 * 1000} // 2 minutes in milliseonds
   );
 

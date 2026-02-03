@@ -2,14 +2,16 @@ import {useId} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -126,7 +128,7 @@ function SamplingModeSwitchModal({
           </p>
         </Body>
         <Footer>
-          <ButtonWrapper>
+          <Flex gap="xl">
             <Button disabled={isPending} onClick={closeModal}>
               {t('Cancel')}
             </Button>
@@ -137,7 +139,7 @@ function SamplingModeSwitchModal({
             >
               {samplingMode === 'organization' ? t('Deactivate') : t('Activate')}
             </Button>
-          </ButtonWrapper>
+          </Flex>
         </Footer>
       </form>
     </FormProvider>
@@ -160,7 +162,7 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
       stacked
       required
     >
-      <InputWrapper>
+      <Stack gap="xs">
         <PercentInput
           id={id}
           aria-label={t('Global Target Sample Rate')}
@@ -174,25 +176,14 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
             : // Placholder character to keep the space occupied
               '\u200b'}
         </ErrorMessage>
-      </InputWrapper>
+      </Stack>
     </FieldGroup>
   );
 }
 
-const InputWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const ErrorMessage = styled('div')`
   color: ${p => p.theme.colors.red400};
-  font-size: ${p => p.theme.fontSize.xs};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(2)};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export function openSamplingModeSwitchModal(props: Props) {

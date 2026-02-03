@@ -3,10 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -80,7 +82,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Drag to reorder')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconGrabbable size="sm" />}
           {...listeners}
@@ -92,7 +94,11 @@ export function ToolbarGroupByDropdown({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
-        triggerProps={{children: label, style: {width: '100%'}}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
+            {label}
+          </OverlayTrigger.Button>
+        )}
         menuTitle="Group By"
         onSearch={onSearch}
         onClose={onClose}
@@ -101,7 +107,7 @@ export function ToolbarGroupByDropdown({
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
@@ -119,7 +125,6 @@ interface ToolbarVisualizeAddProps {
 export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}
@@ -138,7 +143,11 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   line-height: normal;
   position: relative;
