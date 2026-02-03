@@ -12,14 +12,26 @@ describe('dotnet logs onboarding docs', () => {
       selectedProducts: [ProductSolution.LOGS],
     });
 
-    // Verify logs configuration is shown
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs/))
+      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).toBeInTheDocument();
+  });
 
-    // Verify logs verification code is shown
+  it('does not render logs configuration when logs is not enabled', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(await screen.findByRole('heading', {name: 'Install'})).toBeInTheDocument();
+
     expect(
-      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
-    ).toBeInTheDocument();
+      screen.queryByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).not.toBeInTheDocument();
   });
 });

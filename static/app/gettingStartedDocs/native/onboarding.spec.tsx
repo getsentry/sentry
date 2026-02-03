@@ -8,7 +8,7 @@ import docs from '.';
 function renderMockRequests() {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/',
-    body: [ProjectFixture()],
+    body: ProjectFixture(),
   });
 }
 

@@ -7,20 +7,32 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import docs from '.';
 
 describe('python logs onboarding docs', () => {
-  it('renders logs onboarding docs correctly', () => {
+  it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.LOGS],
     });
 
-    // Verify logs configuration is shown
     expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True/))
+      await screen.findByText(textWithMarkupMatcher(/enable_logs=True/))
     ).toBeInTheDocument();
-
-    // Verify logs verification code is shown
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
     ).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
+  });
+
+  it('does not render logs configuration when logs is not enabled', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
+    ).not.toBeInTheDocument();
   });
 });
