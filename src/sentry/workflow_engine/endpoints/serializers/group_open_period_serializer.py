@@ -15,6 +15,7 @@ class GroupOpenPeriodActivityResponse(TypedDict):
     type: str
     value: str | None
     dateCreated: datetime
+    eventId: str | None
 
 
 class GroupOpenPeriodResponse(TypedDict):
