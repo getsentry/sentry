@@ -226,9 +226,7 @@ describe('DetectorEdit', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Connect Existing Alerts'})
       );
-      const drawer = await screen.findByRole('complementary', {
-        name: 'Connect Alerts',
-      });
+      const drawer = await screen.findByTestId('connect-automations-drawer');
       await userEvent.click(await within(drawer).findByRole('button', {name: 'Connect'}));
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 

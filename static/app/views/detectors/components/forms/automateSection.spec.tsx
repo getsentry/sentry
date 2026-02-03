@@ -141,9 +141,7 @@ describe('AutomateSection', () => {
 
     await userEvent.click(screen.getByText('Connect Existing Alerts'));
 
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Alerts',
-    });
+    const drawer = await screen.findByTestId('connect-automations-drawer');
 
     await within(drawer).findByText(automation1.name);
 
@@ -177,9 +175,7 @@ describe('AutomateSection', () => {
     expect(await screen.findByText(automation1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Alerts'));
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Alerts',
-    });
+    const drawer = await screen.findByTestId('connect-automations-drawer');
 
     const connectedAutomationsList = await screen.findByTestId(
       'drawer-connected-automations-list'
@@ -228,9 +224,7 @@ describe('AutomateSection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create New Alert'}));
 
     // Wait for the drawer to open
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Create New Alert',
-    });
+    const drawer = await screen.findByTestId('create-automation-drawer');
 
     // Add an action to make the form valid
     await selectEvent.select(
@@ -252,9 +246,7 @@ describe('AutomateSection', () => {
 
     // Wait for the drawer to close and the new automation to appear in the connected list
     await waitFor(() => {
-      expect(
-        screen.queryByRole('complementary', {name: 'Create New Alert'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('create-automation-drawer')).not.toBeInTheDocument();
     });
 
     // The new automation should appear in the connected alerts section

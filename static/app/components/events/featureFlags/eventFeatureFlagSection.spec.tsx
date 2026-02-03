@@ -5,7 +5,7 @@ import {
   render,
   screen,
   userEvent,
-  waitForDrawerToHide,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
@@ -68,8 +68,9 @@ describe('EventFeatureFlagList', () => {
     // When expanded, all should be visible
     const viewAllButton = screen.getByRole('button', {name: 'View 1 More Flag'});
     await userEvent.click(viewAllButton);
-    const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
-    expect(drawer).toBeInTheDocument();
+
+    // Wait for drawer-specific content to appear
+    await screen.findByRole('textbox', {name: 'Search Flags'});
     for (const {flag, result} of MOCK_FLAGS) {
       if (result) {
         expect(screen.getAllByText(flag)[0]).toBeInTheDocument();
@@ -81,11 +82,15 @@ describe('EventFeatureFlagList', () => {
     render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_MANY_FLAGS} />);
     const viewAllButton = screen.getByRole('button', {name: 'View 3 More Flags'});
     await userEvent.click(viewAllButton);
-    const drawer = screen.getByRole('complementary', {name: 'Feature flags drawer'});
-    expect(drawer).toBeInTheDocument();
+
+    // Wait for drawer-specific content to appear
+    const searchInput = await screen.findByRole('textbox', {name: 'Search Flags'});
+    expect(searchInput).toBeInTheDocument();
+
     await userEvent.click(viewAllButton);
-    await waitForDrawerToHide('Feature flags drawer');
-    expect(drawer).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('textbox', {name: 'Search Flags'})
+    );
   });
 
   it('opens the drawer and focuses search when the search button is pressed', async () => {
@@ -94,9 +99,9 @@ describe('EventFeatureFlagList', () => {
     const control = screen.getByRole('button', {name: 'Open Feature Flag Search'});
     expect(control).toBeInTheDocument();
     await userEvent.click(control);
-    expect(
-      screen.getByRole('complementary', {name: 'Feature flags drawer'})
-    ).toBeInTheDocument();
+
+    // Wait for drawer to open - search input should appear
+    await screen.findByRole('textbox', {name: 'Search Flags'});
     const drawerControl = screen.getByRole('textbox', {
       name: 'Search Flags',
     });

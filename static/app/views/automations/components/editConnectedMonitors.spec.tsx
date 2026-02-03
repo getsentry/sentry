@@ -94,9 +94,7 @@ describe('EditConnectedMonitors', () => {
 
     await userEvent.click(screen.getByText('Connect Monitors'));
 
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByTestId('connect-monitors-drawer');
 
     await within(drawer).findByText(detector1.name);
 
@@ -142,9 +140,7 @@ describe('EditConnectedMonitors', () => {
     expect(await screen.findByText(detector1.name)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Edit Monitors'));
-    const drawer = await screen.findByRole('complementary', {
-      name: 'Connect Monitors',
-    });
+    const drawer = await screen.findByTestId('connect-monitors-drawer');
 
     const connectedMonitorsList = await screen.findByTestId(
       'drawer-connected-monitors-list'

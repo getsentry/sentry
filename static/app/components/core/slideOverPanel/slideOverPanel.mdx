@@ -33,7 +33,7 @@ The `SlideOverPanel` component is a panel that can appear on the right, left, or
 
 {
   isPanelOpen && (
-    <SlideOverPanel position="right">
+    <SlideOverPanel placement="right">
       <Container border="primary" height="100%" padding="md">
         <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
       </Container>
@@ -62,7 +62,7 @@ To enable a loading skeleton, pass a render prop as the children to `SlideOverPa
 <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
 {isPanelOpen && (
-  <SlideOverPanel position="right">
+  <SlideOverPanel placement="right">
     {(options: {isOpening: boolean}) => {
       return options.isOpening ? (
         <SkeletonPanelContents onClick={closePanel} />
@@ -83,7 +83,7 @@ Generally, we recommend not animating the panel on close, and simply removing it
 
 <AnimatePresence>
   {isPanelOpen && (
-    <SlideOverPanel position="right">
+    <SlideOverPanel placement="right">
       {(options: {isOpening: boolean}) => {
         return options.isOpening ? (
           <SkeletonPanelContents onClick={closePanel} />

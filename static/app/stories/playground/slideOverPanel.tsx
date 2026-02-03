@@ -16,7 +16,7 @@ export function SlideOverPanelPlayground() {
       <Button onClick={() => setIsPanelOpen(true)}>Open Panel</Button>
 
       {isPanelOpen && (
-        <SlideOverPanel position="right">
+        <SlideOverPanel placement="right">
           <Container border="primary" height="100%" padding="md">
             <Button onClick={() => setIsPanelOpen(false)}>Close Panel</Button>
           </Container>
@@ -39,7 +39,7 @@ export function SlideOverPanelSkeletonPlayground() {
 
       <AnimatePresence>
         {isPanelOpen && (
-          <SlideOverPanel position="right">
+          <SlideOverPanel placement="right">
             {(options: {isOpening: boolean}) => {
               return options.isOpening ? (
                 <SkeletonPanelContents onClick={closePanel} />
