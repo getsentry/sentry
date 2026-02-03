@@ -1,9 +1,9 @@
 import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -242,7 +242,7 @@ const StyledDrawerHeader = styled(DrawerHeader)`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin-bottom: ${p => p.theme.space.xl};
 `;

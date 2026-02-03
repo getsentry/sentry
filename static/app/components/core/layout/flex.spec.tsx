@@ -3,8 +3,12 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Flex, type FlexProps} from 'sentry/components/core/layout/flex';
-import type {Responsive} from 'sentry/components/core/layout/styles';
+import {
+  Flex,
+  type FlexProps,
+  type FlexPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Flex', () => {
   it('renders children', () => {
@@ -121,9 +125,22 @@ describe('Flex', () => {
 
   describe('types', () => {
     it('has a limited display prop', () => {
-      const props: FlexProps = {};
+      const props: FlexProps<any> = {};
       expectTypeOf(props.display).toEqualTypeOf<
         Responsive<'flex' | 'inline-flex' | 'none'> | undefined
+      >();
+    });
+
+    it('default signature limits children to React.ReactNode', () => {
+      const props: FlexProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: FlexPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
       >();
     });
   });

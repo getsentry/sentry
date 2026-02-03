@@ -2,10 +2,9 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -105,7 +104,7 @@ function Pagination({
 
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-right: ${space(2)};
 `;
 

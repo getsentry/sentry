@@ -2,13 +2,15 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
@@ -277,7 +279,9 @@ function LaunchpadAdminPage() {
         </Text>
 
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -511,7 +515,7 @@ const InfoDisplay = styled('div')`
 
   pre {
     margin: 0;
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     font-size: 12px;
     line-height: 1.4;
     color: ${p => p.theme.tokens.content.primary};

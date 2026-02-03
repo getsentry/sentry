@@ -40,7 +40,7 @@ const docs: Docs<PlatformOptions> = {
     docsPlatform: 'javascript',
     packageName: '@sentry/browser',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring(),
 };
 
 export default docs;

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.models.rule import Rule, RuleSource
@@ -20,15 +22,15 @@ class DedupeCronWorkflowsTest(TestMigrations):
 
     def _create_cron_rule_with_workflow(
         self,
-        project,
-        monitor_slug,
-        frequency=5,
-        environment=None,
-        owner_user=None,
-        owner_team=None,
-        action_data=None,
-        condition_data=None,
-    ):
+        project: Any,
+        monitor_slug: str,
+        frequency: int = 5,
+        environment: Any = None,
+        owner_user: Any = None,
+        owner_team: Any = None,
+        action_data: list[dict[str, Any]] | None = None,
+        condition_data: list[dict[str, Any]] | None = None,
+    ) -> tuple[Any, Any]:
         """Helper to create a cron rule with its workflow and return both"""
         if action_data is None:
             action_data = [
@@ -68,7 +70,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
         Rule.objects.filter(id=rule.id).update(source=RuleSource.CRON_MONITOR)
         return rule, workflow
 
-    def _create_monitor_with_detector(self, org, project, rule, name):
+    def _create_monitor_with_detector(
+        self, org: Any, project: Any, rule: Any, name: str
+    ) -> tuple[Any, Any]:
         """Helper to create monitor with detector and data source"""
         monitor = self.create_monitor(
             organization=org,
@@ -259,7 +263,9 @@ class DedupeCronWorkflowsTest(TestMigrations):
             "regular": [self.regular_workflow.id],
         }
 
-    def _verify_workflow_deduplication(self, workflow_ids, should_deduplicate, group_name):
+    def _verify_workflow_deduplication(
+        self, workflow_ids: list[int], should_deduplicate: bool, group_name: str
+    ) -> list[int]:
         """Helper to verify if workflows were properly deduplicated or preserved"""
         existing_workflows = [
             wf_id for wf_id in workflow_ids if Workflow.objects.filter(id=wf_id).exists()

@@ -3,17 +3,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -855,7 +855,7 @@ export const GroupSummary = styled('div')<{canSelect: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: auto;
 `;
 
@@ -875,7 +875,7 @@ const CheckboxWithBackground = styled(Checkbox)`
 `;
 
 const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   justify-content: right;
   margin-bottom: ${space(0.25)};
@@ -883,7 +883,7 @@ const PrimaryCount = styled(Count)`
 `;
 
 const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: right;
   color: ${p => p.theme.tokens.content.secondary};
@@ -902,12 +902,12 @@ const CountTooltipContent = styled('div')`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)} ${space(3)};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
 
   h4 {
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${space(0.25)};

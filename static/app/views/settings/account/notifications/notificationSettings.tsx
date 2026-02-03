@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {AlertLink} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -50,7 +51,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   });
 
   const renderOneSetting = (type: NotificationSettingsType) => {
-    // TODO(isabella): Once GA, remove this
     const field = NOTIFICATION_SETTING_FIELDS[type];
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
@@ -66,7 +66,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
           <LinkButton
             icon={<IconSettings size="sm" />}
             size="sm"
-            borderless
+            priority="transparent"
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
@@ -139,11 +139,11 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
 export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const FieldHelp = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

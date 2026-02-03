@@ -1,7 +1,8 @@
 import {useId} from 'react';
 
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct} from 'sentry/locale';
 import type {JsonPathOp} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -31,6 +32,7 @@ export function AssertionOpJsonPath({
           link: <ExternalLink href="https://www.rfc-editor.org/rfc/rfc9535.html" />,
         }
       )}
+      op={value}
     >
       <Input
         id={inputId}

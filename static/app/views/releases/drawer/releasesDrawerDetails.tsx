@@ -1,12 +1,12 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   EventDrawerBody,
@@ -327,8 +327,8 @@ const Details = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;
 

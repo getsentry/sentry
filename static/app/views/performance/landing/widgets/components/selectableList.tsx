@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {IconClose} from 'sentry/icons';
@@ -73,7 +74,7 @@ export const RightAlignedCell = styled('div')`
 
 export const Subtitle = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: inline-block;
 `;
 
@@ -264,14 +265,14 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   max-width: 300px;
 `;
@@ -280,7 +281,7 @@ const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const ItemRadioContainer = styled('div')`

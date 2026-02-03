@@ -1,15 +1,14 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {Link} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -198,7 +197,7 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -776,8 +775,8 @@ const ProfileDigestHeader = styled('div')`
 
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
 `;
 

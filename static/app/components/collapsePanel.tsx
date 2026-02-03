@@ -96,7 +96,7 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};

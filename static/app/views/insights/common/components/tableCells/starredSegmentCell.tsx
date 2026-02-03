@@ -1,6 +1,7 @@
 import type {Simplify} from 'type-fest';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -38,22 +39,47 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
 
   const disabled = !project || !segmentName || isPending;
 
-  // Updates the corresponding table data with starred segments, this triggers a state update which stars the segment in the ui
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      (oldResponse: TableResponse): TableResponse => {
-        const oldTableData = oldResponse?.[0]?.data || [];
-        const newData = oldTableData.map((row): TableRow => {
-          if (row.transaction === segmentName) {
-            return {
-              ...row,
-              is_starred_transaction: newIsStarred,
-            };
-          }
-          return row;
-        });
-        return [{...oldResponse[0], data: newData}];
+      (oldResponse: TableResponse | any): TableResponse | any => {
+        if (!oldResponse) {
+          return oldResponse;
+        }
+
+        // Handles `useSpans` format: [{confidence, meta, data}]
+        if (oldResponse?.[0]?.data && !oldResponse?.[1]) {
+          const oldTableData = oldResponse[0].data || [];
+          const newData = oldTableData.map((row: TableRow): TableRow => {
+            if (row.transaction === segmentName) {
+              return {
+                ...row,
+                is_starred_transaction: newIsStarred,
+              };
+            }
+            return row;
+          });
+          return [{...oldResponse[0], data: newData}];
+        }
+
+        // Handles `useSpansWidgetQuery` format: [responseData, headers, responseMeta]
+        // TODO: unify the format of the response data
+        if (oldResponse?.[0]?.data && oldResponse?.[1]) {
+          const responseData = oldResponse[0];
+          const oldTableData = responseData.data || [];
+          const newData = oldTableData.map((row: TableRow): TableRow => {
+            if (row.transaction === segmentName) {
+              return {
+                ...row,
+                is_starred_transaction: newIsStarred,
+              };
+            }
+            return row;
+          });
+          return [{...responseData, data: newData}, oldResponse[1], oldResponse[2]];
+        }
+
+        return oldResponse;
       }
     );
   };
@@ -68,7 +94,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
       <Button
         onClick={toggleStarredTransaction}
         disabled={disabled}
-        borderless
+        priority="transparent"
         size="zero"
         icon={
           <IconStar

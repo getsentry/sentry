@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +40,7 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
             icon={<IconClose />}
             onClick={dismiss}
             size="zero"
-            borderless
+            priority="transparent"
             aria-label={t('Dismiss banner')}
           />
         }
@@ -64,6 +64,6 @@ export default function SeerAutomationAlert({organization}: SeerAutomationAlertP
 }
 
 const AlertHeader = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
 `;

@@ -1,15 +1,14 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import type {
@@ -550,7 +549,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     <span>
       <Flex marginBottom="xl" gap="md">
         <CompactSelect
-          triggerProps={{prefix: t('Web Vital')}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Web Vital')} />
+          )}
           value={datatype}
           options={WEB_VITAL_DATATYPES.map(type => ({
             label: type.toUpperCase(),

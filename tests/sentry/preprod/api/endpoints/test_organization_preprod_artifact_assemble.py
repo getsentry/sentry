@@ -14,6 +14,7 @@ from sentry.preprod.api.endpoints.organization_preprod_artifact_assemble import 
     validate_preprod_artifact_schema,
     validate_vcs_parameters,
 )
+from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
@@ -550,9 +551,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = (
-            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
-        )
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -561,6 +560,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             checksum=total_checksum,
             build_configuration_name=None,
             release_notes=None,
+            install_groups=None,
             head_sha=None,
             base_sha=None,
             provider=None,
@@ -626,9 +626,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = (
-            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
-        )
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -637,6 +635,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             checksum=total_checksum,
             build_configuration_name="release",
             release_notes=None,
+            install_groups=None,
             head_sha="e" * 40,
             base_sha="f" * 40,
             provider="github",
@@ -923,6 +922,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             checksum=total_checksum,
             build_configuration_name=None,
             release_notes=None,
+            install_groups=None,
             head_sha=None,
             base_sha=None,
             provider=None,
@@ -1025,3 +1025,29 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "error" in response.data
         assert "Head SHA is required when base SHA is provided" in response.data["error"]
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_no_quota_returns_403(self, mock_create_preprod_artifact: MagicMock) -> None:
+        """Test that endpoint returns 403 when organization has no quota."""
+        content = b"test no quota content"
+        total_checksum = sha1(content).hexdigest()
+
+        mock_create_preprod_artifact.side_effect = NoPreprodQuota(
+            "Organization does not have quota for preprod features"
+        )
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 403, response.content
+        assert response.data["detail"] == "Organization does not have quota for preprod features"

@@ -1,9 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -163,12 +165,15 @@ export function MultiQueryModeChart({
           title={t('Type of chart displayed in this visualization (ex. line)')}
         >
           <CompactSelect
-            triggerProps={{
-              icon: <IconGraph type={visualizationType} />,
-              borderless: true,
-              showChevron: false,
-              size: 'xs',
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconGraph type={visualizationType} />}
+                priority="transparent"
+                showChevron={false}
+                size="xs"
+              />
+            )}
             value={chartType}
             menuTitle={t('Type')}
             options={EXPLORE_CHART_TYPE_OPTIONS}
@@ -184,12 +189,15 @@ export function MultiQueryModeChart({
           <CompactSelect
             value={interval}
             onChange={({value}) => setInterval(value)}
-            triggerProps={{
-              icon: <IconClock />,
-              borderless: true,
-              showChevron: false,
-              size: 'xs',
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconClock />}
+                priority="transparent"
+                showChevron={false}
+                size="xs"
+              />
+            )}
             menuTitle="Interval"
             options={intervalOptions}
           />
@@ -199,7 +207,7 @@ export function MultiQueryModeChart({
             key="contextMenu"
             triggerProps={{
               size: 'xs',
-              borderless: true,
+              priority: 'transparent',
               showChevron: false,
               icon: <IconEllipsis />,
             }}

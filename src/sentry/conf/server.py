@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, cast, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -71,7 +71,8 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        if "SENTRY_RUNNING_UWSGI" in os.environ:
+        # TODO: check this is actually still correct, since granian doesn't fork
+        if "SENTRY_RUNNING_GRANIAN" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -383,6 +384,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
@@ -577,6 +579,10 @@ if ENVIRONMENT == "development":
 
 # To enforce CSP (block violated resources), update the following parameter to False
 CSP_REPORT_ONLY = True
+
+COOP_ENABLED = False
+COOP_REPORT_ONLY = True
+COOP_REPORT_TO: str | None = None
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
@@ -836,7 +842,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.nodestore",
-    "sentry.deletions.tasks.overwatch",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -892,6 +897,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
+    "sentry.seer.entrypoints.integrations.slack",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -1083,11 +1089,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-sdk-update-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1425,6 +1431,9 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
+# Default organization ID for granting superuser privileges (typically organization 1 in SaaS mode)
+SENTRY_DEFAULT_ORGANIZATION_ID = 1
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
@@ -1620,6 +1629,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 # Rate Limit Group Category Defaults
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
+
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2738,14 +2751,16 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
 WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
-FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
-DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
+FALL_2025_GROUPING_CONFIG = "newstyle:2026-01-20"
+# Note: When the default config here is updated, `DEFAULT_ENHANCEMENTS_BASE` in
+# `sentry.grouping.enhancer.__init__` *may* also need to be updated.
+DEFAULT_GROUPING_CONFIG = FALL_2025_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_UWSGI = True
+SENTRY_USE_GRANIAN = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
@@ -2859,11 +2874,6 @@ SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
-
-# Used to validate RPC requests from the Overwatch service
-OVERWATCH_RPC_SHARED_SECRET: list[str] | None = None
-if (val := os.environ.get("OVERWATCH_RPC_SHARED_SECRET")) is not None:
-    OVERWATCH_RPC_SHARED_SECRET = [val]
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3114,7 +3124,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",
@@ -3175,12 +3184,6 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # of Codecov.
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
-
-OVERWATCH_REGION_URLS: dict[str, str] = cast(
-    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
-)
-OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
-OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

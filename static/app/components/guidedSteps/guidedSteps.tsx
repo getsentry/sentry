@@ -10,10 +10,10 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -256,8 +256,8 @@ const StepWrapper = styled('div')`
 const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,8 +276,8 @@ const StepNumber = styled('div')<{isActive: boolean}>`
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p =>
     p.isActive ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
@@ -293,7 +293,7 @@ const StepDoneIcon = styled(IconCheckmark, {
 
 const StepOptionalLabel = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-top: -${space(0.75)};
   margin-bottom: ${space(1)};
 `;

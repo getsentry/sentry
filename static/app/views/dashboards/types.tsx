@@ -28,6 +28,7 @@ export enum DisplayType {
   DETAILS = 'details',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
+  CATEGORICAL_SERIES = 'categorical_series',
 }
 
 export enum WidgetType {
@@ -40,6 +41,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time

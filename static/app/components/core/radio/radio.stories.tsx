@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!sentry/components/core/radio';
+import documentation from '!!type-loader!@sentry/scraps/radio';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Radio, type RadioProps} from '@sentry/scraps/radio';
 
-import {Radio, type RadioProps} from 'sentry/components/core/radio';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Radio', (story, APIReference) => {

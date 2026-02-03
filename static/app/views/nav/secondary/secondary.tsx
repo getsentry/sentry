@@ -4,11 +4,11 @@ import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link, type LinkProps} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
@@ -111,7 +111,7 @@ function SectionTitle({
     return (
       <SectionTitleCollapsible
         size="sm"
-        borderless
+        priority="transparent"
         isMobile={layout === NavLayout.MOBILE}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
@@ -268,8 +268,8 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: 0 ${space(1)} 0 ${space(2)};
 
   /* This is used in detail pages to match the height of sidebar header. */
@@ -312,7 +312,7 @@ const Section = styled('div')<{layout: NavLayout}>`
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.fontWeight.bold};
+  font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
   padding: ${space(0.75)} ${space(1)};
   width: 100%;
@@ -334,7 +334,7 @@ const SectionTitleCollapsible = styled(Button, {
   ${sectionTitleStyles}
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > span:last-child {
     flex: 1;

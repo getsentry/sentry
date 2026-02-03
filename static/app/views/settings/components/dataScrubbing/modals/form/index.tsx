@@ -3,13 +3,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import {IconChevron} from 'sentry/icons';
@@ -481,7 +481,7 @@ const SourceGroup = styled('div')<{isExpanded?: boolean}>`
 `;
 
 const RegularExpression = styled(Input)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: ${p => p.theme.space.md};
 `;
 
@@ -493,7 +493,7 @@ const DatasetRadioField = styled(RadioField)`
 `;
 
 const Toggle = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
   &:hover,
   &:focus {

@@ -5,14 +5,15 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
@@ -23,6 +24,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -91,7 +93,12 @@ type Props = {
 
 function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
-    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'internal'}},
+    ],
     {
       staleTime: 0,
     }
@@ -226,7 +233,7 @@ sentry-cli releases finalize "$VERSION"`;
                     )
               }
               size="xs"
-              borderless
+              priority="transparent"
               disabled={!canMakeIntegration}
               onClick={() => {
                 closeOverlay();
@@ -246,10 +253,14 @@ sentry-cli releases finalize "$VERSION"`;
               {t('Add New Integration')}
             </Button>
           )}
-          triggerProps={{
-            prefix: selectedApp ? t('Token From') : undefined,
-            children: selectedApp ? undefined : t('Select Integration'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={selectedApp ? t('Token From') : undefined}
+            >
+              {selectedApp ? triggerProps.children : t('Select Integration')}
+            </OverlayTrigger.Button>
+          )}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;
             setSelectedApp(app);

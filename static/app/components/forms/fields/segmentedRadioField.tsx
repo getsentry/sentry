@@ -1,9 +1,10 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
@@ -116,7 +117,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   gap: ${space(0.25)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   margin: 0;
 
@@ -168,14 +169,14 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray800};
 `;
 
 const Description = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
 

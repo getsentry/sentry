@@ -34,8 +34,8 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
     def do_request(self, query=None, features=None, **kwargs):
         if query is None:
             query = {}
-        if "itemType" not in query:
-            query["itemType"] = self.item_type.value
+        if "dataset" not in query:
+            query["dataset"] = self.item_type.value
         if "attributeType" not in query:
             query["attributeType"] = "string"
 
@@ -60,11 +60,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -199,7 +199,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.message.parameter.0": {"bool_value": 1},
                     "sentry.message.parameter.1": {"int_value": 5},
                     "sentry.message.parameter.2": {"double_value": 10},
                     "sentry.message.parameter.value": {"double_value": 15},
@@ -299,14 +298,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 "secondaryAliases": ["log.severity_number"],
             },
             {
-                "key": "tags[message.parameter.0,number]",
-                "name": "message.parameter.0",
-                "attributeSource": {
-                    "source_type": "sentry",
-                    "is_transformed_alias": True,
-                },
-            },
-            {
                 "key": "tags[message.parameter.1,number]",
                 "name": "message.parameter.1",
                 "attributeSource": {
@@ -404,11 +395,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -432,7 +423,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -490,7 +480,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -550,7 +539,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -673,7 +661,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         response = self.do_request(
@@ -753,7 +740,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "span.op": "foo",
                 "span.duration": "bar",
             },
-            is_eap=True,
         )
 
         response = self.do_request()
@@ -797,7 +783,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     start_ts=before_now(days=0, minutes=10),
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(query={"substringMatch": ""})
@@ -831,7 +816,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "is_feature_enabled": False,
             "is_production": True,
         }
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         response = self.do_request(query={"attributeType": "boolean"})
         assert response.status_code == 200, response.content
@@ -840,6 +825,77 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tags[is_feature_enabled,boolean]" in keys
         assert "tags[is_debug,boolean]" in keys
         assert "tags[is_production,boolean]" in keys
+
+    def test_aliased_attribute(self) -> None:
+        span1 = self.create_span(
+            {"sentry_tags": {"op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"op": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "span.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 1
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 2
+        assert "transaction.op" in keys
+        assert "span.op" in keys
+
+        response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 0
+
+    def test_aliased_attribute_with_paging(self) -> None:
+        span1 = self.create_span(
+            {"tags": {"tag.op": "foo"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        span2 = self.create_span(
+            {"tags": {"tag.op2": "bar"}}, start_ts=before_now(days=0, minutes=10)
+        )
+        self.store_spans([span1, span2])
+
+        all_keys: set[str] = set()
+        for i in range(3):
+            response = self.do_request(
+                query={
+                    "attributeType": "string",
+                    "substringMatch": ".",
+                    "per_page": 20,
+                    "cursor": f"0:{i * 20}:0",
+                }
+            )
+            assert response.status_code == 200, response.content
+
+            keys = {item["key"] for item in response.data}
+            assert len(keys) == 21
+            all_keys = all_keys.union(keys)
+            assert len(all_keys) == (i + 1) * 20 + 1
+        # there's at least 64 total keys for this query, the next page should contain the first custom ones
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "substringMatch": ".",
+                "per_page": 20,
+                "cursor": "0:60:0",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        keys = {item["key"] for item in response.data}
+        # The keys from the db should only be from the last page
+        assert "tag.op" in keys
+        assert "tag.op2" in keys
 
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
@@ -852,11 +908,11 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -1027,8 +1083,8 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
         if query is None:
             query = {}
 
-        if "itemType" not in query:
-            query["itemType"] = self.item_type.value
+        if "dataset" not in query:
+            query["dataset"] = self.item_type.value
         if "attributeType" not in query:
             query["attributeType"] = "string"
 
@@ -1053,11 +1109,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -1110,11 +1166,11 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
 
-    def test_invalid_item_type(self) -> None:
-        response = self.do_request(query={"itemType": "invalid"})
+    def test_invalid_dataset(self) -> None:
+        response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "itemType": [
+            "dataset": [
                 ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
             ],
         }
@@ -1139,7 +1195,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request(key="tag")
@@ -1185,7 +1240,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1233,7 +1287,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1273,7 +1326,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -1314,7 +1366,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1363,7 +1414,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1404,7 +1454,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -1445,7 +1494,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         for key in [
@@ -1593,7 +1641,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=True,
             )
 
         response = self.do_request(key="span.status")
@@ -1737,7 +1784,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=True,
         )
 
         response = self.do_request(key="tag")
@@ -1759,7 +1805,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request(key="tag")
@@ -1859,7 +1904,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                     start_ts=before_now(days=0, minutes=10),
                 ),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(key="release")
@@ -1990,7 +2034,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_autocomplete_timestamp(self) -> None:
         self.store_spans(
             [self.create_span(start_ts=before_now(days=0, minutes=10))],
-            is_eap=True,
         )
         response = self.do_request(key="timestamp", query={"substringMatch": "20"})
         assert response.status_code == 200
@@ -2005,7 +2048,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
                 self.create_span({"sentry_tags": {"device.class": ""}}),
                 self.create_span({}),
             ],
-            is_eap=True,
         )
 
         response = self.do_request(key="device.class")

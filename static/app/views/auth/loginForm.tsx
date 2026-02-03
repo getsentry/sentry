@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -130,7 +131,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 24px;
 `;
 
@@ -153,7 +154,7 @@ const ProviderWrapper = styled('div')`
 
 const LostPasswordLink = styled(Link)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

@@ -831,12 +831,7 @@ class DashboardDetail extends Component<Props, State> {
             ...getCurrentPageFilters(location),
             filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
           };
-          createDashboard(
-            api,
-            organization.slug,
-            newModifiedDashboard,
-            this.isPreview
-          ).then(
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
@@ -987,6 +982,7 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboard={dashboard}
                   dashboardPermissions={dashboard.permissions}
                   dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
@@ -1004,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     eventView={EventView.fromLocation(location)}
                     location={location}
+                    hideLoadingIndicator
                   >
                     {metricsDataSide => (
                       <MEPSettingProvider
@@ -1180,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           eventView={eventView}
                           location={location}
+                          hideLoadingIndicator
                         >
                           {metricsDataSide => (
                             <MEPSettingProvider
@@ -1196,6 +1194,7 @@ class DashboardDetail extends Component<Props, State> {
                                 />
                               ) : null}
                               <FiltersBar
+                                dashboard={modifiedDashboard ?? dashboard}
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}

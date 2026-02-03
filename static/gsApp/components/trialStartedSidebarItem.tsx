@@ -4,8 +4,9 @@ import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -208,11 +209,11 @@ const StyledHovercard = styled(Hovercard)`
 
 const HovercardBody = styled('div')`
   h1 {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     margin-bottom: ${space(1.5)};
   }
   p {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
@@ -222,7 +223,7 @@ const Bullets = styled('div')`
   grid-auto-rows: max-content;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(2)};
 `;
 

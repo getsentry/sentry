@@ -1,9 +1,11 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -57,6 +59,12 @@ const getConfigureJsonSnippet = (params: DocsParams) => `
     // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
     // We recommend adjusting this value in production.
     "TracesSampleRate": 1`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `,
+    // Enable logs to be sent to Sentry
+    "EnableLogs": true`
         : ''
     }
   }
@@ -146,7 +154,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -161,6 +169,14 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? [
+          {
+            title: t('Verify Logs'),
+            content: [logsVerify(params)],
+          },
+        ]
+      : []),
     {
       title: t('Samples'),
       content: [

@@ -1,8 +1,9 @@
 import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -64,7 +65,7 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          borderless
+          priority="transparent"
           data-base-with-toggle={baseLevelPadding}
         />
       ) : null}
@@ -114,9 +115,9 @@ const NumItemsButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0 ${space(0.5)};
 

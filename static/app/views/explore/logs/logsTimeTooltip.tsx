@@ -2,8 +2,9 @@ import React, {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import {useTimezone} from 'sentry/components/timezoneProvider';
@@ -160,7 +161,7 @@ const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const HorizontalRule = styled('hr')`

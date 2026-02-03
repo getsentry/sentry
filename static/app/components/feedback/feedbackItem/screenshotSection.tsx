@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import ScreenshotsModal, {
   modalCss,
@@ -50,7 +51,7 @@ export function ScreenshotSection({event, organization, projectSlug}: Props) {
           />
           <Button
             icon={<IconDelete />}
-            borderless
+            priority="transparent"
             size="xs"
             onClick={() => {
               openConfirmModal({

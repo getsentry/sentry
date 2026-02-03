@@ -2,10 +2,11 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
@@ -107,7 +108,9 @@ export function CustomerStatsFilters({
   return (
     <Flex wrap="wrap" marginBottom="2xl" gap="xl" width="100%">
       <CompactSelect
-        triggerProps={{prefix: 'Data Type'}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix="Data Type" />
+        )}
         value={dataType}
         options={Object.entries(DATA_CATEGORY_INFO)
           .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)

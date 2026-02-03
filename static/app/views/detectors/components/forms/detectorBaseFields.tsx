@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import EditableText from 'sentry/components/editableText';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -12,16 +13,24 @@ import useProjects from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-interface DetectorBaseFieldsProps {
-  envFieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
-  noEnvironment?: boolean;
+interface EnvironmentConfig {
+  fieldProps?: Partial<React.ComponentProps<typeof SelectField>>;
+  includeAllEnvironments?: boolean;
 }
 
-export function DetectorBaseFields({
-  noEnvironment,
-  envFieldProps,
-}: DetectorBaseFieldsProps) {
+interface DetectorBaseFieldsProps {
+  environment?: EnvironmentConfig | false;
+}
+
+export function DetectorBaseFields({environment}: DetectorBaseFieldsProps) {
   const {setHasSetDetectorName} = useDetectorFormContext();
+  const environmentConfig =
+    environment === false
+      ? false
+      : {
+          includeAllEnvironments: true,
+          ...environment,
+        };
 
   return (
     <Flex gap="md" direction="column">
@@ -47,7 +56,12 @@ export function DetectorBaseFields({
       </Layout.Title>
       <Flex gap="md">
         <ProjectField />
-        {!noEnvironment && <EnvironmentField {...envFieldProps} />}
+        {environmentConfig && (
+          <EnvironmentField
+            includeAllEnvironments={environmentConfig.includeAllEnvironments}
+            {...(environmentConfig.fieldProps ?? {})}
+          />
+        )}
       </Flex>
     </Flex>
   );
@@ -89,7 +103,14 @@ function ProjectField() {
   );
 }
 
-function EnvironmentField(props: Partial<React.ComponentProps<typeof SelectField>>) {
+type EnvironmentFieldProps = Partial<React.ComponentProps<typeof SelectField>> & {
+  includeAllEnvironments?: boolean;
+};
+
+function EnvironmentField({
+  includeAllEnvironments = true,
+  ...props
+}: EnvironmentFieldProps) {
   const {projects} = useProjects();
   const projectId = useFormField<string>('projectId')!;
 
@@ -98,7 +119,7 @@ function EnvironmentField(props: Partial<React.ComponentProps<typeof SelectField
   return (
     <StyledEnvironmentField
       choices={[
-        ['', t('All Environments')],
+        ...(includeAllEnvironments ? [['', t('All Environments')]] : []),
         ...(environments?.map(environment => [environment, environment]) ?? []),
       ]}
       inline={false}

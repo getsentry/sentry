@@ -1,6 +1,10 @@
 import {Fragment} from 'react';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,12 +15,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import SeerRepoTable from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
+import SeerConnectGitHubBanner from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
 import SeerAutomationSettings from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const organization = useOrganization();
+
+  const [tab, setTab] = useQueryState<'settings' | 'repos'>(
+    'tab',
+    parseAsStringEnum(['settings', 'repos']).withDefault('settings')
+  );
 
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;
@@ -50,9 +61,25 @@ export default function SeerAutomation() {
       />
 
       <NoProjectMessage organization={organization}>
-        <SeerAutomationProjectList />
-        <br />
-        <SeerAutomationDefault />
+        <Stack gap="lg">
+          <SeerConnectGitHubBanner />
+          <Container borderBottom="primary">
+            <Tabs value={tab} onChange={setTab}>
+              <TabList>
+                <TabList.Item key="settings">{t('Settings')}</TabList.Item>
+                <TabList.Item key="repos">{t('Repos')}</TabList.Item>
+              </TabList>
+            </Tabs>
+          </Container>
+          {tab === 'repos' ? <SeerRepoTable /> : null}
+          {tab === 'settings' ? (
+            <Fragment>
+              <SeerAutomationProjectList />
+              <br />
+              <SeerAutomationDefault />
+            </Fragment>
+          ) : null}
+        </Stack>
       </NoProjectMessage>
     </Fragment>
   );

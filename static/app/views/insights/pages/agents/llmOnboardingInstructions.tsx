@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -58,80 +59,191 @@ If missing, add \`tracesSampleRate: 1.0\` / \`traces_sample_rate=1.0\` and \`sen
 
 Check in this order - **use the highest-level framework found** (e.g., if using Vercel AI SDK with OpenAI provider, use Vercel integration, not OpenAI):
 
-| Library (check in order) | JS Integration | Python Integration | Python Extra |
-|--------------------------|---------------|-------------------|--------------|
-| Vercel AI SDK | \`Sentry.vercelAIIntegration()\` | - | - |
-| LangGraph | \`Sentry.langGraphIntegration()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
-| LangChain | \`Sentry.langChainIntegration()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
-| OpenAI Agents | - | Auto-enabled | - |
-| Pydantic AI | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
-| LiteLLM | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
-| OpenAI | \`Sentry.openAIIntegration()\` | Auto-enabled | - |
-| Anthropic | \`Sentry.anthropicAIIntegration()\` | Auto-enabled | - |
-| Google GenAI | \`Sentry.googleGenAIIntegration()\` | \`GoogleGenAIIntegration()\` | \`sentry-sdk[google_genai]\` |
+| Library (check in order) | Node.js | Browser | Python Integration |
+|--------------------------|---------|---------|-------------------|
+| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - |
+| LangGraph | Auto-enabled | \`instrumentLangGraph()\` | Auto-enabled |
+| LangChain | Auto-enabled | \`createLangChainCallbackHandler()\` | Auto-enabled |
+| OpenAI Agents | - | - | Auto-enabled |
+| Pydantic AI | - | - | Auto-enabled |
+| LiteLLM | - | - | \`LiteLLMIntegration()\` |
+| OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled |
+| Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled |
+| Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | Auto-enabled |
 
-**If supported library found → Step 3A**
-**If no supported library → Step 3B**
+**If supported library found → Step 3A** (Enable Automatic Integration: Node.js, Browser and Python)
+**If no supported library → Step 3B** (Manual span instrumentation)
 
 ## 3A. Enable Automatic Integration
 
-### JavaScript
+### Node.js (Auto-enabled)
 
-Add to Sentry.init integrations array with \`recordInputs\` and \`recordOutputs\`:
+For Node.js applications (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled**. Just initialize Sentry with tracing:
 
 \`\`\`javascript
 import * as Sentry from "@sentry/node";
 
 Sentry.init({
   dsn: "...",
-  tracesSampleRate: 1.0,
-  sendDefaultPii: true,
-  integrations: [
-    Sentry.openAIIntegration({ recordInputs: true, recordOutputs: true }),
-    // OR other integration as needed
-  ],
+  tracesSampleRate: 1.0,  // Required for AI monitoring
+  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
 });
+
+// That's it! The SDK automatically instruments supported AI libraries
 \`\`\`
 
-**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` with \`functionId\` to every call:
+**Vercel AI SDK Extra Step:** Pass \`experimental_telemetry\` to every call:
 \`\`\`javascript
 const result = await generateText({
   model: openai("gpt-4o"),
   prompt: "Tell me a joke",
   experimental_telemetry: {
     isEnabled: true,
-    functionId: "generate-joke",  // Name your functions for better tracing
     recordInputs: true,
     recordOutputs: true,
   },
 });
 \`\`\`
 
-### Python
+### Browser (Manual Client Wrapping)
 
-Install with extras if needed:
-\`\`\`bash
-pip install sentry-sdk[langchain]  # or [langgraph], [litellm], [google_genai], [pydantic_ai]
+For browser applications (\`@sentry/browser\`, \`@sentry/react\`, etc.), you must **manually wrap each AI client** using helper functions.
+
+**Step 1:** Initialize Sentry with tracing:
+\`\`\`javascript
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "...",
+  tracesSampleRate: 1.0,  // Required for AI monitoring
+  sendDefaultPii: true,   // Add data like inputs and responses to/from LLMs and tools
+});
 \`\`\`
 
-Configure (some integrations auto-enable, some need explicit import):
+**Step 2:** Wrap your AI client instances with helper functions:
+
+**OpenAI:**
+\`\`\`javascript
+import OpenAI from "openai";
+
+const openai = new OpenAI();
+const client = Sentry.instrumentOpenAiClient(openai, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+// Use the wrapped client instead of the original
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+\`\`\`
+
+**Anthropic:**
+\`\`\`javascript
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic();
+const client = Sentry.instrumentAnthropicAiClient(anthropic, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const response = await client.messages.create({
+  model: "claude-3-5-sonnet-20241022",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "Hello!" }],
+});
+\`\`\`
+
+**Google Gen AI:**
+\`\`\`javascript
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(apiKey);
+const client = Sentry.instrumentGoogleGenAiClient(genAI, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const model = client.getGenerativeModel({ model: "gemini-pro" });
+\`\`\`
+
+**LangChain:**
+\`\`\`javascript
+import { ChatOpenAI } from "@langchain/openai";
+
+// Create a callback handler
+const callbackHandler = Sentry.createLangChainCallbackHandler({
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const llm = new ChatOpenAI();
+
+// Use the callback handler when invoking
+await llm.invoke("Tell me a joke", {
+  callbacks: [callbackHandler],
+});
+\`\`\`
+
+**LangGraph:**
+\`\`\`javascript
+import { ChatOpenAI } from "@langchain/openai";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = createReactAgent({ llm, tools: [] });
+
+// Instrument the agent
+Sentry.instrumentLangGraph(agent, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+\`\`\`
+
+**Important:** You must wrap EACH client instance separately. The helpers are not global integrations.
+
+### Python (Most Libraries are auto-enabled, except LiteLLM)
+
+#### Auto-enabled Libraries (see table above):
+
+For most Python AI libraries, integrations are **automatically enabled**. Just initialize Sentry:
 
 \`\`\`python
 import sentry_sdk
-# Only import if NOT auto-enabled (see table above)
-from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="...",
+    # Required for AI monitoring
     traces_sample_rate=1.0,
-    send_default_pii=True,  # Required to capture inputs/outputs
-    integrations=[
-        OpenAIAgentsIntegration(),  # Only if explicit integration needed
-    ],
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
 )
 \`\`\`
 
-**Done.** SDK auto-instruments AI calls.
+#### LiteLLM:
+
+\`\`\`python
+import sentry_sdk
+from sentry_sdk.integrations.litellm import LiteLLMIntegration
+sentry_sdk.init(
+    dsn="...",
+    # Required for AI monitoring
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        LiteLLMIntegration(),
+    ],
+)
+\`\`\`
 
 ## 3B. Manual Instrumentation
 
@@ -150,7 +262,6 @@ with sentry_sdk.start_span(op="gen_ai.request", name=f"chat {model}") as span:
     span.set_data("gen_ai.usage.input_tokens", result.input_tokens)
     span.set_data("gen_ai.usage.output_tokens", result.output_tokens)
     span.set_data("gen_ai.usage.input_tokens.cached", result.cached_tokens)
-
 \`\`\`
 
 ### Invoke Agent

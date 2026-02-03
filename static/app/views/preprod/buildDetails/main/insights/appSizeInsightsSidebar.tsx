@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading} from '@sentry/scraps/text';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconClose, IconGrabbable} from 'sentry/icons';
@@ -24,7 +24,7 @@ interface AppSizeInsightsSidebarProps {
 }
 
 function getInsightsDocsUrl(platform?: Platform): string {
-  if (platform === 'macos' || platform === 'ios') {
+  if (platform === 'apple') {
     return 'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/insights/';
   }
   if (platform === 'android') {

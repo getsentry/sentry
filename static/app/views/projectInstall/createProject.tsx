@@ -5,13 +5,14 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -585,7 +586,7 @@ export function CreateProject() {
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const FormFieldGroup = styled('div')`
@@ -598,7 +599,7 @@ const FormFieldGroup = styled('div')`
 `;
 
 const FormLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
 `;
 

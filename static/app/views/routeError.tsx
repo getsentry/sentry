@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
@@ -135,7 +136,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 }
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

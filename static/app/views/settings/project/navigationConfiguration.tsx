@@ -139,9 +139,9 @@ export default function getConfiguration({
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
         {
-          path: `${pathPrefix}/preprod/`,
-          title: t('Preprod'),
-          show: () => !!organization?.features?.includes('preprod-issues'),
+          path: `${pathPrefix}/mobile-builds/`,
+          title: t('Mobile Builds'),
+          show: () => !!organization?.features?.includes('preprod-frontend-routes'),
           badge: () => 'beta',
           description: t('Size analysis and build distribution configuration.'),
         },

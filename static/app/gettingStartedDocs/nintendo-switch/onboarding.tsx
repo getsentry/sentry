@@ -1,6 +1,6 @@
-import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -41,22 +41,12 @@ export const onboarding: OnboardingConfig = {
           ),
           showIcon: true,
           trailingItems: (
-            <Button
-              size="sm"
-              priority="primary"
-              onClick={() => {
-                openPrivateGamingSdkAccessModal({
-                  organization: params.organization,
-                  projectSlug: params.project.slug,
-                  projectId: params.project.id,
-                  sdkName: 'Nintendo Switch',
-                  gamingPlatform: 'nintendo-switch',
-                  origin: params.newOrg ? 'onboarding' : 'project-creation',
-                });
-              }}
-            >
-              {t('Request Access')}
-            </Button>
+            <RequestSdkAccessButton
+              gamingPlatform="nintendo-switch"
+              organization={params.organization}
+              projectId={params.project.id}
+              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+            />
           ),
         },
         {

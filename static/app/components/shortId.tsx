@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+
 import AutoSelectText from 'sentry/components/autoSelectText';
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
 
 interface Props {
   shortId: string;
@@ -33,7 +34,7 @@ function ShortId({shortId, avatar, onClick, to, className}: Props) {
 }
 
 const StyledShortId = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   display: grid;
   grid-auto-flow: column;
   gap: 0.5em;

@@ -1,7 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc} from 'sentry/components/core/layout/styles';
+import {rc} from '@sentry/scraps/layout';
+
 import type {FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
@@ -16,7 +17,16 @@ export type HeadingProps = BaseHeadingProps & {
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   ref?: React.Ref<HTMLHeadingElement | null> | undefined;
-} & React.HTMLAttributes<HTMLHeadingElement> &
+  /**
+   * Deprecated in favor of the Text component API.
+   * If you have an is an unsupported use-case, please contact design engineering for support.
+   * @deprecated
+   */
+  style?: React.CSSProperties;
+} & Omit<
+    React.DetailedHTMLProps<React.HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement>,
+    'style'
+  > &
   ExclusiveTextEllipsisProps;
 
 export const Heading = styled(
@@ -50,6 +60,7 @@ export const Heading = styled(
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
+  word-break: ${p => p.wordBreak ?? undefined};
 
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
   font-weight: ${p => p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium};

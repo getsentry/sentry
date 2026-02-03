@@ -3,14 +3,13 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
@@ -297,7 +296,7 @@ function Task({task, hidePanel}: TaskProps) {
                 setShowSkipConfirmation(!showSkipConfirmation);
               }}
               size="zero"
-              borderless
+              priority="transparent"
               title={t('Skip Task')}
             />
           ) : undefined
@@ -484,7 +483,7 @@ function TaskGroup({
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         }
       />
@@ -608,7 +607,7 @@ const TaskCardWrapper = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   p {
     margin: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   button {
     visibility: hidden;

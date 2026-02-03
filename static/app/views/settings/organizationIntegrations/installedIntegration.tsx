@@ -2,13 +2,13 @@ import {Component, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -155,7 +155,7 @@ export default class InstalledIntegration extends Component<Props> {
                     />
                   )}
                   <StyledLinkButton
-                    borderless
+                    priority="transparent"
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && !canConfigure}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
@@ -180,7 +180,7 @@ export default class InstalledIntegration extends Component<Props> {
                   >
                     <StyledButton
                       disabled={!hasAccess || isPendingDeletion}
-                      borderless
+                      priority="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >
@@ -264,7 +264,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.colors.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 

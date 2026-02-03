@@ -1,11 +1,13 @@
 import {useMemo, useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -49,7 +51,9 @@ function useFetchAdvancedAnalysis({
   const organization = useOrganization();
   return useApiQuery<SpanDiff[]>(
     [
-      `/organizations/${organization.slug}/events-root-cause-analysis/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events-root-cause-analysis/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           transaction,

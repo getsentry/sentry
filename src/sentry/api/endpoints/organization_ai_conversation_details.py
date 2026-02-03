@@ -31,6 +31,10 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.conversation.id",
     "gen_ai.cost.total_tokens",
     "gen_ai.operation.type",
+    "gen_ai.input.messages",
+    "gen_ai.output.messages",
+    "gen_ai.system_instructions",
+    "gen_ai.tool.definitions",
     "gen_ai.request.messages",
     "gen_ai.response.object",
     "gen_ai.response.text",
@@ -51,6 +55,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
+
+        # Ignore statsPeriod so old links don't fail when opened later
+        mutable_query = request.GET.copy()
+        mutable_query.pop("statsPeriod", None)
+        request.GET = mutable_query  # type: ignore[assignment]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

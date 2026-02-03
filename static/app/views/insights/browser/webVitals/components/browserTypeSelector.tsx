@@ -1,6 +1,7 @@
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -74,10 +75,11 @@ export default function BrowserTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{
-        prefix: t('Browser Type'),
-        children: value.length === 0 ? 'All' : undefined,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Browser Type')}>
+          {value.length === 0 ? t('All') : triggerProps.children}
+        </OverlayTrigger.Button>
+      )}
       multiple
       clearable
       value={value}

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -224,7 +224,7 @@ export function ProfilePreview({
 }
 
 const TextBlock = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.5;
   margin-bottom: ${space(2)};
 `;
@@ -310,7 +310,7 @@ const LegendItem = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

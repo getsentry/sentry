@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import type {StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 
-import type {StylesConfig} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
 import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
@@ -227,9 +227,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 
 const Heading = styled('label')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RoleTeamWrapper = styled('div')`

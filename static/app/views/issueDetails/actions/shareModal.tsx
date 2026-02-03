@@ -1,14 +1,15 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Switch} from 'sentry/components/core/switch';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -129,7 +130,7 @@ export default function ShareIssueModal({
         <h4>{t('Share Issue')}</h4>
       </Header>
       <Body>
-        <ModalContent>
+        <Stack gap="md">
           <UrlContainer>
             <TextContainer>
               <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
@@ -214,7 +215,7 @@ export default function ShareIssueModal({
                     <ReshareButton
                       title={t('Generate new URL. Invalidates previous URL')}
                       aria-label={t('Generate new URL')}
-                      borderless
+                      priority="transparent"
                       size="sm"
                       icon={<IconRefresh />}
                       onClick={() => handlePublicShare(null, true)}
@@ -245,17 +246,11 @@ export default function ShareIssueModal({
               )}
             </Fragment>
           )}
-        </ModalContent>
+        </Stack>
       </Body>
     </Fragment>
   );
 }
-
-const ModalContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-`;
 
 const UrlContainer = styled('div')`
   display: grid;
@@ -288,7 +283,7 @@ const CheckboxContainer = styled('label')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
@@ -309,7 +304,7 @@ const Title = styled('div')`
 
 const SubText = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ReshareButton = styled(Button)`

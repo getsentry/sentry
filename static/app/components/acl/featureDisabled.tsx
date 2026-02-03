@@ -1,10 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -84,7 +85,7 @@ function FeatureDisabled({
           )}
         </HelpText>
         <CopyButton
-          borderless
+          priority="transparent"
           icon={<IconCopy />}
           onClick={() => copy(snippet)}
           size="xs"
@@ -133,7 +134,7 @@ function FeatureDisabled({
 const FeatureDisabledMessage = styled('div')`
   display: flex;
   justify-content: space-between;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const HelpDescription = styled('div')`
@@ -160,8 +161,8 @@ const StyledIconChevron = styled(IconChevron)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.tokens.interactive.link.accent.active};
-  height: ${p => p.theme.text.lineHeightBody}em;
-  min-height: ${p => p.theme.text.lineHeightBody}em;
+  height: ${p => p.theme.font.lineHeight.comfortable}em;
+  min-height: ${p => p.theme.font.lineHeight.comfortable}em;
 
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};

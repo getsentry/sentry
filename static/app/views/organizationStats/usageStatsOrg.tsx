@@ -3,16 +3,17 @@ import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
@@ -28,6 +29,7 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
@@ -369,7 +371,9 @@ function UsageStatsOrganization({
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
-      `/organizations/${organization.slug}/stats_v2/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: orgStatsQuery,
       },
@@ -703,8 +707,8 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: ${p => p.theme.fontWeight.normal};
-    font-size: ${p => p.theme.fontSize.md};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
@@ -728,7 +732,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
           <StyledSettingsButton
-            borderless
+            priority="transparent"
             size="zero"
             icon={<IconSettings variant="muted" />}
             title={t('Dynamic Sampling Settings')}

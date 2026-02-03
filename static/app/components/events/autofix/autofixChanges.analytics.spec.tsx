@@ -4,7 +4,8 @@ import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
   AutofixStatus,
@@ -16,13 +17,16 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 
-jest.mock('sentry/components/core/button', () => ({
+jest.mock('@sentry/scraps/button', () => ({
   Button: jest.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;
   }),
   LinkButton: jest.fn(props => {
     return <a href={props.href}>{props.children}</a>;
+  }),
+  ButtonBar: jest.fn(props => {
+    return <div {...props}>{props.children}</div>;
   }),
 }));
 

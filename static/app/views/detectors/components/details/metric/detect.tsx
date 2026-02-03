@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
   ProvidedFormattedQuery,
@@ -246,7 +245,7 @@ const Label = styled('dt')`
   color: ${p => p.theme.tokens.content.secondary};
   justify-self: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const Value = styled('dl')`

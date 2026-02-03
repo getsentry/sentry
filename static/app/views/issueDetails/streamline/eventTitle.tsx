@@ -1,10 +1,13 @@
 import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
@@ -119,7 +122,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   const grayText = css`
     color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.fontWeight.normal};
+    font-weight: ${theme.font.weight.sans.regular};
   `;
 
   const host = organization.links.regionUrl;
@@ -151,7 +154,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               title={t('Copy Event ID')}
               onClick={handleCopyEventId}
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
@@ -162,7 +165,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             css={grayText}
             aria-label={t('Event timestamp')}
           />
-          <JsonLinkWrapper className="hidden-xs">
+          <Flex align="center" gap="xs" className="hidden-xs">
             <Divider />
             <JsonLink
               href={jsonUrl}
@@ -178,7 +181,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </JsonLink>
             <Divider />
             <GroupMarkdownButton group={group} event={event} />
-          </JsonLinkWrapper>
+          </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
               <Divider />
@@ -186,7 +189,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                 title={t(
                   'Sentry has detected configuration issues with this event. Click for more info.'
                 )}
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}
                 onClick={() => {
@@ -209,7 +212,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
 `;
 
@@ -244,23 +247,17 @@ const EventInfo = styled('div')`
 
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.colors.red400};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   :hover {
     color: ${p => p.theme.colors.red400};
   }
 `;
 
-const JsonLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
 
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
@@ -272,7 +269,7 @@ const JsonLink = styled(ExternalLink)`
 const MarkdownButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
-  text-decoration-color: ${p => Color(p.theme.colors.gray400).alpha(0.5).string()};
+  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
   font-size: inherit;
   font-weight: normal;
   cursor: pointer;
@@ -289,7 +286,7 @@ const EventIdWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space['2xs']};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 
   button {

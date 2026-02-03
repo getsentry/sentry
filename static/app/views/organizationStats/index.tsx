@@ -5,8 +5,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -20,7 +23,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory, type DataCategoryInfo, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -261,7 +263,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return organization.features.includes('seer-billing');
+        return (
+          organization.features.includes('seer-billing') &&
+          organization.features.includes('seer-added')
+        );
       }
       if ([DataCategory.LOG_BYTE].includes(opt.value)) {
         return organization.features.includes('ourlogs-enabled');
@@ -283,10 +288,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         return !hasProfilingStats;
       }
       if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('size-analysis-billing');
+        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-        return organization.features.includes('installable-build-billing');
+        return organization.features.includes('expose-category-installable-build');
       }
       return true;
     }).map(opt => {
@@ -301,7 +306,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={this.dataCategory}
             options={options}
             onChange={opt =>
@@ -360,7 +367,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             <div>
               <Layout.Main width="full">
                 <HookHeader organization={organization} />
-                <ControlsWrapper>{this.renderProjectPageControl()}</ControlsWrapper>
+                <Flex justify="between" align="center" marginBottom="xl" gap="xs">
+                  {this.renderProjectPageControl()}
+                </Flex>
                 {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
@@ -424,14 +433,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: auto / span 1;
   }
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-bottom: ${space(2)};
-  justify-content: space-between;
 `;
 
 const PageControl = styled('div')`

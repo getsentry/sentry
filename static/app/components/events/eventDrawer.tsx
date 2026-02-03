@@ -1,17 +1,17 @@
 import styled from '@emotion/styled';
 
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {space} from 'sentry/styles/space';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
   display: block;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -27,8 +27,8 @@ export function CrumbContainer(props: FlexProps<'div'>) {
 }
 
 export const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

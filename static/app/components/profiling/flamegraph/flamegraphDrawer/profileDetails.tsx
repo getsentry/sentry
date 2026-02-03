@@ -2,10 +2,10 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Version from 'sentry/components/version';
@@ -533,7 +533,7 @@ const DetailsRow = styled('div')`
   overflow: hidden;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   > span,
   > a {

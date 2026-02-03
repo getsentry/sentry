@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
@@ -77,7 +77,7 @@ export default function ReplayInlineOnboardingPanel({
           position="bottom-end"
           triggerProps={{
             showChevron: false,
-            borderless: true,
+            priority: 'transparent',
             icon: <IconClose variant="muted" />,
           }}
           size="xs"
@@ -113,7 +113,7 @@ export default function ReplayInlineOnboardingPanel({
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.tokens.content.accent};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerWrapper = styled('div')`
@@ -131,9 +131,9 @@ const BannerWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`

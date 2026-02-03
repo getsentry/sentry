@@ -1,8 +1,13 @@
 import React, {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Grid} from 'sentry/components/core/layout/grid';
+import {
+  Grid,
+  type GridProps,
+  type GridPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
 
 describe('Grid', () => {
   it('renders children', () => {
@@ -106,5 +111,20 @@ describe('Grid', () => {
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
     expect(paddingFirst).toEqual(paddingBottomFirst);
+  });
+
+  describe('types', () => {
+    it('default signature limits children to React.ReactNode', () => {
+      const props: GridProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: GridPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });

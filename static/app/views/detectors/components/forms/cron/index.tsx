@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Stack} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
@@ -19,6 +20,8 @@ import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/useCronsUpsertGuideState';
+
+import {PreviewSection} from './previewSection';
 
 function useIsShowingPlatformGuide() {
   const {platformKey, guideKey} = useCronsUpsertGuideState();
@@ -39,6 +42,7 @@ function CronDetectorForm({detector}: {detector?: CronDetector}) {
           )}
         </Alert>
       )}
+      <PreviewSection />
       <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
@@ -65,7 +69,7 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
-      noEnvironment
+      environment={false}
       disabledCreate={
         showingPlatformGuide
           ? t(
@@ -85,7 +89,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
-      noEnvironment
+      environment={false}
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>

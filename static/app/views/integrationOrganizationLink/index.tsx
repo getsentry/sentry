@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,6 +19,7 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -86,13 +88,18 @@ export default function IntegrationOrganizationLink() {
     isPending: isPendingOrganizations,
     error: organizationsError,
   } = useApiQuery<Organization[]>(
-    ['/organizations/', {query: {include_feature_flags: 1}}],
+    [getApiUrl('/organizations/'), {query: {include_feature_flags: 1}}],
     {staleTime: Infinity}
   );
 
   const isOrganizationQueryEnabled = !!selectedOrgSlug;
   const organizationQuery = useApiQuery<Organization>(
-    [`/organizations/${selectedOrgSlug}/`, {query: {include_feature_flags: 1}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
+      {query: {include_feature_flags: 1}},
+    ],
     {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
   );
   const organization = organizationQuery.data ?? null;
@@ -107,7 +114,9 @@ export default function IntegrationOrganizationLink() {
     providers: IntegrationProvider[];
   }>(
     [
-      `/organizations/${selectedOrgSlug}/config/integrations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+        path: {organizationIdOrSlug: selectedOrgSlug!},
+      }),
       {query: {provider_key: integrationSlug}},
     ],
     {staleTime: Infinity, enabled: isProviderQueryEnabled}

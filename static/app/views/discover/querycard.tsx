@@ -1,9 +1,10 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
-import {Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -116,8 +117,8 @@ const QueryTitle = styled('div')`
 `;
 
 const QueryDetail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
   display: block;
@@ -142,7 +143,7 @@ const QueryCardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column-gap: ${space(1)};
   display: block;
   width: 100%;

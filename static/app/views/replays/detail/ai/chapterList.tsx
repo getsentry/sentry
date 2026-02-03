@@ -2,8 +2,10 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
@@ -66,16 +68,16 @@ export function ChapterList({timeRanges}: Props) {
 
   if (!chapterData?.length) {
     return (
-      <EmptyContainer>
+      <Container padding="xl">
         <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
-      </EmptyContainer>
+      </Container>
     );
   }
 
   return (
-    <ChaptersList>
+    <Container flex="1">
       {chapterData.map(({title, start, end, breadcrumbs}, i) => (
         <ChapterRow
           key={i}
@@ -86,7 +88,7 @@ export function ChapterList({timeRanges}: Props) {
           onClickChapterTimestamp={onClickChapterTimestamp}
         />
       ))}
-    </ChaptersList>
+    </Container>
   );
 }
 
@@ -229,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
@@ -252,10 +253,6 @@ const ChapterIconArrow = styled(IconChevron)`
   details[open] & {
     transform: rotate(180deg);
   }
-`;
-
-const ChaptersList = styled('div')`
-  flex: 1;
 `;
 
 const ChapterWrapper = styled('details')`
@@ -334,7 +331,7 @@ const Chapter = styled('summary')`
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 0 ${space(0.75)};
   color: ${p => p.theme.tokens.content.primary};
 
@@ -382,11 +379,11 @@ const ChapterTitle = styled('div')`
   grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1)} 0;
 
   .activeChapter & {
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -401,11 +398,7 @@ const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   justify-content: flex-end;
-`;
-
-const EmptyContainer = styled('div')`
-  padding: ${space(2)};
 `;

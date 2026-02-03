@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -49,8 +50,8 @@ const Body = styled(PanelBody)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;
 

@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
 
+from django.db.models import Count
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
@@ -197,7 +198,7 @@ def error(
         org_id = None
     else:
         org_id = org.organization.id
-    logger.error(
+    logger.warning(
         "github.installation_error",
         extra={"org_id": org_id, "error_short": error_short},
     )
@@ -1048,18 +1049,46 @@ class GithubOrganizationSelection:
             if len(installation_info) == 0:
                 return pipeline.next_step()
 
+            # add information about number of org integrations per installation
+            installation_ids = [
+                installation["installation_id"] for installation in installation_info
+            ]
+            integration_install_counts = (
+                OrganizationIntegration.objects.filter(
+                    integration__provider=GitHubIntegrationProvider.key,
+                    integration__external_id__in=installation_ids,
+                )
+                .values("integration__external_id")
+                .annotate(count=Count("id"))
+            )
+            integration_install_counts_dict = {
+                item["integration__external_id"]: item["count"]
+                for item in integration_install_counts
+            }
+            for installation in installation_info:
+                installation["count"] = integration_install_counts_dict.get(
+                    installation["installation_id"], 0
+                )
+
             # add an option for users to install on a new GH organization
             installation_info.append(
                 {
                     "installation_id": "-1",
                     "github_account": "Integrate with a new GitHub organization",
                     "avatar_url": "",
+                    "count": 0,
                 }
             )
 
             if chosen_installation_id := request.GET.get("chosen_installation_id"):
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
+
+                # NOTE: there may still be a race condition here where multiple orgs read the same count (0)
+                # the org integration creation logic is in finish_pipeline
+                can_install_chosen_installation = (
+                    integration_install_counts_dict.get(chosen_installation_id, 0) == 0
+                ) or has_scm_multi_org
 
                 # Validate the same org is installing and that they have the multi org feature
                 installing_organization_slug = pipeline.fetch_state("installing_organization_slug")
@@ -1068,7 +1097,8 @@ class GithubOrganizationSelection:
                     and installing_organization_slug
                     == self.active_user_organization.organization.slug
                 )
-                if not has_scm_multi_org or not is_same_installing_org:
+
+                if not can_install_chosen_installation or not is_same_installing_org:
                     lifecycle.record_failure(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
                     return error(
                         request,

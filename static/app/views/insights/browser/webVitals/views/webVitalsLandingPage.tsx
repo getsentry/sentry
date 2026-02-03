@@ -2,9 +2,9 @@ import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -208,7 +208,7 @@ const LoadingBox = styled('div')`
 `;
 
 const PagesTooltip = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline dotted ${p => p.theme.colors.gray400};
 `;

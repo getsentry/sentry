@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Alert} from 'sentry/components/core/alert';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -189,7 +189,7 @@ const Legend = styled('div')`
 `;
 
 const CrontabText = styled(Text)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

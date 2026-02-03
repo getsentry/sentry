@@ -7,8 +7,8 @@ import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 import {SliderThumb} from './thumb';
@@ -310,7 +310,7 @@ const SliderGroup = styled('div')`
 `;
 
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -400,5 +400,5 @@ const SliderTickLabel = styled('small')`
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

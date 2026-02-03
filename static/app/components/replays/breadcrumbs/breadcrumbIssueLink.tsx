@@ -1,8 +1,9 @@
 import {useCallback, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Link} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
@@ -68,7 +69,7 @@ const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${p => p.theme.space.xs};
 `;

@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -357,7 +357,7 @@ const Title = styled('h3')`
 
 const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {

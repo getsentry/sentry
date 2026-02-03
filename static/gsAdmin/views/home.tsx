@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
@@ -110,7 +111,9 @@ export default function HomePage() {
       </div>
       <RegionPanel>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={regionUrl}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -169,7 +172,7 @@ const SplashWrapper = styled('div')`
 
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: normal;
   color: ${p => p.theme.tokens.content.primary};
 `;

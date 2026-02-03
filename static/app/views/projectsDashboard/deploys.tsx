@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
@@ -88,7 +89,7 @@ const DeployRows = styled('div')`
   grid-template-columns: minmax(30px, 1fr) 1fr 1fr;
   grid-template-rows: auto;
   gap: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 

@@ -1,4 +1,4 @@
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -20,21 +20,19 @@ interface Props {
 export default function SeerAgentSection({canWrite, project, preference}: Props) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
-  const isAutoCreatePREnabled = Boolean(
+  const isAutoFixEnabled = Boolean(
+    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
+  );
+  const isCreatePrEnabled = Boolean(
     preference?.automated_run_stopping_point &&
       preference.automated_run_stopping_point !== 'code_changes'
   );
-
   const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
-  const isAutoTriggeredFixesEnabled = Boolean(
-    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
-  );
 
-  const isDisabled =
-    !canWrite || !isAutoTriggeredFixesEnabled || isBackgroundAgentEnabled;
+  const isDisabled = !canWrite || !isAutoFixEnabled || isBackgroundAgentEnabled;
 
   let disabledReason: string | null = null;
-  if (!isAutoTriggeredFixesEnabled) {
+  if (!isAutoFixEnabled) {
     disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
   } else if (isBackgroundAgentEnabled) {
     disabledReason = t('This setting is not available when using background agents.');
@@ -52,7 +50,7 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
           docsLink: <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />,
         }
       )}
-      value={isAutoCreatePREnabled}
+      value={isCreatePrEnabled}
       onChange={value => {
         const newValue: ProjectSeerPreferences['automated_run_stopping_point'] = value
           ? 'open_pr'

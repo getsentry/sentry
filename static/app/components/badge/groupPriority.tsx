@@ -4,13 +4,13 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -23,6 +23,7 @@ import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -52,10 +53,18 @@ function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
-  const {data} = useApiQuery<{activity: Activity[]}>([`/issues/${groupId}/activities/`], {
-    enabled: !defined(incomingLastEditedBy),
-    staleTime: 0,
-  });
+  const organization = useOrganization();
+  const {data} = useApiQuery<{activity: Activity[]}>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+      }),
+    ],
+    {
+      enabled: !defined(incomingLastEditedBy),
+      staleTime: 0,
+    }
+  );
 
   const lastEditedBy = useMemo(() => {
     if (incomingLastEditedBy) {
@@ -168,7 +177,7 @@ function GroupPriorityLearnMore() {
       </LinkButton>
       <DismissButton
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -240,7 +249,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   border: none;
   padding: 0;
   height: unset;
@@ -285,7 +294,7 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};

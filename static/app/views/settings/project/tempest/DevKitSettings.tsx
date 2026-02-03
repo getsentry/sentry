@@ -9,10 +9,10 @@ import devkitCrashesStep4 from 'sentry-images/tempest/devkit-crashes-step4.jpg';
 import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Accordion from 'sentry/components/container/accordion';
-import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -232,7 +232,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')``;
@@ -243,8 +243,8 @@ const HeaderWrapper = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;
 
@@ -301,7 +301,7 @@ const IntroText = styled('p')`
 `;
 
 const AccordionHeader = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const AccordionContentWrapper = styled('div')`

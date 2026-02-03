@@ -2,10 +2,10 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -95,24 +95,24 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
         options={filterOptions}
         maxMenuHeight={400}
         trigger={props => (
-          <SelectTrigger.Button
-            borderless
+          <OverlayTrigger.Button
+            priority="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
             title={t('Filter')}
             {...props}
           >
-            {filters.length > 0 ? filters.length : null}
-          </SelectTrigger.Button>
+            {filters.length > 0 ? filters.length : ''}
+          </OverlayTrigger.Button>
         )}
       />
       <CompactSelect
         size="xs"
         position="bottom-end"
         trigger={props => (
-          <SelectTrigger.IconButton
-            borderless
+          <OverlayTrigger.IconButton
+            priority="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {logout} from 'sentry/actionCreators/account';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -63,7 +64,7 @@ export function UserDropdown() {
 
 const SectionTitleWrapper = styled('div')`
   text-transform: none;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;

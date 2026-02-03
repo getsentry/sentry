@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {AlertVariant} from 'sentry/utils/theme';
 
 type StatusVariant = AlertVariant | 'resolved';
@@ -31,7 +32,22 @@ const StatusLevel = styled('div')<{color: AlertVariant}>`
   height: 15px;
   border-radius: 0 3px 3px 0;
 
-  background-color: ${p => p.theme.alert[p.color].background};
+  background-color: ${p => {
+    switch (p.color) {
+      case 'info':
+        return p.theme.colors.blue400;
+      case 'success':
+        return p.theme.colors.green400;
+      case 'muted':
+        return p.theme.colors.gray200;
+      case 'warning':
+        return p.theme.colors.yellow400;
+      case 'danger':
+        return p.theme.colors.red400;
+      default:
+        return p.theme.colors.gray200;
+    }
+  }};
   & span {
     display: block;
     width: 9px;

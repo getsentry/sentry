@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import toArray from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -58,7 +59,9 @@ function TeamReleases({
     refetch: refetchPeriodReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      `/teams/${organization.slug}/${teamSlug}/release-count/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),
@@ -75,7 +78,9 @@ function TeamReleases({
     refetch: refetchWeekReleases,
   } = useApiQuery<ProjectReleaseCount>(
     [
-      `/teams/${organization.slug}/${teamSlug}/release-count/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           statsPeriod: '7d',
@@ -306,7 +311,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   box-shadow: unset;
 
   & > div {

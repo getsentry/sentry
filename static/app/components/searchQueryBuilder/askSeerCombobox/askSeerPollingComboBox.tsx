@@ -5,10 +5,11 @@ import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Text} from '@sentry/scraps/text';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Text} from 'sentry/components/core/text';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
@@ -476,7 +477,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             reset();
           }}
           aria-label={t('Close Seer Search')}
-          borderless
+          priority="transparent"
         />
       </ButtonsWrapper>
       {state.isOpen ? (
@@ -553,7 +554,7 @@ const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 
   border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -84,7 +85,7 @@ const TrialInfo = styled('div')`
 
 const StyledHeading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 const StyledSubText = styled(TextBlock)`

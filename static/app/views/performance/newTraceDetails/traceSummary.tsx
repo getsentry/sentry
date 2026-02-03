@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Link} from 'sentry/components/core/link';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +12,7 @@ import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -38,7 +39,9 @@ const makeTraceSummaryQueryKey = (
   organizationSlug: string,
   traceSlug: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/trace-summary/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+    path: {organizationIdOrSlug: organizationSlug},
+  }),
   {method: 'POST', data: {traceSlug}},
 ];
 
@@ -194,7 +197,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -202,12 +205,12 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     padding: ${space(0.25)} ${space(0.5)};
     background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};

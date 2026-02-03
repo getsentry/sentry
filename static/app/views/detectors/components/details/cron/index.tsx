@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -259,7 +260,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      borderless
+                      priority="transparent"
                     />
                   </Flex>
                 }

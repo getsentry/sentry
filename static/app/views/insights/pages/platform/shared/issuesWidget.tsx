@@ -1,9 +1,10 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
@@ -22,6 +23,7 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
@@ -101,7 +103,9 @@ export function IssuesWidget() {
     refetch,
   } = useApiQuery<Group[]>(
     [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: queryParams,
       },
@@ -210,7 +214,7 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   font-size: 1rem;
   line-height: 1.2;
   padding-left: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SuperHeader = styled(PanelHeader)`

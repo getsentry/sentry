@@ -2,16 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {assignToActor} from 'sentry/actionCreators/group';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   ImpactAssessmentArtifact,
@@ -50,7 +49,8 @@ import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {
   ExplorerCodingAgentState,
@@ -469,10 +469,11 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const {data: memberDataByEmail} = useApiQuery<Member[]>(
     email
       ? [
-          `/organizations/${organization.slug}/members/`,
-          {query: {query: `email:${email}`}},
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
         ]
-      : [''],
+      : ([''] as ApiQueryKey),
     {
       enabled: !!email,
       staleTime: 0,
@@ -483,8 +484,13 @@ function useMemberLookup(organization: Organization, email?: string, name?: stri
   const shouldTryNameMatch = name && !memberDataByEmail?.length;
   const {data: memberDataByName} = useApiQuery<Member[]>(
     shouldTryNameMatch
-      ? [`/organizations/${organization.slug}/members/`, {query: {query: name}}]
-      : [''],
+      ? [
+          getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {query: {query: name}},
+        ]
+      : ([''] as ApiQueryKey),
     {
       enabled: !!shouldTryNameMatch,
       staleTime: 0,
@@ -891,16 +897,16 @@ const CodingAgentStatusTag = styled('span')<{
   align-items: center;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.sm};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   background-color: ${p => {
     switch (p.$status) {
       case 'completed':
-        return p.theme.alert.success.backgroundLight;
+        return p.theme.colors.green100;
       case 'failed':
-        return p.theme.alert.danger.backgroundLight;
+        return p.theme.colors.red100;
       default:
-        return p.theme.blue100;
+        return p.theme.colors.blue100;
     }
   }};
   color: ${p => {
@@ -910,7 +916,7 @@ const CodingAgentStatusTag = styled('span')<{
       case 'failed':
         return p.theme.tokens.content.danger;
       default:
-        return p.theme.blue400;
+        return p.theme.tokens.content.accent;
     }
   }};
 `;
@@ -983,7 +989,7 @@ const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
 const TreeValue = styled('div')`
   padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => p.theme.tokens.content.primary};
@@ -994,7 +1000,7 @@ const TreeKey = styled(TreeValue)`
 `;
 
 const ImpactTreeKey = styled(TreeKey)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TreeSubValue = styled(TreeValue)`
@@ -1022,7 +1028,7 @@ const AnimatedCard = styled(motion.div)`
 `;
 
 const NonBoldTitle = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-top: ${p => p.theme.space.xs};
 `;
 

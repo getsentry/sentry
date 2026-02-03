@@ -2,11 +2,16 @@ import {useMemo} from 'react';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  SENTRY_TRACEMETRIC_NUMBER_TAGS,
+  SENTRY_TRACEMETRIC_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -44,19 +49,39 @@ export function Filter({traceMetric}: FilterProps) {
   });
 
   const visibleNumberTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(numberTags ?? {}).filter(
-        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
-      )
-    );
+    const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce((acc, key) => {
+      if (!HiddenTraceMetricSearchFields.includes(key)) {
+        acc[key] = {key, name: key, kind: FieldKind.MEASUREMENT};
+      }
+      return acc;
+    }, {} as TagCollection);
+
+    return {
+      ...staticNumberTags,
+      ...Object.fromEntries(
+        Object.entries(numberTags ?? {}).filter(
+          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+        )
+      ),
+    };
   }, [numberTags]);
 
   const visibleStringTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(stringTags ?? {}).filter(
-        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
-      )
-    );
+    const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce((acc, key) => {
+      if (!HiddenTraceMetricSearchFields.includes(key)) {
+        acc[key] = {key, name: key, kind: FieldKind.FIELD};
+      }
+      return acc;
+    }, {} as TagCollection);
+
+    return {
+      ...staticStringTags,
+      ...Object.fromEntries(
+        Object.entries(stringTags ?? {}).filter(
+          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+        )
+      ),
+    };
   }, [stringTags]);
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =

@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -99,7 +101,7 @@ function IntegrationRow(props: Props) {
 
   return (
     <PanelRow noPadding data-test-id={slug}>
-      <FlexContainer>
+      <Flex align="center" padding="xl">
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
@@ -108,14 +110,14 @@ function IntegrationRow(props: Props) {
             {renderDetails()}
           </IntegrationDetails>
         </TitleContainer>
-        <TagsContainer>
+        <Flex justify="end" wrap="wrap" flex={3} padding="0 xl" gap="md">
           {categories?.map(category => (
             <Tag key={category} variant={category === publishStatus ? 'info' : 'muted'}>
               {category === 'api' ? 'API' : startCase(category)}
             </Tag>
           ))}
-        </TagsContainer>
-      </FlexContainer>
+        </Flex>
+      </Flex>
       {alertText && (
         <AlertContainer>
           <Alert.Container>
@@ -160,36 +162,20 @@ const PanelRow = styled(PanelItem)`
   flex-direction: column;
 `;
 
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(2)};
-`;
-
 const TitleContainer = styled('div')`
   flex: 1;
   padding: 0 16px;
   white-space: nowrap;
 `;
 
-const TagsContainer = styled('div')`
-  flex: 3;
-  padding: 0 ${space(2)};
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  justify-content: flex-end;
-`;
-
 const IntegrationName = styled(Link)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const IntegrationDetails = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledLink = styled(Link)`
@@ -221,7 +207,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     content: '|';
     color: ${p => p.theme.tokens.content.secondary};
     margin-right: ${space(0.75)};
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 

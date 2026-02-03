@@ -30,7 +30,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.secondary)};
   }
 
   pre[class*='language-'] {
@@ -48,9 +48,9 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   code[class*='language-'] {
     color: var(--prism-base);
     background: var(--prism-block-background);
-    font-size: ${theme.fontSize.sm};
+    font-size: ${theme.font.size.sm};
     text-shadow: none;
-    font-family: ${theme.text.familyMono};
+    font-family: ${theme.font.family.mono};
     direction: ltr;
     text-align: left;
     white-space: pre;
@@ -116,7 +116,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
     }
     .token.important,
     .token.bold {
-      font-weight: ${theme.fontWeight.bold};
+      font-weight: ${theme.font.weight.sans.medium};
     }
     .token.italic {
       font-style: italic;

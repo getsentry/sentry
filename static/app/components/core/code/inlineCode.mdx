@@ -2,7 +2,7 @@
 title: InlineCode
 description: InlineCode provides styling for short snippets of code within text content, such as variable names, function names, or short commands.
 category: typography
-source: 'sentry/components/core/code'
+source: '@sentry/scraps/code'
 status: stable
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/inlineCode/index.tsx
@@ -11,9 +11,9 @@ resources:
     WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
 ---
 
-import {InlineCode} from 'sentry/components/core/code/inlineCode';
-import {Text} from 'sentry/components/core/text';
-import {Prose} from 'sentry/components/core/text/prose';
+import {InlineCode} from '@sentry/scraps/code';
+import {Heading, Prose, Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
 import documentation from '!!type-loader!@sentry/scraps/code/inlineCode';
@@ -76,6 +76,21 @@ For long form content, `<code>` elements are automatically styled within the [`<
     so it can be imported elsewhere in your application.
   </p>
 </Prose>
+```
+
+## Variants
+
+Use `variant="neutral"` for page headings or other situations where the vibrancy of the default `variant="accent"` would be distracting.
+
+<Storybook.Demo>
+  <Heading as="h3">
+    Hello <InlineCode variant="neutral">:user</InlineCode>
+  </Heading>
+</Storybook.Demo>
+```tsx
+<Heading as="h3">
+  Hello <InlineCode variant="neutral">:user</InlineCode>
+</Heading>
 ```
 
 ## Common Use Cases

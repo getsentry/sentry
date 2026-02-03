@@ -1,11 +1,10 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -120,7 +119,7 @@ export function CollapsibleChainLink({
           ) : (
             <AddButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setIsAdding(true)}
               title={t('Give feedback and rethink the answer')}
               aria-label={t('Give feedback and rethink the answer')}
@@ -184,7 +183,7 @@ const AddButton = styled(Button)`
 const RethinkLabel = styled('span')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-right: ${space(0.5)};
 `;

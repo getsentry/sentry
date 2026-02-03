@@ -56,8 +56,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_DB_QUERIES
     settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.potential_parents = {}
         self.previous_span: Span | None = None
@@ -156,7 +162,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
 
         # Do we have enough spans?
-        count = self.settings.get("count")
+        count = self.settings["count"]
         if len(self.n_spans) < count:
             return
 
@@ -195,6 +201,20 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 metrics.incr("performance.performance_issue.invalid_description")
                 return
 
+            evidence_data = {
+                "transaction_name": self._event.get("transaction", ""),
+                "op": "db",
+                "parent_span_ids": [parent_span_id],
+                "parent_span": get_span_evidence_value(parent_span),
+                "cause_span_ids": [self.source_span.get("span_id", None)],
+                "offender_span_ids": offender_span_ids,
+                "repeating_spans": f"{self.n_spans[0].get('op', 'db')} - {first_span_description}",
+                "repeating_spans_compact": first_span_description,
+                "num_repeating_spans": str(len(offender_span_ids)),
+            }
+            if self.detector_id is not None:
+                evidence_data["detector_id"] = self.detector_id
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -211,21 +231,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                         important=True,
                     )
                 ],
-                evidence_data={
-                    "transaction_name": self._event.get("transaction", ""),
-                    "op": "db",
-                    "parent_span_ids": [parent_span_id],
-                    "parent_span": get_span_evidence_value(parent_span),
-                    "cause_span_ids": [self.source_span.get("span_id", None)],
-                    "offender_span_ids": offender_span_ids,
-                    "repeating_spans": f"{self.n_spans[0].get('op', 'db')} - {first_span_description}",
-                    "repeating_spans_compact": first_span_description,
-                    "num_repeating_spans": str(len(offender_span_ids)),
-                },
+                evidence_data=evidence_data,
             )
 
     def _is_slower_than_threshold(self) -> bool:
-        duration_threshold = self.settings.get("duration_threshold")
+        duration_threshold = self.settings["duration_threshold"]
         return total_span_time(self.n_spans) >= duration_threshold
 
     def _metrics_for_extra_matching_spans(self) -> None:

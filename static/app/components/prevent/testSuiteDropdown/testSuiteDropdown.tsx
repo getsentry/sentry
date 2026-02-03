@@ -3,9 +3,10 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Badge} from '@sentry/scraps/badge';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';
@@ -109,24 +110,19 @@ export function TestSuiteDropdown() {
           : value.length - suitesToShow.length;
 
         return (
-          <SelectTrigger.Button {...triggerProps}>
-            <TriggerLabelWrap>
+          <OverlayTrigger.Button {...triggerProps}>
+            <Container as="span" minWidth="0" position="relative">
               <TriggerLabel>{label}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
             {remainingCount > 0 && (
               <StyledBadge variant="muted">{`+${remainingCount}`}</StyledBadge>
             )}
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;

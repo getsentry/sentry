@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {AlertBadge} from '@sentry/scraps/badge';
+
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -361,7 +362,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -397,7 +398,7 @@ const TriggerTitle = styled('div')`
 
 const TriggerTitleText = styled('h4')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -422,7 +423,7 @@ const TriggerText = styled('span')`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

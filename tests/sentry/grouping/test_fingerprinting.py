@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 
 from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
-from sentry.db.models.fields.node import NodeData
 from sentry.grouping.api import (
     _apply_custom_title_if_needed,
     get_default_grouping_config_dict,
@@ -13,7 +12,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.grouping.utils import resolve_fingerprint_values
+from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.variants import BaseVariant
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
@@ -271,7 +270,7 @@ release:foo                                     -> release-foo
 def test_variable_resolution() -> None:
     # TODO: This should be fleshed out to test way more cases, at which point we'll need to add some
     # actual data here
-    event_data = NodeData(id="11211231")
+    event = Event(project_id=908415, event_id="11211231", data={})
 
     for fingerprint_entry, expected_resolved_value in [
         ("{{ default }}", "{{ default }}"),
@@ -279,7 +278,7 @@ def test_variable_resolution() -> None:
         ("{{  default }}", "{{ default }}"),
         ("{{ dog }}", "<unrecognized-variable-dog>"),
     ]:
-        assert resolve_fingerprint_values([fingerprint_entry], event_data) == [
+        assert resolve_fingerprint_values([fingerprint_entry], event) == [
             expected_resolved_value
         ], f"Entry {fingerprint_entry} resolved incorrectly"
 
@@ -323,7 +322,7 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
             is True
         )
         assert resolve_fingerprint_values(
-            fingerprint, NodeData(event_data), use_legacy_unknown_variable_handling=True
+            fingerprint, event, use_legacy_unknown_variable_handling=True
         ) == ["{{ dog }}"]
 
     # Under the new config, we ask for non-legacy behavior, and as a result the unknown fingerprint
@@ -351,7 +350,7 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
             is False
         )
         assert resolve_fingerprint_values(
-            fingerprint, NodeData(event_data), use_legacy_unknown_variable_handling=False
+            fingerprint, event, use_legacy_unknown_variable_handling=False
         ) == ["<unrecognized-variable-dog>"]
 
 

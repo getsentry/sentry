@@ -2,10 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
@@ -16,7 +16,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
 };
 
 type IntegrationRow = {
-  dateAdded: string;
+  dateAdded: string | null;
   gracePeriodEnd: string | null;
   id: number;
   integration: {
@@ -63,7 +63,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
       path={`/_admin/customers/${orgId}/`}
       endpoint={`/customers/${orgId}/integrations/`}
       method="GET"
-      defaultParams={{per_page: 25}}
+      defaultParams={{per_page: 10}}
       useQueryString={false}
       rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
@@ -128,7 +128,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
           <td key="expand">
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => toggleRow(row.id)}
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
@@ -162,8 +162,8 @@ const MetadataContent = styled('pre')`
   padding: ${space(1.5)};
   border-radius: 4px;
   overflow-x: auto;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre-wrap;
   word-wrap: break-word;
 `;
