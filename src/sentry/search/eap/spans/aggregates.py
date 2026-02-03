@@ -48,7 +48,9 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
     return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
 
 
-def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_starts(
+    args: ResolvedArguments,
+) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
     filter = TraceItemFilter(
         exists_filter=ExistsFilter(
@@ -59,7 +61,9 @@ def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
-def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_count_scores(
+    args: ResolvedArguments,
+) -> tuple[AttributeKey, TraceItemFilter]:
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
@@ -67,7 +71,9 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
     return (ratio_attribute, filter)
 
 
-def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_http_response_count(
+    args: ResolvedArguments,
+) -> tuple[AttributeKey, TraceItemFilter]:
     code = cast(Literal[1, 2, 3, 4, 5], args[0])
     codes = constants.RESPONSE_CODE_MAP[code]
 
@@ -93,7 +99,9 @@ def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (status_code_attribute, filter)
 
 
-def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+def resolve_bounded_sample(
+    args: ResolvedArguments,
+) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
     lower_bound = cast(float, args[1])
     upper_bound = cast(float | None, args[2])
@@ -330,6 +338,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     "currency",
                     *constants.SIZE_TYPE,
