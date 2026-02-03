@@ -16,8 +16,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.scm.subscriptions.types import SubscriptionEvent
-from sentry.scm.types import ProviderName
+from sentry.scm.types import ProviderName, SubscriptionEvent
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -72,14 +71,18 @@ def deserialize_event(
             "event_type_hint": result.event_type_hint,
             "extra": result.extra,
             "received_at": result.received_at,
-            "sentry_meta": [
-                {
-                    "id": item.id,
-                    "integration_id": item.integration_id,
-                    "organization_id": item.organization_id,
-                }
-                for item in result.sentry_meta
-            ],
+            "sentry_meta": (
+                [
+                    {
+                        "id": item.id,
+                        "integration_id": item.integration_id,
+                        "organization_id": item.organization_id,
+                    }
+                    for item in result.sentry_meta
+                ]
+                if result.sentry_meta
+                else None
+            ),
             "type": result.type,
         }
     except msgspec.DecodeError as e:
@@ -106,14 +109,18 @@ def serialize_event(event: SubscriptionEvent) -> bytes:
         event_type_hint=event["event_type_hint"],
         extra=event["extra"],
         received_at=event["received_at"],
-        sentry_meta=[
-            SubscriptionEventSentryMetaParser(
-                id=item["id"],
-                integration_id=item["integration_id"],
-                organization_id=item["organization_id"],
-            )
-            for item in event["sentry_meta"]
-        ],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event["sentry_meta"]
+            ]
+            if event["sentry_meta"]
+            else None
+        ),
         type=event["type"],
     )
 

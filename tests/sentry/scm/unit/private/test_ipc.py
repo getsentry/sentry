@@ -1,5 +1,5 @@
 from sentry.scm.private.ipc import deserialize_event, serialize_event
-from sentry.scm.subscriptions.types import SubscriptionEvent
+from sentry.scm.types import SubscriptionEvent
 
 
 def test_subscription_event_serialization():

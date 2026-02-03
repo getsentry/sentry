@@ -1,5 +1,5 @@
 from sentry.scm.private.ipc import publish_subscription_event as _publish
-from sentry.scm.subscriptions.types import SubscriptionEvent
+from sentry.scm.types import SubscriptionEvent
 
 
 def publish_subscription_event(event: SubscriptionEvent) -> None:
