@@ -73,7 +73,23 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         logic_type = validated_data.get("logic_type")
         if not logic_type:
             logic_type = instance.logic_type
-        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
+
+        condition_data = validated_data.get("conditions")
+        if not condition_data:
+            conditions = DataCondition.objects.filter(
+                condition_group=instance,
+            )
+            for condition in conditions:
+                condition_data.append(
+                    {
+                        "type": condition.type,
+                        # don't actually need the last 2, just making it look legitimate
+                        "comparison": condition.comparison,
+                        "conditionResult": condition.condition_result,
+                    }
+                )
+
+        self._validate_logic_type(condition_data, logic_type)
 
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)
