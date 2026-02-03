@@ -55,12 +55,15 @@ def validate(self, attrs):
 #### 4. Test Updates
 
 **Updated existing test** (`tests/sentry/integrations/api/endpoints/test_organization_code_mappings.py`):
+
 - Modified `test_validate_path_conflict` to verify that multiple mappings with the same `stack_root` are now allowed
 
 **Added comprehensive test** for multi-project scenario:
+
 - `test_multi_project_repository_same_stack_root`: Simulates a .NET solution with three projects sharing the same path structure
 
 **Added stacktrace linking test** (`tests/sentry/issues/endpoints/test_project_stacktrace_link.py`):
+
 - `test_multi_project_repository_tries_multiple_mappings`: Verifies that the system tries each mapping sequentially until a file is found
 
 ## How It Works
@@ -68,6 +71,7 @@ def validate(self, attrs):
 ### Example: .NET Solution with Multiple Projects
 
 Consider a repository structure:
+
 ```
 repo/
 ├── ProjectA/

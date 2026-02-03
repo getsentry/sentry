@@ -328,7 +328,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_validate_path_conflict(self) -> None:
         """Test that multiple code mappings with the same stack_root are now allowed.
-        
+
         This enables multi-project repositories where different source folders
         share the same relative path structure (e.g., .NET solutions with
         multiple projects in different subfolders).
@@ -336,11 +336,11 @@ class OrganizationCodeMappingsTest(APITestCase):
         # Create first mapping
         response1 = self.make_post()
         assert response1.status_code == 201
-        
+
         # Create second mapping with same stack_root but different source_root
         response2 = self.make_post({"sourceRoot": "/different/source/root"})
         assert response2.status_code == 201
-        
+
         # Verify both mappings exist and have the same stack_root
         assert response1.data["stackRoot"] == response2.data["stackRoot"]
         assert response1.data["sourceRoot"] != response2.data["sourceRoot"]
@@ -434,59 +434,65 @@ class OrganizationCodeMappingsTest(APITestCase):
 
     def test_multi_project_repository_same_stack_root(self) -> None:
         """Test multi-project repository scenario with shared path structures.
-        
+
         This simulates a .NET solution where:
         - Multiple projects live in different subfolders (e.g., ProjectA/, ProjectB/)
         - Stack traces show relative paths without project identifiers (e.g., Services/Foo.cs)
         - The same relative path structure exists across multiple project folders
-        
+
         Users should be able to create multiple code mappings with the same stack_root
         pointing to different source folders, and the system will try each until a match is found.
         """
         # Create first mapping: stack_root "Services/" -> ProjectA/Services/
-        response1 = self.make_post({
-            "stackRoot": "Services/",
-            "sourceRoot": "ProjectA/Services/",
-        })
+        response1 = self.make_post(
+            {
+                "stackRoot": "Services/",
+                "sourceRoot": "ProjectA/Services/",
+            }
+        )
         assert response1.status_code == 201
         mapping1_id = response1.data["id"]
-        
+
         # Create second mapping: stack_root "Services/" -> ProjectB/Services/
-        response2 = self.make_post({
-            "stackRoot": "Services/",
-            "sourceRoot": "ProjectB/Services/",
-        })
+        response2 = self.make_post(
+            {
+                "stackRoot": "Services/",
+                "sourceRoot": "ProjectB/Services/",
+            }
+        )
         assert response2.status_code == 201
         mapping2_id = response2.data["id"]
-        
+
         # Create third mapping: stack_root "Services/" -> ProjectC/Services/
-        response3 = self.make_post({
-            "stackRoot": "Services/",
-            "sourceRoot": "ProjectC/Services/",
-        })
+        response3 = self.make_post(
+            {
+                "stackRoot": "Services/",
+                "sourceRoot": "ProjectC/Services/",
+            }
+        )
         assert response3.status_code == 201
         mapping3_id = response3.data["id"]
-        
+
         # Verify all three mappings exist with the same stack_root
         assert response1.data["stackRoot"] == "Services/"
         assert response2.data["stackRoot"] == "Services/"
         assert response3.data["stackRoot"] == "Services/"
-        
+
         # Verify they point to different source_roots
         assert response1.data["sourceRoot"] == "ProjectA/Services/"
         assert response2.data["sourceRoot"] == "ProjectB/Services/"
         assert response3.data["sourceRoot"] == "ProjectC/Services/"
-        
+
         # Verify they all have different IDs
         assert mapping1_id != mapping2_id
         assert mapping2_id != mapping3_id
         assert mapping1_id != mapping3_id
-        
+
         # Verify GET endpoint returns all three mappings
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200
         assert len(response.data) >= 3
-        
+
         # Find our three mappings in the response
         mapping_ids = {str(m["id"]) for m in response.data}
         assert mapping1_id in mapping_ids

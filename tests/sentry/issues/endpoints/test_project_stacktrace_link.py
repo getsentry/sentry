@@ -392,50 +392,46 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == f"https://github.com/getsentry/sentry/{src_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_multi_project_repository_tries_multiple_mappings(self, mock_integration: MagicMock) -> None:
+    def test_multi_project_repository_tries_multiple_mappings(
+        self, mock_integration: MagicMock
+    ) -> None:
         """
         Test that multiple code mappings with the same stack_root are tried sequentially.
-        
+
         This simulates a .NET solution scenario where:
         - Multiple projects (ProjectA, ProjectB, ProjectC) have the same relative path structure
         - Stack traces show "Services/Foo.cs" without project identifiers
         - The system tries each project folder until it finds the file
         """
         filepath = "Services/Foo.cs"
-        
+
         # Create three code mappings with the same stack_root but different source_roots
-        cm1 = self._create_code_mapping(
-            stack_root="Services/",
-            source_root="ProjectA/Services/"
-        )
-        cm2 = self._create_code_mapping(
-            stack_root="Services/",
-            source_root="ProjectB/Services/"
-        )
-        cm3 = self._create_code_mapping(
-            stack_root="Services/",
-            source_root="ProjectC/Services/"
-        )
-        
+        cm1 = self._create_code_mapping(stack_root="Services/", source_root="ProjectA/Services/")
+        cm2 = self._create_code_mapping(stack_root="Services/", source_root="ProjectB/Services/")
+        cm3 = self._create_code_mapping(stack_root="Services/", source_root="ProjectC/Services/")
+
         # Simulate that the file is not found in ProjectA or ProjectB, but is found in ProjectC
         mock_integration.side_effect = [
             None,  # First call (ProjectA) - file not found
             None,  # Second call (ProjectB) - file not found
             "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs",  # Third call (ProjectC) - found!
         ]
-        
+
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"file": filepath}
         )
-        
+
         # Verify that all three mappings were tried
         assert mock_integration.call_count == 3
-        
+
         # Verify the calls were made with the correct source paths
         assert mock_integration.call_args_list[0][0][1] == "ProjectA/Services/Foo.cs"
         assert mock_integration.call_args_list[1][0][1] == "ProjectB/Services/Foo.cs"
         assert mock_integration.call_args_list[2][0][1] == "ProjectC/Services/Foo.cs"
-        
+
         # Verify the successful mapping (cm3) is returned
         assert response.data["config"] == self.expected_configurations(cm3)
-        assert response.data["sourceUrl"] == "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs"
+        assert (
+            response.data["sourceUrl"]
+            == "https://example.com/repo/blob/master/ProjectC/Services/Foo.cs"
+        )
