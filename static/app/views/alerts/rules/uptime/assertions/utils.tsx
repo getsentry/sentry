@@ -1,14 +1,14 @@
-import type {ReactNode} from 'react';
-
-import type {SelectOption} from '@sentry/scraps/compactSelect';
-
 import {t} from 'sentry/locale';
 import type {
   GroupOp,
   HeaderCheckOp,
   HeaderOperand,
+  JsonPathOp,
+  JsonPathOperand,
   Op,
 } from 'sentry/views/alerts/rules/uptime/types';
+
+import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
 
 /**
  * Checks if one op is directly after another op in a container's children array.
@@ -213,13 +213,6 @@ export function moveTo(
   return insertOp(withoutSource) as GroupOp;
 }
 
-export const HEADER_OPERAND_OPTIONS: Array<
-  SelectOption<'literal' | 'glob'> & {symbol: string}
-> = [
-  {value: 'literal', label: t('Literal'), symbol: '""'},
-  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
-];
-
 export function getHeaderOperandValue(operand: HeaderOperand): string {
   return operand.header_op === 'literal'
     ? operand.value
@@ -232,39 +225,25 @@ export function shouldShowHeaderValueInput(op: HeaderCheckOp): boolean {
   return ['equals', 'not_equal'].includes(op.key_op.cmp);
 }
 
-export function getHeaderKeyComparisonOptions<T extends {value: string}>(
-  options: T[]
-): T[] {
-  return options.filter(opt => !['less_than', 'greater_than'].includes(opt.value));
-}
-
-export function getHeaderValueComparisonOptions<T extends {value: string}>(
-  options: T[]
-): T[] {
-  return options.filter(opt => ['equals', 'not_equal'].includes(opt.value));
-}
-
-type HeaderComparisonOption = {symbol: string; value: string; label?: ReactNode};
-
-export function getHeaderKeyCombinedLabelAndTooltip(
-  op: HeaderCheckOp,
-  headerKeyComparisonOptions: HeaderComparisonOption[]
-): {combinedLabel: string; combinedTooltip: string} {
+export function getHeaderKeyCombinedLabelAndTooltip(op: HeaderCheckOp): {
+  combinedLabel: string;
+  combinedTooltip: string;
+} {
   const keyOperandType = op.key_operand.header_op;
 
   const keyComparisonLabel =
-    headerKeyComparisonOptions.find(opt => opt.value === op.key_op.cmp)?.label ?? '';
+    COMPARISON_OPTIONS.find(opt => opt.value === op.key_op.cmp)?.label ?? '';
   const keyComparisonSymbol =
-    headerKeyComparisonOptions.find(opt => opt.value === op.key_op.cmp)?.symbol ?? '';
+    COMPARISON_OPTIONS.find(opt => opt.value === op.key_op.cmp)?.symbol ?? '';
 
   const keyOperandLabel =
     keyOperandType === 'none'
       ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.label ?? '');
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.label ?? '');
   const keyOperandSymbol =
     keyOperandType === 'none'
       ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.symbol ?? '');
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === keyOperandType)?.symbol ?? '');
 
   const combinedLabel = keyOperandSymbol
     ? `${keyComparisonSymbol}${keyOperandSymbol}`
@@ -278,25 +257,25 @@ export function getHeaderKeyCombinedLabelAndTooltip(
   return {combinedLabel, combinedTooltip};
 }
 
-export function getHeaderValueCombinedLabelAndTooltip(
-  op: HeaderCheckOp,
-  headerValueComparisonOptions: HeaderComparisonOption[]
-): {combinedLabel: string; combinedTooltip: string} {
+export function getHeaderValueCombinedLabelAndTooltip(op: HeaderCheckOp): {
+  combinedLabel: string;
+  combinedTooltip: string;
+} {
   const valueOperandType = op.value_operand.header_op;
 
   const valueComparisonLabel =
-    headerValueComparisonOptions.find(opt => opt.value === op.value_op.cmp)?.label ?? '';
+    COMPARISON_OPTIONS.find(opt => opt.value === op.value_op.cmp)?.label ?? '';
   const valueComparisonSymbol =
-    headerValueComparisonOptions.find(opt => opt.value === op.value_op.cmp)?.symbol ?? '';
+    COMPARISON_OPTIONS.find(opt => opt.value === op.value_op.cmp)?.symbol ?? '';
 
   const valueOperandLabel =
     valueOperandType === 'none'
       ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.label ?? '');
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.label ?? '');
   const valueOperandSymbol =
     valueOperandType === 'none'
       ? ''
-      : (HEADER_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.symbol ??
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === valueOperandType)?.symbol ??
         '');
 
   const combinedLabel = valueOperandSymbol
@@ -307,6 +286,67 @@ export function getHeaderValueCombinedLabelAndTooltip(
     valueOperandType === 'none'
       ? t('Header value %s', valueComparisonLabel)
       : t('Header value %s to a string %s', valueComparisonLabel, valueOperandLabel);
+
+  return {combinedLabel, combinedTooltip};
+}
+
+export function getJsonPathOperandValue(operand: JsonPathOperand): string {
+  return operand.jsonpath_op === 'literal'
+    ? operand.value
+    : operand.jsonpath_op === 'glob'
+      ? operand.pattern.value
+      : '';
+}
+
+// Safe guarding against legacy json_path ops that don't have an operator or operand.
+// It just ensures that we don't break the UI when we receive legacy ops from the backend.
+// TODO Abdullah Khan: This is added during LA, only our own montors are affected. Can
+// remove once we have EA'd assertions.
+export function normalizeJsonPathOp(op: JsonPathOp): JsonPathOp {
+  const hasOperator = 'operator' in op && op.operator;
+  const hasOperand = 'operand' in op && op.operand;
+
+  return {
+    ...op,
+    operator: hasOperator ? op.operator : {cmp: 'equals'},
+    operand: hasOperand ? op.operand : {jsonpath_op: 'literal', value: ''},
+  };
+}
+
+export function getJsonPathCombinedLabelAndTooltip(op: JsonPathOp): {
+  combinedLabel: string;
+  combinedTooltip: string;
+} {
+  const operandType = op.operand.jsonpath_op;
+  const comparisonLabel =
+    COMPARISON_OPTIONS.find(opt => opt.value === op.operator.cmp)?.label ?? '';
+  const comparisonSymbol =
+    COMPARISON_OPTIONS.find(opt => opt.value === op.operator.cmp)?.symbol ?? '';
+
+  const operandLabel =
+    operandType === 'none'
+      ? ''
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === operandType)?.label ?? '');
+  const operandSymbol =
+    operandType === 'none'
+      ? ''
+      : (STRING_OPERAND_OPTIONS.find(opt => opt.value === operandType)?.symbol ?? '');
+
+  const isNumericComparison =
+    op.operator.cmp === 'less_than' || op.operator.cmp === 'greater_than';
+
+  const combinedLabel = isNumericComparison
+    ? comparisonSymbol
+    : operandSymbol
+      ? `${comparisonSymbol}${operandSymbol}`
+      : comparisonSymbol;
+
+  const combinedTooltip =
+    operandType === 'none'
+      ? t('JSON path %s', comparisonLabel)
+      : isNumericComparison
+        ? t('JSON path value %s', comparisonLabel)
+        : t('JSON path value %s to string %s', comparisonLabel, operandLabel);
 
   return {combinedLabel, combinedTooltip};
 }
