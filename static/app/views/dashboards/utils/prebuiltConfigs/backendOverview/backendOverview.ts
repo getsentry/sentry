@@ -24,10 +24,13 @@ const disallowedOps = [
 
 const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
