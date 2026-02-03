@@ -651,7 +651,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Fragment>
             <TraceItemAttributeProvider
               projects={[project]}
-              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
+              dataset={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
                 isEapAlertType(alertType)

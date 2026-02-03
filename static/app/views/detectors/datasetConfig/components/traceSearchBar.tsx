@@ -22,7 +22,7 @@ export function TraceSearchBar({
   const isLogs = dataset === DiscoverDatasets.OURLOGS;
   const traceDataset = isLogs ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
   const {attributes: numberAttributes} = useTraceItemNumberAttributes({
-    traceItemType: traceDataset,
+    dataset: traceDataset,
     projectIds,
   });
 
@@ -36,7 +36,7 @@ export function TraceSearchBar({
   }, [numberAttributes]);
 
   const {attributes: stringAttributes} = useTraceItemStringAttributes({
-    traceItemType: traceDataset,
+    dataset: traceDataset,
     projectIds,
   });
 

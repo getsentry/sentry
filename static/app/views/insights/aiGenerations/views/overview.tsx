@@ -243,7 +243,7 @@ function PageWithProviders() {
       moduleName={ModuleName.AI_GENERATIONS}
       maxPickableDays={datePageFilterProps.maxPickableDays}
     >
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+      <TraceItemAttributeProvider dataset={TraceItemDataset.SPANS} enabled>
         <SpansQueryParamsProvider>
           <AIGenerationsPage datePageFilterProps={datePageFilterProps} />
         </SpansQueryParamsProvider>

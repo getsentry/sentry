@@ -52,7 +52,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   useOnClickOutside(containerRef, useCallback(closeDropdown, []));
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
-    traceItemType: TraceItemDataset.SPANS,
+    dataset: TraceItemDataset.SPANS,
     type: 'string',
   });
 

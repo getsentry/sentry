@@ -138,7 +138,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const organization = useOrganization();
 
   const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.SPANS,
+    dataset: TraceItemDataset.SPANS,
     enabled: organization.features.includes('visibility-explore-view'),
   };
 

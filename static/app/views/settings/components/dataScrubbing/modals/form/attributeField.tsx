@@ -48,7 +48,7 @@ export default function AttributeField({
   const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
     enabled: true,
     type: 'string',
-    traceItemType: TraceItemDataset.LOGS,
+    dataset: TraceItemDataset.LOGS,
     projects: project ? [project] : undefined,
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(

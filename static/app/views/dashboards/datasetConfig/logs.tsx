@@ -151,7 +151,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const organization = useOrganization();
 
   const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
+    dataset: TraceItemDataset.LOGS,
     enabled: isLogsEnabled(organization),
   };
 
