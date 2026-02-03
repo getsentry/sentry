@@ -340,10 +340,19 @@ class ScalarCondition(Condition):
     def apply(
         self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
     ) -> BaseQuerySet[Group, Group]:
-        django_operator = self._get_operator(search_filter)
+        # Handle has: and !has: filters (where value is empty string)
+        # has:field → operator is "!=", value is "" → want records where field IS NOT NULL
+        # !has:field → operator is "=", value is "" → want records where field IS NULL
+        if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
+            django_operator = "__isnull"
+            value: bool | str | float | datetime | Sequence[float] | Sequence[str] = True
+        else:
+            django_operator = self._get_operator(search_filter)
+            value = search_filter.value.raw_value
+
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
-        q_dict = {f"{self.field}{django_operator}": search_filter.value.raw_value}
+        q_dict = {f"{self.field}{django_operator}": value}
         if self.extra:
             q_dict.update(self.extra)
 
