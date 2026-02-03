@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 
 import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';

@@ -1,6 +1,6 @@
 import type {ComponentProps, ReactNode} from 'react';
 
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';

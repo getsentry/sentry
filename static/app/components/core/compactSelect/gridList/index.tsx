@@ -6,14 +6,15 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {
+  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
   SelectFilterContext,
   SizeLimitMessage,
+  type SelectKey,
+  type SelectSection,
 } from '@sentry/scraps/compactSelect';
-import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
-import {ControlContext} from '@sentry/scraps/compactSelect/control';
 
 import {t} from 'sentry/locale';
 

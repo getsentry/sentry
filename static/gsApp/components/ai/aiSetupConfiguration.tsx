@@ -6,12 +6,11 @@ import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Image as ImageBase} from '@sentry/scraps/image';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   AutofixConfigureSeer,

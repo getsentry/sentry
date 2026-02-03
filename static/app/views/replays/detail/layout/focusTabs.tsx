@@ -2,9 +2,9 @@ import {useEffect, type ReactNode} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link/link';
+import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';

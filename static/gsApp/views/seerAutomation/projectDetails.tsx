@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Text} from '@sentry/scraps/text/text';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';

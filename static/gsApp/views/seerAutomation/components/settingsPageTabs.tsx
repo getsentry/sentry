@@ -1,6 +1,6 @@
 import type {Path} from 'history';
 
-import {Container} from '@sentry/scraps/layout/container';
+import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';

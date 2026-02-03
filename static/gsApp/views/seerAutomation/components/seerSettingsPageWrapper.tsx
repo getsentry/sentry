@@ -1,9 +1,8 @@
 import {useEffect} from 'react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';

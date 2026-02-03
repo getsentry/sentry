@@ -1,8 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';

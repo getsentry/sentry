@@ -2,11 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Link} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';

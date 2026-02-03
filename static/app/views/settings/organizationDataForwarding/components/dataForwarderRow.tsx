@@ -1,7 +1,5 @@
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

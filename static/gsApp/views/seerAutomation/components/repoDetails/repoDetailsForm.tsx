@@ -1,5 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Stack} from '@sentry/scraps/layout';
 
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';

@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
