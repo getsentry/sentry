@@ -72,7 +72,6 @@ export type IssuesSeriesResponse = {
 };
 
 export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
-  defaultCategoryField: 'project',
   defaultField: DEFAULT_FIELD,
   defaultSeriesField: DEFAULT_SERIES_FIELD,
   defaultWidgetQuery: DEFAULT_TABLE_WIDGET_QUERY,
@@ -89,11 +88,10 @@ export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
     generateIssueWidgetFieldOptions(organization, displayType),
   getFieldHeaderMap: () => ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [
-    DisplayType.AREA,
-    DisplayType.BAR,
-    DisplayType.CATEGORICAL_BAR,
-    DisplayType.LINE,
     DisplayType.TABLE,
+    DisplayType.AREA,
+    DisplayType.LINE,
+    DisplayType.BAR,
   ],
   transformTable: transformIssuesResponseToTable,
   useSeriesQuery: useIssuesSeriesQuery,
