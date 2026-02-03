@@ -369,19 +369,20 @@ function ReleaseOverview() {
               position="top-end"
             >
               {tourProps => (
-                <ReleaseComparisonChart
-                  tourProps={tourProps}
-                  release={release}
-                  releaseSessions={thisRelease}
-                  allSessions={allReleases}
-                  platform={project.platform}
-                  loading={loading}
-                  reloading={reloading}
-                  errored={errored}
-                  project={project}
-                  api={api}
-                  hasHealthData={hasHealthData}
-                />
+                <div {...tourProps}>
+                  <ReleaseComparisonChart
+                    release={release}
+                    releaseSessions={thisRelease}
+                    allSessions={allReleases}
+                    platform={project.platform}
+                    loading={loading}
+                    reloading={reloading}
+                    errored={errored}
+                    project={project}
+                    api={api}
+                    hasHealthData={hasHealthData}
+                  />
+                </div>
               )}
             </DemoTourElement>
           )}
@@ -414,61 +415,63 @@ function ReleaseOverview() {
           position="left-start"
         >
           {tourProps => (
-            <Layout.Side {...tourProps}>
-              <ReleaseStats
-                organization={organization}
-                release={release}
-                project={project}
-              />
-              {hasHealthData && (
-                <ReleaseAdoption
-                  releaseSessions={thisRelease}
-                  allSessions={allReleases}
-                  loading={loading}
-                  reloading={reloading}
-                  errored={errored}
+            <div {...tourProps}>
+              <Layout.Side>
+                <ReleaseStats
+                  organization={organization}
                   release={release}
                   project={project}
-                  environment={environments}
                 />
-              )}
-              <ProjectReleaseDetails
-                release={release}
-                releaseMeta={releaseMeta}
-                project={project}
-              />
-              {commitCount > 0 && (
-                <CommitAuthorBreakdown
-                  version={version}
-                  orgId={organization.slug}
-                  projectSlug={project.slug}
+                {hasHealthData && (
+                  <ReleaseAdoption
+                    releaseSessions={thisRelease}
+                    allSessions={allReleases}
+                    loading={loading}
+                    reloading={reloading}
+                    errored={errored}
+                    release={release}
+                    project={project}
+                    environment={environments}
+                  />
+                )}
+                <ProjectReleaseDetails
+                  release={release}
+                  releaseMeta={releaseMeta}
+                  project={project}
                 />
-              )}
-              {releaseMeta.projects.length > 1 && (
-                <OtherProjects
-                  projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
-                  location={location}
-                  version={version}
-                  organization={organization}
-                />
-              )}
-              {hasHealthData && (
-                <TotalCrashFreeUsers
-                  organization={organization}
-                  version={version}
-                  projectSlug={project.slug}
-                  location={location}
-                />
-              )}
-              {deploys.length > 0 && (
-                <Deploys
-                  version={version}
-                  orgSlug={organization.slug}
-                  deploys={deploys}
-                  projectId={project.id}
-                />
-              )}
-            </Layout.Side>
+                {commitCount > 0 && (
+                  <CommitAuthorBreakdown
+                    version={version}
+                    orgId={organization.slug}
+                    projectSlug={project.slug}
+                  />
+                )}
+                {releaseMeta.projects.length > 1 && (
+                  <OtherProjects
+                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
+                    location={location}
+                    version={version}
+                    organization={organization}
+                  />
+                )}
+                {hasHealthData && (
+                  <TotalCrashFreeUsers
+                    organization={organization}
+                    version={version}
+                    projectSlug={project.slug}
+                    location={location}
+                  />
+                )}
+                {deploys.length > 0 && (
+                  <Deploys
+                    version={version}
+                    orgSlug={organization.slug}
+                    deploys={deploys}
+                    projectId={project.id}
+                  />
+                )}
+              </Layout.Side>
+            </div>
           )}
         </DemoTourElement>
       </Layout.Body>

@@ -16,7 +16,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import type {TourRenderProps} from 'sentry/components/tours/components';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -77,7 +76,6 @@ type Props = {
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-  tourProps?: TourRenderProps;
 };
 
 type EventsTotals = {
@@ -105,7 +103,6 @@ export default function ReleaseComparisonChart({
   errored,
   api,
   hasHealthData,
-  tourProps,
 }: Props) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -1040,7 +1037,7 @@ export default function ReleaseComparisonChart({
 
   return (
     <Fragment>
-      <ChartPanel {...tourProps}>
+      <ChartPanel>
         <ErrorBoundary mini>
           <ChartContainer>
             {[

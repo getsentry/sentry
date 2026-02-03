@@ -699,21 +699,22 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           )}
         >
           {tourProps => (
-            <Trace
-              {...tourProps}
-              trace={props.tree}
-              rerender={rerender}
-              trace_id={props.traceSlug}
-              onRowClick={onRowClick}
-              onTraceSearch={onTraceSearch}
-              previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-              manager={viewManager}
-              scheduler={traceScheduler}
-              forceRerender={forceRender}
-              isLoading={
-                props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
-              }
-            />
+            <div {...tourProps}>
+              <Trace
+                trace={props.tree}
+                rerender={rerender}
+                trace_id={props.traceSlug}
+                onRowClick={onRowClick}
+                onTraceSearch={onTraceSearch}
+                previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+                manager={viewManager}
+                scheduler={traceScheduler}
+                forceRerender={forceRender}
+                isLoading={
+                  props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+                }
+              />
+            </div>
           )}
         </DemoTourElement>
 

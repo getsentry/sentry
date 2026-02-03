@@ -10,11 +10,9 @@ import {
 } from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {TourRenderProps} from 'sentry/components/tours/components';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -104,7 +102,6 @@ interface TraceProps {
   scheduler: TraceScheduler;
   trace: TraceTree;
   trace_id: string | undefined;
-  tourProps?: TourRenderProps;
 }
 
 export function Trace({
@@ -118,7 +115,6 @@ export function Trace({
   forceRerender,
   trace_id,
   isLoading,
-  tourProps,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -367,14 +363,12 @@ export function Trace({
 
   return (
     <TraceStylingWrapper
-      {...mergeProps(tourProps, {
-        ref: manager.registerContainerRef,
-        className: `
+      ref={manager.registerContainerRef}
+      className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
         ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
-        ${ConfigStore.get('theme')}`,
-      })}
+        ${ConfigStore.get('theme')}`}
     >
       <div
         className="TraceScrollbarContainer"

@@ -542,19 +542,20 @@ export default function ReleasesList() {
                       position="top-start"
                     >
                       {props => (
-                        <ReleaseListInner
-                          {...props}
-                          activeDisplay={activeDisplay}
-                          loading={isReleasesPending}
-                          organization={organization}
-                          releases={releases}
-                          releasesPageLinks={releasesPageLinks}
-                          reloading={isReleasesRefetching}
-                          selectedProject={selectedProject}
-                          selection={selection}
-                          shouldShowQuickstart={shouldShowQuickstart}
-                          showReleaseAdoptionStages={showReleaseAdoptionStages}
-                        />
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
                       )}
                     </DemoTourElement>
                   )}

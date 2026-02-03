@@ -119,90 +119,96 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             position="bottom-start"
           >
             {tp => (
-              <Flex direction={{xs: 'column', md: 'row'}} gap="sm" {...tp}>
-                <Grid
-                  width="100%"
-                  gap="sm"
-                  columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
-                  rows={`minmax(${theme.form.md.height}, auto)`}
-                >
-                  <PageFilterBar>
-                    <EnvironmentSelector group={group} event={event} project={project} />
-                    <TimeRangeSelector
-                      menuTitle={t('Filter Time Range')}
-                      start={period?.start}
-                      end={period?.end}
-                      utc={location.query.utc === 'true'}
-                      relative={period?.statsPeriod}
-                      relativeOptions={props => {
-                        return {
-                          ...props.arbitraryOptions,
-                          // Always display arbitrary issue open period
-                          ...(defaultStatsPeriod?.statsPeriod &&
-                          shouldShowSinceFirstSeenOption
-                            ? {
-                                [defaultStatsPeriod.statsPeriod]: t(
-                                  '%s (since first seen)',
-                                  getRelativeSummary(defaultStatsPeriod.statsPeriod)
-                                ),
-                              }
-                            : {}),
-                          ...props.defaultOptions,
-                        };
-                      }}
-                      onChange={({relative, start, end, utc}) => {
-                        navigate({
-                          ...location,
-                          query: {
-                            ...location.query,
-                            // If selecting the issue open period, remove the stats period query param
-                            statsPeriod:
-                              relative === defaultStatsPeriod?.statsPeriod
-                                ? undefined
-                                : relative,
-                            start: start ? getUtcDateString(start) : undefined,
-                            end: end ? getUtcDateString(end) : undefined,
-                            utc: utc ? 'true' : undefined,
-                          },
-                        });
-                      }}
-                      trigger={triggerProps => (
-                        <TimeRangeSelectTrigger
-                          {...triggerProps}
-                          style={{
-                            padding: `${theme.space.md} ${theme.space.lg}`,
-                          }}
-                        >
-                          {period === defaultStatsPeriod &&
-                          !defaultStatsPeriod.isMaxRetention &&
-                          shouldShowSinceFirstSeenOption
-                            ? t('Since First Seen')
-                            : triggerProps.children}
-                        </TimeRangeSelectTrigger>
-                      )}
-                    />
-                  </PageFilterBar>
-                  {searchBarEnabled && (
-                    <EventSearch
-                      group={group}
-                      handleSearch={query => {
-                        navigate(
-                          {...location, query: {...location.query, query}},
-                          {replace: true}
-                        );
-                      }}
-                      environments={environments}
-                      query={searchQuery}
-                      queryBuilderProps={{
-                        disallowFreeText: true,
-                        placeholder: searchText,
-                        label: searchText,
-                      }}
-                    />
-                  )}
-                </Grid>
-                <ToggleSidebar />
-              </Flex>
+              <div {...tp}>
+                <Flex direction={{xs: 'column', md: 'row'}} gap="sm">
+                  <Grid
+                    width="100%"
+                    gap="sm"
+                    columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
+                    rows={`minmax(${theme.form.md.height}, auto)`}
+                  >
+                    <PageFilterBar>
+                      <EnvironmentSelector
+                        group={group}
+                        event={event}
+                        project={project}
+                      />
+                      <TimeRangeSelector
+                        menuTitle={t('Filter Time Range')}
+                        start={period?.start}
+                        end={period?.end}
+                        utc={location.query.utc === 'true'}
+                        relative={period?.statsPeriod}
+                        relativeOptions={props => {
+                          return {
+                            ...props.arbitraryOptions,
+                            // Always display arbitrary issue open period
+                            ...(defaultStatsPeriod?.statsPeriod &&
+                            shouldShowSinceFirstSeenOption
+                              ? {
+                                  [defaultStatsPeriod.statsPeriod]: t(
+                                    '%s (since first seen)',
+                                    getRelativeSummary(defaultStatsPeriod.statsPeriod)
+                                  ),
+                                }
+                              : {}),
+                            ...props.defaultOptions,
+                          };
+                        }}
+                        onChange={({relative, start, end, utc}) => {
+                          navigate({
+                            ...location,
+                            query: {
+                              ...location.query,
+                              // If selecting the issue open period, remove the stats period query param
+                              statsPeriod:
+                                relative === defaultStatsPeriod?.statsPeriod
+                                  ? undefined
+                                  : relative,
+                              start: start ? getUtcDateString(start) : undefined,
+                              end: end ? getUtcDateString(end) : undefined,
+                              utc: utc ? 'true' : undefined,
+                            },
+                          });
+                        }}
+                        trigger={triggerProps => (
+                          <TimeRangeSelectTrigger
+                            {...triggerProps}
+                            style={{
+                              padding: `${theme.space.md} ${theme.space.lg}`,
+                            }}
+                          >
+                            {period === defaultStatsPeriod &&
+                            !defaultStatsPeriod.isMaxRetention &&
+                            shouldShowSinceFirstSeenOption
+                              ? t('Since First Seen')
+                              : triggerProps.children}
+                          </TimeRangeSelectTrigger>
+                        )}
+                      />
+                    </PageFilterBar>
+                    {searchBarEnabled && (
+                      <EventSearch
+                        group={group}
+                        handleSearch={query => {
+                          navigate(
+                            {...location, query: {...location.query, query}},
+                            {replace: true}
+                          );
+                        }}
+                        environments={environments}
+                        query={searchQuery}
+                        queryBuilderProps={{
+                          disallowFreeText: true,
+                          placeholder: searchText,
+                          label: searchText,
+                        }}
+                      />
+                    )}
+                  </Grid>
+                  <ToggleSidebar />
+                </Flex>
+              </div>
             )}
           </TourElement>
         )}
@@ -265,11 +271,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   );
 }
 
-interface DetailsContainerProps extends Partial<TourRenderProps> {
-  hasFilterBar: boolean;
-}
-
-const DetailsContainer = styled('div')<DetailsContainerProps>`
+const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
   position: relative;
   display: flex;
   flex-direction: column;

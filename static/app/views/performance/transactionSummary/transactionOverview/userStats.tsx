@@ -114,14 +114,16 @@ function UserStats({
           )}
         >
           {tourProps => (
-            <SectionHeading {...tourProps}>
-              {t('User Misery')}
-              <QuestionTooltip
-                position="top"
-                title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
-                size="sm"
-              />
-            </SectionHeading>
+            <div {...tourProps}>
+              <SectionHeading>
+                {t('User Misery')}
+                <QuestionTooltip
+                  position="top"
+                  title={getTermHelp(organization, PerformanceTerm.USER_MISERY)}
+                  size="sm"
+                />
+              </SectionHeading>
+            </div>
           )}
         </DemoTourElement>
         {userMisery}
