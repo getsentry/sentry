@@ -157,33 +157,50 @@ function getAISpanAttributes({
     });
   }
 
-  // Check for missing cost calculation and emit Sentry error
+  const integration = attributes['gen_ai.system'];
+  const platform = attributes.platform ?? attributes['sdk.name'];
+  const version = attributes['sdk.version'];
+  const orgId =
+    attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
+  const hasCost = totalCosts && Number(totalCosts) !== 0;
+  const contextData: CaptureContext | null = model
+    ? {
+        level: 'warning',
+        tags: {
+          feature: 'agent-monitoring',
+          span_type: 'gen_ai',
+          has_model: 'true',
+          has_cost: hasCost ? 'true' : 'false',
+          model: model.toString(),
+          integration: integration?.toString() ?? 'unknown',
+          platform: platform?.toString() ?? 'unknown',
+          version: version?.toString() ?? 'unknown',
+          org_id: orgId?.toString() ?? 'unknown',
+        },
+        extra: {
+          total_costs: totalCosts,
+          attributes,
+        },
+      }
+    : null;
+
   if (
+    contextData &&
     model &&
     (inputTokens || outputTokens) &&
     (!totalCosts || Number(totalCosts) === 0)
   ) {
-    const contextData: CaptureContext = {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'true',
-        has_cost: 'false',
-        model: model.toString(),
-      },
-      extra: {
-        total_costs: totalCosts,
-        attributes,
-      },
-    };
-
-    // General issue for tracking overall missing cost calculations
     Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
 
-    // Model-specific issue for tracking cost calculation failures per model
     Sentry.captureMessage(
       `Gen AI cost data missing for model: ${model.toString()}`,
+      contextData
+    );
+  }
+
+  if (contextData && model && totalCosts && Number(totalCosts) < 0) {
+    Sentry.captureMessage(
+      `Gen AI span with negative cost: ${model.toString()}`,
       contextData
     );
   }
