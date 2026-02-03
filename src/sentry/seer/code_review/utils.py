@@ -10,7 +10,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import features
+from sentry import options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -230,12 +230,14 @@ def _common_codegen_request_payload(
             },
             "config": {
                 "features": {"bug_prediction": True},
-                "github_rate_limit_sensitive": features.has(
-                    "organizations:github-rate-limit-sensitive", organization
-                ),
+                "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization),
             },
         },
     }
+
+
+def is_github_rate_limit_sensitive(organization: Organization) -> bool:
+    return organization.slug in options.get("github-app.rate-limit-sensitive-orgs")
 
 
 def transform_issue_comment_to_codegen_request(
