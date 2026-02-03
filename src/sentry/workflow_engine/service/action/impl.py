@@ -50,8 +50,7 @@ class DatabaseBackedActionService(ActionService):
                 config__target_identifier=sentry_app_install_uuid, type=Action.Type.SENTRY_APP
             )
 
-        if actions:
-            actions.update(status=status)
+        actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
         self,
