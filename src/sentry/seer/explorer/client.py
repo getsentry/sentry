@@ -192,7 +192,9 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_coding = enable_coding
+
+        enable_coding_option = organization.get_option("sentry:enable_seer_coding", True)
+        self.enable_coding = enable_coding and enable_coding_option
 
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
