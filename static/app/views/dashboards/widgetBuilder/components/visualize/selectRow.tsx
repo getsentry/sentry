@@ -103,17 +103,17 @@ export function sortSelectedFirst(
 ) {
   // move selected option to front and remove from the rest of the options
   const result: Array<SelectValue<string>> = [];
-  let selectedItem: SelectValue<string> | undefined;
+  let selectedValue: SelectValue<string> | undefined;
 
   for (const option of options) {
     if (option.value === selectedOption) {
-      selectedItem = option;
+      selectedValue = option;
     } else {
       result.push(option);
     }
   }
 
-  return selectedItem ? [selectedItem, ...result] : result;
+  return selectedValue ? [selectedValue, ...result] : result;
 }
 
 export function SelectRow({
