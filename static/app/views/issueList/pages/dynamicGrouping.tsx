@@ -364,109 +364,115 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <Stack padding="lg" gap="lg">
-        {cluster.impact && (
-          <ClusterTitleLink
-            to={{
-              pathname: location.pathname,
-              query: {...location.query, cluster: String(cluster.cluster_id)},
-            }}
-          >
-            {cluster.impact}
-          </ClusterTitleLink>
-        )}
-        {!clusterStats.isPending &&
-          (clusterStats.newIssuesCount > 0 ||
-            clusterStats.hasRegressedIssues ||
-            clusterStats.isEscalating) && (
-            <Flex wrap="wrap" gap="md">
-              {clusterStats.newIssuesCount > 0 && (
-                <StatusTag color="purple">
-                  <IconStar size="xs" />
-                  <Text size="xs">
-                    {tn(
-                      '%s new issue this week',
-                      '%s new issues this week',
-                      clusterStats.newIssuesCount
-                    )}
-                  </Text>
-                </StatusTag>
-              )}
-              {clusterStats.hasRegressedIssues && (
-                <StatusTag color="yellow">
-                  <IconRefresh size="xs" />
-                  <Text size="xs">{t('Has regressed issues')}</Text>
-                </StatusTag>
-              )}
-              {clusterStats.isEscalating && (
-                <StatusTag color="red">
-                  <IconArrow direction="up" size="xs" />
-                  <Text size="xs">{t('Escalating')}</Text>
-                </StatusTag>
-              )}
-            </Flex>
+      <Stack padding="lg" gap="md">
+        <Stack gap="sm">
+          {cluster.impact && (
+            <ClusterTitleLink
+              to={{
+                pathname: location.pathname,
+                query: {...location.query, cluster: String(cluster.cluster_id)},
+              }}
+            >
+              {cluster.impact}
+            </ClusterTitleLink>
           )}
-        <Flex justify="between" align="center" gap="xl">
-          <Flex wrap="wrap" align="center" gap="md">
-            <Flex align="center" gap="xs">
-              <IconFire size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalEvents.toLocaleString()}
-                  </Text>{' '}
-                  {tn('event', 'events', clusterStats.totalEvents)}
-                </Text>
-              )}
-            </Flex>
-            <Flex align="center" gap="xs">
-              <IconUser size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalUsers.toLocaleString()}
-                  </Text>{' '}
-                  {tn('user', 'users', clusterStats.totalUsers)}
-                </Text>
-              )}
-            </Flex>
-          </Flex>
           {!clusterStats.isPending &&
-            (clusterStats.firstSeen || clusterStats.lastSeen) && (
-              <Flex align="center" gap="md">
-                {clusterStats.lastSeen && (
-                  <Flex align="center" gap="xs">
-                    <IconClock size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('Last Seen')}
-                      date={clusterStats.lastSeen}
-                      suffix={t('ago')}
-                      unitStyle="short"
-                    />
-                  </Flex>
+            (clusterStats.newIssuesCount > 0 ||
+              clusterStats.hasRegressedIssues ||
+              clusterStats.isEscalating) && (
+              <Flex wrap="wrap" gap="md">
+                {clusterStats.newIssuesCount > 0 && (
+                  <StatusTag color="purple">
+                    <IconStar size="xs" />
+                    <Text size="xs">
+                      {tn(
+                        '%s new issue this week',
+                        '%s new issues this week',
+                        clusterStats.newIssuesCount
+                      )}
+                    </Text>
+                  </StatusTag>
                 )}
-                {clusterStats.firstSeen && (
-                  <Flex align="center" gap="xs">
-                    <IconCalendar size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('First Seen')}
-                      date={clusterStats.firstSeen}
-                      suffix={t('old')}
-                      unitStyle="short"
-                    />
-                  </Flex>
+                {clusterStats.hasRegressedIssues && (
+                  <StatusTag color="yellow">
+                    <IconRefresh size="xs" />
+                    <Text size="xs">{t('Has regressed issues')}</Text>
+                  </StatusTag>
+                )}
+                {clusterStats.isEscalating && (
+                  <StatusTag color="red">
+                    <IconArrow direction="up" size="xs" />
+                    <Text size="xs">{t('Escalating')}</Text>
+                  </StatusTag>
                 )}
               </Flex>
             )}
-        </Flex>
+          <Flex justify="between" align="center" gap="xl">
+            <Flex wrap="wrap" align="center" gap="md">
+              <Flex align="center" gap="xs">
+                <IconFire size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalEvents.toLocaleString()}
+                    </Text>{' '}
+                    {tn('event', 'events', clusterStats.totalEvents)}
+                  </Text>
+                )}
+              </Flex>
+              <Flex align="center" gap="xs">
+                <IconUser size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalUsers.toLocaleString()}
+                    </Text>{' '}
+                    {tn('user', 'users', clusterStats.totalUsers)}
+                  </Text>
+                )}
+              </Flex>
+            </Flex>
+            {!clusterStats.isPending &&
+              (clusterStats.firstSeen || clusterStats.lastSeen) && (
+                <Flex align="center" gap="md">
+                  {clusterStats.lastSeen && (
+                    <Flex align="center" gap="xs">
+                      <IconClock size="xs" variant="muted" />
+                      <Text size="xs" variant="muted">
+                        <TimeSince
+                          tooltipPrefix={t('Last Seen')}
+                          date={clusterStats.lastSeen}
+                          suffix={t('ago')}
+                          unitStyle="short"
+                        />
+                      </Text>
+                    </Flex>
+                  )}
+                  {clusterStats.firstSeen && (
+                    <Flex align="center" gap="xs">
+                      <IconCalendar size="xs" variant="muted" />
+                      <Text size="xs" variant="muted">
+                        <TimeSince
+                          tooltipPrefix={t('First Seen')}
+                          date={clusterStats.firstSeen}
+                          suffix={t('old')}
+                          unitStyle="short"
+                        />
+                      </Text>
+                    </Flex>
+                  )}
+                </Flex>
+              )}
+          </Flex>
+        </Stack>
 
         <Stack gap="xs">
           {cluster.error_type && (
@@ -1216,11 +1222,13 @@ const InfoLabel = styled('span')`
   font-weight: 500;
   min-width: 60px;
   flex-shrink: 0;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const InfoValue = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
