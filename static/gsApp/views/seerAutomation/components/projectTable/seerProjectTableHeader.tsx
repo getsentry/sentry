@@ -175,7 +175,7 @@ export default function ProjectTableHeader({
               triggerLabel={t('Auto Fix')}
             />
             <DropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
               items={[
                 {
