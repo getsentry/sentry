@@ -828,7 +828,6 @@ function Visualize({error, setError}: VisualizeProps) {
                                   columnFilterMethod={columnFilterMethod}
                                   aggregates={aggregates}
                                   disabled={disableTransactionWidget}
-                                  isCategoricalBar={isCategoricalBarWidget}
                                 />
                               )}
                               {field.kind === FieldValueKind.FUNCTION &&
@@ -898,7 +897,11 @@ function Visualize({error, setError}: VisualizeProps) {
                           )}
                         </FieldBar>
                         <FieldExtras
-                          compact={isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget}
+                          compact={
+                            isTimeSeriesWidget ||
+                            isBigNumberWidget ||
+                            isCategoricalBarWidget
+                          }
                         >
                           {!isTimeSeriesWidget &&
                             !isBigNumberWidget &&

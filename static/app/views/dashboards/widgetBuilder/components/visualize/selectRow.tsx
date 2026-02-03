@@ -64,11 +64,6 @@ interface SelectRowProps {
   ) => boolean;
   disabled?: boolean;
   error?: Record<string, any>;
-  /**
-   * Whether this is a categorical bar widget. When true, uses SET_CATEGORICAL_AGGREGATE
-   * action which automatically merges aggregates with existing X-axis fields.
-   */
-  isCategoricalBar?: boolean;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
 }
@@ -137,7 +132,6 @@ export function SelectRow({
   columnFilterMethod,
   aggregates,
   disabled,
-  isCategoricalBar,
 }: SelectRowProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -145,6 +139,8 @@ export function SelectRow({
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  // Derived from state rather than passed as prop - categorical bars use a dedicated action
+  const isCategoricalBar = state.displayType === DisplayType.CATEGORICAL_BAR;
 
   // Determines which action to use for updating visualization fields:
   // - Time series widgets: SET_Y_AXIS for y-axis aggregates

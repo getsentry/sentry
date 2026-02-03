@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -97,25 +96,20 @@ export function WidgetBuilderXAxisSelector() {
           'Select the field to use for X-axis categories (e.g., browser, country)'
         )}
       />
-      <StyledFieldGroup inline={false} flexibleControlStateSize>
-        <StyledCompactSelect
-          searchable
-          loading={isLoading}
-          value={currentXAxisField}
-          options={fieldOptions}
-          onChange={handleXAxisChange}
-        />
-      </StyledFieldGroup>
+      <FullWidthCompactSelect
+        searchable
+        loading={isLoading}
+        value={currentXAxisField}
+        options={fieldOptions}
+        onChange={handleXAxisChange}
+      />
     </Fragment>
   );
 }
 
-const StyledFieldGroup = styled(FieldGroup)`
-  width: 100%;
-  padding: 0;
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
+// Styled component needed for nested button selector - this is an edge case
+// where core components can't replace Emotion
+const FullWidthCompactSelect = styled(CompactSelect)`
   width: 100%;
 
   > button {
