@@ -37,7 +37,7 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int,
+        sentry_app_id: int = 0,
     ) -> None:
         Action.objects.filter(
             Q(config__target_identifier=sentry_app_install_uuid)
@@ -51,7 +51,7 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int,
+        sentry_app_id: int = 0,
     ) -> None:
         actions = Action.objects.filter(
             Q(config__target_identifier=sentry_app_install_uuid)

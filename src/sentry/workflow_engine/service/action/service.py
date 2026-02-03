@@ -42,7 +42,7 @@ class ActionService(RpcService):
         organization_id: int,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int,
+        sentry_app_id: int = 0,
     ) -> None:
         pass
 
@@ -54,7 +54,7 @@ class ActionService(RpcService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
-        sentry_app_id: int,
+        sentry_app_id: int = 0,
     ) -> None:
         pass
 
