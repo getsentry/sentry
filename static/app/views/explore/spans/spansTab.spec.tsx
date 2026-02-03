@@ -519,7 +519,6 @@ describe('SpansTabContent', () => {
 
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
     });
 
     it('adds a cross event query', async () => {
@@ -625,21 +624,21 @@ describe('SpansTabContent', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {crossEvents: JSON.stringify([{query: '', type: 'logs'}])},
+            query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
           },
         },
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /Logs/}));
-      await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+      await userEvent.click(screen.getByRole('button', {name: /Spans/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Logs'}));
 
       expect(
-        screen.getByPlaceholderText('Search for metrics, users, tags, and more')
+        screen.getByPlaceholderText('Search for logs, users, tags, and more')
       ).toBeInTheDocument();
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'trace.explorer.cross_event_changed',
-        expect.objectContaining({new_type: 'metrics', old_type: 'logs'})
+        expect.objectContaining({new_type: 'logs', old_type: 'spans'})
       );
     });
 
@@ -654,7 +653,7 @@ describe('SpansTabContent', () => {
               crossEvents: JSON.stringify([
                 {query: '', type: 'spans'},
                 {query: '', type: 'logs'},
-                {query: '', type: 'metrics'},
+                {query: '', type: 'logs'},
               ]),
             },
           },
