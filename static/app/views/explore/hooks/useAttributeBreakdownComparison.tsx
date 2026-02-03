@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -83,7 +84,9 @@ function useAttributeBreakdownComparison({
 
   return useApiQuery<AttributeBreakdownsComparison>(
     [
-      `/organizations/${organization.slug}/trace-items/attributes/ranked/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: queryParams},
     ],
     {
