@@ -104,6 +104,7 @@ function useUpgradeNowParams({organization, subscription, enabled = true}: Opts)
         reservedSeerAutofix: reserved.seerAutofix,
         reservedSeerScanner: reserved.seerScanner,
         reservedSeerUsers: reserved.seerUsers,
+        reservedSizeAnalyses: reserved.sizeAnalyses,
       },
     };
   }, [billingConfig, isPending, subscription, enabled]);
