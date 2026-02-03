@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiApplication} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -33,7 +34,7 @@ type Authorization = {
 function AccountAuthorizations() {
   const api = useApi();
   const queryClient = useQueryClient();
-  const ENDPOINT = '/api-authorizations/';
+  const ENDPOINT = getApiUrl('/api-authorizations/');
 
   const {data, isPending, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
     staleTime: 0,

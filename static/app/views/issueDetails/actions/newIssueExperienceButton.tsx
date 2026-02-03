@@ -251,20 +251,24 @@ export function NewIssueExperienceButton() {
       }
       isOpen={isReminderVisible}
     >
-      <DropdownMenu
-        trigger={triggerProps => (
-          <StyledDropdownButton
-            {...triggerProps}
-            size={hasStreamlinedUI ? 'xs' : 'sm'}
-            aria-label={t('Manage issue experience')}
-          >
-            {/* Passing icon as child to avoid extra icon margin */}
-            <IconLab isSolid={hasStreamlinedUI} />
-          </StyledDropdownButton>
-        )}
-        items={items}
-        position="bottom-end"
-      />
+      {tourProps => (
+        <div {...tourProps}>
+          <DropdownMenu
+            trigger={triggerProps => (
+              <StyledDropdownButton
+                {...triggerProps}
+                size={hasStreamlinedUI ? 'xs' : 'sm'}
+                aria-label={t('Manage issue experience')}
+              >
+                {/* Passing icon as child to avoid extra icon margin */}
+                <IconLab isSolid={hasStreamlinedUI} />
+              </StyledDropdownButton>
+            )}
+            items={items}
+            position="bottom-end"
+          />
+        </div>
+      )}
     </TourGuide>
   );
 }

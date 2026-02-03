@@ -41,7 +41,7 @@ export const DesyncedFilterIndicator = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: 0;

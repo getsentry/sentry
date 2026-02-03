@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Any, Literal
 
 from sentry import tagstore
@@ -13,26 +12,10 @@ from sentry.rules.filters.latest_release import (
 from sentry.search.utils import get_latest_release
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
-from sentry.utils.cache import cache
+from sentry.workflow_engine.caches import CacheAccess
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
-
-
-class CacheAccess[T]:
-    """
-    Base class for type-safe naive cache access.
-    """
-
-    @abstractmethod
-    def key(self) -> str:
-        raise NotImplementedError
-
-    def get(self) -> T | None:
-        return cache.get(self.key())
-
-    def set(self, value: T, timeout: float | None) -> None:
-        cache.set(self.key(), value, timeout)
 
 
 class _LatestReleaseCacheAccess(CacheAccess[Release | Literal[False]]):

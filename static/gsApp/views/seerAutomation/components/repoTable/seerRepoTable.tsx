@@ -2,8 +2,8 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {InputGroup} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
 
 import {useOrganizationRepositoriesWithSettings} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
@@ -74,7 +74,10 @@ export default function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = ['seer-repos', {query: {query: searchTerm, sort}}];
+  const queryKey: ApiQueryKey = [
+    'seer-repos',
+    {query: {query: searchTerm, sort}},
+  ] as unknown as ApiQueryKey;
 
   const sortedRepositories = useMemo(() => {
     return supportedRepositories.toSorted((a, b) => {

@@ -2,15 +2,16 @@ import {Fragment, useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import dompurify from 'dompurify';
-import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
+import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
+import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {useRenderToString} from 'sentry/components/core/renderToString';
 import type {
   EChartClickHandler,
   EChartDownplayHandler,
@@ -111,10 +112,16 @@ export function CategoricalSeriesWidgetVisualization(
   };
 
   // Configure the X axis (category axis)
-  const xAxis: XAXisComponentOption = {
+  const xAxis: BaseChartProps['xAxis'] = {
     type: 'category',
     data: allCategories,
     axisLabel: {
+      // Show the first/last category on the axis. We hide them by default
+      // because on time series charts, this causes visual congestion.
+      // @ts-expect-error: ECharts types `showMinLabel` incorrect as a boolean, the documentation also allows `null`
+      showMaxLabel: null,
+      // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
+      showMinLabel: null,
       formatter: (value: string) =>
         truncationFormatter(value, props.truncateCategoryLabels ?? true, false),
     },

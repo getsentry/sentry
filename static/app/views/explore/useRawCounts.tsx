@@ -1,4 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +55,9 @@ export function useRawCounts({
   const baseReferrer = getBaseReferrer(dataset);
 
   const normalScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         ...baseQueryParams,
@@ -70,7 +73,9 @@ export function useRawCounts({
   });
 
   const highestAccuracyScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         ...baseQueryParams,

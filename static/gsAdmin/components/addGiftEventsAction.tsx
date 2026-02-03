@@ -13,6 +13,7 @@ import {
   getPlanCategoryName,
   isByteCategory,
   isContinuousProfiling,
+  isEmergeCategory,
 } from 'getsentry/utils/dataCategory';
 
 export function getFreeEventsKey(dataCategory: DataCategory) {
@@ -105,6 +106,9 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (isContinuousProfiling(dataCategory)) {
         return 'How many profile hours?';
       }
+      if (isEmergeCategory(dataCategory)) {
+        return `How many ${categoryName}?`;
+      }
 
       const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
       const addToMessage =
@@ -126,6 +130,12 @@ class AddGiftEventsAction extends Component<Props, State> {
       }
       if (isByteCategory(dataCategory)) {
         postFix = ' GB';
+      }
+      if (dataCategory === DataCategory.SIZE_ANALYSIS) {
+        postFix = total === '1' ? ' build' : ' builds';
+      }
+      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
+        postFix = total === '1' ? ' install' : ' installs';
       }
       return `Total: ${total}${postFix}`;
     }
