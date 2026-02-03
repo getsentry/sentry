@@ -406,8 +406,8 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         filepath = "Services/Foo.cs"
 
         # Create three code mappings with the same stack_root but different source_roots
-        cm1 = self._create_code_mapping(stack_root="Services/", source_root="ProjectA/Services/")
-        cm2 = self._create_code_mapping(stack_root="Services/", source_root="ProjectB/Services/")
+        self._create_code_mapping(stack_root="Services/", source_root="ProjectA/Services/")
+        self._create_code_mapping(stack_root="Services/", source_root="ProjectB/Services/")
         cm3 = self._create_code_mapping(stack_root="Services/", source_root="ProjectC/Services/")
 
         # Simulate that the file is not found in ProjectA or ProjectB, but is found in ProjectC
