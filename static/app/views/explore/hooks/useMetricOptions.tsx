@@ -72,6 +72,7 @@ export function useMetricOptions({
   search,
   projectIds,
   datetime,
+  environments,
   enabled = true,
 }: UseMetricOptionsProps = {}) {
   const organization = useOrganization();
@@ -84,7 +85,7 @@ export function useMetricOptions({
         orgSlug: organization.slug,
         projectIds: projectIds ?? selection.projects,
         datetime: datetime ?? selection.datetime,
-        environments: selection.environments,
+        environments: environments ?? selection.environments,
       }),
     [
       organization.slug,
@@ -93,6 +94,7 @@ export function useMetricOptions({
       selection.projects,
       selection.datetime,
       datetime,
+      environments,
       selection.environments,
     ]
   );
