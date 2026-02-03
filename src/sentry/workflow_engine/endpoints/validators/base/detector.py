@@ -221,7 +221,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
-
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 

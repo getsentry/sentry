@@ -18,8 +18,7 @@ def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> No
             alert_rule_id=instance.alert_rule.id
         ).first()
         if alert_rule_detector and alert_rule_detector.detector:
-            detector = alert_rule_detector.detector
-            detector.update(enabled=is_enabled)
+            alert_rule_detector.detector.update(enabled=is_enabled)
 
 
 def disable_workflow_engine_models(instance: RuleSnooze, created, **kwargs):
