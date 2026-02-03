@@ -638,8 +638,15 @@ function AutofixSolutionDisplay({
                         "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                       )
                     : undefined
-                : t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                        />
+                      ),
+                    }
                   )
             }
           >

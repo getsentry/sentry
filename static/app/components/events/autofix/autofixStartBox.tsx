@@ -5,12 +5,13 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -42,14 +43,34 @@ function getStoppingPointOptions(organization: Organization) {
       label: t('Write Code Changes'),
       value: AutofixStoppingPoint.CODE_CHANGES,
       disabled: organization.enableSeerCoding === false,
-      tooltip: t('Code generation is disabled for this organization'),
+      tooltip:
+        organization.enableSeerCoding === false
+          ? tct(
+              '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+              {
+                settings: (
+                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                ),
+              }
+            )
+          : undefined,
     },
     {
       key: AutofixStoppingPoint.OPEN_PR,
       label: t('Draft a Pull Request'),
       value: AutofixStoppingPoint.OPEN_PR,
       disabled: organization.enableSeerCoding === false,
-      tooltip: t('Code generation is disabled for this organization'),
+      tooltip:
+        organization.enableSeerCoding === false
+          ? tct(
+              '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+              {
+                settings: (
+                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                ),
+              }
+            )
+          : undefined,
     },
   ] as const;
 }

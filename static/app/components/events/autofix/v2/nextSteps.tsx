@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout/container';
 import {Flex} from '@sentry/scraps/layout/flex';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,7 +18,7 @@ import {
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat, IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
@@ -136,14 +137,30 @@ function StepButton({
   // Only show dropdown for code_changes step when integrations are available
   if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
     return (
-      <Button
-        onClick={onStepClick}
-        disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
-        busy={isBusy}
-        priority={priority}
+      <Tooltip
+        disabled={enableSeerCoding}
+        title={
+          enableSeerCoding
+            ? undefined
+            : tct(
+                '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                {
+                  settings: (
+                    <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                  ),
+                }
+              )
+        }
       >
-        {STEP_LABELS[step]}
-      </Button>
+        <Button
+          onClick={onStepClick}
+          disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
+          busy={isBusy}
+          priority={priority}
+        >
+          {STEP_LABELS[step]}
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -176,10 +193,18 @@ function StepButton({
 
   return (
     <Tooltip
+      disabled={enableSeerCoding}
       title={
         enableSeerCoding
           ? undefined
-          : t('Code generation is disabled for this organization')
+          : tct(
+              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+              {
+                settings: (
+                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                ),
+              }
+            )
       }
     >
       <ButtonBar merged gap="0">
