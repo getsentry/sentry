@@ -51,7 +51,7 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
 
 ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and the action(s) to fire.
 
-        `logicType` can be one of `any`, `all`, or `none`.
+        `logicType` can be one of `any-short`, `all`, or `none`.
 
         Below is a basic example. See below for all other options.
 
