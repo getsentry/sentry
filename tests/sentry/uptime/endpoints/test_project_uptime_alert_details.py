@@ -7,6 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
+from sentry.uptime.endpoints.validators import UPTIME_MONITOR_BUDGET_ERROR
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -309,7 +310,8 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
         # The request should have failed with a 400 error
         # Check that we got an error response about seat assignment
-        assert "status" in resp.data or "non_field_errors" in resp.data
+        assert "status" in resp.data
+        assert resp.data["status"] == [UPTIME_MONITOR_BUDGET_ERROR]
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):

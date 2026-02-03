@@ -8,6 +8,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
+    UPTIME_MONITOR_BUDGET_ERROR,
     UptimeDomainCheckFailureValidator,
     UptimeMonitorDataSourceValidator,
     compute_http_request_size,
@@ -272,7 +273,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         # Validation should fail due to no seats available
         assert not validator.is_valid()
         assert "enabled" in validator.errors
-        assert validator.errors["enabled"] == ["No seats available"]
+        assert validator.errors["enabled"] == [UPTIME_MONITOR_BUDGET_ERROR]
 
         detector.refresh_from_db()
         # Detector should still be disabled

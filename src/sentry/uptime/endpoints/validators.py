@@ -76,6 +76,11 @@ MONITOR_STATUSES = {
 
 logger = logging.getLogger(__name__)
 
+UPTIME_MONITOR_BUDGET_ERROR = (
+    "You don't have enough budget to enable this uptime monitor. "
+    "Increase your pay-as-you-go budget on your subscription page to continue."
+)
+
 HEADERS_LIST_SCHEMA = {
     "type": "array",
     "items": {
@@ -454,13 +459,10 @@ class UptimeMonitorValidator(UptimeValidatorBase):
                 assertion=assertion,
                 response_capture_enabled=response_capture_enabled,
             )
-        except UptimeMonitorNoSeatAvailable as err:
+        except UptimeMonitorNoSeatAvailable:
             # Nest seat availability errors under status. Since this is the
             # field that will trigger seat availability errors.
-            if err.result is None:
-                raise serializers.ValidationError({"status": ["Cannot enable uptime monitor"]})
-            else:
-                raise serializers.ValidationError({"status": [err.result.reason]})
+            raise serializers.ValidationError({"status": [UPTIME_MONITOR_BUDGET_ERROR]})
         finally:
             create_audit_entry(
                 request=self.context["request"],
@@ -699,7 +701,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         if detector and value and not detector.enabled:
             result = quotas.backend.check_assign_seat(seat_object=detector)
             if not result.assignable:
-                raise serializers.ValidationError(result.reason)
+                raise serializers.ValidationError(UPTIME_MONITOR_BUDGET_ERROR)
 
         return value
 
