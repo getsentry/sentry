@@ -2,11 +2,11 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   getProfilingSpringPropertiesSnippet,
   getProfilingSpringYamlSnippet,
 } from 'sentry/gettingStartedDocs/java-spring-boot/profiling';
+import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
