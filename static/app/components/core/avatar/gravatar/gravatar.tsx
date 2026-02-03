@@ -11,12 +11,11 @@ import {
   type BaseAvatarStyleProps,
 } from '../baseAvatar/baseAvatarComponentStyles';
 
-interface GravatarProps extends BaseAvatarStyleProps {
+interface GravatarProps
+  extends BaseAvatarStyleProps,
+    React.ImgHTMLAttributes<HTMLImageElement> {
   gravatarId: string;
   remoteSize: number;
-  onError?: () => void;
-  onLoad?: () => void;
-  placeholder?: string;
   ref?: React.Ref<HTMLImageElement>;
 }
 
@@ -24,15 +23,20 @@ export function Gravatar({
   ref,
   remoteSize,
   gravatarId,
-  placeholder,
   round,
-  onError,
-  onLoad,
   suggested,
+  ...props
 }: GravatarProps) {
   const avatarHash = useGravatarHash(gravatarId);
 
   if (avatarHash === null) {
+    // Calling onError triggers the fallback to a LetterAvatar... This logic here should be inverted with each
+    // avatar type accepting a fallback avatar as opposed to bubbling the events up to the parent.
+    setTimeout(
+      () =>
+        props.onError?.(new Error('Sha256 hash not found or missing gravatarId') as any),
+      0
+    );
     return null;
   }
 
@@ -44,11 +48,10 @@ export function Gravatar({
         s: remoteSize,
         // If gravatar is not found we need the request to return an error,
         // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
-        d: placeholder ?? '404',
+        d: '404',
       })}`}
-      onLoad={onLoad}
-      onError={onError}
       suggested={suggested}
+      {...props}
     />
   );
 }
@@ -64,7 +67,7 @@ function useGravatarHash(gravatarId: string) {
     }
 
     hashGravatarId(trimmedGravatarId)
-      .then(setAvatarHash)
+      .then(hash => setAvatarHash(hash))
       .catch(error => {
         setAvatarHash(null);
         Sentry.withScope(scope => {
@@ -72,8 +75,6 @@ function useGravatarHash(gravatarId: string) {
           Sentry.captureException(error);
         });
       });
-
-    return;
   }, [gravatarId]);
 
   return avatarHash;
