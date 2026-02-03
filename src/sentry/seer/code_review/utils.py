@@ -124,9 +124,11 @@ def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> 
     sender = event_payload.get("sender", {})
     pull_request = event_payload.get("pull_request", {})
     pr_author = pull_request.get("user", {})
-    trigger_at_str = pull_request.get("updated_at") or pull_request.get("created_at")
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
     trigger_at = (
-        datetime.fromisoformat(trigger_at_str) if trigger_at_str else datetime.now(timezone.utc)
+        pull_request.get("updated_at")
+        or pull_request.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
     )
 
     return {
@@ -144,9 +146,11 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
     comment_user = comment.get("user", {})
     # Use updated_at to support both "created" and potential future "edited" triggers.
     # For newly created comments, updated_at equals created_at.
-    trigger_at_str = comment.get("updated_at") or comment.get("created_at")
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
     trigger_at = (
-        datetime.fromisoformat(trigger_at_str) if trigger_at_str else datetime.now(timezone.utc)
+        comment.get("updated_at")
+        or comment.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
     )
 
     return {

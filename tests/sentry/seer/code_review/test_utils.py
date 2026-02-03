@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import orjson
@@ -25,6 +25,7 @@ from sentry.seer.code_review.utils import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.users.models.user import User
+from sentry.utils import json
 
 
 class TestGetTriggerMetadata:
@@ -41,7 +42,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_user"] == "test-user"
         assert result["trigger_user_id"] == 99999
         assert result["trigger_comment_type"] == "issue_comment"
-        assert result["trigger_at"] == datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert result["trigger_at"] == "2024-01-15T10:30:00Z"
 
     def test_extracts_issue_comment_trigger_at_defaults_to_now_when_missing(self) -> None:
         event_payload = {
@@ -51,8 +52,10 @@ class TestGetTriggerMetadata:
             }
         }
         result = _get_trigger_metadata_for_issue_comment(event_payload)
-        assert isinstance(result["trigger_at"], datetime)
-        assert result["trigger_at"].tzinfo is not None
+        # Returns ISO string for Celery serialization
+        assert isinstance(result["trigger_at"], str)
+        # Verify it's a valid ISO datetime string
+        datetime.fromisoformat(result["trigger_at"])
 
     def test_issue_comment_falls_back_to_created_at(self) -> None:
         event_payload = {
@@ -63,7 +66,7 @@ class TestGetTriggerMetadata:
             }
         }
         result = _get_trigger_metadata_for_issue_comment(event_payload)
-        assert result["trigger_at"] == datetime(2024, 1, 15, 9, 0, 0, tzinfo=timezone.utc)
+        assert result["trigger_at"] == "2024-01-15T09:00:00Z"
 
     def test_pull_request_uses_sender_rather_than_pr_author(self) -> None:
         event_payload = {
@@ -78,7 +81,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_user_id"] == 12345
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
-        assert result["trigger_at"] == datetime(2024, 1, 15, 11, 0, 0, tzinfo=timezone.utc)
+        assert result["trigger_at"] == "2024-01-15T11:00:00Z"
 
     def test_pull_request_falls_back_to_pr_user(self) -> None:
         event_payload = {
@@ -92,7 +95,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_user_id"] == 67890
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
-        assert result["trigger_at"] == datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+        assert result["trigger_at"] == "2024-01-15T12:00:00Z"
 
     def test_pull_request_no_data_defaults_trigger_at_to_now(self) -> None:
         result = _get_trigger_metadata_for_pull_request({})
@@ -100,8 +103,10 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
         assert result["trigger_user_id"] is None
-        assert isinstance(result["trigger_at"], datetime)
-        assert result["trigger_at"].tzinfo is not None
+        # Returns ISO string for Celery serialization
+        assert isinstance(result["trigger_at"], str)
+        # Verify it's a valid ISO datetime string
+        datetime.fromisoformat(result["trigger_at"])
 
 
 class GetTargetCommitShaTest(TestCase):
@@ -251,9 +256,7 @@ class TestTransformWebhookToCodegenRequest:
         assert (
             result["data"]["config"]["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
         )
-        assert result["data"]["config"]["trigger_at"] == datetime(
-            2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc
-        )
+        assert result["data"]["config"]["trigger_at"] == "2024-01-15T10:30:00Z"
 
     def test_issue_comment_on_pr(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -292,7 +295,7 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
-        assert config["trigger_at"] == datetime(2024, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+        assert config["trigger_at"] == "2024-01-15T14:00:00Z"
 
     def test_invalid_repo_name_format_raises(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -346,6 +349,63 @@ class TestTransformWebhookToCodegenRequest:
 
         assert result is not None
         assert "integration_id" not in result["data"]["repo"]
+
+    def test_pull_request_payload_is_json_serializable(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        """Verify payload can be JSON serialized for Celery task submission."""
+        _, organization, _, repo = setup_entities
+        event_payload = {
+            "action": "opened",
+            "pull_request": {
+                "number": 42,
+                "user": {"login": "pr-author"},
+                "updated_at": "2024-01-15T10:30:00Z",
+            },
+            "sender": {"login": "sender-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        # This would fail if trigger_at is a datetime object instead of string
+        json.dumps(result)  # Should not raise TypeError
+
+    def test_issue_comment_payload_is_json_serializable(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        """Verify payload can be JSON serialized for Celery task submission."""
+        _, organization, _, repo = setup_entities
+        event_payload = {
+            "action": "created",
+            "issue": {
+                "number": 42,
+                "pull_request": {
+                    "url": "https://api.github.com/repos/test-owner/test-repo/pulls/42"
+                },
+            },
+            "comment": {
+                "id": 12345,
+                "user": {"login": "commenter"},
+                "updated_at": "2024-01-15T14:00:00Z",
+            },
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT,
+            "created",
+            event_payload,
+            organization,
+            repo,
+            "def456sha",
+        )
+
+        # This would fail if trigger_at is a datetime object instead of string
+        json.dumps(result)  # Should not raise TypeError
 
 
 class TestExtractGithubInfo:
