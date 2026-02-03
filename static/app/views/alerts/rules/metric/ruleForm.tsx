@@ -64,7 +64,7 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
+import {getBackendAlertType, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -166,6 +166,7 @@ type State = {
   confidence?: Confidence;
   extrapolationMode?: ExtrapolationMode;
   isExtrapolatedChartData?: boolean;
+  isMetricLoading?: boolean;
   seasonality?: AlertRuleSeasonality;
   seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
@@ -806,12 +807,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
         // Add or update is just the PUT/POST to the org alert-rules api
         // we're splatting the full rule in, then overwriting all the data?
+        // Get transformed form data and convert frontend-only alert types to backend equivalents
+        const formData = model.getTransformedData();
+        if (formData.alertType) {
+          formData.alertType = getBackendAlertType(formData.alertType);
+        }
+
         const [data, , resp] = await addOrUpdateRule(
           this.api,
           organization.slug,
           {
             ...rule, // existing rule
-            ...model.getTransformedData(), // form data
+            ...formData, // form data
             projects: [project.slug],
             triggers: sanitizedTriggers,
             resolveThreshold:
@@ -1006,6 +1013,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
       this.fetchAnomalies()
     );
+  };
+
+  handleMetricLoadingChange = (isLoading: boolean) => {
+    this.setState({isMetricLoading: isLoading});
   };
 
   handleDeleteRule = async () => {
@@ -1255,6 +1266,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         />
       );
     }
+
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
@@ -1262,6 +1274,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {
       formattedAggregate = prettifyParsedFunction(func);
+    }
+
+    // For trace_item_metrics, show loading until:
+    // - a metric name is selected, OR
+    // - the metric options query finished loading (isMetricLoading === false)
+    // Aggregate format: aggregate(value,metric_name,metric_type,unit)
+    let isPreloading = false;
+    if (alertType === 'trace_item_metrics' && func) {
+      const metricName = func.arguments?.[1] ?? '';
+      const hasMetricSelected = Boolean(metricName);
+      const isMetricQueryDone = this.state.isMetricLoading === false;
+      isPreloading = !hasMetricSelected && !isMetricQueryDone;
     }
 
     const chartProps: ComponentProps<typeof TriggersChart> = {
@@ -1292,6 +1316,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       seriesSamplingInfo,
       traceItemType: traceItemType ?? undefined,
       extrapolationMode,
+      isPreloading,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1510,6 +1535,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                     timeWindow={timeWindow}
                     eventTypes={eventTypes}
                     extrapolationMode={extrapolationMode}
+                    onMetricLoadingChange={this.handleMetricLoadingChange}
                   />
 
                   <AlertListItem>

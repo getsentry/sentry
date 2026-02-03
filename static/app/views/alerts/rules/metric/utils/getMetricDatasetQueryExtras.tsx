@@ -40,6 +40,15 @@ export function getMetricDatasetQueryExtras({
     };
   }
 
+  if (
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
+    traceItemType === TraceItemDataset.TRACEMETRICS
+  ) {
+    return {
+      dataset: DiscoverDatasets.TRACEMETRICS,
+    };
+  }
+
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
       dataset: DiscoverDatasets.SPANS,

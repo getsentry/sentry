@@ -224,4 +224,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
     illustration: diagramThroughput,
   },
+  trace_item_metrics: {
+    description: t(
+      'Alert on custom metrics that you have defined and are tracking in your application.'
+    ),
+    examples: [
+      t('When a custom counter exceeds 1000 in 5 minutes.'),
+      t('When the average value of a custom gauge drops below a threshold.'),
+    ],
+    illustration: diagramCustomTransaction,
+  },
 };
