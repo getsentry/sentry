@@ -7,10 +7,9 @@ import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/type
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
-import type {
-  LegendType,
-  ThresholdsConfig,
-} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+
+export type LegendType = 'default' | 'breakdown';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the

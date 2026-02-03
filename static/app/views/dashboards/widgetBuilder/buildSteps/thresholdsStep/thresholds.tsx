@@ -49,8 +49,6 @@ export type ThresholdsConfig = {
   preferredPolarity?: Polarity;
 };
 
-export type LegendType = 'default' | 'breakdown';
-
 const WIDGET_INDICATOR_SIZE = 15;
 
 function ThresholdRow({
