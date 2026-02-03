@@ -59,7 +59,6 @@ describe('ContextPickerModal', () => {
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
       closeModal={jest.fn()}
-      organizations={[]}
       {...props}
     />
   );
@@ -182,7 +181,6 @@ describe('ContextPickerModal', () => {
         needOrg: true,
         needProject: true,
         nextPath: '/test/:orgId/path/:projectId/',
-        organizations,
       })
     );
 

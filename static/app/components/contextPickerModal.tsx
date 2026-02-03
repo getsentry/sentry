@@ -50,11 +50,6 @@ type SharedProps = ModalRenderProps & {
    */
   onFinish: (path: string | {pathname: string; query?: Query}) => number | void;
 
-  /**
-   * List of available organizations
-   */
-  organizations: Organization[];
-
   allowAllProjectsSelection?: boolean;
 };
 
@@ -70,6 +65,11 @@ type Props = SharedProps & {
    * Organization slug
    */
   organization: string | undefined;
+
+  /**
+   * List of available organizations
+   */
+  organizations: Organization[];
 
   projects: Project[];
 
