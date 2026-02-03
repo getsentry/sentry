@@ -179,11 +179,11 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
     components: ['link', 'tabs', 'menulistitem'],
   },
   status: {
-    label: 'Status & Feedback',
+    label: 'Status',
     components: ['alert', 'badge', 'tag', 'toast'],
   },
   display: {
-    label: 'Data Display',
+    label: 'Display',
     components: ['avatar', 'image', 'codeblock'],
   },
   overlays: {
