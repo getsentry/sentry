@@ -10,7 +10,7 @@ from requests import Response
 from requests.adapters import RetryError
 from requests.exceptions import RequestException
 
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 __all__ = (
     "ApiConnectionResetError",
@@ -90,6 +90,11 @@ class ApiError(Exception):
         elif response.status_code == 400:
             return ApiInvalidRequestError(response.text, url=url)
         elif response.status_code == 403:
+            # GitHub returns 403 for secondary rate limits instead of 429
+            # Detect this case and return ApiRateLimitedError for consistent handling
+            if "secondary rate limit" in response.text.lower():
+                metrics.incr("integrations.http.secondary_rate_limit_detected")
+                return ApiRateLimitedError(response.text, url=url)
             return ApiForbiddenError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
