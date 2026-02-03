@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.github.utils import (
+    is_github_rate_limit_sensitive,
     parse_github_blob_url,
     should_create_or_increment_contributor_seat,
 )
@@ -129,3 +130,20 @@ def test_parse_github_blob_url(repo_url, source_url, expected_branch, expected_p
     branch, path = parse_github_blob_url(repo_url, source_url)
     assert branch == expected_branch
     assert path == expected_path
+
+
+class IsGithubRateLimitSensitiveTest(TestCase):
+    def test_returns_true_when_organization_slug_in_list(self):
+        org = self.create_organization(slug="org-1")
+        with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
+            assert is_github_rate_limit_sensitive(org) is True
+
+    def test_returns_false_when_organization_slug_not_in_list(self):
+        org = self.create_organization(slug="org-3")
+        with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
+            assert is_github_rate_limit_sensitive(org) is False
+
+    def test_returns_false_when_list_is_empty(self):
+        org = self.create_organization(slug="org-1")
+        with self.options({"github-app.rate-limit-sensitive-orgs": []}):
+            assert is_github_rate_limit_sensitive(org) is False

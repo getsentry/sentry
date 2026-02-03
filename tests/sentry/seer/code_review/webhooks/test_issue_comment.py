@@ -119,7 +119,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
 
     @patch(
-        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_eyes_reaction"
+        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_reaction"
     )
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
