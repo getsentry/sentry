@@ -2138,4 +2138,134 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
   });
+
+  describe('categorical bar chart actions', () => {
+    it('updates only the X-axis field with SET_CATEGORICAL_X_AXIS', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Should preserve aggregates while updating X-axis
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'project'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('resets sort to first aggregate when X-axis changes and sort was on old X-axis', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-transaction'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should be reset to first aggregate
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves sort when X-axis changes but sort was on aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'project',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should NOT change since it was already on an aggregate
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: expect.anything(),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
 });

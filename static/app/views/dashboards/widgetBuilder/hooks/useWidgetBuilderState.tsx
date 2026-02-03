@@ -828,6 +828,28 @@ function useWidgetBuilderState(): {
               field: action.payload,
             };
             setFields([newXAxisField, ...existingAggregates], options);
+
+            // If sort was on the old X-axis field, reset to first aggregate
+            // (sort options for categorical bars are columns + aggregates)
+            const currentSortField = sort?.[0]?.field;
+            const oldXAxisField = fields?.find(f => f.kind === FieldValueKind.FIELD);
+            const wasOnOldXAxis =
+              oldXAxisField && currentSortField === generateFieldAsString(oldXAxisField);
+
+            if (wasOnOldXAxis && existingAggregates.length > 0) {
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(existingAggregates[0]!),
+                  },
+                ],
+                options
+              );
+            } else if (wasOnOldXAxis) {
+              // No aggregates to fall back to, clear the sort
+              setSort([], options);
+            }
           }
           break;
         case BuilderStateAction.SET_CATEGORICAL_AGGREGATE:
