@@ -1,4 +1,4 @@
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 
 import type {TraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
