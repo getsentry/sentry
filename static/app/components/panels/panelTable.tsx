@@ -1,9 +1,11 @@
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {TourRenderProps} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -59,6 +61,7 @@ type PanelTableProps = {
    * If true, scrolling headers out of view will pin to the top of container.
    */
   stickyHeaders?: boolean;
+  tourProps?: TourRenderProps;
 };
 
 /**
@@ -77,7 +80,6 @@ type PanelTableProps = {
  */
 
 function PanelTable({
-  ref,
   headers,
   children,
   isLoading,
@@ -90,6 +92,7 @@ function PanelTable({
   stickyHeaders = false,
   disableHeaderBorderBottom = false,
   disableHeaders,
+  tourProps,
   ...props
 }: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
@@ -98,13 +101,12 @@ function PanelTable({
 
   return (
     <Wrapper
-      ref={ref}
       columns={headers.length}
       disablePadding={disablePadding}
       className={className}
       hasRows={shouldShowContent}
       disableHeaderBorderBottom={disableHeaderBorderBottom}
-      {...props}
+      {...mergeProps(props, tourProps)}
     >
       {!disableHeaders &&
         headers.map((header, i) => (

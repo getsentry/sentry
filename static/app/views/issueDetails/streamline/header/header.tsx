@@ -270,8 +270,8 @@ export default function StreamlinedGroupHeader({
         )}
         position="bottom-end"
       >
-        {props => (
-          <ActionBar {...props} isComplete={isComplete} role="banner">
+        {tourProps => (
+          <ActionBar {...tourProps} isComplete={isComplete} role="banner">
             <GroupActions
               group={group}
               project={project}

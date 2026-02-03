@@ -368,9 +368,9 @@ function ReleaseOverview() {
               )}
               position="top-end"
             >
-              {props => (
+              {tourProps => (
                 <ReleaseComparisonChart
-                  {...props}
+                  tourProps={tourProps}
                   release={release}
                   releaseSessions={thisRelease}
                   allSessions={allReleases}
@@ -413,8 +413,8 @@ function ReleaseOverview() {
           description={t('Track release adoption, commit stats, and more.')}
           position="left-start"
         >
-          {props => (
-            <Layout.Side {...props}>
+          {tourProps => (
+            <Layout.Side {...tourProps}>
               <ReleaseStats
                 organization={organization}
                 release={release}

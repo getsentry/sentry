@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import type {TourRenderProps} from 'sentry/components/tours/components';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -51,10 +52,12 @@ type Props = {
   ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
+  tourProps?: TourRenderProps;
 };
 
 function TransactionsTable(props: Props) {
   const {
+    tourProps,
     eventView,
     titles,
     tableData,
@@ -238,6 +241,7 @@ function TransactionsTable(props: Props) {
       isLoading={isLoading}
     >
       <PanelTable
+        tourProps={tourProps}
         data-test-id="transactions-table"
         isEmpty={!hasResults}
         emptyMessage={

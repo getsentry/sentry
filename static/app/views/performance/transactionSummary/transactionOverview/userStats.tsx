@@ -113,8 +113,8 @@ function UserStats({
               See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
           )}
         >
-          {props => (
-            <SectionHeading {...props}>
+          {tourProps => (
+            <SectionHeading {...tourProps}>
               {t('User Misery')}
               <QuestionTooltip
                 position="top"

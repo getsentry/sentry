@@ -208,7 +208,7 @@ function TableRender({
       >
         {props => (
           <TransactionsTable
-            {...props}
+            tourProps={props}
             eventView={eventView}
             organization={organization}
             location={location}

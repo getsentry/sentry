@@ -188,8 +188,8 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       Select a transaction to see more details.`
         )}
       >
-        {props => (
-          <div {...props}>
+        {tourProps => (
+          <div {...tourProps}>
             <GridEditable
               aria-label={t('Domains')}
               isLoading={isLoading}

@@ -221,8 +221,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
         )}
       >
-        {props => (
-          <NavigationWrapper {...props}>
+        {tourProps => (
+          <NavigationWrapper {...tourProps}>
             {currentTab === Tab.DETAILS && (
               <Fragment>
                 <IssueDetailsEventNavigation

@@ -89,8 +89,8 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       }
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
-      {props => (
-        <Side {...props}>
+      {tourProps => (
+        <Side {...tourProps}>
           <FirstLastSeenSection group={group} />
           <StyledBreak />
           {showSeerSection && (

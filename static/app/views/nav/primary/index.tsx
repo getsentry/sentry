@@ -86,13 +86,13 @@ export function PrimaryNavigationItems() {
     <Fragment>
       <SidebarBody ref={ref}>
         <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
-          {props => (
+          {tourProps => (
             <SidebarLink
               to={`/${prefix}/issues/`}
               analyticsKey="issues"
               group={PrimaryNavGroup.ISSUES}
               {...makeNavItemProps(PrimaryNavGroup.ISSUES)}
-              {...props}
+              {...tourProps}
             >
               <IconIssues />
             </SidebarLink>
@@ -104,14 +104,14 @@ export function PrimaryNavigationItems() {
           title={null}
           description={null}
         >
-          {props => (
+          {tourProps => (
             <SidebarLink
               to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
               activeTo={`/${prefix}/explore`}
               analyticsKey="explore"
               group={PrimaryNavGroup.EXPLORE}
               {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
-              {...props}
+              {...tourProps}
             >
               <IconCompass />
             </SidebarLink>

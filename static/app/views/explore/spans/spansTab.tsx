@@ -342,7 +342,7 @@ function SpanTabContentSection({
         {props => (
           <Fragment>
             <ExploreCharts
-              {...props}
+              tourProps={props}
               confidences={confidences}
               query={query}
               extrapolate={extrapolate}

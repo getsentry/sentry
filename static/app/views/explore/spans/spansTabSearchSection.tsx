@@ -459,8 +459,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           position="bottom"
           margin={-8}
         >
-          {props => (
-            <div {...props}>
+          {tourProps => (
+            <div {...tourProps}>
               <Grid
                 gap="md"
                 columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}

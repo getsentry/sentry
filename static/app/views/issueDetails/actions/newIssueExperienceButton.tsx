@@ -252,11 +252,11 @@ export function NewIssueExperienceButton() {
       }
       isOpen={isReminderVisible}
     >
-      {props => (
+      {tourProps => (
         <DropdownMenu
           trigger={triggerProps => (
             <StyledDropdownButton
-              {...mergeProps(triggerProps, props)}
+              {...mergeProps(triggerProps, tourProps)}
               size={hasStreamlinedUI ? 'xs' : 'sm'}
               aria-label={t('Manage issue experience')}
             >

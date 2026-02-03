@@ -377,9 +377,9 @@ class ReleaseIssues extends Component<Props, State> {
             )}
             position="top-start"
           >
-            {props => (
+            {tourProps => (
               <SegmentedControl
-                {...props}
+                {...tourProps}
                 aria-label={t('Issue type')}
                 size="xs"
                 value={issuesType}

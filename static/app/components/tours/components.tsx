@@ -146,14 +146,14 @@ export function TourContextProvider<T extends TourEnumType>({
 
 export interface TourRenderProps {
   /**
-   * ARIA attribute indicating if the tour is active
-   */
-  'aria-expanded': boolean;
-  /**
    * Ref to attach to the element for positioning.
    * Uses `any` to allow flexibility in spreading onto different element types.
    */
   ref: React.Ref<any>;
+  /**
+   * ARIA attribute indicating if the tour is active
+   */
+  'aria-expanded'?: boolean | undefined;
   /**
    * CSS class for tour highlight styling
    */

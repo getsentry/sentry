@@ -86,8 +86,8 @@ function IssueListTable({
         )}
         disabled={issuesLoading}
       >
-        {props => (
-          <ContainerPanel {...props}>
+        {tourProps => (
+          <ContainerPanel {...tourProps}>
             {(groupIds.length > 0 || issuesLoading) && (
               <IssueListActions
                 selection={selection}

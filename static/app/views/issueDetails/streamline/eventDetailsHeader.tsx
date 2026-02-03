@@ -48,8 +48,8 @@ import {
 interface EventDetailsHeaderProps {
   group: Group;
   project: Project;
-  tourProps: TourRenderProps;
   event?: Event;
+  tourProps?: TourRenderProps;
 }
 
 export function EventDetailsHeader({
@@ -276,11 +276,11 @@ function EnvironmentSelector({
   );
 }
 
-const DetailsContainer = styled('div')<
-  TourRenderProps & {
-    hasFilterBar: boolean;
-  }
->`
+interface DetailsContainerProps extends Partial<TourRenderProps> {
+  hasFilterBar: boolean;
+}
+
+const DetailsContainer = styled('div')<DetailsContainerProps>`
   position: relative;
   display: flex;
   flex-direction: column;
