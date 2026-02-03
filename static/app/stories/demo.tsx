@@ -19,5 +19,6 @@ export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
   max-height: 512px;
   overflow: auto;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.background.primary};
 `;
