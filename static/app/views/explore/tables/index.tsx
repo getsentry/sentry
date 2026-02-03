@@ -1,6 +1,6 @@
 import {Fragment, useCallback} from 'react';
 
-import {Badge} from '@sentry/scraps/badge/badge';
+import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';

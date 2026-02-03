@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

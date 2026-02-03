@@ -1,7 +1,6 @@
 import {useState} from 'react';
 
-import {Container} from '@sentry/scraps/layout/container';
-import {Grid} from '@sentry/scraps/layout/grid';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import Form from 'sentry/components/forms/form';

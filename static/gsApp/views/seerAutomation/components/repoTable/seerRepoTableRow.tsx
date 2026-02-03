@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 
 import {
   addErrorMessage,
