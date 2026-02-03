@@ -7,7 +7,6 @@ import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  HIDDEN_PREPROD_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
@@ -26,7 +25,6 @@ import {
   makeTraceItemAttributeKeysQueryOptions,
 } from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {removeHiddenKeys} from 'sentry/views/explore/utils';
 
 interface UseTraceItemAttributeKeysProps {
   projectIds: number[];
@@ -108,10 +106,6 @@ export function useTraceItemNumberAttributes({
 
     const combined = {...numberAttributes, ...Object.fromEntries(measurements)};
 
-    if (traceItemType === TraceItemDataset.PREPROD) {
-      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
-    }
-
     return combined;
   }, [numberAttributes, traceItemType]);
 
@@ -146,10 +140,6 @@ export function useTraceItemStringAttributes({
     ]);
 
     const combined = {...stringAttributes, ...Object.fromEntries(tags)};
-
-    if (traceItemType === TraceItemDataset.PREPROD) {
-      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
-    }
 
     return combined;
   }, [stringAttributes, traceItemType]);
@@ -196,10 +186,6 @@ export function useTraceItemBooleanAttributes({
     ]);
 
     const combined = {...booleanAttributes, ...Object.fromEntries(tags)};
-
-    if (traceItemType === TraceItemDataset.PREPROD) {
-      return removeHiddenKeys(combined, HIDDEN_PREPROD_ATTRIBUTES);
-    }
 
     return combined;
   }, [booleanAttributes, hasBooleanFilters, traceItemType]);
