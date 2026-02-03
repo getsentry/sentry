@@ -1023,3 +1023,171 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         assert response.data[0]["firstInput"] == user_content
         assert response.data[0]["lastOutput"] == response_content
+
+    def test_tool_names_populated(self) -> None:
+        """Test that toolNames is populated with distinct tool names from tool spans"""
+        now = before_now(days=106).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="weather_api",
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="calculator",
+        )
+
+        # Duplicate tool call should not create duplicate entry
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="weather_api",
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="search",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        # toolNames should be sorted and distinct
+        assert conversation["toolNames"] == ["calculator", "search", "weather_api"]
+        assert conversation["toolCalls"] == 4
+        assert conversation["toolErrors"] == 0
+
+    def test_tool_errors_counted(self) -> None:
+        """Test that toolErrors counts only failed tool spans"""
+        now = before_now(days=107).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # Successful tool call
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="ok",
+            trace_id=trace_id,
+            tool_name="weather_api",
+        )
+
+        # Failed tool call
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="internal_error",
+            trace_id=trace_id,
+            tool_name="database_query",
+        )
+
+        # Another failed tool call
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="resource_exhausted",
+            trace_id=trace_id,
+            tool_name="external_api",
+        )
+
+        # Successful tool call
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            status="ok",
+            trace_id=trace_id,
+            tool_name="calculator",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        assert conversation["toolCalls"] == 4
+        assert conversation["toolErrors"] == 2
+        assert set(conversation["toolNames"]) == {
+            "weather_api",
+            "database_query",
+            "external_api",
+            "calculator",
+        }
+
+    def test_empty_tool_names_when_no_tool_calls(self) -> None:
+        """Test that toolNames is empty when there are no tool calls"""
+        now = before_now(days=108).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # Only LLM calls, no tool calls
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+        )
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        assert conversation["toolNames"] == []
+        assert conversation["toolCalls"] == 0
+        assert conversation["toolErrors"] == 0
