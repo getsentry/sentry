@@ -89,7 +89,7 @@ export function MobileBuildsChart({
   const [metric, setMetric] = useState<SizeMetric>(SizeMetric.INSTALL_SIZE);
   const [legendSelected, setLegendSelected] = useState<Record<string, boolean>>({});
 
-  const {series, seriesBuildLookup} = useMemo(() => {
+  const {series, seriesBuildLookup, minTime, maxTime} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
 
     for (const build of builds) {
@@ -154,7 +154,14 @@ export function MobileBuildsChart({
       };
     });
 
-    return {series: chartSeries, seriesBuildLookup: buildLookup};
+    const allTimestamps = chartSeries.flatMap(s => s.data.map(d => d.name));
+
+    return {
+      series: chartSeries,
+      seriesBuildLookup: buildLookup,
+      minTime: allTimestamps.length > 0 ? Math.min(...allTimestamps) : 0,
+      maxTime: allTimestamps.length > 0 ? Math.max(...allTimestamps) : 0,
+    };
   }, [builds, metric]);
 
   const handleClick = useCallback<EChartClickHandler>(
@@ -207,13 +214,9 @@ export function MobileBuildsChart({
     );
   }
 
-  if (series.length === 0) {
+  if (series.length === 0 || (minTime === 0 && maxTime === 0)) {
     return null;
   }
-
-  const allTimestamps = series.flatMap(s => s.data.map(d => d.name));
-  const minTime = Math.min(...allTimestamps);
-  const maxTime = Math.max(...allTimestamps);
 
   return (
     <Panel>
