@@ -337,7 +337,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
       ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
-        : p.theme.tokens.content.accent};
+        : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};
