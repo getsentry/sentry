@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading} from '@sentry/scraps/text';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconClose, IconGrabbable} from 'sentry/icons';

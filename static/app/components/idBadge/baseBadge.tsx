@@ -2,12 +2,12 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import {
+  ActorAvatar,
   OrganizationAvatar,
   ProjectAvatar,
   TeamAvatar,
   UserAvatar,
 } from '@sentry/scraps/avatar';
-import {ActorAvatar} from '@sentry/scraps/avatar/actorAvatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {space, type ValidSize} from 'sentry/styles/space';

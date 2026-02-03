@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Text} from 'sentry/components/core/text/text';
 import type {StatusCodeOpTreeNode} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/models/statusCodeOpTreeNode';
 import {COMPARISON_OPTIONS} from 'sentry/views/alerts/rules/uptime/assertions/opCommon';
 
