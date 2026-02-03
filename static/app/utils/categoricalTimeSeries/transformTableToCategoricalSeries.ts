@@ -20,56 +20,6 @@ const MAX_CATEGORIES = 10;
  */
 export const OTHER_CATEGORY_LABEL = 'Other';
 
-/**
- * Limits the number of categories in a categorical series by aggregating
- * lower-value categories into an "Other" bucket.
- *
- * The function:
- * 1. Sorts categories by value (descending)
- * 2. Keeps the top (limit - 1) categories
- * 3. Sums remaining categories into an "Other" bucket
- *
- * If the number of categories is already at or below the limit, returns unchanged.
- */
-function limitCategoriesWithOther(
-  values: CategoricalItem[],
-  limit: number = MAX_CATEGORIES
-): CategoricalItem[] {
-  if (values.length <= limit) {
-    return values;
-  }
-
-  // Sort by value descending (nulls treated as 0)
-  const sorted = [...values].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
-
-  // Take top (limit - 1) to leave room for "Other"
-  const topItems = sorted.slice(0, limit - 1);
-  const otherItems = sorted.slice(limit - 1);
-
-  // Sum the remaining values into "Other"
-  const otherValue = otherItems.reduce((sum, item) => sum + (item.value ?? 0), 0);
-
-  return [...topItems, {category: OTHER_CATEGORY_LABEL, value: otherValue}];
-}
-
-/**
- * Maps AggregationOutputType to CategoricalValueType.
- * CategoricalValueType is a subset of the plottable value types.
- */
-function mapToCategoricalValueType(type: string | undefined): CategoricalValueType {
-  if (!type) {
-    return 'number';
-  }
-
-  // CategoricalValueType is constrained to PLOTTABLE_TIME_SERIES_VALUE_TYPES
-  if (PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(type as CategoricalValueType)) {
-    return type as CategoricalValueType;
-  }
-
-  // Default to 'number' for unsupported types
-  return 'number';
-}
-
 interface TransformOptions {
   tableData: TableDataWithTitle;
   widget: Widget;
@@ -140,4 +90,54 @@ export function transformTableToCategoricalSeries({
       values: limitedValues,
     };
   });
+}
+
+/**
+ * Limits the number of categories in a categorical series by aggregating
+ * lower-value categories into an "Other" bucket.
+ *
+ * The function:
+ * 1. Sorts categories by value (descending)
+ * 2. Keeps the top (limit - 1) categories
+ * 3. Sums remaining categories into an "Other" bucket
+ *
+ * If the number of categories is already at or below the limit, returns unchanged.
+ */
+function limitCategoriesWithOther(
+  values: CategoricalItem[],
+  limit: number = MAX_CATEGORIES
+): CategoricalItem[] {
+  if (values.length <= limit) {
+    return values;
+  }
+
+  // Sort by value descending (nulls treated as 0)
+  const sorted = [...values].sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+
+  // Take top (limit - 1) to leave room for "Other"
+  const topItems = sorted.slice(0, limit - 1);
+  const otherItems = sorted.slice(limit - 1);
+
+  // Sum the remaining values into "Other"
+  const otherValue = otherItems.reduce((sum, item) => sum + (item.value ?? 0), 0);
+
+  return [...topItems, {category: OTHER_CATEGORY_LABEL, value: otherValue}];
+}
+
+/**
+ * Maps AggregationOutputType to CategoricalValueType.
+ * CategoricalValueType is a subset of the plottable value types.
+ */
+function mapToCategoricalValueType(type: string | undefined): CategoricalValueType {
+  if (!type) {
+    return 'number';
+  }
+
+  // CategoricalValueType is constrained to PLOTTABLE_TIME_SERIES_VALUE_TYPES
+  if (PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(type as CategoricalValueType)) {
+    return type as CategoricalValueType;
+  }
+
+  // Default to 'number' for unsupported types
+  return 'number';
 }
