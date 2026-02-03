@@ -432,6 +432,44 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
         assert condition2.condition_group == dcg
 
     def test_update_trigger__invalid_logic_type(self) -> None:
+        """
+        Test that if you add another trigger with an invalid logic type we raise an error
+        """
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.create(validator.validated_data)
+
+        valid_data["conditions"].append(
+            {
+                "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                "comparison": True,
+                "conditionResult": True,
+            }
+        )
+        valid_data["logicType"] = DataConditionGroup.Type.ALL.value
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            dcg = validator.update(dcg, validator.validated_data)
+
+        assert "Triggers' logic type must be 'any-short'" in str(exc_info.value)
+
+    def test_update_trigger__only_invalid_logic_type(self) -> None:
+        """
+        Test that if the only thing you pass to the update payload is the logic type and it changes it to become invalid we raise an error
+        """
         valid_data = {
             "organizationId": self.organization.id,
             "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
