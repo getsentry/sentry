@@ -11,22 +11,7 @@ import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboard
 import {getPythonInstallCodeBlock} from './utils';
 
 export const agentMonitoring: OnboardingConfig = {
-  install: params => {
-    const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
-    let packageName = 'sentry-sdk';
-
-    if (selected === 'langchain') {
-      packageName = 'sentry-sdk[langchain]';
-    } else if (selected === 'langgraph') {
-      packageName = 'sentry-sdk[langgraph]';
-    } else if (selected === 'litellm') {
-      packageName = 'sentry-sdk[litellm]';
-    } else if (selected === 'google_genai') {
-      packageName = 'sentry-sdk[google_genai]';
-    } else if (selected === 'pydantic_ai') {
-      packageName = 'sentry-sdk[pydantic_ai]';
-    }
-
+  install: () => {
     return [
       {
         type: StepType.INSTALL,
@@ -35,7 +20,7 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock({packageName: 'sentry-sdk'}),
         ],
       },
     ];

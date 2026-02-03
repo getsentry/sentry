@@ -17,7 +17,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   profilingOnboarding: profiling({
-    basePackage: 'sentry-sdk[starlette]',
+    basePackage: 'sentry-sdk',
   }),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
@@ -25,7 +25,7 @@ const docs: Docs = {
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
   logsOnboarding: logs({
-    packageName: 'sentry-sdk[starlette]',
+    packageName: 'sentry-sdk',
   }),
   metricsOnboarding: metrics(),
 };

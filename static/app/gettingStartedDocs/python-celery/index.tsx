@@ -9,11 +9,11 @@ import {onboarding} from './onboarding';
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[celery]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk'}),
   crashReportOnboarding: crashReport,
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs({
-    packageName: 'sentry-sdk[celery]',
+    packageName: 'sentry-sdk',
   }),
   metricsOnboarding: metrics(),
 };

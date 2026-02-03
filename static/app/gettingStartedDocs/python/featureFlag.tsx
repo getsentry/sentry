@@ -37,7 +37,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
     integrationName: `LaunchDarklyIntegration`,
-    packageName: "'sentry-sdk[launchdarkly]'",
+    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
 import ldclient
@@ -58,7 +58,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
     integrationName: `OpenFeatureIntegration`,
-    packageName: "'sentry-sdk[openfeature]'",
+    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
 from openfeature import api
@@ -79,7 +79,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.STATSIG]: {
     integrationName: `StatsigIntegration`,
-    packageName: "'sentry-sdk[statsig]'",
+    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.statsig import StatsigIntegration
 from statsig.statsig_user import StatsigUser
@@ -103,7 +103,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 
   [FeatureFlagProviderEnum.UNLEASH]: {
     integrationName: `UnleashIntegration`,
-    packageName: "'sentry-sdk[unleash]'",
+    packageName: 'sentry-sdk',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.unleash import UnleashIntegration
 from UnleashClient import UnleashClient
@@ -138,10 +138,7 @@ export const featureFlag: OnboardingConfig = {
         content: [
           {
             type: 'text',
-            text:
-              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-                ? t('Install the Sentry SDK.')
-                : t('Install the Sentry SDK with an extra.'),
+            text: t('Install the Sentry SDK.'),
           },
           getPythonInstallCodeBlock({packageName}),
         ],

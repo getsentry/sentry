@@ -10,12 +10,12 @@ import {onboarding} from './onboarding';
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[chalice]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk'}),
   crashReportOnboarding: crashReport,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
   logsOnboarding: logs({
-    packageName: 'sentry-sdk[chalice]',
+    packageName: 'sentry-sdk',
   }),
   metricsOnboarding: metrics(),
 };

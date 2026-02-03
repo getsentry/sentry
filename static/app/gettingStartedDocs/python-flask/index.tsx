@@ -17,7 +17,7 @@ import {performance} from './performance';
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[flask]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk'}),
   performanceOnboarding: performance,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
@@ -25,7 +25,7 @@ const docs: Docs = {
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
   logsOnboarding: logs({
-    packageName: 'sentry-sdk[flask]',
+    packageName: 'sentry-sdk',
   }),
   metricsOnboarding: metrics(),
 };

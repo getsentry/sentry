@@ -16,14 +16,14 @@ import {onboarding} from './onboarding';
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[bottle]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk'}),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
   logsOnboarding: logs({
-    packageName: 'sentry-sdk[bottle]',
+    packageName: 'sentry-sdk',
   }),
   metricsOnboarding: metrics(),
 };
