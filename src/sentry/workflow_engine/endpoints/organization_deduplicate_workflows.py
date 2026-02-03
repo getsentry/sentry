@@ -78,6 +78,7 @@ class WorkflowData:
                 {
                     "conditions": group_conditions,
                     "actions": group_actions,
+                    "logic_type": wdcg.condition_group.logic_type,
                 }
             )
 
@@ -96,7 +97,7 @@ class WorkflowData:
             "trigger_conditions": trigger_conditions,
         }
 
-        return json.dumps(workflow_data, sort_keys=True)
+        return json.dumps(workflow_data, sort_keys=True)  # type: ignore[arg-type]
 
 
 def deduplicate_workflows(organization: Organization):
@@ -147,30 +148,30 @@ def deduplicate_workflows(organization: Organization):
         else:
             workflow_dedupe_hash[workflow_hash] = [workflow.id]
 
-    with transaction.atomic(router.db_for_write(Workflow)):
-        for workflow_hash, workflow_ids in workflow_dedupe_hash.items():
-            # The workflow is not duplicated in the org, continue
-            if len(workflow_ids) <= 1:
-                continue
+    for workflow_hash, workflow_ids in workflow_dedupe_hash.items():
+        # The workflow is not duplicated in the org, continue
+        if len(workflow_ids) <= 1:
+            continue
 
-            canonical_workflow_id = workflow_ids.pop()
+        canonical_workflow_id = workflow_ids.pop()
 
-            with transaction.atomic(router.db_for_write(Workflow)):
-                try:
-                    # Update the DetectorWorkflow references to use the canonical version
-                    DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                        workflow_id=canonical_workflow_id
-                    )
+        with transaction.atomic(router.db_for_write(Workflow)):
+            try:
+                # Update the DetectorWorkflow references to use the canonical version
+                DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                    workflow_id=canonical_workflow_id
+                )
 
-                    # Update AlertRuleWorkflow entries to point to the canonical workflow
-                    AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
-                        workflow_id=canonical_workflow_id
-                    )
-                except IntegrityError:
-                    # the DetectorWorkflow or AlertRuleWorkflow connections that we're attempting to create
-                    # already exist. We should just continue with the rest of the process for this workflow.
-                    pass
+                # Update AlertRuleWorkflow entries to point to the canonical workflow
+                AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                    workflow_id=canonical_workflow_id
+                )
+            except IntegrityError:
+                # the DetectorWorkflow or AlertRuleWorkflow connections that we're attempting to create
+                # already exist. We should just continue with the rest of the process for this workflow.
+                pass
 
+        with transaction.atomic(router.db_for_write(Workflow)):
             # Before deleting workflows, clean up related models that won't be cascade deleted
             # Also deletes DataConditionGroupAction
             Action.objects.filter(
