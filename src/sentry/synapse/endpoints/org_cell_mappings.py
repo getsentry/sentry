@@ -34,6 +34,8 @@ class OrgCellMappingsEndpoint(Endpoint):
         Retrieve organization-to-cell mappings.
         """
         query = OrganizationMapping.objects.all()
+        if request.GET.get("locale"):
+            query = query.filter(region_name=request.GET.get("locale"))
         try:
             per_page = self.get_per_page(request, max_per_page=self.MAX_LIMIT)
             cursor = self.get_cursor_from_request(request)
