@@ -165,20 +165,22 @@ function SpanTabControlSection({
 
   return (
     <ExploreControlSection expanded={controlSectionExpanded}>
-      {controlSectionExpanded && (
-        <TourElement<ExploreSpansTour>
-          tourContext={ExploreSpansTourContext}
-          id={ExploreSpansTour.TOOLBAR}
-          title={t('Configure Your Query')}
-          description={t(
-            'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (optional) and sort.'
-          )}
-          position="right"
-          margin={-8}
-        >
-          {props => <ExploreToolbar {...props} width={300} extras={toolbarExtras} />}
-        </TourElement>
-      )}
+      <TourElement<ExploreSpansTour>
+        tourContext={ExploreSpansTourContext}
+        id={ExploreSpansTour.TOOLBAR}
+        title={t('Configure Your Query')}
+        description={t(
+          'Based on your search, you can determine how you want your results shown. Choose your metric visualization, group (optional) and sort.'
+        )}
+        position="right"
+        margin={-8}
+      >
+        {tourProps =>
+          controlSectionExpanded && (
+            <ExploreToolbar width={300} extras={toolbarExtras} tourProps={tourProps} />
+          )
+        }
+      </TourElement>
     </ExploreControlSection>
   );
 }
@@ -340,9 +342,8 @@ function SpanTabContentSection({
         margin={-8}
       >
         {props => (
-          <Fragment>
+          <div {...props}>
             <ExploreCharts
-              tourProps={props}
               confidences={confidences}
               query={query}
               extrapolate={extrapolate}
@@ -366,7 +367,7 @@ function SpanTabContentSection({
                 setTab(newTab);
               }}
             />
-          </Fragment>
+          </div>
         )}
       </TourElement>
     </ExploreContentSection>

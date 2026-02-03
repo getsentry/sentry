@@ -1,7 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -107,6 +107,7 @@ function PanelTable({
       hasRows={shouldShowContent}
       disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...mergeProps(props, tourProps)}
+      ref={mergeRefs(props.ref, tourProps?.ref)}
     >
       {!disableHeaders &&
         headers.map((header, i) => (

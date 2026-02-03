@@ -49,15 +49,9 @@ interface EventDetailsHeaderProps {
   group: Group;
   project: Project;
   event?: Event;
-  tourProps?: TourRenderProps;
 }
 
-export function EventDetailsHeader({
-  group,
-  event,
-  project,
-  tourProps,
-}: EventDetailsHeaderProps) {
+export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,7 +107,6 @@ export function EventDetailsHeader({
         role="group"
         aria-description={t('Event filtering controls')}
         hasFilterBar={issueTypeConfig.header.filterBar.enabled}
-        {...tourProps}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -249,11 +242,7 @@ export function EventDetailsHeader({
   );
 }
 
-function EnvironmentSelector({
-  group,
-  event,
-  project,
-}: Omit<EventDetailsHeaderProps, 'tourProps'>) {
+function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;

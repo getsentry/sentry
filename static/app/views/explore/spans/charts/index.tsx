@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {TourRenderProps} from 'sentry/components/tours/components';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -55,7 +54,6 @@ interface ExploreChartsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
-  tourProps?: TourRenderProps;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -76,7 +74,6 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
-  tourProps,
   query,
   extrapolate,
   rawSpanCounts,
@@ -115,7 +112,7 @@ export function ExploreCharts({
   );
 
   return (
-    <ChartList {...tourProps}>
+    <ChartList>
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {visualizes.map((visualize, index) => {
           return (

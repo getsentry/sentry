@@ -271,28 +271,30 @@ export default function StreamlinedGroupHeader({
         position="bottom-end"
       >
         {tourProps => (
-          <ActionBar {...tourProps} isComplete={isComplete} role="banner">
-            <GroupActions
-              group={group}
-              project={project}
-              disabled={disableActions}
-              event={event}
-            />
-            <WorkflowActions>
-              <Workflow>
-                {t('Priority')}
-                <GroupPriority group={group} />
-              </Workflow>
-              <Workflow>
-                {t('Assignee')}
-                <GroupHeaderAssigneeSelector
-                  group={group}
-                  project={project}
-                  event={event}
-                />
-              </Workflow>
-            </WorkflowActions>
-          </ActionBar>
+          <div {...tourProps}>
+            <ActionBar isComplete={isComplete} role="banner">
+              <GroupActions
+                group={group}
+                project={project}
+                disabled={disableActions}
+                event={event}
+              />
+              <WorkflowActions>
+                <Workflow>
+                  {t('Priority')}
+                  <GroupPriority group={group} />
+                </Workflow>
+                <Workflow>
+                  {t('Assignee')}
+                  <GroupHeaderAssigneeSelector
+                    group={group}
+                    project={project}
+                    event={event}
+                  />
+                </Workflow>
+              </WorkflowActions>
+            </ActionBar>
+          </div>
         )}
       </TourElement>
     </Fragment>

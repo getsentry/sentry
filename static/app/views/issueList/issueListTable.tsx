@@ -87,44 +87,46 @@ function IssueListTable({
         disabled={issuesLoading}
       >
         {tourProps => (
-          <ContainerPanel {...tourProps}>
-            {(groupIds.length > 0 || issuesLoading) && (
-              <IssueListActions
-                selection={selection}
-                query={query}
-                queryCount={queryCount}
-                onSelectStatsPeriod={onSelectStatsPeriod}
-                onActionTaken={onActionTaken}
-                onDelete={onDelete}
-                statsPeriod={statsPeriod}
-                groupIds={groupIds}
-                allResultsVisible={allResultsVisible}
-                displayReprocessingActions={displayReprocessingActions}
-              />
-            )}
-            <PanelBody>
-              <VisuallyCompleteWithData
-                hasData={groupIds.length > 0}
-                id="IssueList-Body"
-                isLoading={issuesLoading}
-              >
-                <GroupListBody
-                  memberList={memberList}
-                  groupStatsPeriod={statsPeriod}
-                  groupIds={groupIds}
-                  displayReprocessingLayout={displayReprocessingActions}
+          <div {...tourProps}>
+            <ContainerPanel>
+              {(groupIds.length > 0 || issuesLoading) && (
+                <IssueListActions
+                  selection={selection}
                   query={query}
-                  selectedProjectIds={selection.projects}
-                  // we need the stats loading and group id check because group ids do not update immediately
-                  loading={issuesLoading || (statsLoading && !groupIds.length)}
-                  error={error}
-                  pageSize={pageSize}
-                  refetchGroups={refetchGroups}
+                  queryCount={queryCount}
+                  onSelectStatsPeriod={onSelectStatsPeriod}
                   onActionTaken={onActionTaken}
+                  onDelete={onDelete}
+                  statsPeriod={statsPeriod}
+                  groupIds={groupIds}
+                  allResultsVisible={allResultsVisible}
+                  displayReprocessingActions={displayReprocessingActions}
                 />
-              </VisuallyCompleteWithData>
-            </PanelBody>
-          </ContainerPanel>
+              )}
+              <PanelBody>
+                <VisuallyCompleteWithData
+                  hasData={groupIds.length > 0}
+                  id="IssueList-Body"
+                  isLoading={issuesLoading}
+                >
+                  <GroupListBody
+                    memberList={memberList}
+                    groupStatsPeriod={statsPeriod}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    selectedProjectIds={selection.projects}
+                    // we need the stats loading and group id check because group ids do not update immediately
+                    loading={issuesLoading || (statsLoading && !groupIds.length)}
+                    error={error}
+                    pageSize={pageSize}
+                    refetchGroups={refetchGroups}
+                    onActionTaken={onActionTaken}
+                  />
+                </VisuallyCompleteWithData>
+              </PanelBody>
+            </ContainerPanel>
+          </div>
         )}
       </DemoTourElement>
       <StyledPagination

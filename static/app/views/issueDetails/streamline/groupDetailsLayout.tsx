@@ -67,12 +67,9 @@ export function GroupDetailsLayout({
             position="bottom"
           >
             {tourProps => (
-              <EventDetailsHeader
-                event={event}
-                group={group}
-                project={project}
-                tourProps={tourProps}
-              />
+              <div {...tourProps}>
+                <EventDetailsHeader event={event} group={group} project={project} />
+              </div>
             )}
           </SharedTourElement>
           <SharedTourElement<IssueDetailsTour>
@@ -86,16 +83,18 @@ export function GroupDetailsLayout({
             position="top"
           >
             {tourProps => (
-              <GroupContent {...tourProps}>
-                {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                  <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                    <IssueEventNavigation event={event} group={group} />
-                    {/* Since the event details header is disabled, display the sidebar toggle here */}
-                    {!hasFilterBar && <ToggleSidebar size="sm" />}
-                  </NavigationSidebarWrapper>
-                )}
-                <ContentPadding>{children}</ContentPadding>
-              </GroupContent>
+              <div {...tourProps}>
+                <GroupContent>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                    <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                      <IssueEventNavigation event={event} group={group} />
+                      {/* Since the event details header is disabled, display the sidebar toggle here */}
+                      {!hasFilterBar && <ToggleSidebar size="sm" />}
+                    </NavigationSidebarWrapper>
+                  )}
+                  <ContentPadding>{children}</ContentPadding>
+                </GroupContent>
+              </div>
             )}
           </SharedTourElement>
         </div>
