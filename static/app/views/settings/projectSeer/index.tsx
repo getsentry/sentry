@@ -37,6 +37,7 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -216,10 +217,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
-      const projectId = project.slug;
-
       const projectSettingsQueryKey: ApiQueryKey = [
-        `/projects/${organization.slug}/${projectId}/`,
+        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
       ];
       setApiQueryData(queryClient, projectSettingsQueryKey, resp);
       ProjectsStore.onUpdateSuccess(resp);

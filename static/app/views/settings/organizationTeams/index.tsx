@@ -6,12 +6,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import type {AccessRequest} from 'sentry/types/organization';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -22,8 +18,13 @@ export default function OrganizationTeamsContainer() {
   const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
 
-  const queryKey: ApiQueryKey = useMemo(
-    () => [`/organizations/${organization?.slug}/access-requests/`],
+  const queryKey = useMemo(
+    () =>
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/access-requests/`, {
+          path: {organizationIdOrSlug: organization?.slug!},
+        }),
+      ] as const,
     [organization?.slug]
   );
 
