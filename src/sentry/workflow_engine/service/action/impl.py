@@ -70,7 +70,7 @@ class DatabaseBackedActionService(ActionService):
         # look up all installs for the sentry app and disable the action - if the sentry app no longer exists, no related actions can fire
         installs = app_service.get_many(
             filter={
-                "sentry_app__id": sentry_app_id,
+                "app_ids": [sentry_app_id],
                 "status": SentryAppInstallationStatus.INSTALLED,
             }
         )
