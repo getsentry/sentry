@@ -27,18 +27,18 @@ class TestIssueOpenDurationCondition(ConditionTestCase):
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
-                "comparison_type": AgeComparisonType.OLDER,
+                "type": AgeComparisonType.OLDER,
                 "value": 10,
-                "time": "minute",
+                "time_unit": "minute",
             },
             condition_result=True,
         )
 
     def test_json_schema(self) -> None:
-        self.dc.comparison.update({"comparison_type": AgeComparisonType.NEWER})
+        self.dc.comparison.update({"type": AgeComparisonType.NEWER})
         self.dc.save()
 
-        self.dc.comparison.update({"time": "asdf"})
+        self.dc.comparison.update({"time_unit": "asdf"})
         with pytest.raises(ValidationError):
             self.dc.save()
 
@@ -46,7 +46,7 @@ class TestIssueOpenDurationCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-        self.dc.comparison.update({"comparison_type": "bad_value"})
+        self.dc.comparison.update({"type": "bad_value"})
         with pytest.raises(ValidationError):
             self.dc.save()
 
@@ -64,7 +64,7 @@ class TestIssueOpenDurationCondition(ConditionTestCase):
 
     def test_newer_applies_correctly(self) -> None:
         assert self.open_period is not None
-        self.dc.comparison.update({"comparison_type": AgeComparisonType.NEWER})
+        self.dc.comparison.update({"type": AgeComparisonType.NEWER})
         self.dc.save()
 
         self.open_period.update(date_started=timezone.now())

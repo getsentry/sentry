@@ -18,14 +18,14 @@ class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData])
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "comparison_type": {
+            "type": {
                 "type": "string",
                 "enum": [AgeComparisonType.OLDER, AgeComparisonType.NEWER],
             },
             "value": {"type": "integer", "minimum": 0},
-            "time": {"type": "string", "enum": list(timeranges.keys())},
+            "time_unit": {"type": "string", "enum": list(timeranges.keys())},
         },
-        "required": ["comparison_type", "value", "time"],
+        "required": ["type", "value", "time_unit"],
         "additionalProperties": False,
     }
 
@@ -36,10 +36,10 @@ class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData])
         if not latest_open_period:
             return False
 
-        comparison_type = comparison["comparison_type"]
-        time = comparison["time"]
+        comparison_type = comparison["type"]
+        time_unit = comparison["time_unit"]
         value = int(comparison["value"])
-        _, delta_time = timeranges[time]
+        _, delta_time = timeranges[time_unit]
 
         current_time = timezone.now()
 
