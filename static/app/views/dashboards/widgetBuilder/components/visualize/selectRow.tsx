@@ -98,22 +98,22 @@ function validateParameter(
 }
 
 export function sortSelectedFirst(
-  selectedOption: string,
+  selectedValue: string,
   options: Array<SelectValue<string>>
 ) {
   // move selected option to front and remove from the rest of the options
   const result: Array<SelectValue<string>> = [];
-  let selectedValue: SelectValue<string> | undefined;
+  let selectedOption: SelectValue<string> | undefined;
 
   for (const option of options) {
-    if (option.value === selectedOption) {
-      selectedValue = option;
+    if (option.value === selectedValue) {
+      selectedOption = option;
     } else {
       result.push(option);
     }
   }
 
-  return selectedValue ? [selectedValue, ...result] : result;
+  return selectedOption ? [selectedOption, ...result] : result;
 }
 
 export function SelectRow({
