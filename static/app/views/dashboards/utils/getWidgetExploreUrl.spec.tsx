@@ -382,6 +382,60 @@ describe('getWidgetExploreUrl', () => {
       ],
     });
   });
+
+  it('transforms performance score breakdown chart yAxes to use equation format', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.AREA,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          fields: [],
+          aggregates: [
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.ttfb)',
+          ],
+          columns: [],
+          conditions: '',
+          orderby: '',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'measurements.score.lcp'],
+        ['field', 'measurements.score.fcp'],
+        ['field', 'measurements.score.inp'],
+        ['field', 'measurements.score.cls'],
+        ['field', 'measurements.score.ttfb'],
+        ['groupBy', ''],
+        ['interval', '3h'],
+        ['mode', 'aggregate'],
+        ['project', ''],
+        ['statsPeriod', '14d'],
+        [
+          'visualize',
+          JSON.stringify({
+            chartType: 2,
+            yAxes: [
+              'equation|performance_score(measurements.score.lcp)',
+              'equation|performance_score(measurements.score.fcp)',
+              'equation|performance_score(measurements.score.inp)',
+              'equation|performance_score(measurements.score.cls)',
+              'equation|performance_score(measurements.score.ttfb)',
+            ],
+          }),
+        ],
+      ],
+    });
+  });
 });
 
 describe('getWidgetTableRowExploreUrlFunction', () => {
