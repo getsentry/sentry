@@ -120,8 +120,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-vercel": True,
         # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
         "organizations:integrations-scm-multi-org": True,
-        # Enable skipping non-essential GitHub API calls
-        "organizations:github-rate-limit-sensitive": False,
         # Enable issue view endpoints and UI
         "organizations:issue-views": False,
     }
