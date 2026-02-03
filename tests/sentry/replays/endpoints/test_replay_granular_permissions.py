@@ -305,8 +305,8 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200
 
-    def test_org_auth_token_has_access_with_granular_permissions(self) -> None:
-        """Org auth tokens should have access to replays even with granular permissions enabled"""
+    def test_org_auth_token_with_event_read_has_access(self) -> None:
+        """Org auth tokens with event:read scope should have access to replays"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
@@ -322,7 +322,7 @@ class TestReplayGranularPermissions(APITestCase):
                     name="test token",
                     token_hashed=hash_token(token_str),
                     token_last_characters="ABCD",
-                    scope_list=["org:read"],
+                    scope_list=["org:read", "event:read"],
                     date_last_used=None,
                 )
 
@@ -330,8 +330,33 @@ class TestReplayGranularPermissions(APITestCase):
             response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
             assert response.status_code == 200
 
-    def test_org_auth_token_has_access_with_empty_allowlist(self) -> None:
-        """Org auth tokens should have access to replays even when allowlist is empty"""
+    def test_org_auth_token_without_event_read_denied(self) -> None:
+        """Org auth tokens without event:read scope should be denied replay access"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+                token_str = generate_token(self.organization.slug, "")
+                OrgAuthToken.objects.create(
+                    organization_id=self.organization.id,
+                    name="test token",
+                    token_hashed=hash_token(token_str),
+                    token_last_characters="ABCD",
+                    scope_list=["org:read"],  # No event:read scope
+                    date_last_used=None,
+                )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+            assert response.status_code == 403
+
+    def test_org_auth_token_with_event_read_empty_allowlist_has_access(self) -> None:
+        """Org auth tokens with event:read scope should have access even when allowlist is empty"""
         with self.feature(
             ["organizations:session-replay", "organizations:granular-replay-permissions"]
         ):
@@ -345,7 +370,7 @@ class TestReplayGranularPermissions(APITestCase):
                     name="test token",
                     token_hashed=hash_token(token_str),
                     token_last_characters="ABCD",
-                    scope_list=["org:read"],
+                    scope_list=["org:read", "event:read"],
                     date_last_used=None,
                 )
 
@@ -390,3 +415,90 @@ class TestReplayGranularPermissions(APITestCase):
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {api_token.token}")
             assert response.status_code == 403
+
+    def test_sentry_app_with_event_read_scope_has_access(self) -> None:
+        """SentryApp with event:read scope should have access to replays"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            sentry_app = self.create_sentry_app(
+                organization=self.organization,
+                scopes=["org:read", "event:read"],  # org:read needed for org endpoint access
+                published=False,
+                verify_install=False,
+            )
+            installation = self.create_sentry_app_installation(
+                slug=sentry_app.slug,
+                organization=self.organization,
+                user=self.user_with_access,
+            )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(
+                url,
+                HTTP_AUTHORIZATION=f"Bearer {installation.api_token.token}",
+            )
+            # SentryApp with event:read bypasses member allowlist
+            assert response.status_code == 200
+
+    def test_sentry_app_without_event_read_scope_denied(self) -> None:
+        """SentryApp without event:read scope should be denied replay access"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+
+            sentry_app = self.create_sentry_app(
+                organization=self.organization,
+                scopes=["org:read"],  # org:read but no event:read scope
+                published=False,
+                verify_install=False,
+            )
+            installation = self.create_sentry_app_installation(
+                slug=sentry_app.slug,
+                organization=self.organization,
+                user=self.user_with_access,
+            )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(
+                url,
+                HTTP_AUTHORIZATION=f"Bearer {installation.api_token.token}",
+            )
+            assert response.status_code == 403
+
+    def test_sentry_app_with_event_read_empty_allowlist_has_access(self) -> None:
+        """SentryApp with event:read scope should have access even with empty allowlist"""
+        with self.feature(
+            ["organizations:session-replay", "organizations:granular-replay-permissions"]
+        ):
+            self._enable_granular_permissions()
+            # No OrganizationMemberReplayAccess records - empty allowlist
+
+            sentry_app = self.create_sentry_app(
+                organization=self.organization,
+                scopes=["org:read", "event:read"],  # org:read needed for org endpoint access
+                published=False,
+                verify_install=False,
+            )
+            installation = self.create_sentry_app_installation(
+                slug=sentry_app.slug,
+                organization=self.organization,
+                user=self.user_with_access,
+            )
+
+            url = f"/api/0/organizations/{self.organization.slug}/replays/"
+            response = self.client.get(
+                url,
+                HTTP_AUTHORIZATION=f"Bearer {installation.api_token.token}",
+            )
+            # SentryApp with event:read bypasses member allowlist
+            assert response.status_code == 200
