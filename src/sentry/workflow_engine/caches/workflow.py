@@ -17,7 +17,7 @@ WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
 
 class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
-    # To reduce lookups, this uses id's instead of full models
+    # To reduce look-ups, this uses id's instead of requiring the full model for types
     def __init__(self, detector_id: int, env_id: int | None):
         self._key = f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
 
@@ -31,10 +31,11 @@ def invalidate_processing_workflows(
     """
     Invalidate workflow processing cache entries for a specific detector.
 
-    Queries DetectorWorkflow to find all affected cache keys and deletes them explicitly.
+    If the environment_id or None is not provided, this will query to find _all_
+    all environments that are configured for workflows through the DetectorWorkflow table.
 
-    Note: Global invalidation is not supported. Cache has a 60-second TTL, so migrations
-    can safely wait for natural expiration rather than risking OOM from millions of rows.
+    TODO - We could further reduce DB load here by creating a list of envs for each
+    detector in redis, then getting that list for invalidation here and clearing it.
 
     Args:
         detector_id: Detector ID to invalidate (required)
@@ -70,12 +71,7 @@ def invalidate_processing_workflows(
     return len(keys) > 0
 
 
-def get_processing_workflows(detector: Detector, environment: Environment | None) -> set[Workflow]:
-    """
-    Use this method to select workflows for processing.
-
-    This method uses a read-through cache, and returns which workflows to evaluate.
-    """
+def get_cached_workflows(detector: Detector, environment: Environment | None) -> set[Workflow]:
     env_id = environment.id if environment is not None else None
     cache_access = _WorkflowCacheAccess(detector.id, env_id)
     workflows = cache_access.get()
@@ -83,6 +79,7 @@ def get_processing_workflows(detector: Detector, environment: Environment | None
     if workflows is None:
         metrics_incr(f"{METRIC_PREFIX}.miss")
 
+        # TODO - split the `None` environments into a separate cache to reduce data replication
         environment_filter = (
             (Q(environment_id=None) | Q(environment_id=environment.id))
             if environment

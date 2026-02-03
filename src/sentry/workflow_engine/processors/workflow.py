@@ -12,7 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.caches.workflow import get_processing_workflows
+from sentry.workflow_engine.caches.workflow import get_cached_workflows
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -386,7 +386,7 @@ def _get_associated_workflows(
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
     """
-    workflows = get_processing_workflows(detector, environment)
+    workflows = get_cached_workflows(detector, environment)
 
     if workflows:
         metrics_incr(
