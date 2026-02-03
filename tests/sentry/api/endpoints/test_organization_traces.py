@@ -1090,6 +1090,54 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         next_link = next(link for link in links.values() if link["rel"] == "next")
         assert next_link["results"] == "false"
 
+    def test_span_name_as_name(self) -> None:
+        project = self.create_project()
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
+        trace_id = uuid4().hex
+
+        self.double_write_segment(
+            project=project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=now - timedelta(minutes=10),
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            name="bar",
+        )
+
+        for features in [
+            None,  # use the default features
+            ["organizations:visibility-explore-view"],
+        ]:
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [project.id],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": "",
+                "maxSpansPerTrace": 4,
+            }
+
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.data
+
+            assert response.data["meta"] == {
+                "dataScanned": "full",
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {},
+            }
+
+            result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
+
+            assert result_data[0]["name"] == "bar"
+
 
 @pytest.mark.parametrize(
     ["data", "traces_range", "expected"],
