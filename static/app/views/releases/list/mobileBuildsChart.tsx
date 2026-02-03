@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -14,10 +14,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  EChartClickHandler,
-  EChartLegendSelectChangeHandler,
-} from 'sentry/types/echarts';
+import type {EChartClickHandler} from 'sentry/types/echarts';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -26,18 +23,6 @@ import {
   isSizeInfoCompleted,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
-
-/**
- * Extended tooltip params that includes axisValue, which is available
- * when tooltip trigger is set to 'axis'.
- */
-interface TooltipAxisParams {
-  axisValue: number;
-  marker?: string;
-  name?: string;
-  seriesName?: string;
-  value?: number | number[];
-}
 
 export enum SizeMetric {
   INSTALL_SIZE = 'install_size',
@@ -87,7 +72,6 @@ export function MobileBuildsChart({
 }: MobileBuildsChartProps) {
   const navigate = useNavigate();
   const [metric, setMetric] = useState<SizeMetric>(SizeMetric.INSTALL_SIZE);
-  const [legendSelected, setLegendSelected] = useState<Record<string, boolean>>({});
 
   const {series, seriesBuildLookup, minTime, maxTime} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
@@ -116,10 +100,6 @@ export function MobileBuildsChart({
       const data: Array<{name: number; value: number}> = [];
 
       sortedBuilds.forEach(build => {
-        if (!isSizeInfoCompleted(build.size_info)) {
-          return;
-        }
-
         const mainMetric = getMainArtifactSizeMetric(build.size_info);
         if (!mainMetric) {
           return;
@@ -196,19 +176,11 @@ export function MobileBuildsChart({
     [seriesBuildLookup, organizationSlug, navigate]
   );
 
-  const handleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
-    params => {
-      setLegendSelected(params.selected);
-    },
-    []
-  );
-
   if (isLoading) {
     return (
       <Panel>
         <PanelBody withPadding>
-          <Placeholder height="24px" />
-          <Placeholder height="200px" />
+          <Placeholder height="250px" />
         </PanelBody>
       </Panel>
     );
@@ -248,9 +220,7 @@ export function MobileBuildsChart({
               show: true,
               top: 0,
               left: 0,
-              selected: legendSelected,
             }}
-            onLegendSelectChanged={handleLegendSelectChanged}
             yAxis={{
               type: 'value',
               axisLabel: {
@@ -270,7 +240,7 @@ export function MobileBuildsChart({
               trigger: 'axis',
               valueFormatter: (value: number | string) =>
                 typeof value === 'number' ? formatBytesBase10(value) : value,
-              formatter: (seriesParams: TooltipComponentFormatterCallbackParams) => {
+              formatter: seriesParams => {
                 const params = Array.isArray(seriesParams)
                   ? seriesParams
                   : [seriesParams];
@@ -278,17 +248,17 @@ export function MobileBuildsChart({
                 if (!firstParam) {
                   return '';
                 }
-                const timestamp = (firstParam as unknown as TooltipAxisParams).axisValue;
+                const data = firstParam.data as {name: number; value: number} | undefined;
+                const timestamp = data?.name ?? 0;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
                 const rows = params
                   .map(param => {
-                    const rawValue = Array.isArray(param.value)
-                      ? param.value[1]
-                      : param.value;
-                    const numericValue = Number(rawValue);
-                    const formattedValue = Number.isFinite(numericValue)
-                      ? formatBytesBase10(numericValue)
+                    const paramData = param.data as
+                      | {name: number; value: number}
+                      | undefined;
+                    const formattedValue = paramData
+                      ? formatBytesBase10(paramData.value)
                       : '';
                     const marker = typeof param.marker === 'string' ? param.marker : '';
                     return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formattedValue}</div>`;
