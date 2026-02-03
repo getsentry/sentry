@@ -625,6 +625,58 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert any("organization_id" in str(error) for error in errors)
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_backward_compatibility_with_old_payloads_without_timestamp_fields(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test backward compatibility: old payloads without trigger_at fields should work.
+        
+        Fixes SENTRY-5J00: In-flight tasks queued before deployment lack trigger_at and
+        sentry_received_trigger_at fields. These fields must be optional to prevent
+        validation errors on old tasks.
+        """
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        # Simulate an old payload created before trigger_at fields were added
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": "test-user",
+                    "trigger_user_id": 12345,
+                    # trigger_at and sentry_received_trigger_at intentionally omitted
+                    # to simulate old payloads from before these fields were added
+                },
+            },
+        }
+
+        # Should not raise validation error even though timestamp fields are missing
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        # Request should succeed
+        assert mock_request.call_count == 1
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_pr_closed_validation_fails_without_integration_id(
         self, mock_request: MagicMock
     ) -> None:

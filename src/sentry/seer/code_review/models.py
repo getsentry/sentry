@@ -48,6 +48,10 @@ class SeerCodeReviewConfig(BaseModel):
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
+    # Optional fields for backward compatibility with in-flight tasks
+    # queued before these fields were added
+    trigger_at: str | None = None
+    sentry_received_trigger_at: str | None = None
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
