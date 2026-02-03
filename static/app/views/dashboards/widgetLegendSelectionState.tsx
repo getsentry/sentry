@@ -3,6 +3,8 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {hasTimeseriesVisualizationFeature} from 'sentry/views/dashboards/utils/useTimeseriesVisualizationEnabled';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {DisplayType, type DashboardDetails, type Widget} from './types';
@@ -53,15 +55,17 @@ class WidgetLegendSelectionState {
         })
         .filter(unselectedSeries => unselectedSeries !== undefined);
 
-      const thisWidgetWithReleasesWasSelected =
-        Object.values(selected).filter(value => value === false).length !== 1 &&
-        Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`);
+      const showReleaseByDefault = this.shouldShowReleaseByDefault(widget);
+      const releasesKey = `Releases${SERIES_NAME_DELIMITER}${widget.id}`;
+
+      const releasesSelectionDiffersFromDefault =
+        releasesKey in selected && selected[releasesKey] !== showReleaseByDefault;
 
       const thisWidgetWithoutReleasesWasSelected =
-        !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
+        !(releasesKey in selected) &&
         Object.values(selected).filter(value => value === false).length === 1;
 
-      if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
+      if (releasesSelectionDiffersFromDefault || thisWidgetWithoutReleasesWasSelected) {
         navigate(
           {
             ...location,
@@ -131,18 +135,25 @@ class WidgetLegendSelectionState {
     }
   }
 
+  shouldShowReleaseByDefault(widget: Widget) {
+    return (
+      hasTimeseriesVisualizationFeature(this.organization) &&
+      widgetCanUseTimeSeriesVisualization(widget)
+    );
+  }
+
   // sets unselected legend options by the legend query param
   getWidgetSelectionState(widget: Widget): LegendSelection {
     const location = this.location;
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget)
+      : this.shouldShowReleaseByDefault(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
               widget.id
-            )]: false,
+            )]: true,
           }
         : {};
   }
@@ -163,7 +174,10 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    return this.widgetRequiresLegendUnselection(widget)
+    const shouldHideReleasesByDefault =
+      this.widgetRequiresLegendUnselection(widget) &&
+      !this.shouldShowReleaseByDefault(widget);
+    return shouldHideReleasesByDefault
       ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }
