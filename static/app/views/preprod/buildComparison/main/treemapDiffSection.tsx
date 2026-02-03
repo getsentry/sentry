@@ -5,12 +5,12 @@ import type {ECharts, TreemapSeriesOption} from 'echarts';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
-import {Separator} from '@sentry/scraps/separator';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconContract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {DiffSectionHeader} from 'sentry/views/preprod/buildComparison/main/diffSectionHeader';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapControlButtons} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
 import type {DiffItem, TreemapDiffElement} from 'sentry/views/preprod/types/appSizeTypes';
@@ -229,41 +229,37 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
   };
 
   return (
-    <Stack gap="xl">
-      <Separator orientation="horizontal" border="primary" />
-
-      <Stack gap="md">
-        <Heading as="h2">{t('X-Ray Diff')}</Heading>
-        <Stack paddingBottom="xl">
-          <Container
-            height="400px"
-            width="100%"
-            position="relative"
-            onMouseDown={handleContainerMouseDown}
-            style={{minHeight: 0}}
-          >
-            <BaseChart
-              height={400}
-              renderer="canvas"
-              xAxis={null}
-              yAxis={null}
-              series={series}
-              tooltip={tooltip}
-              onChartReady={handleChartReady}
-            />
-            <TreemapControlButtons
-              buttons={[
-                {
-                  ariaLabel: t('Recenter View'),
-                  title: t('Recenter'),
-                  icon: <IconContract />,
-                  onClick: handleRecenter,
-                  disabled: !isZoomed,
-                },
-              ]}
-            />
-          </Container>
-        </Stack>
+    <Stack gap="md">
+      <DiffSectionHeader id="xray-diff" title={t('X-Ray Diff')} />
+      <Stack paddingBottom="xl">
+        <Container
+          height="400px"
+          width="100%"
+          position="relative"
+          onMouseDown={handleContainerMouseDown}
+          style={{minHeight: 0}}
+        >
+          <BaseChart
+            height={400}
+            renderer="canvas"
+            xAxis={null}
+            yAxis={null}
+            series={series}
+            tooltip={tooltip}
+            onChartReady={handleChartReady}
+          />
+          <TreemapControlButtons
+            buttons={[
+              {
+                ariaLabel: t('Recenter View'),
+                title: t('Recenter'),
+                icon: <IconContract />,
+                onClick: handleRecenter,
+                disabled: !isZoomed,
+              },
+            ]}
+          />
+        </Container>
       </Stack>
     </Stack>
   );

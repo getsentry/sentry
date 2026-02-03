@@ -6,11 +6,11 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
+import {IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
@@ -23,6 +23,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
+import {DiffSectionHeader} from 'sentry/views/preprod/buildComparison/main/diffSectionHeader';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
 import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
 import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
@@ -53,7 +54,6 @@ export function SizeCompareMainContent() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const theme = useTheme();
-  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
   const [hideSmallChanges, setHideSmallChanges] = useQueryState(
     'hideSmallChanges',
     parseAsBoolean.withDefault(true)
@@ -327,73 +327,51 @@ export function SizeCompareMainContent() {
         )}
 
       {/* Items Changed Section */}
-      <Container background="primary" radius="lg" padding="0" border="primary">
-        <Flex direction="column" gap="0">
-          <Flex align="center" justify="between" padding="xl">
-            <Flex align="center" gap="sm">
-              <Heading as="h2">
-                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
-              </Heading>
-            </Flex>
-            <Flex align="center" gap="sm">
-              <Button
-                priority="transparent"
-                size="sm"
-                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
-                aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}
-              >
-                <IconChevron
-                  direction={isFilesExpanded ? 'up' : 'down'}
-                  size="sm"
-                  style={{
-                    transition: 'transform 0.2s ease',
-                  }}
+      <Stack gap="md">
+        <DiffSectionHeader
+          id="items-changed"
+          title={t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
+        />
+        <Container
+          background="primary"
+          radius="lg"
+          padding="0"
+          border="primary"
+          overflow="hidden"
+        >
+          <Flex direction="column" gap="0">
+            <Flex align="center" gap="xl" padding="xl" wrap="wrap">
+              <InputGroup style={{width: '100%', minWidth: '200px'}}>
+                <InputGroup.LeadingItems>
+                  <IconSearch />
+                </InputGroup.LeadingItems>
+                <InputGroup.Input
+                  placeholder={t('Search')}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
                 />
-              </Button>
-            </Flex>
-          </Flex>
-          {isFilesExpanded && (
-            <Stack>
-              <Flex
-                align="center"
-                gap="xl"
-                paddingLeft="xl"
-                paddingRight="xl"
-                paddingBottom="xl"
-                wrap="wrap"
-              >
-                <InputGroup style={{width: '100%', minWidth: '200px'}}>
-                  <InputGroup.LeadingItems>
-                    <IconSearch />
-                  </InputGroup.LeadingItems>
-                  <InputGroup.Input
-                    placeholder={t('Search')}
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                  />
-                </InputGroup>
-                <Flex align="center" gap="lg" wrap="nowrap">
-                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
-                  <Switch
-                    checked={hideSmallChanges}
-                    size="sm"
-                    title={t('Hide < 500B')}
-                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
-                    aria-label={
-                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
-                    }
-                  />
-                </Flex>
+              </InputGroup>
+              <Flex align="center" gap="lg" wrap="nowrap">
+                <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
+                <Switch
+                  checked={hideSmallChanges}
+                  size="sm"
+                  title={t('Hide < 500B')}
+                  onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                  aria-label={
+                    hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                  }
+                />
               </Flex>
-              <SizeCompareItemDiffTable
-                diffItems={filteredDiffItems}
-                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
-                disableHideSmallChanges={() => setHideSmallChanges(false)}
-              />
-            </Stack>
-          )}
-        </Flex>
-      </Container>
+            </Flex>
+            <SizeCompareItemDiffTable
+              diffItems={filteredDiffItems}
+              originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+              disableHideSmallChanges={() => setHideSmallChanges(false)}
+            />
+          </Flex>
+        </Container>
+      </Stack>
 
       {/* Treemap Diff Section */}
       {comparisonDataQuery.data?.diff_items &&
