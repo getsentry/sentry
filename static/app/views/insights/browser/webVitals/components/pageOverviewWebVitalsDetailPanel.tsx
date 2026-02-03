@@ -19,10 +19,12 @@ import {getShortEventId} from 'sentry/utils/events';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -75,8 +77,10 @@ const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
 
 export function PageOverviewWebVitalsDetailPanel({
   webVital,
+  dashboardFilters,
 }: {
   webVital: WebVitals | null;
+  dashboardFilters?: DashboardFilters;
 }) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -100,11 +104,29 @@ export function PageOverviewWebVitalsDetailPanel({
     [projects, location.query.project]
   );
 
-  const transaction = location.query.transaction
-    ? Array.isArray(location.query.transaction)
-      ? location.query.transaction[0]
-      : location.query.transaction
-    : undefined;
+  const transactionFromDashboard = useMemo(() => {
+    if (!dashboardFilters?.globalFilter) {
+      return undefined;
+    }
+    const transactionFilter = dashboardFilters.globalFilter.find(
+      filter => filter.tag.key === 'transaction'
+    );
+    if (transactionFilter) {
+      const search = new MutableSearch(transactionFilter.value);
+      const values = search.getFilterValues('transaction');
+      return values?.[0];
+    }
+    return undefined;
+  }, [dashboardFilters]);
+
+  // Transaction filter can come from dashboard filters or URL (for insights module)
+  const transaction = transactionFromDashboard
+    ? transactionFromDashboard
+    : location.query.transaction
+      ? Array.isArray(location.query.transaction)
+        ? location.query.transaction[0]
+        : location.query.transaction
+      : undefined;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({
     transaction,

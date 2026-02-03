@@ -2,12 +2,19 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
-import {SlideoutId, type Widget} from 'sentry/views/dashboards/types';
+import {
+  SlideoutId,
+  type DashboardFilters,
+  type Widget,
+} from 'sentry/views/dashboards/types';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
-function getSlideoutComponent(slideOutId: SlideoutId): React.ReactNode | null {
+function getSlideoutComponent(
+  slideOutId: SlideoutId,
+  dashboardFilters?: DashboardFilters
+): React.ReactNode | null {
   switch (slideOutId) {
     case SlideoutId.LCP:
     case SlideoutId.FCP:
@@ -21,24 +28,25 @@ function getSlideoutComponent(slideOutId: SlideoutId): React.ReactNode | null {
     case SlideoutId.CLS_SUMMARY:
     case SlideoutId.TTFB_SUMMARY: {
       const webVital = slideOutId.split('-')[0] as WebVitals;
-      // TODO: The PageOverviewWebVitalsDetailPanel currently filters
-      // for a specific page name by checking url paramaters. This should
-      // be updated so the page name filter can be obtained from the
-      // widget and passed into PageOverviewWebVitalsDetailPanel. This
-      // is so the component still works in dashboards where the url
-      // params don't exist.
-      return <PageOverviewWebVitalsDetailPanel webVital={webVital} />;
+      return (
+        <PageOverviewWebVitalsDetailPanel
+          webVital={webVital}
+          dashboardFilters={dashboardFilters}
+        />
+      );
     }
     default:
       return null;
   }
 }
 
-export function useWidgetSlideout(widget: Widget) {
+export function useWidgetSlideout(widget: Widget, dashboardFilters?: DashboardFilters) {
   // We assume the slideout id (if it exists) is always on the first query
   const slideOutId = widget.queries[0]?.slideOutId;
 
-  const component = slideOutId ? getSlideoutComponent(slideOutId) : null;
+  const component = slideOutId
+    ? getSlideoutComponent(slideOutId, dashboardFilters)
+    : null;
 
   const {openDrawer} = useDrawer();
 
