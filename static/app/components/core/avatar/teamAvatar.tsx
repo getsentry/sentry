@@ -3,7 +3,7 @@ import type React from 'react';
 import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
 
 export interface TeamAvatarProps extends BaseAvatarProps {
   team: Team | undefined;

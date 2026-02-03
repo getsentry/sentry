@@ -8,9 +8,12 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import {Gravatar} from '../gravatar/gravatar';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import {LetterAvatar} from '../letterAvatar/letterAvatar';
+
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
-import {Gravatar} from './gravatar';
-import {LetterAvatar} from './letterAvatar';
 
 const DEFAULT_REMOTE_SIZE = 120;
 
@@ -101,7 +104,7 @@ export function BaseAvatar({
     ) : type === 'gravatar' ? (
       <Gravatar
         ref={ref as React.Ref<HTMLImageElement>}
-        gravatarId={gravatarId}
+        gravatarId={gravatarId ?? ''}
         remoteSize={DEFAULT_REMOTE_SIZE}
         round={round}
         suggested={suggested}

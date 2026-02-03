@@ -4,7 +4,7 @@ import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
 
 export interface UserAvatarProps extends BaseAvatarProps {
   user: Actor | AvatarUser | undefined;

@@ -7,7 +7,7 @@ import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
 import {TeamAvatar, type TeamAvatarProps} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';
 

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar/baseAvatar';
 
 interface OrganizationAvatarProps extends BaseAvatarProps {
   organization: OrganizationSummary | undefined;
