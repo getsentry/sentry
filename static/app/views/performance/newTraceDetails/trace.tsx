@@ -933,7 +933,7 @@ const TraceStylingWrapper = styled('div')`
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
-          ${p => p.theme.tokens.content.primary} 4px 8px
+          ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
         )
         80%/2px 100% no-repeat;
 
@@ -941,7 +941,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.red400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -950,7 +950,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.secondary} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -959,7 +959,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.yellow400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.meh} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -968,7 +968,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.green400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.good} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -993,7 +993,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.Errored {
       .TraceIndicatorLabelContainer {
-        border: 1px solid ${p => p.theme.tokens.content.danger};
+        border: 1px solid ${p => p.theme.tokens.border.danger.vibrant};
         color: ${p => p.theme.tokens.content.danger};
       }
 
@@ -1001,7 +1001,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.danger} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.bad} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
