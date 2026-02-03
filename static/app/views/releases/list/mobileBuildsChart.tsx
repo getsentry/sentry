@@ -1,17 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'echarts';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Text} from 'sentry/components/core/text';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {
   EChartClickHandler,
   EChartLegendSelectChangeHandler,
@@ -24,6 +26,18 @@ import {
   isSizeInfoCompleted,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+
+/**
+ * Extended tooltip params that includes axisValue, which is available
+ * when tooltip trigger is set to 'axis'.
+ */
+interface TooltipAxisParams {
+  axisValue: number;
+  marker?: string;
+  name?: string;
+  seriesName?: string;
+  value?: number | number[];
+}
 
 export enum SizeMetric {
   INSTALL_SIZE = 'install_size',
@@ -131,6 +145,9 @@ export function MobileBuildsChart({
         id: key,
         seriesName: getSeriesLabel(parseSeriesKey(key)),
         data,
+        symbol: 'circle',
+        showSymbol: true,
+        symbolSize: 6,
         emphasis: {
           focus: 'series',
         } as LineSeriesOption['emphasis'],
@@ -201,18 +218,24 @@ export function MobileBuildsChart({
   return (
     <Panel>
       <PanelBody withPadding>
-        <Flex align="center" justify="between" marginBottom="md">
-          <Text bold>{t('App Size')}</Text>
-          <CompactSelect
-            size="xs"
-            value={metric}
+        <Container marginBottom="md">
+          <StyledCompactSelect
             options={[
-              {value: SizeMetric.INSTALL_SIZE, label: t('Install Size')},
+              {value: SizeMetric.INSTALL_SIZE, label: t('Install/Uncompressed Size')},
               {value: SizeMetric.DOWNLOAD_SIZE, label: t('Download Size')},
             ]}
-            onChange={opt => setMetric(opt.value)}
+            value={metric}
+            onChange={opt => setMetric(opt.value as SizeMetric)}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                priority="transparent"
+                size="zero"
+              />
+            )}
+            offset={4}
           />
-        </Flex>
+        </Container>
         <TransitionChart loading={isLoading} reloading={false}>
           <LineChart
             height={200}
@@ -252,7 +275,7 @@ export function MobileBuildsChart({
                 if (!firstParam) {
                   return '';
                 }
-                const timestamp = firstParam.name;
+                const timestamp = (firstParam as TooltipAxisParams).axisValue;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
                 const rows = params
@@ -279,3 +302,14 @@ export function MobileBuildsChart({
     </Panel>
   );
 }
+
+const StyledCompactSelect = styled(CompactSelect)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  min-width: 0;
+
+  button {
+    padding: ${space(0.5)} ${space(1)};
+    font-size: ${p => p.theme.font.size.lg};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+  }
+`;
