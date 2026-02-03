@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

@@ -30,7 +30,7 @@ const NativeHiddenCheckbox = styled('input')`
     border: 1px solid ${p => p.theme.tokens.border.primary};
 
     svg {
-      stroke: ${p => p.theme.tokens.content.onVibrant.light};
+      stroke: ${p => p.theme.colors.white};
     }
   }
 
