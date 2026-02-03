@@ -388,3 +388,30 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["span.op"] == "gen_ai.execute_tool"
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
+
+    def test_stats_period_is_ignored(self) -> None:
+        """Test that statsPeriod parameter is ignored so old links still work"""
+        timestamp = before_now(days=90).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        # Use explicit start/end that includes the span, but add statsPeriod=1h
+        # which would normally restrict to last hour and exclude our 90-day-old span
+        query = {
+            "project": [self.project.id],
+            "start": (timestamp - timedelta(hours=1)).isoformat(),
+            "end": (timestamp + timedelta(hours=1)).isoformat(),
+            "statsPeriod": "1h",  # This should be ignored
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id

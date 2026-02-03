@@ -56,6 +56,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
+        # Ignore statsPeriod so old links don't fail when opened later
+        mutable_query = request.GET.copy()
+        mutable_query.pop("statsPeriod", None)
+        request.GET = mutable_query  # type: ignore[assignment]
+
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
