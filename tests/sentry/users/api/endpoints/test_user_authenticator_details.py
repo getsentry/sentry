@@ -290,6 +290,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert_security_email_sent("recovery-codes-regenerated")
 
+    @override_options({"staff.ga-rollout": False})
     def test_delete_superuser(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=True)
 
@@ -309,6 +310,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert_security_email_sent("mfa-removed")
 
+    @override_options({"staff.ga-rollout": True})
     def test_delete_staff(self) -> None:
         staff_user = self.create_user(email="a@example.com", is_staff=True)
 
@@ -369,6 +371,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert len(mail.outbox) == 0
 
+    @override_options({"staff.ga-rollout": False})
     def test_require_2fa__can_delete_last_auth_superuser(self) -> None:
         self._require_2fa_for_organization()
 
