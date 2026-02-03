@@ -550,9 +550,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         method = "GET"
         body = None
         url = ""
-        uptime_subscription = None
         if self.instance:
-            uptime_subscription = get_uptime_subscription(self.instance)
             headers = self.instance.headers
             method = self.instance.method
             body = self.instance.body
@@ -567,7 +565,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         user = None
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
-        _validate_check_config(attrs, uptime_subscription, self.context["organization"], user)
+        _validate_check_config(attrs, self.instance, self.context["organization"], user)
 
         return attrs
 
