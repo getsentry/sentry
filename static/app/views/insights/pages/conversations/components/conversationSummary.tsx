@@ -107,31 +107,38 @@ export function ConversationSummary({
         <Text variant="muted" monospace>
           {conversationId.slice(0, 8)}
         </Text>
-        <CopyToClipboardButton
-          borderless
-          iconSize="xs"
-          size="zero"
-          text={conversationId}
-        />
+        <CopyToClipboardButton borderless size="zero" text={conversationId} />
       </Flex>
       <Divider />
       <StatsRow>
         <StatItem
-          icon={<IconChat size="sm" color={colors[2]} />}
+          icon={
+            <span style={{color: colors[2]}}>
+              <IconChat size="sm" />
+            </span>
+          }
           label={t('LLM Calls')}
           value={<Count value={stats.llmCalls} />}
           to={stats.llmCalls > 0 ? llmCallsUrl : undefined}
           isLoading={isLoading}
         />
         <StatItem
-          icon={<IconFix size="sm" color={colors[5]} />}
+          icon={
+            <span style={{color: colors[5]}}>
+              <IconFix size="sm" />
+            </span>
+          }
           label={t('Tool Calls')}
           value={<Count value={stats.toolCalls} />}
           to={stats.toolCalls > 0 ? toolCallsUrl : undefined}
           isLoading={isLoading}
         />
         <StatItem
-          icon={<IconFire size="sm" color={colors[6]} />}
+          icon={
+            <span style={{color: colors[6]}}>
+              <IconFire size="sm" />
+            </span>
+          }
           label={t('Errors')}
           value={<Count value={stats.errorCount} />}
           to={stats.errorCount > 0 ? errorsUrl : undefined}
