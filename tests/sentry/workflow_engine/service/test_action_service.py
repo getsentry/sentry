@@ -319,21 +319,9 @@ class TestActionService(TestCase):
             assert sentry_app_id_action.status == ObjectStatus.DISABLED
 
     def test_update_action_status_for_sentry_app__via_sentry_app_id(self) -> None:
-        sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug,
-            organization=self.organization,
-        )
         self.create_sentry_app_installation(
             slug=self.sentry_app_2.slug,
             organization=self.organization,
-        )
-        installation_uuid_action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            config={
-                "target_identifier": sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP,
-            },
         )
 
         action = self.create_action(
@@ -360,10 +348,8 @@ class TestActionService(TestCase):
 
         with assume_test_silo_mode(SiloMode.REGION):
             action.refresh_from_db()
-            installation_uuid_action.refresh_from_db()
             other_sentry_app_action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
-            assert installation_uuid_action.status == ObjectStatus.DISABLED
             assert other_sentry_app_action.status == ObjectStatus.ACTIVE
 
     def test_update_action_status_for_webhook_via_sentry_app_slug(self) -> None:

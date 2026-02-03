@@ -1,9 +1,8 @@
 from django.db.models import Q
 
-from sentry.constants import SentryAppInstallationStatus
-from sentry.sentry_apps.services.app.service import app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class DatabaseBackedActionService(ActionService):
@@ -84,17 +83,9 @@ class DatabaseBackedActionService(ActionService):
         status: int,
         sentry_app_id: int,
     ) -> None:
-        # look up all installs for the sentry app and disable the action - if the sentry app no longer exists, no related actions can fire
-        installs = app_service.get_many(
-            filter={
-                "app_ids": [sentry_app_id],
-                "status": SentryAppInstallationStatus.INSTALLED,
-            }
-        )
-
         Action.objects.filter(
-            Q(config__target_identifier=str(sentry_app_id))
-            | Q(config__target_identifier__in=[install.uuid for install in installs]),
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+            config__target_identifier=str(sentry_app_id),
             type=Action.Type.SENTRY_APP,
         ).update(status=status)
 
