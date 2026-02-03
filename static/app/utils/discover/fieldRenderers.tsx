@@ -1429,8 +1429,9 @@ function getDashboardUrl(
       linkedDashboard => linkedDashboard.field === field
     );
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
-      const datasetsToApplyFiltersTo = dashboardLink.additionalDatasets ?? [
+      const datasetsToApplyFiltersTo = [
         widget.widgetType,
+        ...(dashboardLink.additionalDatasets ?? []),
       ];
 
       const newTemporaryFilters: GlobalFilter[] = [
