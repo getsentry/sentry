@@ -520,6 +520,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "conditionResult": True,
             }
         ]
+        self.basic_trigger = [
+            {
+                "type": Condition.FIRST_SEEN_EVENT,
+                "comparison": True,
+                "conditionResult": True,
+            }
+        ]
         self.sentry_app, _ = self.create_sentry_app_with_schema()
         self.sentry_app_settings = [
             {"name": "alert_prefix", "value": "[Not Good]"},
@@ -573,6 +580,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.data == serialize(new_workflow)
 
     def test_create_workflow__with_triggers(self) -> None:
+        # TODO: the basic condition is not actually a trigger, it's an actionFilter
+        # we should restrict the Condition types to be passed through a trigger
         self.valid_workflow["triggers"] = {
             "logicType": "any",
             "conditions": self.basic_condition,
@@ -586,6 +595,32 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.status_code == 201
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__with_triggers_valid_logic_type(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": self.basic_trigger,
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+
+    def test_create_workflow__with_triggers_invalid_logic_type(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "all",
+            "conditions": self.basic_trigger,
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "logic type must be 'any-short'" in str(response.data).lower()
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
