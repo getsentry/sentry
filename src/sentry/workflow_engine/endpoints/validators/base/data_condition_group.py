@@ -24,7 +24,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
 
         return conditions
 
-    def _validate_logic_type(self, condition_data: dict[str, Any], logic_type: str) -> None:
+    def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
         """
         Validate that if we're passed a "trigger" it has the logic type 'any-short'
         """
@@ -70,9 +70,10 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         if instance.organization_id != context_org.id:
             raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
 
-        self._validate_logic_type(
-            validated_data.get("conditions"), validated_data.get("logic_type")
-        )
+        logic_type = validated_data.get("logic_type")
+        if not logic_type:
+            logic_type = instance.logic_type
+        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
 
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)
@@ -87,9 +88,10 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         return instance
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
-        self._validate_logic_type(
-            validated_data.get("conditions"), validated_data.get("logic_type")
-        )
+        logic_type = validated_data.get("logic_type")
+        if not logic_type:
+            logic_type = DataConditionGroup.Type.ANY.value
+        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
 
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
