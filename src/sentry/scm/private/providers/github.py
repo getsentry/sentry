@@ -13,6 +13,9 @@ REACTION_MAP = {
 }
 
 
+# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
+#       configure the shared pool. The absolute allocation amount for explicit referrers can
+#       remain unchanged.
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
