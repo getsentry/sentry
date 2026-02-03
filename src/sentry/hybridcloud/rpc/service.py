@@ -417,6 +417,10 @@ class RpcRemoteException(RpcException):
     """Indicate that an RPC service returned an error status code."""
 
 
+class RpcSlugCollisionException(RpcRemoteException):
+    """Indicate that an RPC service returned a slug collision error (409 Conflict)."""
+
+
 class RpcResponseException(RpcException):
     """Indicate that the response from a remote RPC service violated expectations."""
 
@@ -618,6 +622,11 @@ class _RemoteSiloCall:
         # Careful not to reveal too much information in production
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
+        if response.status_code == 409:
+            # Slug collision - raise a specific exception that can be caught
+            raise RpcSlugCollisionException(
+                self.service_name, self.method_name, "Organization slug already in use"
+            )
         if response.status_code == 400:
             logger.warning(
                 "rpc.bad_request",
