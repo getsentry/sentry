@@ -148,15 +148,6 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         except SentryApp.DoesNotExist:
             return None
 
-    @property
-    def sentry_app_id(self) -> int | None:
-        from sentry.sentry_apps.models.sentry_app import SentryApp
-
-        try:
-            return self.sentry_app.id
-        except SentryApp.DoesNotExist:
-            return None
-
     def outbox_region_names(self) -> Collection[str]:
         return find_regions_for_orgs([self.organization_id])
 
