@@ -58,7 +58,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the name tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: Name" />
+          {props => <Input placeholder="Step 1: Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
@@ -66,7 +66,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
@@ -74,7 +74,7 @@ export default Storybook.story('Tours', story => {
           description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 3: Password" type="password" />
+          {props => <Input placeholder="Step 3: Password" type="password" {...props} />}
         </TourElement>
       </TourProvider>
     </Fragment>
@@ -159,7 +159,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
   title={'Name Time!'}
   description={'We need this to make your account :)'}
 >
-  <Input placeholder="Name" />
+  {(props) => <Input placeholder="Name" {...props} />}
 </TourElement>
 `}
       </CodeBlock>
@@ -197,7 +197,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           title="Name Time!"
           description="This is the description of the name tour step."
         >
-          <Input placeholder="Step 1: Name" />
+          {props => <Input placeholder="Step 1: Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           tourContext={MyTourContext}
@@ -205,7 +205,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           title="Email Time!"
           description="This is the description of the email tour step."
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <div style={{height: '30px'}}>
           <LoadingIndicator mini />
@@ -229,7 +229,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description={null}
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: First Name" />
+          {props => <Input placeholder="Step 1: First Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.NAME}
@@ -238,7 +238,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           tourContext={MyTourContext}
           position="right"
         >
-          <Input placeholder="Step 1: Middle Name" />
+          {props => <Input placeholder="Step 1: Middle Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.NAME}
@@ -246,7 +246,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description={null}
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 1: Last Name" />
+          {props => <Input placeholder="Step 1: Last Name" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.EMAIL}
@@ -254,7 +254,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description="This is the description of the email tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 2: Email" type="email" />
+          {props => <Input placeholder="Step 2: Email" type="email" {...props} />}
         </TourElement>
         <TourElement<MyTour>
           id={MyTour.PASSWORD}
@@ -262,7 +262,7 @@ export const MY_TOUR_KEY = 'tour.my_tour';
           description="This is the description of the password tour step."
           tourContext={MyTourContext}
         >
-          <Input placeholder="Step 3: Password" type="password" />
+          {props => <Input placeholder="Step 3: Password" type="password" {...props} />}
         </TourElement>
       </TourProvider>
     </Fragment>

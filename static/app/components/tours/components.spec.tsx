@@ -86,7 +86,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -111,7 +111,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -138,7 +138,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -172,7 +172,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -202,7 +202,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -231,7 +231,7 @@ describe('Tour Components', () => {
             title="Name"
             description="The name"
           >
-            Name
+            {props => <div {...props}>Name</div>}
           </TourElement>
           <TourElement<TestTour>
             tourContext={TestTourContext}
@@ -239,7 +239,7 @@ describe('Tour Components', () => {
             title="Email"
             description="The email"
           >
-            Email
+            {props => <div {...props}>Email</div>}
           </TourElement>
           <TourElement<TestTour>
             tourContext={TestTourContext}
@@ -247,7 +247,7 @@ describe('Tour Components', () => {
             title="Password"
             description="The password"
           >
-            Password
+            {props => <div {...props}>Password</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -282,7 +282,7 @@ describe('Tour Components', () => {
             title="Name"
             description="The name"
           >
-            Name
+            {props => <div {...props}>Name</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -311,7 +311,7 @@ describe('Tour Components', () => {
           stepTotal={100}
           id="test-id"
         >
-          <div>Child Element</div>
+          {props => <div {...props}>Child Element</div>}
         </TourGuide>
       );
 
@@ -336,7 +336,7 @@ describe('Tour Components', () => {
           stepTotal={100}
           id="test-id"
         >
-          <div>Child Element</div>
+          {props => <div {...props}>Child Element</div>}
         </TourGuide>
       );
 

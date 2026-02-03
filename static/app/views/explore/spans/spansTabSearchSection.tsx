@@ -448,34 +448,43 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           id={ExploreSpansTour.SEARCH_BAR}
           title={t('Start Your Search')}
           description={t(
-            'Specify the keys you’d like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.).'
+            "Specify the keys you'd like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.)."
           )}
           position="bottom"
           margin={-8}
         >
-          <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter {...datePageFilterProps} />
-            </StyledPageFilterBar>
-            <SpansSearchBar spanSearchQueryBuilderProps={spanSearchQueryBuilderProps} />
-            {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
-            {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
-          </Grid>
-          {hasCrossEvents ? null : (
-            <ExploreSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={
-                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                }
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={numberAttributesLoading || stringAttributesLoading}
-                exploreQuery={query}
-                source={SchemaHintsSources.EXPLORE}
-              />
-            </ExploreSchemaHintsSection>
+          {tourProps => (
+            <div {...tourProps}>
+              <Grid
+                gap="md"
+                columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}
+              >
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
+                </StyledPageFilterBar>
+                <SpansSearchBar
+                  spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
+                />
+                {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
+                {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
+              </Grid>
+              {hasCrossEvents ? null : (
+                <ExploreSchemaHintsSection>
+                  <SchemaHintsList
+                    supportedAggregates={
+                      mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+                    }
+                    numberTags={numberAttributes}
+                    stringTags={stringAttributes}
+                    isLoading={numberAttributesLoading || stringAttributesLoading}
+                    exploreQuery={query}
+                    source={SchemaHintsSources.EXPLORE}
+                  />
+                </ExploreSchemaHintsSection>
+              )}
+            </div>
           )}
         </TourElement>
       </SearchQueryBuilderProvider>

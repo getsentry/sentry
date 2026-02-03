@@ -66,7 +66,11 @@ export function GroupDetailsLayout({
             )}
             position="bottom"
           >
-            <EventDetailsHeader event={event} group={group} project={project} />
+            {tourProps => (
+              <div {...tourProps}>
+                <EventDetailsHeader event={event} group={group} project={project} />
+              </div>
+            )}
           </SharedTourElement>
           <SharedTourElement<IssueDetailsTour>
             id={IssueDetailsTour.EVENT_DETAILS}
@@ -78,16 +82,20 @@ export function GroupDetailsLayout({
             )}
             position="top"
           >
-            <GroupContent>
-              {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                  <IssueEventNavigation event={event} group={group} />
-                  {/* Since the event details header is disabled, display the sidebar toggle here */}
-                  {!hasFilterBar && <ToggleSidebar size="sm" />}
-                </NavigationSidebarWrapper>
-              )}
-              <ContentPadding>{children}</ContentPadding>
-            </GroupContent>
+            {tourProps => (
+              <div {...tourProps}>
+                <GroupContent>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                    <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                      <IssueEventNavigation event={event} group={group} />
+                      {/* Since the event details header is disabled, display the sidebar toggle here */}
+                      {!hasFilterBar && <ToggleSidebar size="sm" />}
+                    </NavigationSidebarWrapper>
+                  )}
+                  <ContentPadding>{children}</ContentPadding>
+                </GroupContent>
+              </div>
+            )}
           </SharedTourElement>
         </div>
         <StreamlinedSidebar group={group} event={event} project={project} />
