@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -19,7 +20,11 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     isPending,
     isError,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
-    [`/organizations/${organization.slug}/code-mappings/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       // Code mappings are not updated frequently, so we can cache them for a longer time.
       staleTime: FIFTEEN_MINUTES,
