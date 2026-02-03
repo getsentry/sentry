@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import toArray from 'sentry/utils/array/toArray';
+import parseApiError from 'sentry/utils/parseApiError';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import SelectedGroupStore from './selectedGroupStore';
@@ -331,7 +332,7 @@ const storeConfig: GroupStoreDefinition = {
     } else if (typeof assignedToError === 'string') {
       showAlert(assignedToError, 'error');
     } else if (error.responseJSON?.detail) {
-      showAlert(error.responseJSON?.detail, 'error');
+      showAlert(parseApiError(error), 'error');
     } else {
       showAlert(t('Unable to change assignee. Please try again.'), 'error');
     }
