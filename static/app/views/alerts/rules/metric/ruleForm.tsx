@@ -6,8 +6,8 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip/tooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
