@@ -13,18 +13,16 @@ export function DocIntegrationAvatar({
   docIntegration,
   ...props
 }: DocIntegrationAvatarProps) {
-  if (!docIntegration?.avatar) {
-    // @TODO(jonasbadalic): This is not passing a ref!
-    return <PluginIcon size={props.size} pluginId={docIntegration?.slug ?? ''} />;
-  }
-
   return (
     <BaseAvatar
       {...props}
       ref={ref}
       type="upload"
-      uploadUrl={docIntegration.avatar.avatarUrl}
-      title={docIntegration.name}
+      title={docIntegration?.name}
+      uploadUrl={docIntegration?.avatar?.avatarUrl}
+      backupAvatar={
+        <PluginIcon size={props.size} pluginId={docIntegration?.slug ?? ''} />
+      }
     />
   );
 }

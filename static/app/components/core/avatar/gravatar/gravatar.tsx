@@ -57,13 +57,9 @@ function useGravatarHash(gravatarId: string) {
   const [avatarHash, setAvatarHash] = useState<string | null>(null);
 
   useEffect(() => {
-    // @TODO(jonasbadalic): why is trim required?
     const trimmedGravatarId = gravatarId.trim();
-    if (!trimmedGravatarId) {
-      return;
-    }
-
-    if (typeof window.crypto?.subtle?.digest === 'undefined') {
+    if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+      setAvatarHash(null);
       return;
     }
 
