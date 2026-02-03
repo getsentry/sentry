@@ -1429,12 +1429,17 @@ function getDashboardUrl(
       linkedDashboard => linkedDashboard.field === field
     );
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const datasetsToApplyFiltersTo = [
+        widget.widgetType,
+        ...(dashboardLink.additionalGlobalFilterDatasetTargets ?? []),
+      ];
+
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
       ].filter(
         filter =>
           Boolean(filter.value) &&
-          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+          !(filter.tag.key === field && datasetsToApplyFiltersTo.includes(filter.dataset))
       );
 
       // Format the value as a proper filter condition string
@@ -1443,11 +1448,13 @@ function getDashboardUrl(
         .addFilterValueList(field, [data[field]])
         .toString();
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-        isTemporary: true,
+      datasetsToApplyFiltersTo.forEach(dataset => {
+        newTemporaryFilters.push({
+          dataset,
+          tag: {key: field, name: field, kind: FieldKind.TAG},
+          value: formattedValue,
+          isTemporary: true,
+        });
       });
 
       // Preserve project, environment, and time range query params
