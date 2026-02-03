@@ -20,12 +20,12 @@ import {useFeatureFilter} from './useFeatureFilter';
 
 const EXAMPLE_BUILDS_COUNT = 5;
 const FEATURE_FILTER_ALLOWED_KEYS = [
-  // 'app_id',
-  // 'app_name',
+  'app_id',
+  'app_name',
   'build_configuration_name',
-  // 'platform_name',
-  // 'build_number',
-  // 'build_version',
+  'platform_name',
+  'build_number',
+  'build_version',
   'git_head_ref',
   'git_base_ref',
   'git_head_sha',
