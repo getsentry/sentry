@@ -69,15 +69,9 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.context["organization"]
 
     def validate(self, attrs):
-        query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"), stack_root=attrs.get("stack_root")
-        )
-        if self.instance:
-            query = query.exclude(id=self.instance.id)
-        if query.exists():
-            raise serializers.ValidationError(
-                "Code path config already exists with this project and stack trace root"
-            )
+        # Allow multiple code mappings with the same stack_root for the same project
+        # This enables multi-project repositories where different source folders
+        # share the same relative path structure
         return attrs
 
     def validate_repository_id(self, repository_id):
