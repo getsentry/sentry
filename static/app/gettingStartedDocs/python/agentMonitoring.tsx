@@ -11,7 +11,7 @@ import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboard
 
 import {getPythonInstallCodeBlock} from './utils';
 
-const MIN_REQUIRED_VERSION = '2.41.0';
+const MIN_REQUIRED_VERSION = '2.43.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (

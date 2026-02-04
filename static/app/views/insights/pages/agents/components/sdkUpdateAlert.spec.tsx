@@ -18,6 +18,7 @@ function renderMockSdkUpdateRequest({
         projectId: string;
         sdkName: string;
         sdkVersion: string;
+        suggestions?: Array<{type: string; newSdkVersion?: string}>;
       }>
     | {
         detail: string;
@@ -80,7 +81,7 @@ describe('SdkUpdateAlert', () => {
     });
   });
 
-  it('renders alert when SDK version is below minimum with current version', async () => {
+  it('renders alert when SDK version is below minimum with suggested version', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
@@ -88,6 +89,7 @@ describe('SdkUpdateAlert', () => {
           projectId: project.id,
           sdkName: 'sentry.python',
           sdkVersion: '1.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '2.5.0'}],
         },
       ],
     });
@@ -99,7 +101,15 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using sentry-sdk at version 1.0.0, which is below the minimum required version 2.0.0. Please update your SDK to enable agent monitoring."
+          "We've detected you're using sentry-sdk below the minimum required version for agent monitoring to work."
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Update to the latest version (2.5.0) for the best experience.'
         )
       )
     ).toBeInTheDocument();
@@ -113,6 +123,7 @@ describe('SdkUpdateAlert', () => {
           projectId: project.id,
           sdkName: 'sentry.javascript.nextjs',
           sdkVersion: '7.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '8.5.0'}],
         },
       ],
     });
@@ -124,13 +135,21 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using @sentry/nextjs at version 7.0.0, which is below the minimum required version 8.0.0. Please update your SDK to enable agent monitoring."
+          "We've detected you're using @sentry/nextjs below the minimum required version for agent monitoring to work."
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Update to the latest version (8.5.0) for the best experience.'
         )
       )
     ).toBeInTheDocument();
   });
 
-  it('renders alert with fallback SDK name when package name cannot be determined', async () => {
+  it('renders alert with fallback message when package name cannot be determined', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
@@ -149,20 +168,24 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using an SDK at version 1.0.0, which is below the minimum required version 2.0.0. Please update your SDK to enable agent monitoring."
+          "We've detected you're using an SDK below the minimum required version for agent monitoring to work."
         )
       )
     ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Update to the latest version for the best experience./)
+    ).toBeInTheDocument();
   });
 
-  it('renders alert without current version when sdkVersion is empty', async () => {
+  it('renders alert without suggested version when suggestions are not available', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
         {
           projectId: project.id,
           sdkName: 'sentry.python',
-          sdkVersion: '',
+          sdkVersion: '1.0.0',
         },
       ],
     });
@@ -174,9 +197,13 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using sentry-sdk, which is below the minimum required version 2.0.0. Please update your SDK to enable agent monitoring."
+          "We've detected you're using sentry-sdk below the minimum required version for agent monitoring to work."
         )
       )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Update to the latest version for the best experience/)
     ).toBeInTheDocument();
   });
 });

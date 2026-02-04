@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 function getPackageNameFromSdkName(sdkName?: string): string | null {
@@ -13,7 +13,6 @@ function getPackageNameFromSdkName(sdkName?: string): string | null {
   }
 
   if (sdkName.startsWith('sentry.javascript.')) {
-    // Extract the last part of the SDK name (e.g., "nextjs" from "sentry.javascript.nextjs")
     const flavor = sdkName.split('.').pop();
     if (flavor) {
       return `@sentry/${flavor}`;
@@ -45,26 +44,31 @@ export function SdkUpdateAlert({
 
   const sdkUpdate = data?.[0];
   const packageName = getPackageNameFromSdkName(sdkUpdate?.sdkName);
-  const currentVersion = sdkUpdate?.sdkVersion;
+
+  const suggestedVersion = sdkUpdate?.suggestions?.find(
+    suggestion => suggestion.type === 'updateSdk'
+  )?.newSdkVersion;
+
+  const firstSentence = packageName
+    ? tct(
+        "We've detected you're using [sdkName] below the minimum required version for agent monitoring to work.",
+        {
+          sdkName: <code>{packageName}</code>,
+        }
+      )
+    : t(
+        "We've detected you're using an SDK below the minimum required version for agent monitoring to work."
+      );
+
+  const secondSentence = suggestedVersion
+    ? tct('Update to the latest version ([latestVersion]) for the best experience.', {
+        latestVersion: <code>{suggestedVersion}</code>,
+      })
+    : t('Update to the latest version for the best experience.');
 
   return (
     <Alert variant="warning">
-      {currentVersion
-        ? tct(
-            "We've detected you're using [sdkName] at version [currentVersion], which is below the minimum required version [minVersion]. Please update your SDK to enable agent monitoring.",
-            {
-              sdkName: <code>{packageName ?? 'an SDK'}</code>,
-              currentVersion: <code>{currentVersion}</code>,
-              minVersion: <code>{minVersion}</code>,
-            }
-          )
-        : tct(
-            "We've detected you're using [sdkName], which is below the minimum required version [minVersion]. Please update your SDK to enable agent monitoring.",
-            {
-              sdkName: <code>{packageName ?? 'an SDK'}</code>,
-              minVersion: <code>{minVersion}</code>,
-            }
-          )}
+      {firstSentence} {secondSentence}
     </Alert>
   );
 }
