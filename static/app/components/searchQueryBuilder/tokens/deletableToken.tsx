@@ -93,7 +93,8 @@ const FloatingCloseButton = styled('button')`
   border: none;
   color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;
   justify-content: center;

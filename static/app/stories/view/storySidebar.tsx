@@ -27,7 +27,8 @@ const SidebarContainer = styled('nav')`
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
-  box-shadow: 1px 0 0 0 ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;

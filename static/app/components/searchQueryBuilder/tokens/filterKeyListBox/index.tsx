@@ -513,7 +513,8 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
 

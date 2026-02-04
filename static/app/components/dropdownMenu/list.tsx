@@ -279,7 +279,8 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;
 

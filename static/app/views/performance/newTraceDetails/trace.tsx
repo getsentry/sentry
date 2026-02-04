@@ -700,7 +700,8 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
   top: 0;
