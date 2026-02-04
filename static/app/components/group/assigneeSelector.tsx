@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
@@ -62,9 +61,8 @@ export function useHandleAssigneeChange({
       }
       onSuccess?.(updatedGroup.assignedTo);
     },
-    onError: () => {
-      addErrorMessage('Failed to update assignee');
-    },
+    // Error is already handled by GroupStore.onAssignToError which shows an alert
+    onError: () => {},
   });
 
   return {handleAssigneeChange, assigneeLoading};
