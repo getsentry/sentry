@@ -872,6 +872,16 @@ def chained_exception_variant_processor(
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
+    # Check if game thread prioritization is enabled
+    prioritize_game_thread = context.get("prioritize_game_thread_for_grouping", False)
+    
+    # For gaming apps with ANR, try to use game thread first if enabled
+    if prioritize_game_thread and _is_anr_event(event):
+        game_threads = [thread for thread in interface.values if _is_game_thread(thread)]
+        thread_components = _get_thread_components(game_threads, event, context, **kwargs)
+        if thread_components is not None:
+            return thread_components
+    
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
     thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
     if thread_components is not None:
@@ -923,6 +933,63 @@ def _get_thread_components(
         )
 
     return thread_components_by_variant
+
+
+def _is_anr_event(event: Event) -> bool:
+    """
+    Check if the event is an ANR (Application Not Responding) error.
+    ANR events are identified by either:
+    - The exception mechanism type being "ANR"
+    - The exception type being "ApplicationNotResponding"
+    """
+    exceptions = get_path(event.data, "exception", "values")
+    if not exceptions:
+        return False
+    
+    for exception in exceptions:
+        # Check mechanism type
+        mechanism = exception.get("mechanism")
+        if mechanism and mechanism.get("type") == "ANR":
+            return True
+        
+        # Check exception type
+        if exception.get("type") == "ApplicationNotResponding":
+            return True
+    
+    return False
+
+
+def _is_game_thread(thread: dict[str, Any]) -> bool:
+    """
+    Identify if a thread is a game thread based on its name or characteristics.
+    
+    Common game thread patterns:
+    - Unity: "UnityMain", "Unity Main Thread"
+    - Unreal Engine: "GameThread", "FCocoaGameThread", "runGameThread"
+    - Cocos2d: "Cocos2d", "cocos2d-x", "CocosThread"
+    - Generic: "mainLoop", "game_thread", "GameLoop"
+    """
+    thread_name = thread.get("name", "").lower()
+    
+    # Common game thread name patterns
+    game_thread_patterns = [
+        "gamethread",
+        "game thread",
+        "game_thread",
+        "unitymain",
+        "unity main",
+        "mainloop",
+        "main loop",
+        "gameloop",
+        "game loop",
+        "cocos",
+        "rungamethread",
+        "fcocoagamethread",
+        "renderthread",
+        "render thread",
+    ]
+    
+    return any(pattern in thread_name for pattern in game_thread_patterns)
 
 
 @threads.variant_processor

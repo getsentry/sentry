@@ -33,6 +33,10 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
         "normalize_message": True,
         # Platforms for which context line should be taken into account when grouping.
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
+        # For gaming apps with ANR errors, prioritize game thread over UI thread for grouping.
+        # This helps subdivide ANRs by the actual problem (game thread) rather than just the
+        # blocked UI thread. Can be enabled per-project for gaming customers.
+        "prioritize_game_thread_for_grouping": False,
     },
 )
 
