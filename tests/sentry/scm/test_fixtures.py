@@ -10,7 +10,7 @@ class BaseTestProvider(Provider):
 
     # Pull request
 
-    def get_pull_request(self, repository: Repository, pull_request_id: int) -> PullRequest:
+    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
         raw: dict[str, Any] = {
             "id": 1,
             "title": "Test PR",
