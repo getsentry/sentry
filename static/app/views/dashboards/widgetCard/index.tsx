@@ -332,6 +332,7 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
+            noVisualizationPadding={canUseTimeseriesVisualization}
             onFullScreenViewClick={
               disableFullscreen
                 ? undefined
