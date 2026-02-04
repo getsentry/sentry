@@ -54,8 +54,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
+logger = logging.getLogger(__name__)
 
 MAX_USERNAME_LENGTH = 128
+MAX_EMAIL_LENGTH = 200
 RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
@@ -229,13 +231,35 @@ class User(Model, AbstractBaseUser):
             return super().update(*args, **kwds)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
-            if not self.username:
-                self.username = self.email
-            result = super().save(*args, **kwargs)
-            for outbox in self.outboxes_for_update():
-                outbox.save()
-            return result
+        is_test_user = kwargs.pop("is_test_user", False)
+        is_relocated_user = kwargs.pop("is_relocated_user", False)
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+                if not self.username:
+                    self.username = self.email
+                # for testing purposes, we want to be able to create new users with existing emails
+                # if we're relocating a user, then we would have handled email_unique in the relocation logic
+                if not is_test_user:
+                    if self.pk is None and not is_relocated_user:
+                        # new users should set email_unique
+                        self.email_unique = self.email
+                    else:
+                        # existing users with shared email addresses + relocated users should be able to save without fail
+                        self.email_unique = (
+                            self.email
+                            if User.objects.filter(email=self.email).count() == 1
+                            else None
+                        )
+                result = super().save(*args, **kwargs)
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+                return result
+        except IntegrityError:
+            logger.info(
+                "Attempted to save user with non-unique primary email address",
+                extra={"email": self.email},
+            )
+            raise
 
     def has_2fa(self) -> bool:
         return Authenticator.objects.filter(
@@ -505,7 +529,7 @@ class User(Model, AbstractBaseUser):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
-        # Internal function that factors our some common logic.
+        # Internal function that factors out some common logic.
         def do_write() -> tuple[int, ImportKind]:
             from sentry.users.api.endpoints.user_details import (
                 BaseUserSerializer,
@@ -525,7 +549,7 @@ class User(Model, AbstractBaseUser):
             serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
             serializer_user.is_valid(raise_exception=True)
 
-            self.save(force_insert=True)
+            self.save(force_insert=True, is_relocated_user=True)
 
             if scope != ImportScope.Global:
                 DatabaseLostPasswordHashService().get_or_create(user_id=self.id)
