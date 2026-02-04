@@ -66,6 +66,16 @@ class NotificationProviderKey(StrEnum):
     DISCORD = ExternalProviderEnum.DISCORD
 
 
+class NotificationThreadKeyType(StrEnum):
+    """
+    The sender key for a notification thread.
+    """
+
+    ISSUE_ALERT = "issue_alert"
+    METRIC_ALERT = "metric_alert"
+    NOA = "noa"
+
+
 class NotificationTargetResourceType(StrEnum):
     """
     Avenues for a notification to be sent to that can be understood by a provider.
