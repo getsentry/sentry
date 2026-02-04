@@ -13,9 +13,9 @@ export default function useProjectSdkNeedsUpdate({
   minVersion,
   projectId,
 }: Opts):
-  | {isError: false; isFetching: true; needsUpdate: undefined; data: undefined}
-  | {isError: true; isFetching: false; needsUpdate: undefined; data: undefined}
-  | {isError: false; isFetching: false; needsUpdate: boolean; data: ProjectSdkUpdates[]} {
+  | {data: undefined; isError: false; isFetching: true; needsUpdate: undefined}
+  | {data: undefined; isError: true; isFetching: false; needsUpdate: undefined}
+  | {data: ProjectSdkUpdates[]; isError: false; isFetching: false; needsUpdate: boolean} {
   const organization = useOrganization();
 
   const {data, isError, isPending} = useApiQuery<ProjectSdkUpdates[]>(

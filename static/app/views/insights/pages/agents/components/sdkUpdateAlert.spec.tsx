@@ -13,8 +13,6 @@ function renderMockSdkUpdateRequest({
   body,
   statusCode,
 }: {
-  organization: Organization;
-  statusCode?: number;
   body:
     | Array<{
         projectId: string;
@@ -24,6 +22,8 @@ function renderMockSdkUpdateRequest({
     | {
         detail: string;
       };
+  organization: Organization;
+  statusCode?: number;
 }) {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sdk-updates/`,
@@ -55,7 +55,7 @@ describe('SdkUpdateAlert', () => {
 
     const {container} = render(
       <SdkUpdateAlert projectId={project.id} minVersion="1.0.0" />,
-      {organization: organization}
+      {organization}
     );
 
     await waitFor(() => {
@@ -72,7 +72,7 @@ describe('SdkUpdateAlert', () => {
 
     const {container} = render(
       <SdkUpdateAlert projectId={project.id} minVersion="1.0.0" />,
-      {organization: organization}
+      {organization}
     );
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe('SdkUpdateAlert', () => {
     });
 
     render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization: organization,
+      organization,
     });
 
     expect(
@@ -118,7 +118,7 @@ describe('SdkUpdateAlert', () => {
     });
 
     render(<SdkUpdateAlert projectId={project.id} minVersion="8.0.0" />, {
-      organization: organization,
+      organization,
     });
 
     expect(
@@ -143,7 +143,7 @@ describe('SdkUpdateAlert', () => {
     });
 
     render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization: organization,
+      organization,
     });
 
     expect(
@@ -168,7 +168,7 @@ describe('SdkUpdateAlert', () => {
     });
 
     render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization: organization,
+      organization,
     });
 
     expect(

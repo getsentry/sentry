@@ -367,9 +367,9 @@ export function agentMonitoring({
   minVersion = MIN_REQUIRED_VERSION,
 }: {
   clientConfigFileName?: string;
+  minVersion?: string;
   packageName?: `@sentry/${string}`;
   serverConfigFileName?: string;
-  minVersion?: string;
 } = {}): OnboardingConfig {
   return {
     introduction: params => (
