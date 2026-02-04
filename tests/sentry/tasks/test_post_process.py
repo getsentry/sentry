@@ -4398,21 +4398,19 @@ class PostProcessGroupInstrumentationIssueTest(
         occurrence_data = self.build_occurrence_data(
             event_id=event.event_id,
             project_id=project_id,
-            **{
-                "id": uuid.uuid4().hex,
-                "fingerprint": ["instrumentation-" + uuid.uuid4().hex],
-                "issue_title": "Missing Instrumentation",
-                "subtitle": "Database query not instrumented",
-                "culprit": "api/endpoint",
-                "resource_id": "1234",
-                "evidence_data": {"test": "data"},
-                "evidence_display": [
-                    {"name": "issue", "value": "missing span", "important": True},
-                ],
-                "type": InstrumentationIssueExperimentalGroupType.type_id,
-                "detection_time": datetime.now().timestamp(),
-                "level": "info",
-            },
+            id=uuid.uuid4().hex,
+            fingerprint=["instrumentation-" + uuid.uuid4().hex],
+            issue_title="Missing Instrumentation",
+            subtitle="Database query not instrumented",
+            culprit="api/endpoint",
+            resource_id="1234",
+            evidence_data={"test": "data"},
+            evidence_display=[
+                {"name": "issue", "value": "missing span", "important": True},
+            ],
+            type=InstrumentationIssueExperimentalGroupType.type_id,
+            detection_time=datetime.now().timestamp(),
+            level="info",
         )
         occurrence, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
