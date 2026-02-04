@@ -24,8 +24,17 @@ DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 def has_size_quota(organization: Organization, actor: User | AnonymousUser | None = None) -> bool:
     if not features.has("organizations:preprod-enforce-size-quota", organization, actor=actor):
+        logger.info(
+            "has_size_quota",
+            extra={"organization_id": organization.id, "result": True, "reason": "not_enforced"},
+        )
         return True
-    return quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
+    result = quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
+    logger.info(
+        "has_size_quota",
+        extra={"organization_id": organization.id, "result": result, "reason": "quota_check"},
+    )
+    return result
 
 
 def has_installable_quota(
@@ -34,8 +43,17 @@ def has_installable_quota(
     if not features.has(
         "organizations:preprod-enforce-distribution-quota", organization, actor=actor
     ):
+        logger.info(
+            "has_installable_quota",
+            extra={"organization_id": organization.id, "result": True, "reason": "not_enforced"},
+        )
         return True
-    return quotas.backend.has_usage_quota(organization.id, DataCategory.INSTALLABLE_BUILD)
+    result = quotas.backend.has_usage_quota(organization.id, DataCategory.INSTALLABLE_BUILD)
+    logger.info(
+        "has_installable_quota",
+        extra={"organization_id": organization.id, "result": result, "reason": "quota_check"},
+    )
+    return result
 
 
 SkipReason = str | None
