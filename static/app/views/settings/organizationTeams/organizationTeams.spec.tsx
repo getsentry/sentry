@@ -295,6 +295,81 @@ describe('OrganizationTeams', () => {
     });
   });
 
+  describe('Empty States', () => {
+    beforeEach(() => {
+      TeamStore.reset();
+    });
+
+    it('shows empty state when no teams exist', async () => {
+      const {organization} = initializeOrg();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+      TeamStore.loadInitialData([], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(
+        await screen.findByText(/No teams have been created yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows empty state when user has not joined any teams', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: false});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(
+        await screen.findByText(/You haven't joined any teams yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('shows empty state when user is member of all teams', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: true});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set(['project:admin'])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(await screen.findByText(/You're a member of all teams/)).toBeInTheDocument();
+    });
+  });
+
   describe('Team Roles', () => {
     const features = new Set(['team-roles']);
     const access = new Set<string>();

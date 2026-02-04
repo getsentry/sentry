@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,13 +25,13 @@ interface YourTeamsTableProps {
   allTeamsCount: number;
   canCreateTeams: boolean;
   hasSearch: boolean;
-  initiallyLoaded: boolean;
+  isLoading: boolean;
   teams: Team[];
 }
 
 export function YourTeamsTable({
   teams,
-  initiallyLoaded,
+  isLoading,
   canCreateTeams,
   hasSearch,
   allTeamsCount,
@@ -48,9 +48,29 @@ export function YourTeamsTable({
     if (allTeamsCount === 0) {
       return (
         <SimpleTable.Empty>
-          {t('No teams have been created yet.')}{' '}
+          <div>
+            {t('No teams have been created yet.')}{' '}
+            {canCreateTeams &&
+              tct('Get started by [link:creating your first team].', {
+                link: (
+                  <Button
+                    priority="link"
+                    onClick={() => openCreateTeamModal({organization})}
+                    aria-label={t('Create team')}
+                  />
+                ),
+              })}
+          </div>
+        </SimpleTable.Empty>
+      );
+    }
+
+    return (
+      <SimpleTable.Empty>
+        <div>
+          {t("You haven't joined any teams yet.")}{' '}
           {canCreateTeams &&
-            tct('Get started by [link:creating your first team].', {
+            tct('You can always [link:create one].', {
               link: (
                 <Button
                   priority="link"
@@ -59,23 +79,7 @@ export function YourTeamsTable({
                 />
               ),
             })}
-        </SimpleTable.Empty>
-      );
-    }
-
-    return (
-      <SimpleTable.Empty>
-        {t("You haven't joined any teams yet.")}{' '}
-        {canCreateTeams &&
-          tct('You can always [link:create one].', {
-            link: (
-              <Button
-                priority="link"
-                onClick={() => openCreateTeamModal({organization})}
-                aria-label={t('Create team')}
-              />
-            ),
-          })}
+        </div>
       </SimpleTable.Empty>
     );
   };
@@ -100,21 +104,28 @@ export function YourTeamsTable({
           isSelf
         />
       </FullWidthAlert>
-      {initiallyLoaded ? (
-        teams.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          teams.map(team => (
-            <YourTeamRow key={team.slug} team={team} projects={projects} />
+      {isLoading
+        ? Array.from({length: 3}).map((_, i) => (
+            <SimpleTable.Row key={i}>
+              <SimpleTable.RowCell>
+                <Placeholder height="36px" width="180px" />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell data-column-name="role">
+                <Placeholder height="20px" width="60px" />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell data-column-name="projects">
+                <Placeholder height="20px" width="80px" />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell data-column-name="actions">
+                <Placeholder height="32px" width="100px" />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           ))
-        )
-      ) : (
-        <SimpleTable.Row>
-          <LoadingCell>
-            <LoadingIndicator />
-          </LoadingCell>
-        </SimpleTable.Row>
-      )}
+        : teams.length === 0
+          ? renderEmptyState()
+          : teams.map(team => (
+              <YourTeamRow key={team.slug} team={team} projects={projects} />
+            ))}
     </StyledSimpleTable>
   );
 }
@@ -179,7 +190,7 @@ function YourTeamRow({
       <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
           <Button size="sm" disabled>
-            ...
+            {'\u2026'}
           </Button>
         ) : (
           <Button
@@ -224,13 +235,6 @@ const StyledSimpleTable = styled(SimpleTable)`
 
 const TeamLink = styled(Link)`
   ${SimpleTable.rowLinkStyle}
-`;
-
-const LoadingCell = styled('div')`
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  padding: ${space(4)};
 `;
 
 const FullWidthAlert = styled('div')`

@@ -91,7 +91,7 @@ export default function OrganizationTeams({
       />
       <YourTeamsTable
         teams={filteredUserTeams}
-        initiallyLoaded={initiallyLoaded}
+        isLoading={!initiallyLoaded}
         canCreateTeams={canCreateTeams}
         hasSearch={teamQuery.length > 0}
         allTeamsCount={teams.length}

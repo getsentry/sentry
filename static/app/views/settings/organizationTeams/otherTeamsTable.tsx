@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import IdBadge from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
@@ -35,6 +36,7 @@ export function OtherTeamsTable({
   allTeamsCount,
 }: OtherTeamsTableProps) {
   const {projects} = useProjects();
+  const organization = useOrganization();
 
   // Don't show this table if no teams exist at all (YourTeamsTable handles that message)
   if (allTeamsCount === 0 && !hasSearch) {
@@ -47,7 +49,16 @@ export function OtherTeamsTable({
     }
 
     // User is a member of all teams
-    return <SimpleTable.Empty>{t("You're a member of all teams.")}</SimpleTable.Empty>;
+    return (
+      <SimpleTable.Empty>
+        <div>
+          {t("You're a member of all teams.")}{' '}
+          <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
+            {t('Create another team')}
+          </Button>
+        </div>
+      </SimpleTable.Empty>
+    );
   };
 
   return (
@@ -74,15 +85,13 @@ export function OtherTeamsTable({
   );
 }
 
-function OtherTeamRow({
-  team,
-  openMembership,
-  projects,
-}: {
+interface OtherTeamRowProps {
   openMembership: boolean;
   projects: ReturnType<typeof useProjects>['projects'];
   team: Team;
-}) {
+}
+
+function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
@@ -111,57 +120,6 @@ function OtherTeamRow({
     />
   );
 
-  const renderAction = () => {
-    if (isLoading) {
-      return (
-        <Button size="sm" disabled>
-          {'\u2026'}
-        </Button>
-      );
-    }
-
-    if (team.isPending) {
-      return (
-        <Tooltip
-          title={t(
-            'Your request to join this team is being reviewed by organization owners'
-          )}
-          skipWrapper
-        >
-          <Text variant="muted" wrap="nowrap">
-            {t('Request Pending')}
-          </Text>
-        </Tooltip>
-      );
-    }
-
-    if (openMembership) {
-      return (
-        <Button
-          aria-label={t('Join Team')}
-          size={actionSize}
-          onClick={() => joinTeam()}
-          disabled={isIdpProvisioned}
-          title={buttonHelpText}
-        >
-          {t('Join Team')}
-        </Button>
-      );
-    }
-
-    return (
-      <Button
-        aria-label={t('Request Access')}
-        size={actionSize}
-        onClick={() => requestAccess()}
-        disabled={isIdpProvisioned}
-        title={buttonHelpText}
-      >
-        {t('Request Access')}
-      </Button>
-    );
-  };
-
   return (
     <SimpleTable.Row>
       {canViewTeam && <InteractionStateLayer />}
@@ -185,9 +143,89 @@ function OtherTeamRow({
         />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" data-column-name="actions">
-        {renderAction()}
+        <TeamAction
+          isLoading={isLoading}
+          isPending={team.isPending}
+          openMembership={openMembership}
+          isIdpProvisioned={isIdpProvisioned}
+          buttonHelpText={buttonHelpText}
+          actionSize={actionSize}
+          onJoinTeam={joinTeam}
+          onRequestAccess={requestAccess}
+        />
       </SimpleTable.RowCell>
     </SimpleTable.Row>
+  );
+}
+
+interface TeamActionProps {
+  actionSize: 'xs' | 'sm';
+  buttonHelpText: string | undefined;
+  isIdpProvisioned: boolean;
+  isLoading: boolean;
+  isPending: boolean;
+  onJoinTeam: () => void;
+  onRequestAccess: () => void;
+  openMembership: boolean;
+}
+
+function TeamAction({
+  isLoading,
+  isPending,
+  openMembership,
+  isIdpProvisioned,
+  buttonHelpText,
+  actionSize,
+  onJoinTeam,
+  onRequestAccess,
+}: TeamActionProps) {
+  if (isLoading) {
+    return (
+      <Button size="sm" disabled>
+        {'\u2026'}
+      </Button>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <Tooltip
+        title={t(
+          'Your request to join this team is being reviewed by organization owners'
+        )}
+        skipWrapper
+      >
+        <Text variant="muted" wrap="nowrap">
+          {t('Request Pending')}
+        </Text>
+      </Tooltip>
+    );
+  }
+
+  if (openMembership) {
+    return (
+      <Button
+        aria-label={t('Join Team')}
+        size={actionSize}
+        onClick={onJoinTeam}
+        disabled={isIdpProvisioned}
+        title={buttonHelpText}
+      >
+        {t('Join Team')}
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      aria-label={t('Request Access')}
+      size={actionSize}
+      onClick={onRequestAccess}
+      disabled={isIdpProvisioned}
+      title={buttonHelpText}
+    >
+      {t('Request Access')}
+    </Button>
   );
 }
 
