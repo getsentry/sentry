@@ -427,7 +427,10 @@ class OAuthTokenView(View):
                 reason=token_data.get("reason"),
             )
 
-        return self.process_token_details(token=token_data["token"])
+        return self.process_token_details(
+            token=token_data["token"],
+            id_token=token_data.get("id_token"),
+        )
 
     def _get_cimd_access_token(self, request: Request, client_id: str) -> dict:
         """
@@ -464,6 +467,10 @@ class OAuthTokenView(View):
                 grant.delete()
             return {"error": "invalid_grant", "reason": "PKCE required for CIMD clients"}
 
+        # Save data needed for OpenID before from_grant deletes the grant
+        grant_has_openid = grant.has_scope("openid")
+        grant_user_id = grant.user_id
+
         try:
             api_token = ApiToken.from_grant(
                 grant=grant,
@@ -491,7 +498,27 @@ class OAuthTokenView(View):
             },
         )
 
-        return {"token": api_token}
+        token_data: dict = {"token": api_token}
+
+        # OpenID token generation for CIMD clients (OIDC Core 1.0 §3.1.3.3)
+        if grant_has_openid and options.get("codecov.signing_secret"):
+            from types import SimpleNamespace
+
+            open_id_token = OpenIDToken(
+                client_id,  # Use CIMD client_id (URL) as audience
+                grant_user_id,
+                options.get("codecov.signing_secret"),
+                nonce=request.POST.get("nonce"),
+            )
+            # Use api_token.user instead of grant since grant is deleted
+            grant_data = SimpleNamespace(
+                user_id=grant_user_id,
+                has_scope=lambda s: s in api_token.get_scopes(),
+                user=api_token.user,
+            )
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant_data)
+
+        return token_data
 
     def _get_cimd_refresh_token(self, request: Request, client_id: str) -> dict:
         """
