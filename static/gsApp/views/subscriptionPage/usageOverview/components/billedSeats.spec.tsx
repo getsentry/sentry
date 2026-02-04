@@ -18,9 +18,10 @@ describe('BilledSeats', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
   });
 
@@ -83,7 +84,7 @@ describe('BilledSeats', () => {
     };
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -107,6 +108,7 @@ describe('BilledSeats', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     render(
       <BilledSeats
