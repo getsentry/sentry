@@ -1,12 +1,18 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
+import trimStart from 'lodash/trimStart';
 
 import type {ResponseMeta} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  type AggregationOutputType,
+  type DataUnit,
+} from 'sentry/utils/discover/fields';
+import {TOP_N} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -105,6 +111,45 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   skipDashboardFilterParens?: boolean;
 };
 
+/**
+ * Creates a table widget variant for fetching breakdown totals.
+ * Used when legendType is 'breakdown' to fetch aggregate values for the legend.
+ */
+function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget {
+  // rendering of the breakdown table assuming one query
+  const queries = [];
+  const firstQuery = widget.queries[0];
+
+  if (firstQuery) {
+    const aggregates = [...(firstQuery.aggregates ?? [])];
+    const columns = [...(firstQuery.columns ?? [])];
+
+    if (firstQuery.orderby) {
+      // TODO: table requests uses `eventViewFromWidget`, which does not automatically add orderby's to the fields to prevent the error
+      // `orderby must also be in the selected columns or groupby`
+      const orderbyField = trimStart(firstQuery.orderby, '-');
+      if (isAggregateField(orderbyField) && !aggregates.includes(orderbyField)) {
+        aggregates.push(orderbyField);
+      }
+      if (!isAggregateField(orderbyField) && !columns.includes(orderbyField)) {
+        columns.push(orderbyField);
+      }
+    }
+    queries.push({
+      ...firstQuery,
+      fields: [...columns, ...aggregates],
+      aggregates,
+      columns,
+    });
+  }
+  return {
+    ...widget,
+    displayType: DisplayType.TABLE,
+    limit: widget.limit ?? TOP_N,
+    queries,
+  };
+}
+
 export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   props: UseGenericWidgetQueriesProps<SeriesResponse, TableResponse>
 ): GenericWidgetQueriesResult {
@@ -135,6 +180,18 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
+  const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
+  const enableTableHook = !isTimeSeriesData && !disabled && !propsLoading;
+  const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
+
+  const tableWidget = useMemo(
+    () =>
+      needsBreakdownTable
+        ? createBreakdownTableWidgetFromTimeSeriesWidget(widget)
+        : widget,
+    [needsBreakdownTable, widget]
+  );
+
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
     organization,
@@ -150,7 +207,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   });
 
   const hookTableResults = config.useTableQuery?.({
-    widget,
+    widget: tableWidget,
     organization,
     pageFilters: selection,
     dashboardFilters,
@@ -158,7 +215,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     mepSetting,
     samplingMode,
-    enabled: !isTimeSeriesData && !disabled && !propsLoading,
+    enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
   });
@@ -233,12 +290,21 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   ]);
 
   // Return hook results, with a fallback for the loading state
-  return (
-    hookResults ?? {
-      loading: true,
-      rawData: [],
-    }
-  );
+  const baseResults = hookResults ?? {
+    loading: true,
+    rawData: [],
+  };
+
+  if (!needsBreakdownTable) {
+    return baseResults;
+  }
+
+  return {
+    ...baseResults,
+    loading: baseResults.loading || (hookTableResults?.loading ?? false),
+    tableResults: hookTableResults?.tableResults,
+    errorMessage: baseResults.errorMessage || hookTableResults?.errorMessage || undefined,
+  };
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {
