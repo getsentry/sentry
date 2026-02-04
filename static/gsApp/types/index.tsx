@@ -37,7 +37,8 @@ declare global {
   }
 
   namespace React {
-    interface DOMAttributes<_T> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
   }
