@@ -12,6 +12,7 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 interface PanelContainersProps {
   children: React.ReactNode;
   isMinimized: boolean;
+  isMobile: boolean;
   isOpen: boolean;
   panelSize: PanelSize;
   blocks?: Block[];
@@ -48,6 +49,7 @@ function getStatusText(blocks: Block[]): string {
 function PanelContainers({
   isOpen,
   isMinimized,
+  isMobile,
   panelSize,
   children,
   blocks,
@@ -61,7 +63,7 @@ function PanelContainers({
 
   return (
     <AnimatePresence>
-      {isOpen && showBackdrop && (
+      {isOpen && showBackdrop && !isMobile && (
         <PanelBackdrop
           initial={{opacity: 0}}
           animate={{opacity: 0.5}}
@@ -74,6 +76,7 @@ function PanelContainers({
           panelSize={panelSize}
           isMinimized={isMinimized}
           isSeerDrawerOpen={isSeerDrawerOpen}
+          isMobile={isMobile}
           initial={{
             opacity: 0,
             x: 50,
@@ -148,6 +151,7 @@ const PanelBackdrop = styled(motion.div)`
 
 const PanelContainer = styled(motion.div)<{
   isMinimized: boolean;
+  isMobile: boolean;
   panelSize: 'max' | 'med';
   isSeerDrawerOpen?: boolean;
 }>`
@@ -155,14 +159,26 @@ const PanelContainer = styled(motion.div)<{
   z-index: 10000;
   pointer-events: auto;
 
-  /* Position: shift left when drawer is open (but not when minimized) */
-  bottom: ${p => p.theme.space.sm};
+  /* Position: shift left when drawer is open (but not when minimized), full width on mobile */
+  bottom: ${p => (p.isMobile ? 0 : p.theme.space.sm)};
   right: ${p => {
+    if (p.isMobile) {
+      return 0;
+    }
     const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
     return shiftForDrawer ? '50%' : p.theme.space.sm;
   }};
 
   ${p => {
+    // On mobile, always use full size
+    if (p.isMobile) {
+      return `
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+      `;
+    }
+
     const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
     const width = shiftForDrawer ? 'calc(50vw - 8px)' : '50vw';
     if (p.panelSize === 'max') {

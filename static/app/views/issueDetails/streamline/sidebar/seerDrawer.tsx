@@ -527,10 +527,12 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
+      drawerCss: isExplorerVersion
+        ? undefined
+        : css`
+            height: fit-content;
+            max-height: 100%;
+          `,
       resizable: !isExplorerVersion,
       drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
@@ -602,6 +604,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
   direction: rtl;
   * {
     direction: ltr;
