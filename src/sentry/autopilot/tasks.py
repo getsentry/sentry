@@ -687,7 +687,7 @@ def run_trace_instrumentation_detector_for_project_task(
     """
     try:
         organization = Organization.objects.get(id=organization_id)
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.get(id=project_id, status=ObjectStatus.ACTIVE)
     except (Organization.DoesNotExist, Project.DoesNotExist):
         return None
 

@@ -1,3 +1,6 @@
+import uuid
+from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -19,7 +22,7 @@ from sentry.autopilot.tasks import (
 )
 from sentry.constants import ObjectStatus
 from sentry.seer.models import SeerPermissionError
-from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
@@ -575,108 +578,117 @@ class TestRunTraceInstrumentationDetectorForOrganization(TestCase):
         assert spawned_project_ids == {project1.id, project2.id, project3.id}
 
 
-class TestSampleTraceForInstrumentationAnalysis(TestCase):
+class TraceSpanTestMixin(SpanTestCase, SnubaTestCase):
+    """Mixin providing helper methods for creating and storing trace spans."""
+
+    ten_mins_ago: datetime
+
+    def _create_trace_with_spans(
+        self, trace_id: str, transaction_name: str, span_count: int = 25
+    ) -> list[dict[str, Any]]:
+        """Helper to create and store a trace with the specified number of spans.
+
+        Creates enough spans (default 25) to meet the minimum span count requirement (20-500)
+        for trace sampling.
+        """
+        spans: list[dict[str, Any]] = []
+        for i in range(span_count):
+            span = self.create_span(
+                {
+                    "description": f"span-{i}" if i > 0 else transaction_name,
+                    "sentry_tags": {
+                        "transaction": transaction_name,
+                        "op": "http.server" if i == 0 else "db.query",
+                    },
+                    "trace_id": trace_id,
+                    "parent_span_id": None if i == 0 else spans[0]["span_id"],
+                    "is_segment": i == 0,
+                },
+                start_ts=self.ten_mins_ago + timedelta(seconds=i),
+            )
+            spans.append(span)
+
+        self.store_spans(spans)
+        return spans
+
+
+class TestSampleTraceForInstrumentationAnalysis(TestCase, TraceSpanTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        self.ten_mins_ago = before_now(minutes=10)
+
     @pytest.mark.django_db
-    @mock.patch(
-        "sentry.autopilot.tasks.get_project_top_transaction_traces_for_llm_detection",
-        return_value=[],
-    )
-    def test_returns_none_when_no_traces_found(self, mock_get_traces: mock.MagicMock) -> None:
+    def test_returns_none_when_no_traces_found(self) -> None:
+        # No spans stored, so no traces should be found
         result = sample_trace_for_instrumentation_analysis(self.project)
         assert result is None
-        mock_get_traces.assert_called_once_with(
-            project_id=self.project.id,
-            limit=1,
-            start_time_delta_minutes=24 * 60,
-        )
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.get_project_top_transaction_traces_for_llm_detection")
-    def test_returns_first_trace_when_found(self, mock_get_traces: mock.MagicMock) -> None:
-        from sentry.seer.sentry_data_models import TraceMetadata
+    def test_returns_first_trace_when_found(self) -> None:
+        trace_id = uuid.uuid4().hex
+        transaction_name = "GET /api/users"
 
-        expected_trace = TraceMetadata(
-            trace_id="abc123",
-            transaction_name="GET /api/users",
-        )
-        mock_get_traces.return_value = [expected_trace]
+        self._create_trace_with_spans(trace_id, transaction_name)
 
         result = sample_trace_for_instrumentation_analysis(self.project)
 
-        assert result == expected_trace
-        mock_get_traces.assert_called_once_with(
-            project_id=self.project.id,
-            limit=1,
-            start_time_delta_minutes=24 * 60,
-        )
+        assert result is not None
+        assert result.trace_id == trace_id
 
 
-class TestRunTraceInstrumentationDetectorForProject(TestCase):
+class TestRunTraceInstrumentationDetectorForProject(TestCase, TraceSpanTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+        self.ten_mins_ago = before_now(minutes=10)
+
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
-    def test_skips_llm_for_nonexistent_organization(
-        self, mock_sample_trace: mock.MagicMock, mock_seer_client: mock.MagicMock
-    ) -> None:
+    def test_skips_llm_for_nonexistent_organization(self, mock_seer_client: mock.MagicMock) -> None:
         result = run_trace_instrumentation_detector_for_project_task(
             organization_id=999999,
             project_id=self.project.id,
         )
         assert result is None
-        assert not mock_sample_trace.called
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
-    def test_skips_llm_for_nonexistent_project(
-        self, mock_sample_trace: mock.MagicMock, mock_seer_client: mock.MagicMock
-    ) -> None:
+    def test_skips_llm_for_nonexistent_project(self, mock_seer_client: mock.MagicMock) -> None:
         result = run_trace_instrumentation_detector_for_project_task(
             organization_id=self.organization.id,
             project_id=999999,
         )
         assert result is None
-        assert not mock_sample_trace.called
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.get_trace_waterfall")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
     def test_skips_llm_when_no_trace_sampled(
         self,
-        mock_sample_trace: mock.MagicMock,
-        mock_get_waterfall: mock.MagicMock,
         mock_seer_client: mock.MagicMock,
     ) -> None:
-        mock_sample_trace.return_value = None
-
+        # No spans stored, so sample_trace_for_instrumentation_analysis returns None
         result = run_trace_instrumentation_detector_for_project_task(
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
 
         assert result is None
-        assert not mock_get_waterfall.called
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
     @mock.patch("sentry.autopilot.tasks.get_trace_waterfall")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
     def test_skips_llm_when_trace_query_fails(
         self,
-        mock_sample_trace: mock.MagicMock,
         mock_get_waterfall: mock.MagicMock,
         mock_seer_client: mock.MagicMock,
     ) -> None:
-        from sentry.seer.sentry_data_models import TraceMetadata
+        trace_id = uuid.uuid4().hex
+        transaction_name = "GET /api/users"
+        self._create_trace_with_spans(trace_id, transaction_name)
 
-        mock_sample_trace.return_value = TraceMetadata(
-            trace_id="abc123",
-            transaction_name="GET /api/users",
-        )
+        # Mock get_trace_waterfall to raise an exception
         mock_get_waterfall.side_effect = Exception("Query failed")
 
         result = run_trace_instrumentation_detector_for_project_task(
@@ -689,24 +701,14 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase):
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.get_trace_waterfall")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
     def test_handles_missing_seer_access(
         self,
-        mock_sample_trace: mock.MagicMock,
-        mock_get_waterfall: mock.MagicMock,
         mock_seer_client: mock.MagicMock,
     ) -> None:
-        from sentry.seer.sentry_data_models import EAPTrace, TraceMetadata
+        trace_id = uuid.uuid4().hex
+        transaction_name = "GET /api/users"
+        self._create_trace_with_spans(trace_id, transaction_name)
 
-        mock_sample_trace.return_value = TraceMetadata(
-            trace_id="abc123",
-            transaction_name="GET /api/users",
-        )
-        mock_get_waterfall.return_value = EAPTrace(
-            trace_id="abc123",
-            trace=[{"event_type": "span", "id": "span1"}],
-        )
         mock_seer_client.side_effect = SeerPermissionError("Access denied")
 
         result = run_trace_instrumentation_detector_for_project_task(
@@ -720,32 +722,14 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase):
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.get_trace_waterfall")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
     def test_creates_issues_for_instrumentation_gaps(
         self,
-        mock_sample_trace: mock.MagicMock,
-        mock_get_waterfall: mock.MagicMock,
         mock_seer_client: mock.MagicMock,
         mock_create_issue: mock.MagicMock,
     ) -> None:
-        from sentry.seer.sentry_data_models import EAPTrace, TraceMetadata
-
-        mock_sample_trace.return_value = TraceMetadata(
-            trace_id="abc123",
-            transaction_name="GET /api/users",
-        )
-        mock_get_waterfall.return_value = EAPTrace(
-            trace_id="abc123",
-            trace=[
-                {
-                    "event_type": "span",
-                    "id": "span1",
-                    "op": "http.server",
-                    "description": "GET /api/users",
-                }
-            ],
-        )
+        trace_id = uuid.uuid4().hex
+        transaction_name = "GET /api/users"
+        self._create_trace_with_spans(trace_id, transaction_name)
 
         # Mock Seer client to return instrumentation issues
         mock_client_instance = mock.MagicMock()
@@ -803,8 +787,7 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase):
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert self.project.slug in prompt
         assert "DETECTION CRITERIA" in prompt
-        assert "span1" in prompt
-        assert "http.server" in prompt
+        assert transaction_name in prompt
 
         # Verify issues were created
         assert mock_create_issue.call_count == 2
@@ -824,24 +807,13 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase):
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    @mock.patch("sentry.autopilot.tasks.get_trace_waterfall")
-    @mock.patch("sentry.autopilot.tasks.sample_trace_for_instrumentation_analysis")
     def test_handles_seer_explorer_error_gracefully(
         self,
-        mock_sample_trace: mock.MagicMock,
-        mock_get_waterfall: mock.MagicMock,
         mock_seer_client: mock.MagicMock,
     ) -> None:
-        from sentry.seer.sentry_data_models import EAPTrace, TraceMetadata
-
-        mock_sample_trace.return_value = TraceMetadata(
-            trace_id="abc123",
-            transaction_name="GET /api/users",
-        )
-        mock_get_waterfall.return_value = EAPTrace(
-            trace_id="abc123",
-            trace=[{"event_type": "span", "id": "span1"}],
-        )
+        trace_id = uuid.uuid4().hex
+        transaction_name = "GET /api/users"
+        self._create_trace_with_spans(trace_id, transaction_name)
 
         # Mock client to raise error on start_run
         mock_client_instance = mock.MagicMock()
