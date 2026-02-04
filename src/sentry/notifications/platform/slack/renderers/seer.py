@@ -234,19 +234,24 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.seer.autofix.issue_summary import is_group_triggering_automation
         from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 
-        if not is_group_triggering_automation(group):
-            return cls._render_autofix_button(
-                data=SeerAutofixTrigger(
-                    group_id=group.id,
-                    project_id=group.project_id,
-                    organization_id=group.project.organization_id,
-                    stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
-                )
+        try:
+            is_triggering = is_group_triggering_automation(group)
+        except Exception:
+            is_triggering = False
+
+        if is_triggering:
+            return cls._render_link_button(
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+                group_link=SlackEntrypoint.get_group_link(group),
+                text="Watch Seer Work :sparkles:",
             )
 
-        return cls._render_link_button(
-            organization_id=group.project.organization_id,
-            project_id=group.project_id,
-            group_link=SlackEntrypoint.get_group_link(group),
-            text="Watch Seer Work :sparkles:",
+        return cls._render_autofix_button(
+            data=SeerAutofixTrigger(
+                group_id=group.id,
+                project_id=group.project_id,
+                organization_id=group.project.organization_id,
+                stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+            )
         )
