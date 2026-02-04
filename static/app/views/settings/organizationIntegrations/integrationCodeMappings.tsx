@@ -24,6 +24,7 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
   useApiQuery,
@@ -74,7 +75,12 @@ function makePathConfigQueryKey({
   orgSlug: string;
   cursor?: string | string[] | null;
 }): ApiQueryKey {
-  return [`/organizations/${orgSlug}/code-mappings/`, {query: {integrationId, cursor}}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query: {integrationId, cursor}},
+  ];
 }
 
 function useDeletePathConfig() {
@@ -162,7 +168,12 @@ export default function IntegrationCodeMappings({
     isPending: isPendingRepos,
     isError: isErrorRepos,
   } = useApiQuery<Repository[]>(
-    [`/organizations/${organization.slug}/repos/`, {query: {status: 'active'}}],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {status: 'active'}},
+    ],
     {staleTime: 10_000}
   );
 

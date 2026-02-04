@@ -89,43 +89,45 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       }
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
-      <Side>
-        <FirstLastSeenSection group={group} />
-        <StyledBreak />
-        {showSeerSection && (
-          <ErrorBoundary mini>
-            <SeerSection group={group} project={project} event={event} />
-          </ErrorBoundary>
-        )}
-        {event && (
-          <ErrorBoundary mini>
-            <ExternalIssueSidebarList group={group} event={event} project={project} />
-          </ErrorBoundary>
-        )}
-        <StreamlinedActivitySection group={group} />
-        {showPeopleSection && (
-          <PeopleSection
-            userParticipants={userParticipants}
-            teamParticipants={teamParticipants}
-            viewers={viewers}
-          />
-        )}
-        {issueTypeConfig.similarIssues.enabled && (
-          <Fragment>
-            <SimilarIssuesSidebarSection />
-            <StyledBreak />
-          </Fragment>
-        )}
-        {issueTypeConfig.mergedIssues.enabled && (
-          <Fragment>
-            <MergedIssuesSidebarSection />
-            <StyledBreak />
-          </Fragment>
-        )}
-        {issueTypeConfig.detector.enabled && (
-          <DetectorSection group={group} project={project} />
-        )}
-      </Side>
+      {tourProps => (
+        <Side {...tourProps}>
+          <FirstLastSeenSection group={group} />
+          <StyledBreak />
+          {showSeerSection && (
+            <ErrorBoundary mini>
+              <SeerSection group={group} project={project} event={event} />
+            </ErrorBoundary>
+          )}
+          {event && (
+            <ErrorBoundary mini>
+              <ExternalIssueSidebarList group={group} event={event} project={project} />
+            </ErrorBoundary>
+          )}
+          <StreamlinedActivitySection group={group} />
+          {showPeopleSection && (
+            <PeopleSection
+              userParticipants={userParticipants}
+              teamParticipants={teamParticipants}
+              viewers={viewers}
+            />
+          )}
+          {issueTypeConfig.similarIssues.enabled && (
+            <Fragment>
+              <SimilarIssuesSidebarSection />
+              <StyledBreak />
+            </Fragment>
+          )}
+          {issueTypeConfig.mergedIssues.enabled && (
+            <Fragment>
+              <MergedIssuesSidebarSection />
+              <StyledBreak />
+            </Fragment>
+          )}
+          {issueTypeConfig.detector.enabled && (
+            <DetectorSection group={group} project={project} />
+          )}
+        </Side>
+      )}
     </SharedTourElement>
   );
 }

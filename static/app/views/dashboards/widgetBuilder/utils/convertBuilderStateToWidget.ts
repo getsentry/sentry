@@ -7,7 +7,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   serializeSorts,
   type WidgetBuilderState,
@@ -29,7 +29,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (
     state.dataset === WidgetType.TRACEMETRICS &&
     (state.displayType === DisplayType.BIG_NUMBER ||
-      isChartDisplayType(state.displayType))
+      usesTimeSeriesData(state.displayType))
   ) {
     // HACK: Inject the trace metric name and type into the aggregate function
     // prior to making the request because the current types for y-axes do not support

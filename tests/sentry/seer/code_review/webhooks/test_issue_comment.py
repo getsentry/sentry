@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -69,6 +70,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             "comment": {
                 "body": comment_body,
                 "id": comment_id,
+                "created_at": "2024-01-15T10:30:00Z",
             },
             "issue": {
                 "number": 42,
@@ -119,7 +121,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
 
     @patch(
-        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_eyes_reaction"
+        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_reaction"
     )
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
@@ -164,3 +166,9 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "test-user"
             assert payload["data"]["config"]["trigger_comment_id"] == 123456789
             assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
+            # After Pydantic validation, trigger_at is a datetime object
+            assert payload["data"]["config"]["trigger_at"] == datetime(
+                2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc
+            )
+            # sentry_received_trigger_at is set to current time when transform happens
+            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
