@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import Any, ClassVar, TypedDict
+from typing import ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
