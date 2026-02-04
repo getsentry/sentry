@@ -33,18 +33,40 @@ const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function renderTextMessages(content: any) {
-  if (!Array.isArray(content)) {
-    return content;
+function normalizeContent(content: any): any {
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      // Check for content parts format: non-empty array where elements have a `type` property
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type) {
+        return parsed;
+      }
+    } catch {
+      // Not valid JSON, return as-is
+    }
   }
-  return content
+  return content;
+}
+
+function extractTextFromContentParts(parts: any[]): string {
+  return parts
     .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) =>
-      FILE_CONTENT_PARTS.includes(part.type)
-        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
-        : part.text.trim()
-    )
+    .map((part: any) => {
+      if (FILE_CONTENT_PARTS.includes(part.type)) {
+        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
+      }
+      // Handle both part.text and part.content (some SDKs use content instead of text)
+      const text = part.text ?? part.content;
+      return typeof text === 'string' ? text.trim() : text;
+    })
     .join('\n');
+}
+
+function renderTextMessages(content: any): any {
+  if (Array.isArray(content)) {
+    return extractTextFromContentParts(content);
+  }
+  return content;
 }
 
 function renderToolMessage(content: any) {
@@ -95,12 +117,13 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
+        const normalizedContent = normalizeContent(message.content);
         return {
           role: message.role,
           content:
             message.role === 'tool'
-              ? renderToolMessage(message.content)
-              : renderTextMessages(message.content),
+              ? renderToolMessage(normalizedContent)
+              : renderTextMessages(normalizedContent),
         };
       })
       .filter(
