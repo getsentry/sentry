@@ -1,15 +1,16 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
+import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
+import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import type {
+  CategoricalSeries,
   TabularColumn,
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -18,14 +19,11 @@ import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/use
 
 import type {AttributeDistribution} from './attributeDistributionContent';
 import {
-  CHART_AXIS_LABEL_FONT_SIZE,
   CHART_BASELINE_SERIES_NAME,
-  CHART_MAX_BAR_WIDTH,
   CHART_SELECTED_SERIES_NAME,
   COHORT_2_COLOR,
   MODAL_CHART_HEIGHT,
 } from './constants';
-import {useFormatComparisonModeTooltip, useFormatSingleModeTooltip} from './tooltips';
 import {
   calculateAttributePopulationPercentage,
   cohortsToSeriesData,
@@ -59,18 +57,15 @@ type Props = ModalRenderProps & AttributeBreakdownViewerModalOptions;
 // Data computation types
 type SingleModeData = {
   attributeName: string;
-  maxSeriesValue: number;
   mode: 'single';
   populationPercentages: {primary: number};
   seriesData: {single: Array<{label: string; value: number}>};
   tableColumns: TabularColumn[];
   tableData: TabularData;
-  xAxisData: string[];
 };
 
 type ComparisonModeData = {
   attributeName: string;
-  maxSeriesValue: number;
   mode: 'comparison';
   populationPercentages: {primary: number; secondary: number};
   seriesData: {
@@ -79,7 +74,6 @@ type ComparisonModeData = {
   };
   tableColumns: TabularColumn[];
   tableData: TabularData;
-  xAxisData: string[];
 };
 
 function distributionToTableData(
@@ -169,9 +163,6 @@ function computeSingleModeData(
     cohortCount
   );
 
-  const singleMaxValue =
-    singleSeriesData.length > 0 ? Math.max(...singleSeriesData.map(v => v.value)) : 0;
-
   const singlePopulation = calculateAttributePopulationPercentage(
     attributeDistribution.values,
     cohortCount
@@ -190,12 +181,10 @@ function computeSingleModeData(
   return {
     mode: 'single',
     attributeName: attributeDistribution.attributeName,
-    maxSeriesValue: singleMaxValue,
     populationPercentages: {primary: singlePopulation},
     seriesData: {single: singleSeriesData},
     tableColumns: singleTableColumns,
     tableData: singleTableData,
-    xAxisData: singleSeriesData.map(v => v.label),
   };
 }
 
@@ -214,12 +203,6 @@ function computeComparisonModeData(
     attribute.cohort2,
     seriesTotals
   );
-  const selectedSeries = comparisonSeriesData[CHART_SELECTED_SERIES_NAME];
-  const baselineSeries = comparisonSeriesData[CHART_BASELINE_SERIES_NAME];
-  const comparisonMaxValue =
-    selectedSeries.length > 0 && baselineSeries.length > 0
-      ? Math.max(...selectedSeries.map(c => c.value), ...baselineSeries.map(c => c.value))
-      : 0;
   const comparisonPopulation = {
     primary: calculateAttributePopulationPercentage(attribute.cohort1, cohort1Total),
     secondary: calculateAttributePopulationPercentage(attribute.cohort2, cohort2Total),
@@ -241,57 +224,11 @@ function computeComparisonModeData(
   return {
     mode: 'comparison',
     attributeName: attribute.attributeName,
-    maxSeriesValue: comparisonMaxValue,
     populationPercentages: comparisonPopulation,
     seriesData: comparisonSeriesData,
     tableColumns: comparisonTableColumns,
     tableData: comparisonTableData,
-    xAxisData: selectedSeries.map(c => c.label),
   };
-}
-
-// Extract chart series creation
-function createSingleModeChartSeries(
-  seriesData: {single: Array<{label: string; value: number}>},
-  primaryColor: string
-) {
-  return [
-    {
-      type: 'bar' as const,
-      data: seriesData.single.map(v => v.value),
-      itemStyle: {color: primaryColor},
-      barMaxWidth: CHART_MAX_BAR_WIDTH,
-      animation: false,
-    },
-  ];
-}
-
-function createComparisonModeChartSeries(
-  seriesData: {
-    [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-    [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-  },
-  primaryColor: string,
-  secondaryColor: string
-) {
-  return [
-    {
-      type: 'bar' as const,
-      data: seriesData[CHART_SELECTED_SERIES_NAME].map(c => c.value),
-      name: CHART_SELECTED_SERIES_NAME,
-      itemStyle: {color: primaryColor},
-      barMaxWidth: CHART_MAX_BAR_WIDTH,
-      animation: false,
-    },
-    {
-      type: 'bar' as const,
-      data: seriesData[CHART_BASELINE_SERIES_NAME].map(c => c.value),
-      name: CHART_BASELINE_SERIES_NAME,
-      itemStyle: {color: secondaryColor},
-      barMaxWidth: CHART_MAX_BAR_WIDTH,
-      animation: false,
-    },
-  ];
 }
 
 // Extract population indicator component
@@ -315,10 +252,21 @@ function PopulationIndicatorComponent({
   );
 }
 
+function toCategoricalSeries(
+  data: Array<{label: string; value: number}>,
+  alias?: string
+): CategoricalSeries {
+  return {
+    valueAxis: alias ?? 'percentage',
+    meta: {valueType: 'percentage', valueUnit: null},
+    // Data comes in as 0-100 range, but percentage valueType expects 0-1 range
+    values: data.map(d => ({category: d.label, value: d.value / 100})),
+  };
+}
+
 export default function AttributeBreakdownViewerModal(props: Props) {
   const {Header, Body, mode} = props;
   const theme = useTheme();
-  const formatSingleModeTooltip = useFormatSingleModeTooltip();
 
   const primaryColor = theme.chart.getColorPalette(0)?.[0];
   const secondaryColor = COHORT_2_COLOR;
@@ -335,49 +283,6 @@ export default function AttributeBreakdownViewerModal(props: Props) {
 
     return computeSingleModeData(props.attributeDistribution, props.cohortCount);
   }, [mode, props]);
-
-  const formatComparisonModeTooltip = useFormatComparisonModeTooltip(
-    primaryColor,
-    secondaryColor
-  );
-
-  const tooltipFormatter = useCallback(
-    (p: TooltipComponentFormatterCallbackParams) => {
-      if (mode === 'comparison') {
-        return formatComparisonModeTooltip(p);
-      }
-      return formatSingleModeTooltip(p);
-    },
-    [mode, formatComparisonModeTooltip, formatSingleModeTooltip]
-  );
-
-  const tooltipConfig: TooltipOption = useMemo(
-    () => ({
-      trigger: 'axis',
-      appendToBody: true,
-      renderMode: 'html',
-      formatter: tooltipFormatter,
-    }),
-    [tooltipFormatter]
-  );
-
-  const chartSeries = useMemo(() => {
-    if (computedData.mode === 'comparison') {
-      return createComparisonModeChartSeries(
-        computedData.seriesData as {
-          [CHART_BASELINE_SERIES_NAME]: Array<{label: string; value: number}>;
-          [CHART_SELECTED_SERIES_NAME]: Array<{label: string; value: number}>;
-        },
-        primaryColor,
-        secondaryColor
-      );
-    }
-
-    return createSingleModeChartSeries(
-      computedData.seriesData as {single: Array<{label: string; value: number}>},
-      primaryColor
-    );
-  }, [computedData.mode, computedData.seriesData, primaryColor, secondaryColor]);
 
   return (
     <Fragment>
@@ -418,45 +323,42 @@ export default function AttributeBreakdownViewerModal(props: Props) {
       <Body>
         <Flex direction="column" gap="2xl" height="600px">
           <Container height={`${MODAL_CHART_HEIGHT}px`}>
-            <BaseChart
-              height={MODAL_CHART_HEIGHT}
-              isGroupedByDate={false}
-              tooltip={tooltipConfig}
-              grid={{
-                left: 40,
-                right: 20,
-                bottom: 60,
-                top: 20,
-                containLabel: false,
-              }}
-              xAxis={{
-                show: true,
-                type: 'category',
-                data: computedData.xAxisData,
-                truncate: 14,
-                axisLabel: {
-                  hideOverlap: true,
-                  showMaxLabel: true,
-                  showMinLabel: true,
-                  color: theme.tokens.content.secondary,
-                  interval: 0,
-                  fontSize: CHART_AXIS_LABEL_FONT_SIZE,
-                  rotate: computedData.xAxisData.length > 15 ? 45 : 0,
-                },
-              }}
-              yAxis={{
-                type: 'value',
-                interval: computedData.maxSeriesValue < 1 ? 1 : undefined,
-                axisLabel: {
-                  fontSize: 12,
-                  formatter: (value: number) => {
-                    return percentageFormatter(value);
-                  },
-                },
-              }}
-              series={chartSeries}
-            />
+            <Container height={`${MODAL_CHART_HEIGHT}px`} position="relative">
+              {computedData.mode === 'single' &&
+              computedData.seriesData.single.length > 0 ? (
+                <CategoricalSeriesWidgetVisualization
+                  plottables={[
+                    new Bars(toCategoricalSeries(computedData.seriesData.single), {
+                      color: primaryColor,
+                    }),
+                  ]}
+                  showLegend="never"
+                />
+              ) : computedData.mode === 'comparison' &&
+                computedData.seriesData[CHART_SELECTED_SERIES_NAME].length > 0 ? (
+                <CategoricalSeriesWidgetVisualization
+                  plottables={[
+                    new Bars(
+                      toCategoricalSeries(
+                        computedData.seriesData[CHART_SELECTED_SERIES_NAME],
+                        CHART_SELECTED_SERIES_NAME
+                      ),
+                      {color: primaryColor, alias: 'selected'}
+                    ),
+                    new Bars(
+                      toCategoricalSeries(
+                        computedData.seriesData[CHART_BASELINE_SERIES_NAME],
+                        CHART_BASELINE_SERIES_NAME
+                      ),
+                      {color: secondaryColor, alias: 'baseline'}
+                    ),
+                  ]}
+                  showLegend="always"
+                />
+              ) : null}
+            </Container>
           </Container>
+
           <TableWidgetVisualization
             scrollable
             tableData={computedData.tableData}
