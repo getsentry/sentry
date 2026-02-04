@@ -947,9 +947,12 @@ def _is_anr_event(event: Event) -> bool:
         return False
 
     for exception in exceptions:
+        if not isinstance(exception, dict):
+            continue
+
         # Check mechanism type
         mechanism = exception.get("mechanism")
-        if mechanism and mechanism.get("type") == "ANR":
+        if isinstance(mechanism, dict) and mechanism.get("type") == "ANR":
             return True
 
         # Check exception type
