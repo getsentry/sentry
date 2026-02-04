@@ -124,7 +124,7 @@ class AuthIdentityHandler:
     class _NotCompletedSecurityChecks(Exception):
         pass
 
-    def _login(self, user: Any) -> None:
+    def _login(self, user: Any, state: AuthHelperSessionStore | None = None) -> None:
         metrics.incr(
             "sso.login_attempt",
             tags={
@@ -142,11 +142,17 @@ class AuthIdentityHandler:
         ):
             after_2fa_url = self.request.build_absolute_uri()
 
+        # Extract session expiry from SAML response if available
+        session_not_on_or_after: int | None = None
+        if state and state.data:
+            session_not_on_or_after = state.data.get("saml_session_not_on_or_after")
+
         user_was_logged_in = auth.login(
             self.request,
             user,
             after_2fa=after_2fa_url,
             organization_id=self.organization.id,
+            session_not_on_or_after=session_not_on_or_after,
         )
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
@@ -204,7 +210,7 @@ class AuthIdentityHandler:
             subdomain = self.organization.slug
 
         try:
-            self._login(user)
+            self._login(user, state)
         except self._NotCompletedSecurityChecks:
             return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
@@ -551,7 +557,7 @@ class AuthIdentityHandler:
             )
             if membership is not None:
                 try:
-                    self._login(self.user)
+                    self._login(self.user, state)
                 except self._NotCompletedSecurityChecks:
                     # adding is_account_verified to the check below in order to redirect
                     # to 2fa when the user migrates their idp but has 2fa enabled,
@@ -587,7 +593,7 @@ class AuthIdentityHandler:
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
                 try:
-                    self._login(self._login_form.get_user())
+                    self._login(self._login_form.get_user(), state)
                 except self._NotCompletedSecurityChecks:
                     return self._post_login_redirect()
             else:
@@ -601,7 +607,7 @@ class AuthIdentityHandler:
 
         # XXX(dcramer): this is repeated from above
         try:
-            self._login(user)
+            self._login(user, state)
         except self._NotCompletedSecurityChecks:
             return self._post_login_redirect()
 
@@ -966,7 +972,12 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
 
         self.auth_handler(identity).handle_attach_identity(om)
 
-        auth.mark_sso_complete(request, self.organization.id)
+        # Extract session expiry from SAML response if available
+        session_not_on_or_after: int | None = None
+        if data:
+            session_not_on_or_after = data.get("saml_session_not_on_or_after")
+
+        auth.mark_sso_complete(request, self.organization.id, session_not_on_or_after)
 
         organization_service.schedule_signal(
             sso_enabled,

@@ -23,6 +23,7 @@ from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils.auth import SsoSession
 
 dummy_provider_config = {
     "idp": {
@@ -331,3 +332,55 @@ class AuthSAML2Test(AuthProviderTestCase):
         # Should continue to identity confirmation
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
+
+    def test_session_not_on_or_after_stored_in_session(self) -> None:
+        """Test that SAML SessionNotOnOrAfter from the AuthnStatement flows through to session storage."""
+        # The fixture saml2_auth_response.xml contains SessionNotOnOrAfter="2099-01-01T00:00:00Z"
+        # which is 4070908800 as a Unix timestamp
+
+        # Setup an existing identity so we can complete login
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
+        )
+        self.client.post(self.login_path, {"init": True})
+
+        # Mock get_session_expiration to return a known value
+        expected_expiry = 4070908800  # 2099-01-01T00:00:00Z
+        with mock.patch(
+            "onelogin.saml2.auth.OneLogin_Saml2_Auth.get_session_expiration",
+            return_value=expected_expiry,
+        ):
+            resp = self.accept_auth(follow=True)
+
+        assert resp.status_code == 200
+
+        # Check that the session contains the SessionNotOnOrAfter value
+        session_key = SsoSession.django_session_key(self.organization.id)
+        assert session_key in self.client.session
+        session_data = self.client.session[session_key]
+        assert SsoSession.SSO_SESSION_NOT_ON_OR_AFTER in session_data
+        assert session_data[SsoSession.SSO_SESSION_NOT_ON_OR_AFTER] == expected_expiry
+
+    def test_session_without_session_not_on_or_after(self) -> None:
+        """Test that sessions work correctly when SessionNotOnOrAfter is not present."""
+        # Setup an existing identity so we can complete login
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
+        )
+        self.client.post(self.login_path, {"init": True})
+
+        # Mock get_session_expiration to return None (no SessionNotOnOrAfter in response)
+        with mock.patch(
+            "onelogin.saml2.auth.OneLogin_Saml2_Auth.get_session_expiration",
+            return_value=None,
+        ):
+            resp = self.accept_auth(follow=True)
+
+        assert resp.status_code == 200
+
+        # Check that the session was created but without SessionNotOnOrAfter
+        session_key = SsoSession.django_session_key(self.organization.id)
+        assert session_key in self.client.session
+        session_data = self.client.session[session_key]
+        assert SsoSession.SSO_LOGIN_TIMESTAMP in session_data
+        assert SsoSession.SSO_SESSION_NOT_ON_OR_AFTER not in session_data
