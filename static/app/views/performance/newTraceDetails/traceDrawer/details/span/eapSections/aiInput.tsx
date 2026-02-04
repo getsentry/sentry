@@ -51,6 +51,17 @@ function renderToolMessage(content: any) {
   return content;
 }
 
+/**
+ * Extracts the messages array from potentially nested structures.
+ *
+ * This is a temporary solution. OpenRouter should send the data in the correct
+ * format (direct array). We plan to contact them or contribute a fix upstream.
+ *
+ * Currently handles formats like:
+ * - Direct array: [{role, content}, ...]
+ * - Wrapped object: {messages: [{role, content}, ...]}
+ * - Stringified wrapper: {messages: "[{role, content}, ...]"}
+ */
 function extractMessagesArray(value: any): any[] | null {
   if (Array.isArray(value)) {
     return value;
