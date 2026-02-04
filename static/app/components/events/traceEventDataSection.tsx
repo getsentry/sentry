@@ -8,10 +8,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyAsButton} from 'sentry/components/copyAs';
+import {CopyAsDropdown} from 'sentry/components/copyAs';
 import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconCopy, IconEllipsis, IconSort} from 'sentry/icons';
+import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -521,12 +521,13 @@ export function TraceEventDataSection({
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: optionsToShow}]}
             />
-            <CopyAsButton
+            <CopyAsDropdown
               size="xs"
-              icon={<IconCopy />}
-              aria-label={t('Copy Raw Stacktrace')}
-              title={t('Copy raw stacktrace to clipboard')}
-              text={() => handleCopyRawStacktrace()}
+              items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                text: handleCopyRawStacktrace,
+                json: undefined,
+                markdown: undefined,
+              })}
             />
           </ButtonBar>
         )

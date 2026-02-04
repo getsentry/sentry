@@ -1,89 +1,84 @@
-import {useCallback} from 'react';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button, ButtonBar, type ButtonProps} from '@sentry/scraps/button';
-
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface CopyAsButtonProps extends Omit<ButtonProps, 'children' | 'onCopy' | 'onClick'> {
-  items: DropdownMenuProps['items'];
-  json?: () => string;
-  markdown?: () => string;
-  text?: () => string;
-}
+interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {}
 
-export function CopyAsButton({items, ...props}: CopyAsButtonProps) {
-  const [preference, setPreference] = useLocalStorageState<'markdown' | 'text' | 'json'>(
-    'copy-as-preference',
-    'markdown'
-  );
-
-  const {markdown, text, json} = props;
-  const handleCopy = useCallback(
-    (format: 'markdown' | 'text' | 'json') => {
-      setPreference(format);
-
-      if (format === 'markdown') {
-        markdown?.();
-        addSuccessMessage(t('Copied to clipboard as Markdown'));
-      } else if (format === 'text') {
-        text?.();
-        addSuccessMessage(t('Copied to clipboard as Text'));
-      } else if (format === 'json') {
-        json?.();
-        addSuccessMessage(t('Copied to clipboard as JSON'));
-      }
-    },
-    [markdown, text, json, setPreference]
-  );
-
+export function CopyAsDropdown(props: CopyAsDropdownProps) {
   return (
-    <ButtonBar merged gap="0">
-      <Button {...props} onClick={() => handleCopy(preference)} icon={<IconCopy />}>
-        {t('Copy as') +
-          (preference === 'markdown'
-            ? ' ' + t('Markdown')
-            : preference === 'text'
-              ? ' ' + t('Text')
-              : '')}
-      </Button>
-      <DropdownMenu
-        size={props.size === 'zero' ? 'xs' : props.size}
-        trigger={(triggerProps, isOpen) => (
-          <Button
-            {...triggerProps}
-            aria-label={t('Copy as options')}
-            icon={
-              <IconChevron variant="muted" direction={isOpen ? 'up' : 'down'} size="xs" />
-            }
-            {...props}
-          />
-        )}
-        items={[
-          {
-            key: 'markdown',
-            label: t('Markdown'),
-            onAction: () => handleCopy('markdown'),
-            disabled: !props.markdown,
-          },
-          {
-            key: 'text',
-            label: t('Text'),
-            onAction: () => handleCopy('text'),
-            disabled: !props.text,
-          },
-          {
-            key: 'json',
-            label: t('JSON'),
-            onAction: () => handleCopy('json'),
-            disabled: !props.json,
-          },
-        ]}
-        isDisabled={props.disabled}
-      />
-    </ButtonBar>
+    <DropdownMenu
+      size={props.size}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} icon={<IconCopy />} size="xs">
+          {t('Copy as')}
+        </OverlayTrigger.Button>
+      )}
+      {...props}
+      items={props.items?.sort((a, b) => Number(a.disabled) - Number(b.disabled)) ?? []}
+    />
   );
 }
+
+CopyAsDropdown.makeDefaultCopyAsOptions = (props: {
+  json: (() => string) | undefined;
+  markdown: (() => string) | undefined;
+  text: (() => string) | undefined;
+}): DropdownMenuProps['items'] => {
+  return [
+    {
+      key: 'markdown',
+      label: t('Markdown'),
+      disabled: !props.markdown,
+      onAction: () => {
+        if (!props.markdown) {
+          return;
+        }
+        copyToClipboard(props.markdown())
+          .then(() => {
+            addSuccessMessage(t('Copied to clipboard'));
+          })
+          .catch(() => {
+            addErrorMessage(t('Failed to clipboard'));
+          });
+      },
+    },
+    {
+      key: 'text',
+      label: t('Text'),
+      disabled: !props.text,
+      onAction: () => {
+        if (!props.text) {
+          return;
+        }
+        copyToClipboard(props.text())
+          .then(() => {
+            addSuccessMessage(t('Copied to clipboard'));
+          })
+          .catch(() => {
+            addErrorMessage(t('Failed to copy to clipboard'));
+          });
+      },
+    },
+    {
+      key: 'json',
+      label: t('JSON'),
+      disabled: !props.json,
+      onAction: () => {
+        if (!props.json) {
+          return;
+        }
+        copyToClipboard(props.json?.())
+          .then(() => {
+            addSuccessMessage(t('Copied to clipboard'));
+          })
+          .catch(() => {
+            addErrorMessage(t('Failed to copy to clipboard'));
+          });
+      },
+    },
+  ];
+};
