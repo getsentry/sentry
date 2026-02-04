@@ -13,6 +13,7 @@ from urllib3.exceptions import HTTPError
 
 from sentry import features
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -242,7 +243,10 @@ def _common_codegen_request_payload(
             "organization_id": organization.id,
             "organization_slug": organization.slug,
         },
-        "config": {"features": {"bug_prediction": True}},
+        "config": {
+            "features": {"bug_prediction": True},
+            "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization),
+        },
     }
 
     # Add experiment_enabled flag ONLY for pr-review requests
