@@ -226,3 +226,5 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         if not isinstance(self.config, dict):
             raise ValidationError("Detector config must be a dictionary")
+
+        self.validate_config(group_type.detector_settings.config_schema)
