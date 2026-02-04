@@ -9,6 +9,8 @@ import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {}
 
 export function CopyAsDropdown(props: CopyAsDropdownProps) {
+  const enabledItems = props.items.filter(item => !item.disabled);
+
   return (
     <DropdownMenu
       size={props.size}
@@ -18,7 +20,7 @@ export function CopyAsDropdown(props: CopyAsDropdownProps) {
         </OverlayTrigger.Button>
       )}
       {...props}
-      items={props.items?.sort((a, b) => Number(a.disabled) - Number(b.disabled)) ?? []}
+      items={enabledItems}
     />
   );
 }
@@ -32,52 +34,40 @@ CopyAsDropdown.makeDefaultCopyAsOptions = (props: {
     {
       key: 'markdown',
       label: t('Markdown'),
-      disabled: !props.markdown,
+      disabled: props.markdown === undefined,
       onAction: () => {
         if (!props.markdown) {
           return;
         }
         copyToClipboard(props.markdown())
-          .then(() => {
-            addSuccessMessage(t('Copied to clipboard'));
-          })
-          .catch(() => {
-            addErrorMessage(t('Failed to clipboard'));
-          });
+          .then(() => addSuccessMessage(t('Copied to clipboard')))
+          .catch(() => addErrorMessage(t('Failed to clipboard')));
       },
     },
     {
       key: 'text',
       label: t('Text'),
-      disabled: !props.text,
+      disabled: props.text === undefined,
       onAction: () => {
         if (!props.text) {
           return;
         }
         copyToClipboard(props.text())
-          .then(() => {
-            addSuccessMessage(t('Copied to clipboard'));
-          })
-          .catch(() => {
-            addErrorMessage(t('Failed to copy to clipboard'));
-          });
+          .then(() => addSuccessMessage(t('Copied to clipboard')))
+          .catch(() => addErrorMessage(t('Failed to clipboard')));
       },
     },
     {
       key: 'json',
       label: t('JSON'),
-      disabled: !props.json,
+      disabled: props.json === undefined,
       onAction: () => {
         if (!props.json) {
           return;
         }
         copyToClipboard(props.json?.())
-          .then(() => {
-            addSuccessMessage(t('Copied to clipboard'));
-          })
-          .catch(() => {
-            addErrorMessage(t('Failed to copy to clipboard'));
-          });
+          .then(() => addSuccessMessage(t('Copied to clipboard')))
+          .catch(() => addErrorMessage(t('Failed to clipboard')));
       },
     },
   ];
