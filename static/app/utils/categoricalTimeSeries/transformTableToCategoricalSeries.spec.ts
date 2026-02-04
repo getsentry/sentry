@@ -1,45 +1,39 @@
-import {WidgetFixture} from 'sentry-fixture/widget';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DurationUnit} from 'sentry/utils/discover/fields';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
 import {transformTableToCategoricalSeries} from './transformTableToCategoricalSeries';
 
 describe('transformTableToCategoricalSeries', () => {
   it('transforms table data to categorical series format', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      widgetType: WidgetType.SPANS,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['browser', 'count()'],
-          columns: ['browser'],
-          aggregates: ['count()'],
-          orderby: '-count()',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['browser', 'count()'],
+      columns: ['browser'],
+      aggregates: ['count()'],
+      orderby: '-count()',
     });
 
-    const tableData: TableDataWithTitle = {
-      title: 'Test Query',
+    const tableData: TabularData = {
       data: [
-        {id: '1', browser: 'Chrome', 'count()': 1250},
-        {id: '2', browser: 'Firefox', 'count()': 890},
-        {id: '3', browser: 'Safari', 'count()': 650},
+        {browser: 'Chrome', 'count()': 1250},
+        {browser: 'Firefox', 'count()': 890},
+        {browser: 'Safari', 'count()': 650},
       ],
       meta: {
         fields: {
           browser: 'string',
           'count()': 'integer',
         },
-        units: {},
+        units: {
+          browser: null,
+          'count()': null,
+        },
       },
     };
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 
@@ -59,26 +53,17 @@ describe('transformTableToCategoricalSeries', () => {
   });
 
   it('handles multiple aggregates (creates multiple series)', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      widgetType: WidgetType.SPANS,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['browser', 'count()', 'avg(span.duration)'],
-          columns: ['browser'],
-          aggregates: ['count()', 'avg(span.duration)'],
-          orderby: '-count()',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['browser', 'count()', 'avg(span.duration)'],
+      columns: ['browser'],
+      aggregates: ['count()', 'avg(span.duration)'],
+      orderby: '-count()',
     });
 
-    const tableData: TableDataWithTitle = {
-      title: 'Test Query',
+    const tableData: TabularData = {
       data: [
-        {id: '1', browser: 'Chrome', 'count()': 1250, 'avg(span.duration)': 150.5},
-        {id: '2', browser: 'Firefox', 'count()': 890, 'avg(span.duration)': 200.3},
+        {browser: 'Chrome', 'count()': 1250, 'avg(span.duration)': 150.5},
+        {browser: 'Firefox', 'count()': 890, 'avg(span.duration)': 200.3},
       ],
       meta: {
         fields: {
@@ -87,13 +72,15 @@ describe('transformTableToCategoricalSeries', () => {
           'avg(span.duration)': 'duration',
         },
         units: {
-          'avg(span.duration)': 'millisecond',
+          browser: null,
+          'count()': null,
+          'avg(span.duration)': DurationUnit.MILLISECOND,
         },
       },
     };
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 
@@ -113,7 +100,7 @@ describe('transformTableToCategoricalSeries', () => {
       valueAxis: 'avg(span.duration)',
       meta: {
         valueType: 'duration',
-        valueUnit: 'millisecond',
+        valueUnit: DurationUnit.MILLISECOND,
       },
       values: [
         {category: 'Chrome', value: 150.5},
@@ -123,40 +110,33 @@ describe('transformTableToCategoricalSeries', () => {
   });
 
   it('handles null and non-numeric values', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      widgetType: WidgetType.SPANS,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['browser', 'count()'],
-          columns: ['browser'],
-          aggregates: ['count()'],
-          orderby: '-count()',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['browser', 'count()'],
+      columns: ['browser'],
+      aggregates: ['count()'],
+      orderby: '-count()',
     });
 
-    // Cast to any to test edge cases - APIs can return null even though TS types don't allow it
-    const tableData = {
-      title: 'Test Query',
+    const tableData: TabularData = {
       data: [
-        {id: '1', browser: 'Chrome', 'count()': 100},
-        {id: '2', browser: null, 'count()': 50},
-        {id: '3', browser: 'Safari', 'count()': 'invalid'},
+        {browser: 'Chrome', 'count()': 100},
+        {browser: null, 'count()': 50},
+        {browser: 'Safari', 'count()': 'invalid'},
       ],
       meta: {
         fields: {
           browser: 'string',
           'count()': 'integer',
         },
-        units: {},
+        units: {
+          browser: null,
+          'count()': null,
+        },
       },
-    } as TableDataWithTitle;
+    };
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 
@@ -169,27 +149,22 @@ describe('transformTableToCategoricalSeries', () => {
   });
 
   it('returns empty array when no columns defined', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['count()'],
-          columns: [],
-          aggregates: ['count()'],
-          orderby: '',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['count()'],
+      columns: [],
+      aggregates: ['count()'],
     });
 
-    const tableData: TableDataWithTitle = {
-      title: 'Test',
-      data: [{id: '1', 'count()': 100}],
+    const tableData: TabularData = {
+      data: [{'count()': 100}],
+      meta: {
+        fields: {'count()': 'integer'},
+        units: {'count()': null},
+      },
     };
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 
@@ -197,27 +172,22 @@ describe('transformTableToCategoricalSeries', () => {
   });
 
   it('returns empty array when no aggregates defined', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['browser'],
-          columns: ['browser'],
-          aggregates: [],
-          orderby: '',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['browser'],
+      columns: ['browser'],
+      aggregates: [],
     });
 
-    const tableData: TableDataWithTitle = {
-      title: 'Test',
-      data: [{id: '1', browser: 'Chrome'}],
+    const tableData: TabularData = {
+      data: [{browser: 'Chrome'}],
+      meta: {
+        fields: {browser: 'string'},
+        units: {browser: null},
+      },
     };
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 
@@ -225,34 +195,29 @@ describe('transformTableToCategoricalSeries', () => {
   });
 
   it('defaults to "number" for unknown value types', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.CATEGORICAL_BAR,
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['browser', 'count()'],
-          columns: ['browser'],
-          aggregates: ['count()'],
-          orderby: '',
-        },
-      ],
+    const query = WidgetQueryFixture({
+      fields: ['browser', 'count()'],
+      columns: ['browser'],
+      aggregates: ['count()'],
     });
 
-    const tableData: TableDataWithTitle = {
-      title: 'Test',
-      data: [{id: '1', browser: 'Chrome', 'count()': 100}],
+    // Cast to test edge case - APIs can return unexpected types
+    const tableData = {
+      data: [{browser: 'Chrome', 'count()': 100}],
       meta: {
         fields: {
           browser: 'string',
-          'count()': 'unknown_type', // Unknown type
+          'count()': 'unknown_type',
         },
-        units: {},
+        units: {
+          browser: null,
+          'count()': null,
+        },
       },
-    };
+    } as unknown as TabularData;
 
     const result = transformTableToCategoricalSeries({
-      widget,
+      query,
       tableData,
     });
 

@@ -1,17 +1,16 @@
 import {t} from 'sentry/locale';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   CategoricalSeries,
   CategoricalValueType,
+  TabularData,
+  TabularValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
 
 interface TransformOptions {
-  tableData: TableDataWithTitle;
-  widget: Widget;
+  query: WidgetQuery;
+  tableData: TabularData;
 }
 
 /**
@@ -19,8 +18,8 @@ interface TransformOptions {
  * suitable for rendering in CategoricalSeriesWidgetVisualization.
  *
  * For categorical bar charts:
- * - widget.queries[0].columns[0] is the X-axis category field
- * - widget.queries[0].aggregates contains the Y-axis aggregate(s)
+ * - query.columns[0] is the X-axis category field
+ * - query.aggregates contains the Y-axis aggregate(s)
  *
  * Example transformation:
  * Input (from /events/):
@@ -33,14 +32,9 @@ interface TransformOptions {
  *   values: [{category: 'Chrome', value: 1250}, {category: 'Firefox', value: 890}]
  */
 export function transformTableToCategoricalSeries({
-  widget,
+  query,
   tableData,
 }: TransformOptions): CategoricalSeries[] {
-  const query = widget.queries[0];
-  if (!query) {
-    return [];
-  }
-
   // The X-axis field is the first column (non-aggregate field)
   const xAxisField = query.columns[0];
   if (!xAxisField) {
@@ -53,13 +47,12 @@ export function transformTableToCategoricalSeries({
     return [];
   }
 
-  const meta = tableData.meta as EventsMetaType | undefined;
-  const rows = tableData.data || [];
+  const {meta, data: rows} = tableData;
 
   return aggregates.map(aggregate => {
     // Get type and unit from metadata
-    const fieldType = meta?.fields?.[aggregate] as AggregationOutputType | undefined;
-    const fieldUnit = meta?.units?.[aggregate] as DataUnit | undefined;
+    const fieldType = meta.fields[aggregate];
+    const fieldUnit = meta.units[aggregate];
 
     // Transform rows to categorical items
     // Handle null/undefined/empty values distinctly from valid category values
@@ -89,10 +82,13 @@ export function transformTableToCategoricalSeries({
 }
 
 /**
- * Maps AggregationOutputType to CategoricalValueType.
+ * Maps TabularValueType to CategoricalValueType.
  * CategoricalValueType is a subset of the plottable value types.
+ * Accepts undefined to handle cases where the field isn't in the metadata.
  */
-function mapToCategoricalValueType(type: string | undefined): CategoricalValueType {
+function mapToCategoricalValueType(
+  type: TabularValueType | undefined
+): CategoricalValueType {
   if (!type) {
     return 'number';
   }

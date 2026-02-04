@@ -73,7 +73,10 @@ import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigN
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TabularColumn,
+  TabularData,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -728,9 +731,25 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   }
 
   // Transform table data to categorical series format
+  const query = widget.queries[0];
+  const tableData = tableResults[0];
+  if (!query || !tableData.meta) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
   const categoricalSeriesData = transformTableToCategoricalSeries({
-    widget,
-    tableData: tableResults[0],
+    query,
+    tableData: {
+      data: tableData.data,
+      meta: {
+        fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
+        units: (tableData.meta.units ?? {}) as TabularData['meta']['units'],
+      },
+    },
   });
 
   // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
