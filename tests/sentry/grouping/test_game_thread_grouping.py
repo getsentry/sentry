@@ -66,9 +66,7 @@ class GameThreadGroupingTest(TestCase):
         assert _is_anr_event(event)
 
         # Test ApplicationNotResponding exception type without mechanism
-        event_data = {
-            "exception": {"values": [{"type": "ApplicationNotResponding"}]}
-        }
+        event_data = {"exception": {"values": [{"type": "ApplicationNotResponding"}]}}
         event = Event(event_id="test", data=event_data)
         assert _is_anr_event(event)
 
@@ -96,9 +94,7 @@ class GameThreadGroupingTest(TestCase):
         from pathlib import Path
 
         # Load the test ANR event with game thread
-        test_file = (
-            Path(__file__).parent / "grouping_inputs" / "android-anr-game-thread.json"
-        )
+        test_file = Path(__file__).parent / "grouping_inputs" / "android-anr-game-thread.json"
         with open(test_file) as f:
             event_data = json.load(f)
 

@@ -21,10 +21,12 @@ The implementation adds server-side configuration to prioritize game threads ove
 #### 1. Thread Detection (`src/sentry/grouping/strategies/newstyle.py`)
 
 **`_is_anr_event(event)`** - Identifies ANR events by:
+
 - Checking if the exception mechanism type is "ANR"
 - Checking if the exception type is "ApplicationNotResponding"
 
 **`_is_game_thread(thread)`** - Identifies game threads by name patterns:
+
 - Unity: `UnityMain`, `Unity Main Thread`
 - Unreal Engine: `GameThread`, `FCocoaGameThread`, `runGameThread`
 - Cocos2d: `Cocos2d`, `cocos2d-x`, `CocosThread`
@@ -33,6 +35,7 @@ The implementation adds server-side configuration to prioritize game threads ove
 #### 2. Modified Thread Selection Logic
 
 The `threads:v1` strategy now:
+
 1. Checks if game thread prioritization is enabled via `prioritize_game_thread_for_grouping` context option
 2. For ANR events with the option enabled, attempts to use game thread first
 3. Falls back to the original logic (crashed → current → all threads) if no game thread is found
@@ -40,6 +43,7 @@ The `threads:v1` strategy now:
 #### 3. Configuration Option (`src/sentry/grouping/strategies/configurations.py`)
 
 Added `prioritize_game_thread_for_grouping` to the base configuration context:
+
 - Default: `False` (maintains backward compatibility)
 - Can be enabled per-project for gaming customers
 - Only affects ANR events, not other exception types
@@ -81,11 +85,13 @@ project.update_option("sentry:grouping_config", "newstyle:2026-01-20")
 ### Expected Behavior
 
 **Without game thread prioritization (default):**
+
 - ANRs group by UI thread stacktrace
 - Multiple ANRs with similar UI blocking patterns group together
 - Different game thread issues are not distinguished
 
 **With game thread prioritization (enabled):**
+
 - ANRs group by game thread stacktrace (if present)
 - ANRs with different game thread problems are separated into different groups
 - More actionable grouping for gaming applications
@@ -116,6 +122,7 @@ pytest tests/sentry/grouping/test_game_thread_grouping.py -v
 ```
 
 Tests cover:
+
 - Game thread name pattern detection (Unity, Unreal, Cocos2d, generic patterns)
 - ANR event identification
 - Grouping behavior with option enabled/disabled
