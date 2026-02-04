@@ -166,9 +166,9 @@ function VisualizationWidgetContent({
   const aggregates = widgetQuery?.aggregates ?? [];
   const columns = widgetQuery?.columns ?? [];
 
-  // Find linked dashboard for the groupBy field (first column)
-  const groupByField = columns[0];
-  const linkedDashboard = findLinkedDashboardForField(widgetQuery, groupByField);
+  // We only support one column for legend breakdown right now
+  const firstColumn = columns[0];
+  const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
 
   // Filter out "Other" series for the legend breakdown
   const filteredSeriesWithIndex = showBreakdownData
@@ -210,11 +210,11 @@ function VisualizationWidgetContent({
         const dataUnit = plottable?.dataUnit ?? undefined;
         const label = plottable?.label ?? series.seriesName;
         const linkedUrl =
-          linkedDashboard && groupByField
+          linkedDashboard && firstColumn
             ? getLinkedDashboardUrl({
                 linkedDashboard,
                 organizationSlug: organization.slug,
-                field: groupByField,
+                field: firstColumn,
                 value: series.seriesName,
                 widgetType: widget.widgetType,
                 dashboardFilters,
