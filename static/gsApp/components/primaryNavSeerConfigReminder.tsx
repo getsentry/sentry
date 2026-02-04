@@ -145,9 +145,8 @@ export default function PrimaryNavSeerConfigReminder() {
   // Track impression on mount
   useEffect(() => {
     if (canSeeReminder) {
-      trackAnalytics('navigation.primary_item_rendered', {
+      trackAnalytics('seer.config_reminder.rendered', {
         organization,
-        item: 'seer-config-reminder',
         ...analyticsParams,
       });
     }
