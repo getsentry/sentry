@@ -23,6 +23,7 @@ import {
   getSingularCategoryName,
   hasCategoryFeature,
   isByteCategory,
+  isEmergeCategory,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -507,6 +508,20 @@ describe('isByteCategory', () => {
     expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
     expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
     expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
+  });
+});
+
+describe('isEmergeCategory', () => {
+  it('returns true for SIZE_ANALYSIS and INSTALLABLE_BUILD', () => {
+    expect(isEmergeCategory(DataCategory.SIZE_ANALYSIS)).toBe(true);
+    expect(isEmergeCategory(DataCategory.INSTALLABLE_BUILD)).toBe(true);
+  });
+
+  it('returns false for other categories', () => {
+    expect(isEmergeCategory(DataCategory.ERRORS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.TRANSACTIONS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.ATTACHMENTS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.REPLAYS)).toBe(false);
   });
 });
 

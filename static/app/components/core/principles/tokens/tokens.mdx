@@ -15,7 +15,8 @@ import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
 import {size} from 'sentry/utils/theme/scraps/tokens/size';
@@ -349,7 +350,7 @@ export function ShadowOffset() {
   return (
     <Storybook.TokenReference
       scale="shadow"
-      tokens={sortByValue(size.shadow)}
+      tokens={theme.shadow}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -358,7 +359,7 @@ export function ShadowOffset() {
             width: '32px',
             height: '32px',
             background: theme.tokens.background.primary,
-            boxShadow: `0 ${value} 0 0 ${theme.tokens.border.accent.vibrant}`,
+            boxShadow: `${value}`,
           }}
           border="accent"
           radius="xs"

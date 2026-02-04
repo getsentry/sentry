@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!sentry/components/core/input/numberDragInput';
+import documentation from '!!type-loader!@sentry/scraps/input';
 import styled from '@emotion/styled';
 
 import {NumberDragInput} from '@sentry/scraps/input';

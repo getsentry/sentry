@@ -222,7 +222,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 120,
+            countdown=index * 90,
             headers={"sentry-propagate-traces": False},
         )
 

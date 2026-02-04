@@ -11,6 +11,7 @@ from django.conf import settings
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
@@ -227,7 +228,10 @@ def _common_codegen_request_payload(
                 "organization_id": organization.id,
                 "organization_slug": organization.slug,
             },
-            "config": {"features": {"bug_prediction": True}},
+            "config": {
+                "features": {"bug_prediction": True},
+                "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization),
+            },
         },
     }
 
@@ -418,7 +422,7 @@ def extract_github_info(
     return result
 
 
-def delete_existing_reactions_and_add_eyes_reaction(
+def delete_existing_reactions_and_add_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
     integration: RpcIntegration | None,
@@ -426,10 +430,12 @@ def delete_existing_reactions_and_add_eyes_reaction(
     repo: Repository,
     pr_number: str | None,
     comment_id: str | None,
+    reactions_to_delete: list[GitHubReaction],
+    reaction_to_add: GitHubReaction | None,
     extra: Mapping[str, str | None],
 ) -> None:
     """
-    Delete existing :tada: or :eyes: reaction on the PR description and add :eyes: reaction on the originating issue comment or PR description.
+    Delete existing reactions on the PR description and add reaction on the originating issue comment or PR description.
     """
     if integration is None:
         record_webhook_handler_error(
@@ -443,18 +449,15 @@ def delete_existing_reactions_and_add_eyes_reaction(
     try:
         client = integration.get_installation(organization_id=organization_id).get_client()
 
-        if pr_number:
-            # Delete existing :tada: or :eyes: reaction on the PR description
+        if pr_number and reactions_to_delete:
+            # Delete existing reactions on the PR description
             try:
                 existing_reactions = client.get_issue_reactions(repo.name, pr_number)
                 for reaction in existing_reactions:
                     if (
                         reaction.get("user", {}).get("login") == "sentry[bot]"
                         and reaction.get("id")
-                        and (
-                            reaction.get("content") == GitHubReaction.HOORAY.value
-                            or reaction.get("content") == GitHubReaction.EYES.value
-                        )
+                        and reaction.get("content") in reactions_to_delete
                     ):
                         client.delete_issue_reaction(repo.name, pr_number, str(reaction.get("id")))
             except Exception:
@@ -466,11 +469,12 @@ def delete_existing_reactions_and_add_eyes_reaction(
                 )
                 logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
 
-        # Add :eyes: on the originating issue comment or pr description
-        if github_event == GithubWebhookType.PULL_REQUEST:
-            client.create_issue_reaction(repo.name, pr_number, GitHubReaction.EYES)
-        elif github_event == GithubWebhookType.ISSUE_COMMENT:
-            client.create_comment_reaction(repo.name, comment_id, GitHubReaction.EYES)
+        if reaction_to_add:
+            # Add reaction on the originating issue comment or pr description
+            if github_event == GithubWebhookType.PULL_REQUEST:
+                client.create_issue_reaction(repo.name, pr_number, reaction_to_add)
+            elif github_event == GithubWebhookType.ISSUE_COMMENT:
+                client.create_comment_reaction(repo.name, comment_id, reaction_to_add)
     except Exception:
         record_webhook_handler_error(
             github_event,
