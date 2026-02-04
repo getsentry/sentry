@@ -37,7 +37,7 @@ declare global {
   }
 
   namespace React {
-    interface DOMAttributes<T> {
+    interface DOMAttributes<_T> {
       'data-test-id'?: string;
     }
   }
