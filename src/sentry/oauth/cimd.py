@@ -370,13 +370,17 @@ class CIMDClient:
                 "cimd.fetch.restricted-ip",
                 extra={"client_id_url": client_id_url},
             )
-            raise CIMDFetchError("Client ID URL resolves to restricted IP address", client_id_url)
+            raise CIMDFetchError(
+                "Client ID URL resolves to restricted IP address", client_id_url
+            ) from None
         except Timeout:
             logger.warning(
                 "cimd.fetch.timeout",
                 extra={"client_id_url": client_id_url, "timeout": self.TIMEOUT},
             )
-            raise CIMDFetchError("Timeout fetching client metadata document", client_id_url)
+            raise CIMDFetchError(
+                "Timeout fetching client metadata document", client_id_url
+            ) from None
         except RequestsConnectionError as e:
             logger.warning(
                 "cimd.fetch.connection-error",
@@ -384,7 +388,7 @@ class CIMDClient:
             )
             raise CIMDFetchError(
                 "Connection error fetching client metadata document", client_id_url
-            )
+            ) from None
 
         # Check HTTP status code
         if response.status_code != 200:
@@ -438,7 +442,9 @@ class CIMDClient:
                 "cimd.fetch.invalid-json",
                 extra={"client_id_url": client_id_url, "error": str(e)},
             )
-            raise CIMDFetchError("Invalid JSON in client metadata document", client_id_url)
+            raise CIMDFetchError(
+                "Invalid JSON in client metadata document", client_id_url
+            ) from None
 
         if not isinstance(metadata, dict):
             logger.warning(

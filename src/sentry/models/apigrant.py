@@ -101,11 +101,10 @@ class ApiGrant(Model):
         db_table = "sentry_apigrant"
 
     def __str__(self) -> str:
+        base = f"api_grant_id={self.id}, user_id={self.user.id}"
         if self.application_id:
-            return f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application_id}"
-        return (
-            f"api_grant_id={self.id}, user_id={self.user.id}, cimd_client_id={self.cimd_client_id}"
-        )
+            return f"{base}, application_id={self.application_id}"
+        return f"{base}, cimd_client_id={self.cimd_client_id}"
 
     def get_scopes(self):
         if self.scope_list:

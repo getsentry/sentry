@@ -133,20 +133,17 @@ def is_valid_cimd_redirect_uri(value: str, registered_uris: list[str]) -> bool:
     # RFC 8252 §8.4 / §7: For loopback interface redirects in native apps, accept
     # any ephemeral port when the registered URI omits a port. Match scheme, host,
     # path (and query) exactly, ignoring only the port.
-    if v_parts.scheme in {"http", "https"} and v_parts.hostname in {
-        "127.0.0.1",
-        "localhost",
-        "::1",
-    }:
+    loopback_hosts = {"127.0.0.1", "localhost", "::1"}
+    if v_parts.hostname in loopback_hosts:
         for ruri in registered_uris:
             try:
                 r_parts = urlparse(ruri)
             except Exception:
                 continue
+            # Only allow port flexibility when registered URI omits a fixed port
             if (
-                r_parts.scheme in {"http", "https"}
-                and r_parts.hostname in {"127.0.0.1", "localhost", "::1"}
-                and r_parts.port is None  # registered without a fixed port
+                r_parts.hostname in loopback_hosts
+                and r_parts.port is None
                 and v_parts.scheme == r_parts.scheme
                 and v_parts.hostname == r_parts.hostname
                 and v_parts.path == r_parts.path
@@ -161,6 +158,27 @@ def is_valid_cimd_redirect_uri(value: str, registered_uris: list[str]) -> bool:
 # ABNF: code-challenge = 43*128unreserved
 # unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
+
+
+def _validate_pkce_params(
+    code_challenge: str | None, code_challenge_method: str | None
+) -> str | None:
+    """
+    Validate PKCE code_challenge and code_challenge_method parameters.
+
+    Returns None if valid, or an error reason string if invalid.
+    This implementation only supports S256 method per OAuth 2.1 security best practices.
+    """
+    if code_challenge is None:
+        return None
+
+    if not CODE_CHALLENGE_REGEX.match(code_challenge):
+        return "invalid code_challenge format"
+
+    if code_challenge_method != "S256":
+        return "only S256 method is supported"
+
+    return None
 
 
 def _build_permissions_list(scopes: list[str]) -> list[str]:
@@ -211,27 +229,21 @@ def is_valid_cimd_url(client_id: str) -> bool:
     except Exception:
         return False
 
-    # Must be HTTPS
+    # Validate required structure
     if parsed.scheme != "https":
         return False
-
-    # Must have a netloc (domain)
     if not parsed.netloc:
         return False
-
-    # Must NOT contain credentials (user:pass@)
-    if parsed.username or parsed.password:
-        return False
-
-    # Must NOT contain fragment
-    if parsed.fragment:
-        return False
-
-    # Must have a path component (not just "/")
     if not parsed.path or parsed.path == "/":
         return False
 
-    # Must NOT contain dot segments (. or ..)
+    # Validate prohibited components
+    if parsed.username or parsed.password:
+        return False
+    if parsed.fragment:
+        return False
+
+    # Validate no dot segments in path (path traversal prevention)
     path_segments = parsed.path.split("/")
     if "." in path_segments or ".." in path_segments:
         return False
@@ -489,36 +501,25 @@ class OAuthAuthorizeView(AuthLoginView):
         code_challenge = request.GET.get("code_challenge")
         code_challenge_method = request.GET.get("code_challenge_method")
 
-        if code_challenge is not None:
-            # Validate code_challenge format per RFC 7636 §4.2: 43-128 unreserved chars
-            if not CODE_CHALLENGE_REGEX.match(code_challenge):
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
-
-            # Require S256 method explicitly (plain method not supported for security)
-            if code_challenge_method != "S256":
-                logger.error(
-                    "oauth.pkce.invalid-method",
-                    extra={
-                        "client_id": client_id,
-                        "application_id": application.id if application else None,
-                        "method": code_challenge_method,
-                    },
-                )
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
+        pkce_error = _validate_pkce_params(code_challenge, code_challenge_method)
+        if pkce_error:
+            logger.error(
+                "oauth.pkce.invalid",
+                extra={
+                    "client_id": client_id,
+                    "application_id": application.id if application else None,
+                    "method": code_challenge_method,
+                    "error": pkce_error,
+                },
+            )
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="invalid_request",
+                state=state,
+            )
 
         payload = {
             "rt": response_type,
@@ -648,9 +649,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="response_type",
             )
 
-        # Validate redirect_uri
+        # Validate redirect_uri - CIMD clients MUST provide redirect_uri if multiple are registered
         if not redirect_uri:
-            # CIMD clients MUST provide redirect_uri if multiple are registered
             uris = cimd_info.get_redirect_uris()
             if len(uris) != 1:
                 return self.error(
@@ -661,16 +661,8 @@ class OAuthAuthorizeView(AuthLoginView):
                     name="invalid_request",
                     err_response="redirect_uri",
                 )
-            redirect_uri = cimd_info.get_default_redirect_uri()
-            if redirect_uri is None:
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    err_response="redirect_uri",
-                )
+            # Safe to use index access since we verified exactly one URI exists
+            redirect_uri = uris[0]
         elif not cimd_info.is_valid_redirect_uri(redirect_uri):
             return self.error(
                 request=request,
@@ -700,34 +692,25 @@ class OAuthAuthorizeView(AuthLoginView):
         code_challenge = request.GET.get("code_challenge")
         code_challenge_method = request.GET.get("code_challenge_method")
 
-        if code_challenge is not None:
-            if not CODE_CHALLENGE_REGEX.match(code_challenge):
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
-
-            if code_challenge_method != "S256":
-                logger.error(
-                    "oauth.pkce.invalid-method",
-                    extra={
-                        "client_id": client_id,
-                        "client_type": "cimd",
-                        "method": code_challenge_method,
-                    },
-                )
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
+        pkce_error = _validate_pkce_params(code_challenge, code_challenge_method)
+        if pkce_error:
+            logger.error(
+                "oauth.pkce.invalid",
+                extra={
+                    "client_id": client_id,
+                    "client_type": "cimd",
+                    "method": code_challenge_method,
+                    "error": pkce_error,
+                },
+            )
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="invalid_request",
+                state=state,
+            )
 
         # Store session payload - mark as CIMD client
         payload = {
