@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import all_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.region import sentry_app_region_service
@@ -14,7 +14,7 @@ from sentry.sentry_apps.services.region import sentry_app_region_service
 logger = logging.getLogger("sentry.sentry-apps")
 
 
-@all_silo_endpoint
+@control_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

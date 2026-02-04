@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import Literal, TypedDict
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class BranchOverride(TypedDict):
-    tag_name: str
-    tag_value: str
-    branch_name: str
+class BranchOverride(BaseModel):
+    tag_name: str = Field(description="The tag key to match against")
+    tag_value: str = Field(description="The tag value to match against")
+    branch_name: str = Field(description="The branch to use when this tag matches")
 
 
 class SummarizeIssueScores(BaseModel):
@@ -34,9 +36,18 @@ class SeerRepoDefinition(BaseModel):
     owner: str
     name: str
     external_id: str
-    branch_name: str | None = None
-    branch_overrides: list[BranchOverride] = []
-    instructions: str | None = None
+    branch_name: str | None = Field(
+        default=None,
+        description="The branch that will be used, otherwise the default branch will be used.",
+    )
+    branch_overrides: list[BranchOverride] = Field(
+        default_factory=list,
+        description="List of branch overrides based on event tags.",
+    )
+    instructions: str | None = Field(
+        default=None,
+        description="Custom instructions when working in this repo.",
+    )
     base_commit_sha: str | None = None
     provider_raw: str | None = None
 

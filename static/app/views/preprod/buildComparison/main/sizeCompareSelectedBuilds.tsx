@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
@@ -129,7 +128,6 @@ function BuildButton({
               }}
               size="zero"
               priority="transparent"
-              borderless
               aria-label={t('Clear base build')}
               icon={<IconClose size="xs" variant="accent" />}
             />

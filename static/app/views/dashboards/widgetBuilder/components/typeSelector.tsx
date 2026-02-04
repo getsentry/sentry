@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
@@ -13,7 +13,7 @@ import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEv
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -21,7 +21,7 @@ import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useI
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
-const typeIcons = {
+const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
   [DisplayType.BAR]: <IconGraph key="bar" type="bar" />,
   [DisplayType.LINE]: <IconGraph key="line" type="line" />,
@@ -29,14 +29,6 @@ const typeIcons = {
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
 };
-
-const BASE_DISPLAY_TYPES: Partial<Record<DisplayType, string>> = {
-  [DisplayType.AREA]: t('Area'),
-  [DisplayType.BAR]: t('Bar'),
-  [DisplayType.LINE]: t('Line'),
-  [DisplayType.TABLE]: t('Table'),
-  [DisplayType.BIG_NUMBER]: t('Big Number'),
-} as const;
 
 interface WidgetBuilderTypeSelectorProps {
   error?: Record<string, any>;
@@ -58,21 +50,29 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     return (
       state.dataset === WidgetType.ISSUE &&
       !allowIssueWidgetSeriesDisplayType &&
-      isChartDisplayType(value)
+      usesTimeSeriesData(value)
     );
   };
 
-  const displayTypes = {...BASE_DISPLAY_TYPES};
-  if (organization.features.includes('dashboards-details-widget')) {
-    displayTypes[DisplayType.DETAILS] = t('Details');
-  }
+  const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+
+  // Use an array to define display type order explicitly.
+  // Object key ordering in JS is technically specified but easy to break accidentally.
+  const displayTypeOrder: Array<{label: string; type: DisplayType}> = [
+    {type: DisplayType.AREA, label: t('Area')},
+    {type: DisplayType.BAR, label: t('Bar')},
+    {type: DisplayType.LINE, label: t('Line')},
+    {type: DisplayType.TABLE, label: t('Table')},
+    {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
+    ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
+  ];
 
   // Issue series widgets query a different data source from table widgets.
   // Therefore we need to handle resetting the query on display type change due to incompatibility.
   const handleIssueWidgetDisplayTypeChange = (newValue: DisplayType) => {
     if (state.dataset === WidgetType.ISSUE && config.defaultSeriesWidgetQuery) {
-      const newDisplayIsChart = isChartDisplayType(newValue);
-      const oldDisplayIsChart = isChartDisplayType(state.displayType);
+      const newDisplayIsChart = usesTimeSeriesData(newValue);
+      const oldDisplayIsChart = usesTimeSeriesData(state.displayType);
       if (newDisplayIsChart === oldDisplayIsChart) {
         // Data source does not change, so we just do a normal display type change.
         dispatch({
@@ -112,15 +112,13 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         <Select
           name="displayType"
           value={state.displayType}
-          options={Object.keys(displayTypes).map(value => ({
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            leadingItems: typeIcons[value],
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            label: displayTypes[value],
-            value,
+          options={displayTypeOrder.map(({type, label}) => ({
+            leadingItems: typeIcons[type],
+            label,
+            value: type,
             disabled:
-              !config.supportedDisplayTypes.includes(value as DisplayType) ||
-              shouldDisabledIssueDisplayType(value as DisplayType),
+              !config.supportedDisplayTypes.includes(type) ||
+              shouldDisabledIssueDisplayType(type),
           }))}
           clearable={false}
           onChange={(newValue: any) => {

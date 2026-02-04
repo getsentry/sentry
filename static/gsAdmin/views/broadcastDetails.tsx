@@ -1,15 +1,17 @@
 import moment from 'moment-timezone';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -33,7 +35,11 @@ export default function BroadcastDetails() {
   const queryClient = useQueryClient();
 
   const {data, isPending, isError, refetch} = useApiQuery<any>(
-    [`/broadcasts/${broadcastId}/`],
+    [
+      getApiUrl(`/broadcasts/$broadcastId/`, {
+        path: {broadcastId},
+      }),
+    ],
     {
       staleTime: 0,
     }
@@ -60,7 +66,11 @@ export default function BroadcastDetails() {
       );
       setApiQueryData<Record<string, unknown>>(
         queryClient,
-        [`/broadcasts/${broadcastId}/`],
+        [
+          getApiUrl(`/broadcasts/$broadcastId/`, {
+            path: {broadcastId},
+          }),
+        ],
         prevData => ({
           ...prevData,
           ...response,

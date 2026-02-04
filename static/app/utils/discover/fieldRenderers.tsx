@@ -6,10 +6,11 @@ import partial from 'lodash/partial';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -38,6 +39,7 @@ import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
+  ABYTE_UNITS,
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
@@ -209,16 +211,6 @@ export const SIZE_UNITS = {
   petabyte: 1000 ** 5,
   exabyte: 1000 ** 6,
 };
-
-export const ABYTE_UNITS = [
-  'byte',
-  'kilobyte',
-  'megabyte',
-  'gigabyte',
-  'terabyte',
-  'petabyte',
-  'exabyte',
-];
 
 // TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
 export const DURATION_UNITS = {
@@ -1437,12 +1429,17 @@ function getDashboardUrl(
       linkedDashboard => linkedDashboard.field === field
     );
     if (dashboardLink && dashboardLink.dashboardId !== '-1') {
+      const datasetsToApplyFiltersTo = [
+        widget.widgetType,
+        ...(dashboardLink.additionalGlobalFilterDatasetTargets ?? []),
+      ];
+
       const newTemporaryFilters: GlobalFilter[] = [
         ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
       ].filter(
         filter =>
           Boolean(filter.value) &&
-          !(filter.tag.key === field && filter.dataset === widget.widgetType)
+          !(filter.tag.key === field && datasetsToApplyFiltersTo.includes(filter.dataset))
       );
 
       // Format the value as a proper filter condition string
@@ -1451,11 +1448,13 @@ function getDashboardUrl(
         .addFilterValueList(field, [data[field]])
         .toString();
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-        isTemporary: true,
+      datasetsToApplyFiltersTo.forEach(dataset => {
+        newTemporaryFilters.push({
+          dataset,
+          tag: {key: field, name: field, kind: FieldKind.TAG},
+          value: formattedValue,
+          isTemporary: true,
+        });
       });
 
       // Preserve project, environment, and time range query params

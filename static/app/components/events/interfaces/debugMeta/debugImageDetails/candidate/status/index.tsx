@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 
@@ -17,11 +18,17 @@ function Status({status, ...props}: Props) {
         </Tag>
       );
     }
-    case CandidateDownloadStatus.ERROR:
-    case CandidateDownloadStatus.MALFORMED: {
+    case CandidateDownloadStatus.ERROR: {
       return (
         <Tag variant="danger" {...props}>
           {t('Failed')}
+        </Tag>
+      );
+    }
+    case CandidateDownloadStatus.MALFORMED: {
+      return (
+        <Tag variant="danger" {...props}>
+          {t('Malformed')}
         </Tag>
       );
     }

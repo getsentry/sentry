@@ -46,7 +46,9 @@ class FileIOMainThreadDetectorTest(TestCase):
             create_files_from_dif_zip(f, project=self.project)
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = FileIOMainThreadDetector(self._settings, event)
+        detector = FileIOMainThreadDetector(
+            self._settings[FileIOMainThreadDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -56,7 +58,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = FileIOMainThreadDetector(settings, event)
+        detector = FileIOMainThreadDetector(settings[FileIOMainThreadDetector.settings_key], event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -67,7 +69,7 @@ class FileIOMainThreadDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = FileIOMainThreadDetector(settings, event)
+        detector = FileIOMainThreadDetector(settings[FileIOMainThreadDetector.settings_key], event)
 
         assert not detector.is_creation_allowed_for_project(project)
 

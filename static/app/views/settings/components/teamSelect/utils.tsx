@@ -1,11 +1,11 @@
+import {TeamAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -103,14 +103,12 @@ export function DropdownAddTeam({
                 ? undefined
                 : t('You must be a Org Owner/Manager to create teams')
             }
-            borderless
             priority="link"
             size="xs"
             disabled={!canCreateTeam}
             onClick={() => {
               openCreateTeamModal({
                 organization,
-                project,
                 onClose: onCreateTeam,
               });
               closeOverlay();

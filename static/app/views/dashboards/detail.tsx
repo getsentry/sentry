@@ -831,12 +831,7 @@ class DashboardDetail extends Component<Props, State> {
             ...getCurrentPageFilters(location),
             filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
           };
-          createDashboard(
-            api,
-            organization.slug,
-            newModifiedDashboard,
-            this.isPreview
-          ).then(
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
@@ -1005,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     eventView={EventView.fromLocation(location)}
                     location={location}
+                    hideLoadingIndicator
                   >
                     {metricsDataSide => (
                       <MEPSettingProvider
@@ -1181,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           eventView={eventView}
                           location={location}
+                          hideLoadingIndicator
                         >
                           {metricsDataSide => (
                             <MEPSettingProvider
@@ -1364,18 +1361,17 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-interface DashboardDetailWithInjectedPropsProps
-  extends Omit<
-    Props,
-    | 'theme'
-    | 'navigate'
-    | 'api'
-    | 'organization'
-    | 'projects'
-    | 'location'
-    | 'params'
-    | 'router'
-  > {}
+interface DashboardDetailWithInjectedPropsProps extends Omit<
+  Props,
+  | 'theme'
+  | 'navigate'
+  | 'api'
+  | 'organization'
+  | 'projects'
+  | 'location'
+  | 'params'
+  | 'router'
+> {}
 
 export default function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps

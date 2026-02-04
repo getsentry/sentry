@@ -1,7 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -9,9 +13,6 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -416,23 +417,38 @@ function IssueListActions({
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const selectedGroupState = useLegacyStore(SelectedGroupStore);
-  const selectedIds = SelectedGroupStore.getSelectedIds();
 
-  const projects = [...selectedIds]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!group?.project)
-    .map(group => group.project.slug);
+  const {selectedIdsSet, pageSelected, multiSelected, anySelected, selectedProjectSlug} =
+    useMemo(() => {
+      const {records} = selectedGroupState;
 
-  const uniqProjects = uniq(projects);
-  // we only want selectedProjectSlug set if there is 1 project
-  // more or fewer should result in a null so that the action toolbar
-  // can behave correctly.
-  const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+      // Compute selectedIds from records (equivalent to getSelectedIds)
+      const selectedIds = new Set([...records.keys()].filter(id => records.get(id)));
 
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
+      // Compute derived boolean values
+      const any = selectedIds.size > 0;
+      const multi = selectedIds.size > 1;
+      const all = any && selectedIds.size === records.size;
+
+      // Compute selectedProjectSlug
+      const projects = [...selectedIds]
+        .map(id => GroupStore.get(id))
+        .filter((group): group is Group => !!group?.project)
+        .map(group => group.project.slug);
+      const uniqProjects = uniq(projects);
+      // we only want selectedProjectSlug set if there is 1 project
+      // more or fewer should result in a null so that the action toolbar
+      // can behave correctly.
+      const projectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
+
+      return {
+        selectedIdsSet: selectedIds,
+        pageSelected: all,
+        multiSelected: multi,
+        anySelected: any,
+        selectedProjectSlug: projectSlug,
+      };
+    }, [selectedGroupState]);
 
   useEffect(() => {
     setAllInQuerySelected(false);

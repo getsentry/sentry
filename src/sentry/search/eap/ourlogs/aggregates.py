@@ -1,19 +1,12 @@
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import count_processor
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     count_argument_resolver_optimized,
 )
-
-
-def count_processor(count_value: int | None) -> int:
-    if count_value is None:
-        return 0
-    else:
-        return count_value
-
 
 LOGS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),

@@ -22,7 +22,7 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<SurfaceVariant>;
+  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<
     | 'block'
     | 'inline'

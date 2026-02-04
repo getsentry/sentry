@@ -155,6 +155,51 @@ describe('useTraceMetricsSeriesQuery', () => {
       );
     });
   });
+
+  it('includes groupBy query param when widget has columns', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['project', 'avg(value,test_metric,millisecond,-)'],
+          aggregates: ['avg(value,test_metric,millisecond,-)'],
+          columns: ['project'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [],
+      },
+    });
+
+    renderHook(
+      () =>
+        useTraceMetricsSeriesQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            groupBy: ['project'],
+          }),
+        })
+      );
+    });
+  });
 });
 
 describe('useTraceMetricsTableQuery', () => {

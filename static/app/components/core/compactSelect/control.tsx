@@ -16,13 +16,13 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
+import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
@@ -70,7 +70,8 @@ export const ControlContext = createContext<ControlContextValue>({
 });
 
 export interface ControlProps
-  extends Omit<
+  extends
+    Omit<
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'grid' | 'label'>
@@ -515,7 +516,7 @@ export function Control({
                         <ClearButton
                           onClick={() => onClear?.({overlayState})}
                           size="zero"
-                          borderless
+                          priority="transparent"
                         >
                           {t('Clear')}
                         </ClearButton>

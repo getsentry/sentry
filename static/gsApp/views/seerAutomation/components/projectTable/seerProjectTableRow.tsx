@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
-import {Text} from '@sentry/scraps/text/text';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -49,7 +49,7 @@ export default function SeerProjectTableRow({
   // If any other value is set, we treat it as 'medium'.
   const isAutoFixEnabled = Boolean(
     autofixSettings.autofixAutomationTuning &&
-      autofixSettings.autofixAutomationTuning !== 'off'
+    autofixSettings.autofixAutomationTuning !== 'off'
   );
 
   // We used to have multiple stopping points for PR Creation.

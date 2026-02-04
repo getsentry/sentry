@@ -1,11 +1,12 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';
@@ -72,7 +73,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               aria-label={t('Copy Issue Short-ID')}
               onClick={handleCopyShortId}
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           )}
@@ -81,7 +82,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
       {!isHovered && group.isPublic && shareUrl && (
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
           title={tct('This issue has been shared [link:with a public link].', {

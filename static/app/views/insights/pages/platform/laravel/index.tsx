@@ -1,7 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {type DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

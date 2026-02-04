@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,6 +11,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -32,18 +34,32 @@ function InvoiceDetails() {
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>([`/customers/${organization.slug}/billing-details/`], {
-    staleTime: 0,
-    placeholderData: keepPreviousData,
-  });
+  } = useApiQuery<BillingDetails>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+    }
+  );
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>([`/customers/${organization.slug}/invoices/${invoiceGuid}/`], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<Invoice>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/invoices/$invoiceId/`, {
+        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   if (isBillingDetailsError || isInvoiceError) {
     return (

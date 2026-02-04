@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
@@ -24,6 +25,7 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   savedDetectorToFormData: (detector: TDetector) => TFormData;
   environment?: React.ComponentProps<typeof DetectorBaseFields>['environment'];
+  extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
 };
@@ -40,6 +42,7 @@ export function EditDetectorLayout<
   savedDetectorToFormData,
   mapFormErrors,
   environment,
+  extraFooterButton,
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
@@ -83,6 +86,7 @@ export function EditDetectorLayout<
       <EditLayout.Footer maxWidth={maxWidth}>
         <DisableDetectorAction detector={detector} />
         <DeleteDetectorAction detector={detector} />
+        {extraFooterButton}
         <Button type="submit" priority="primary" size="sm">
           {t('Save')}
         </Button>

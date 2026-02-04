@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -52,7 +53,9 @@ export default function useFeedbackListQueryKey({
       return undefined;
     }
     return [
-      `/organizations/${organization.slug}/issues/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...fixedQueryView,

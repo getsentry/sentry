@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -16,21 +17,18 @@ interface BaseAggregateFlamegraphQueryParameters {
   projects?: PageFilters['projects'];
 }
 
-interface FunctionsAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface FunctionsAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   query: string;
   dataSource?: 'functions';
   fingerprint?: string;
 }
 
-interface TransactionsAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface TransactionsAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   query: string;
   dataSource?: 'transactions';
 }
 
-interface ProfilesAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface ProfilesAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   // query is not supported when querying from profiles
   dataSource: 'profiles';
 }
@@ -94,7 +92,12 @@ export function useAggregateFlamegraphQuery(
   ]);
 
   return useApiQuery<Profiling.Schema>(
-    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/profiling/flamegraph/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
     {
       staleTime: 0,
       retry: false,

@@ -4,12 +4,10 @@ import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 
+import {LinkButton} from '@sentry/scraps/button';
+import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
@@ -31,24 +29,23 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps
-  extends Partial<
-    Omit<
-      HybridFilterProps<number>,
-      | 'searchable'
-      | 'multiple'
-      | 'options'
-      | 'value'
-      | 'defaultValue'
-      | 'onReplace'
-      | 'onToggle'
-      | 'menuBody'
-      | 'menuFooter'
-      | 'menuFooterMessage'
-      | 'checkboxWrapper'
-      | 'shouldCloseOnInteractOutside'
-    >
-  > {
+export interface ProjectPageFilterProps extends Partial<
+  Omit<
+    HybridFilterProps<number>,
+    | 'searchable'
+    | 'multiple'
+    | 'options'
+    | 'value'
+    | 'defaultValue'
+    | 'onReplace'
+    | 'onToggle'
+    | 'menuBody'
+    | 'menuFooter'
+    | 'menuFooterMessage'
+    | 'checkboxWrapper'
+    | 'shouldCloseOnInteractOutside'
+  >
+> {
   /**
    * Message to show in the menu footer
    */
@@ -269,7 +266,7 @@ export function ProjectPageFilter({
         trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconOpen />}
               title={t('Project Details')}
@@ -283,7 +280,7 @@ export function ProjectPageFilter({
               visible={isFocused}
             />
             <TrailingButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings />}
               title={t('Project Settings')}

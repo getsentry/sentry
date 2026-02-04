@@ -1,13 +1,17 @@
 import {CodeBlock} from '@sentry/scraps/code';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Stack} from 'sentry/components/core/layout';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
   if (!props.exports?.exports) return null;
 
   const lines = [];
+  // canonical source: @sentry/scraps/<component> (no deep imports)
+  const importSpecifier = props.exports.module.startsWith('@sentry/scraps/')
+    ? props.exports.module.split('/').slice(0, 3).join('/')
+    : props.exports.module;
 
   if (Object.entries(props.exports.exports).length > 0) {
     const entries = Object.entries(props.exports.exports);
@@ -21,13 +25,44 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
         exportsMap.set(key, {...exportsMap.get(key), value: key});
       }
     });
-    const namedList = Array.from(exportsMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .flatMap(([_key, {value, type}]) =>
-        value ? [value, type].filter(Boolean) : [type].filter(Boolean)
-      )
-      .join(', ');
-    lines.push(`import {${namedList}} from '${props.exports.module}';`);
+
+    const sortedEntries = Array.from(exportsMap.entries()).sort(([a], [b]) =>
+      a.localeCompare(b)
+    );
+    const namedList: string[] = [];
+
+    for (let i = 0; i < sortedEntries.length; i++) {
+      const [key, {value, type}] = sortedEntries[i]!;
+
+      if (value) {
+        // If this entry has both value and type, combine them
+        if (type) {
+          namedList.push(`${value}, ${type}`);
+        } else {
+          // Check if the next entry is a type-only export that starts with this value's key
+          const nextEntry = sortedEntries[i + 1];
+          if (nextEntry) {
+            const [nextKey, nextExport] = nextEntry;
+            if (!nextExport.value && nextExport.type && nextKey.startsWith(key)) {
+              // Combine on same line
+              namedList.push(`${value}, ${nextExport.type}`);
+              i++; // Skip the next entry since we've combined it
+              continue;
+            }
+          }
+          namedList.push(value);
+        }
+      } else if (type) {
+        // Type-only export that wasn't combined with a previous value
+        namedList.push(type);
+      }
+    }
+
+    if (namedList.join(', ').length > 80) {
+      lines.push(`import {\n ${namedList.join(',\n ')}\n} from '${importSpecifier}';`);
+    } else {
+      lines.push(`import {${namedList.join(', ')}} from '${importSpecifier}';`);
+    }
   }
 
   if (!lines.length) return null;
@@ -37,15 +72,13 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
       <Heading as="h3" size="lg">
         Imports
       </Heading>
-      <pre>
-        <CodeBlock
-          dark
-          language="tsx"
-          onCopy={() => addSuccessMessage('Imports copied to clipboard')}
-        >
-          {lines.join('\n')}
-        </CodeBlock>
-      </pre>
+      <CodeBlock
+        dark
+        language="tsx"
+        onCopy={() => addSuccessMessage('Imports copied to clipboard')}
+      >
+        {lines.join('\n')}
+      </CodeBlock>
     </Stack>
   );
 }

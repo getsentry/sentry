@@ -24,7 +24,7 @@ describe('Project Ownership', () => {
   beforeEach(() => {
     ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
-      url: `/issues/${issueId}/tags/url/`,
+      url: `/organizations/${org.slug}/issues/${issueId}/tags/url/`,
       body: {
         key: 'url',
         name: 'URL',
@@ -110,7 +110,7 @@ describe('Project Ownership', () => {
 
   it('still renders if 404 error occurs', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${issueId}/tags/url/`,
+      url: `/organizations/${org.slug}/issues/${issueId}/tags/url/`,
       statusCode: 404,
     });
 
@@ -135,7 +135,7 @@ describe('Project Ownership', () => {
 
   it('does not render if any other error status occurs', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${issueId}/tags/url/`,
+      url: `/organizations/${org.slug}/issues/${issueId}/tags/url/`,
       statusCode: 401,
     });
 

@@ -4,8 +4,10 @@ import pytest
 
 from sentry.autopilot.tasks import (
     AutopilotDetectorName,
+    MissingSdkIntegrationFinishReason,
     MissingSdkIntegrationsResult,
     run_missing_sdk_integration_detector_for_organization,
+    run_missing_sdk_integration_detector_for_project_task,
     run_sdk_update_detector_for_organization,
 )
 from sentry.constants import ObjectStatus
@@ -261,11 +263,9 @@ class TestRunSdkUpdateDetector(TestCase, SnubaTestCase):
         assert mock_create_issue.call_count == 0
 
 
-class TestRunMissingSdkIntegrationDetector(TestCase):
+class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.project2 = self.create_project(organization=self.organization)
-        # Create integration for code mappings
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="12345",
@@ -288,36 +288,157 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         )
 
     @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
+    @mock.patch(
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
     def test_skips_project_without_repository_mapping(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        run_missing_sdk_integration_detector_for_organization(self.organization)
+        # No task should be spawned for projects without code mappings
+        assert not mock_apply_async.called
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_skips_inactive_repositories(self, mock_apply_async: mock.MagicMock) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        # Create a code mapping with an inactive repository
+        code_mapping = self._create_code_mapping(self.project, "inactive-repo")
+        code_mapping.repository.status = ObjectStatus.PENDING_DELETION
+        code_mapping.repository.save()
+
+        run_missing_sdk_integration_detector_for_organization(self.organization)
+
+        # No task should be spawned since repo is inactive
+        assert not mock_apply_async.called
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_spawns_task_for_project_with_mapping(self, mock_apply_async: mock.MagicMock) -> None:
+        self.project.platform = "python"
+        self.project.save()
+        self._create_code_mapping(self.project, "test-repo")
+
+        run_missing_sdk_integration_detector_for_organization(self.organization)
+
+        # Task should be spawned with correct arguments
+        mock_apply_async.assert_called_once_with(
+            args=(self.organization.id, self.project.id, "test-repo", ""),
+            headers={"sentry-propagate-traces": False},
+        )
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_only_processes_supported_platforms(self, mock_apply_async: mock.MagicMock) -> None:
+        # Create projects with supported platforms
+        python_project = self.create_project(organization=self.organization, platform="python")
+        node_project = self.create_project(organization=self.organization, platform="node")
+        js_project = self.create_project(organization=self.organization, platform="javascript")
+        js_react_project = self.create_project(
+            organization=self.organization, platform="javascript-react"
+        )
+        python_django_project = self.create_project(
+            organization=self.organization, platform="python-django"
+        )
+        node_express_project = self.create_project(
+            organization=self.organization, platform="node-express"
+        )
+
+        # Create projects with unsupported platforms
+        go_project = self.create_project(organization=self.organization, platform="go")
+        ruby_project = self.create_project(organization=self.organization, platform="ruby")
+        java_project = self.create_project(organization=self.organization, platform="java")
+
+        # Create code mappings for all projects
+        self._create_code_mapping(python_project, "python-repo")
+        self._create_code_mapping(node_project, "node-repo")
+        self._create_code_mapping(js_project, "js-repo")
+        self._create_code_mapping(js_react_project, "js-react-repo")
+        self._create_code_mapping(python_django_project, "python-django-repo")
+        self._create_code_mapping(node_express_project, "node-express-repo")
+        self._create_code_mapping(go_project, "go-repo")
+        self._create_code_mapping(ruby_project, "ruby-repo")
+        self._create_code_mapping(java_project, "java-repo")
+
+        run_missing_sdk_integration_detector_for_organization(self.organization)
+
+        # Only supported platforms should have tasks spawned
+        assert mock_apply_async.call_count == 6
+
+        # Collect all project IDs that had tasks spawned
+        spawned_project_ids = {call[1]["args"][1] for call in mock_apply_async.call_args_list}
+
+        # Supported platforms should be included
+        assert python_project.id in spawned_project_ids
+        assert node_project.id in spawned_project_ids
+        assert js_project.id in spawned_project_ids
+        assert js_react_project.id in spawned_project_ids
+        assert python_django_project.id in spawned_project_ids
+        assert node_express_project.id in spawned_project_ids
+
+        # Unsupported platforms should NOT be included
+        assert go_project.id not in spawned_project_ids
+        assert ruby_project.id not in spawned_project_ids
+        assert java_project.id not in spawned_project_ids
+
+
+class TestRunMissingSdkIntegrationDetectorForProject(TestCase):
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
+    def test_returns_none_for_nonexistent_organization(
         self, mock_seer_client: mock.MagicMock
     ) -> None:
-        run_missing_sdk_integration_detector_for_organization(self.organization)
-        # Should complete without error and not call SeerExplorerClient
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=999999,
+            project_id=self.project.id,
+            repo_name="test-repo",
+            source_root="",
+        )
+        assert result is None
         assert not mock_seer_client.called
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_skips_project_without_seer_access(self, mock_seer_client: mock.MagicMock) -> None:
-        # Create a repository with code mapping for the project
-        self._create_code_mapping(self.project, "test-repo")
+    def test_returns_none_for_nonexistent_project(self, mock_seer_client: mock.MagicMock) -> None:
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=self.organization.id,
+            project_id=999999,
+            repo_name="test-repo",
+            source_root="",
+        )
+        assert result is None
+        assert not mock_seer_client.called
 
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
+    def test_returns_none_without_seer_access(self, mock_seer_client: mock.MagicMock) -> None:
         mock_seer_client.side_effect = SeerPermissionError("Access denied")
 
-        run_missing_sdk_integration_detector_for_organization(self.organization)
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repo_name="test-repo",
+            source_root="",
+        )
 
-        # SeerExplorerClient was called but raised permission error
+        assert result is None
         assert mock_seer_client.called
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_calls_seer_explorer_for_project_with_mapping(
+    def test_creates_issues_for_missing_integrations(
         self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
     ) -> None:
-        # Create a repository with code mapping for project1 only
-        self._create_code_mapping(self.project, "test-repo")
-
         # Mock the client instance with artifact result
         mock_client_instance = mock.MagicMock()
         mock_client_instance.start_run.return_value = 123
@@ -325,15 +446,21 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         mock_state.status = "completed"
         mock_state.blocks = []
         mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
-            missing_integrations=["anthropicIntegration", "openaiIntegration"]
+            missing_integrations=["anthropicIntegration", "openaiIntegration"],
+            finish_reason=MissingSdkIntegrationFinishReason.SUCCESS,
         )
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
 
-        run_missing_sdk_integration_detector_for_organization(self.organization)
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repo_name="test-repo",
+            source_root="src/",
+        )
 
-        # Should have created client only for project with mapping (not project2)
-        assert mock_seer_client.call_count == 1
+        # Should return the list of missing integrations
+        assert result == ["anthropicIntegration", "openaiIntegration"]
 
         # Check that start_run was called with artifact schema
         assert mock_client_instance.start_run.call_count == 1
@@ -341,9 +468,10 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
         assert call_kwargs.get("artifact_key") == "missing_integrations"
         assert call_kwargs.get("artifact_schema") == MissingSdkIntegrationsResult
 
-        # Check that the prompt includes the repo name
+        # Check that the prompt includes the repo name and source root
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert "test-repo" in prompt
+        assert "src/" in prompt
 
         # Verify that an instrumentation issue was created for each missing integration
         assert mock_create_issue.call_count == 2
@@ -363,86 +491,43 @@ class TestRunMissingSdkIntegrationDetector(TestCase):
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
     def test_handles_seer_explorer_error_gracefully(self, mock_seer_client: mock.MagicMock) -> None:
-        # Create a repository with code mapping
-        self._create_code_mapping(self.project, "test-repo")
-
         # Mock the client to raise an error on start_run
         mock_client_instance = mock.MagicMock()
         mock_client_instance.start_run.side_effect = Exception("API error")
         mock_seer_client.return_value = mock_client_instance
 
-        # Should not raise, just log the error
-        run_missing_sdk_integration_detector_for_organization(self.organization)
-
-    @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_skips_inactive_repositories(self, mock_seer_client: mock.MagicMock) -> None:
-        # Create a code mapping with an inactive repository
-        code_mapping = self._create_code_mapping(self.project, "inactive-repo")
-        code_mapping.repository.status = ObjectStatus.PENDING_DELETION
-        code_mapping.repository.save()
-
-        run_missing_sdk_integration_detector_for_organization(self.organization)
-
-        # SeerExplorerClient should not be called since repo is inactive
-        assert not mock_seer_client.called
+        # Should not raise, just return None
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repo_name="test-repo",
+            source_root="",
+        )
+        assert result is None
 
     @pytest.mark.django_db
     @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
     @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_uses_mapped_repo_name_in_prompt(
+    def test_does_not_create_issues_when_no_missing_integrations(
         self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
     ) -> None:
-        # Create code mapping with specific repo name
-        self._create_code_mapping(self.project, "my-frontend-app")
-
         mock_client_instance = mock.MagicMock()
         mock_client_instance.start_run.return_value = 123
         mock_state = mock.MagicMock()
         mock_state.status = "completed"
         mock_state.blocks = []
-        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(missing_integrations=[])
+        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(
+            missing_integrations=[], finish_reason=MissingSdkIntegrationFinishReason.SUCCESS
+        )
         mock_client_instance.get_run.return_value = mock_state
         mock_seer_client.return_value = mock_client_instance
 
-        run_missing_sdk_integration_detector_for_organization(self.organization)
+        result = run_missing_sdk_integration_detector_for_project_task(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repo_name="test-repo",
+            source_root="",
+        )
 
-        # Check that the prompt includes the mapped repository name
-        prompt = mock_client_instance.start_run.call_args[0][0]
-        assert "my-frontend-app" in prompt
-
-        # No instrumentation issue should be created when no missing integrations found
-        assert mock_create_issue.call_count == 0
-
-    @pytest.mark.django_db
-    @mock.patch("sentry.autopilot.tasks.create_instrumentation_issue")
-    @mock.patch("sentry.autopilot.tasks.SeerExplorerClient")
-    def test_each_project_uses_its_own_mapped_repo(
-        self, mock_seer_client: mock.MagicMock, mock_create_issue: mock.MagicMock
-    ) -> None:
-        # Create different code mappings for each project
-        self._create_code_mapping(self.project, "frontend-repo")
-        self._create_code_mapping(self.project2, "backend-repo")
-
-        mock_client_instance = mock.MagicMock()
-        mock_client_instance.start_run.return_value = 123
-        mock_state = mock.MagicMock()
-        mock_state.status = "completed"
-        mock_state.blocks = []
-        mock_state.get_artifact.return_value = MissingSdkIntegrationsResult(missing_integrations=[])
-        mock_client_instance.get_run.return_value = mock_state
-        mock_seer_client.return_value = mock_client_instance
-
-        run_missing_sdk_integration_detector_for_organization(self.organization)
-
-        # Should have created clients for both projects
-        assert mock_seer_client.call_count == 2
-        assert mock_client_instance.start_run.call_count == 2
-
-        # Check that prompts include respective repo names
-        prompts = [call[0][0] for call in mock_client_instance.start_run.call_args_list]
-        repo_names_in_prompts = ["frontend-repo" in p or "backend-repo" in p for p in prompts]
-        assert all(repo_names_in_prompts)
-
-        # No instrumentation issue should be created when no missing integrations found
+        assert result == []
         assert mock_create_issue.call_count == 0

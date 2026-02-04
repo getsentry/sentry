@@ -3,8 +3,8 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Grid} from '@sentry/scraps/layout';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

@@ -24,7 +24,7 @@ describe('showNewSeer', () => {
 
     it('returns false even with launch flags when seer-added is present', () => {
       const organization = OrganizationFixture({
-        features: ['seer-added', 'seer-user-billing', 'seer-user-billing-launch'],
+        features: ['seer-added', 'seer-user-billing-launch'],
       });
 
       expect(showNewSeer(organization)).toBe(false);
@@ -42,7 +42,7 @@ describe('showNewSeer', () => {
 
     it('returns false even with launch flags when code-review-beta is present', () => {
       const organization = OrganizationFixture({
-        features: ['code-review-beta', 'seer-user-billing', 'seer-user-billing-launch'],
+        features: ['code-review-beta', 'seer-user-billing-launch'],
       });
 
       expect(showNewSeer(organization)).toBe(false);
@@ -50,28 +50,12 @@ describe('showNewSeer', () => {
   });
 
   describe('seer-user-billing-launch flag', () => {
-    it('returns true when both seer-user-billing and seer-user-billing-launch are present', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-user-billing', 'seer-user-billing-launch'],
-      });
-
-      expect(showNewSeer(organization)).toBe(true);
-    });
-
-    it('returns false when only seer-user-billing is present', () => {
-      const organization = OrganizationFixture({
-        features: ['seer-user-billing'],
-      });
-
-      expect(showNewSeer(organization)).toBe(false);
-    });
-
-    it('returns false when only seer-user-billing-launch is present', () => {
+    it('returns true when seer-user-billing-launch is present', () => {
       const organization = OrganizationFixture({
         features: ['seer-user-billing-launch'],
       });
 
-      expect(showNewSeer(organization)).toBe(false);
+      expect(showNewSeer(organization)).toBe(true);
     });
   });
 

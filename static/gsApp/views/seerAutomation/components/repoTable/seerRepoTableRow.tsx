@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ProjectList} from 'sentry/components/projectList';
 import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
@@ -20,6 +20,7 @@ import {
   RepositoryStatus,
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -98,7 +99,17 @@ export default function SeerRepoTableRow({
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        <ProjectList projectSlugs={[]} />
+        <Text size="sm">
+          {repository.settings?.codeReviewTriggers
+            .sort()
+            .map(triggerToLabel)
+            .map((label, index, array) => (
+              <div key={label}>
+                {label}
+                {index === array.length - 1 ? '' : ', '}
+              </div>
+            ))}
+        </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         <Switch
@@ -149,6 +160,17 @@ export default function SeerRepoTableRow({
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
+}
+
+function triggerToLabel(trigger: CodeReviewTrigger) {
+  switch (trigger) {
+    case 'on_new_commit':
+      return t('On New Commit');
+    case 'on_ready_for_review':
+      return t('On Ready for Review');
+    default:
+      return trigger;
+  }
 }
 
 const CheckboxClickTarget = styled('label')`

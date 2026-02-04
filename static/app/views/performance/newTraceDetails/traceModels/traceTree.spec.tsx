@@ -819,6 +819,37 @@ describe('TraceTree', () => {
         ])
       );
     });
+
+    it('handles cycles in EAP trace structure without infinite loop', () => {
+      const cyclicSpan = makeEAPSpan({
+        event_id: 'cyclic-span',
+        is_transaction: false,
+        children: [],
+      });
+
+      cyclicSpan.children = [cyclicSpan];
+
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-span',
+            is_transaction: true,
+            children: [cyclicSpan],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      expect(tree.build()).toBeDefined();
+
+      const cyclicNodes: BaseNode[] = [];
+      tree.root.forEachChild(node => {
+        if (node.id === 'cyclic-span') {
+          cyclicNodes.push(node);
+        }
+      });
+      expect(cyclicNodes).toHaveLength(1);
+    });
   });
 
   describe('events', () => {
@@ -1646,6 +1677,208 @@ describe('TraceTree', () => {
 
         parentAutogroup!.expand(expanded, tree);
         expect(parentAutogroup!.hasVisibleChildren()).toBe(true);
+      });
+    });
+  });
+
+  describe('HasDirectVisibleChildren', () => {
+    it('true when transaction has children', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction({children: [makeTransaction()]})],
+        }),
+        traceOptions
+      );
+      expect(tree.root.children[0]!.hasDirectVisibleChildren()).toBe(true);
+    });
+
+    describe('span', () => {
+      it.each([true, false])(
+        '%s when span has children and is expanded',
+        async expanded => {
+          const tree = TraceTree.FromTrace(
+            makeTrace({
+              transactions: [
+                makeTransaction({
+                  children: [makeTransaction()],
+                  event_id: 'event-id',
+                  project_slug: 'project',
+                }),
+              ],
+            }),
+            traceOptions
+          );
+
+          mockSpansResponse(
+            [
+              makeSpan({span_id: '0000'}),
+              makeSpan({span_id: '0001', parent_span_id: '0000'}),
+            ],
+            'project',
+            'event-id'
+          );
+          await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+            api: new MockApiClient(),
+            organization,
+          });
+
+          const span = tree.root.findChild(
+            node => isSpanNode(node) && node.value.span_id === '0000'
+          )!;
+
+          span.expand(expanded, tree);
+          expect(span.hasDirectVisibleChildren()).toBe(expanded);
+        }
+      );
+    });
+
+    describe('sibling autogroup', () => {
+      it.each([true, false])('%s when sibling autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(siblingAutogroupSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
+        const siblingAutogroup = tree.root.findChild(node =>
+          isSiblingAutogroupedNode(node)
+        );
+
+        siblingAutogroup!.expand(expanded, tree);
+        expect(siblingAutogroup!.hasDirectVisibleChildren()).toBe(expanded);
+      });
+
+      it("doesn't auto-group sibling spans with default op", async () => {
+        const siblingSpans = [
+          makeSpan({
+            op: 'pageload',
+            description: 'parent',
+            start_timestamp: start,
+            timestamp: start + 1,
+            span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+        mockSpansResponse(siblingSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, autogroupOptions);
+
+        const siblingAutogroup = tree.root.findChild(node =>
+          isSiblingAutogroupedNode(node)
+        );
+        expect(siblingAutogroup).toBeNull();
+      });
+    });
+
+    describe('parent autogroup', () => {
+      it.each([true, false])('%s when parent autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(parentAutogroupSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasDirectVisibleChildren()).toBe(expanded);
+      });
+
+      it("does't auto-group child spans with default op", async () => {
+        const childSpans = [
+          makeSpan({op: 'default', description: 'desc1', span_id: '0000'}),
+          makeSpan({
+            op: 'default',
+            description: 'desc2',
+            span_id: '0001',
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+        mockSpansResponse(childSpans, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+        expect(parentAutogroup).toBeNull();
+      });
+    });
+
+    describe('parent autogroup when tail has children', () => {
+      // Always true because tail has children
+      it.each([true, false])('%s when parent autogroup is expanded', async expanded => {
+        const tree = TraceTree.FromTrace(trace, traceOptions);
+
+        mockSpansResponse(parentAutogroupSpansWithTailChildren, 'project', 'event-id');
+        await tree.fetchNodeSubTree(true, tree.root.children[0]!.children[0]!, {
+          api: new MockApiClient(),
+          organization,
+        });
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+        tree.build();
+
+        const parentAutogroup = tree.root.findChild(node =>
+          isParentAutogroupedNode(node)
+        );
+
+        parentAutogroup!.expand(expanded, tree);
+        expect(parentAutogroup!.hasDirectVisibleChildren()).toBe(true);
       });
     });
   });

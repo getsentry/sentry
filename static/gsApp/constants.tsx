@@ -209,7 +209,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SEER_USER]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_USER],
-    feature: 'seer-user-billing',
+    feature: 'seer-user-billing-launch',
     canProductTrial: false,
     maxAdminGift: 100,
     freeEventsMultiple: 1,
@@ -220,12 +220,12 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
-    shortenedUnitName: t('upload'),
+    shortenedUnitName: t('build'),
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
-    shortenedUnitName: t('distribution'),
+    shortenedUnitName: t('install'),
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

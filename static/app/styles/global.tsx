@@ -30,7 +30,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.secondary)};
   }
 
   pre[class*='language-'] {

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -38,7 +39,7 @@ const ColoredLine = styled('span')<Props>`
       case 'warning':
         return p.theme.tokens.dataviz.semantic.meh;
       case 'error':
-        return p.theme.tokens.background.warning.vibrant;
+        return p.theme.level.orange;
       case 'fatal':
         return p.theme.tokens.dataviz.semantic.bad;
       case 'unknown':

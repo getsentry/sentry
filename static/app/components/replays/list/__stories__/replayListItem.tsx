@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -57,7 +57,7 @@ export default function ReplayListItem({replay, onClick}: Props) {
   );
 
   return (
-    <CardSpacing>
+    <Container padding="xs xs 0 xs" position="relative">
       <a
         href={replayDetailsPathname}
         onClick={e => {
@@ -96,14 +96,9 @@ export default function ReplayListItem({replay, onClick}: Props) {
           <InteractionStateLayer />
         </Flex>
       </a>
-    </CardSpacing>
+    </Container>
   );
 }
-
-const CardSpacing = styled('div')`
-  position: relative;
-  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
-`;
 
 const ArchivedWrapper = styled(Flex)`
   width: ${p => p.theme.space['2xl']};

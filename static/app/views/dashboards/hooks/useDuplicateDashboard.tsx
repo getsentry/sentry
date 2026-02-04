@@ -33,8 +33,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
         const copiedDashboard = await createDashboard(
           api,
           organization.slug,
-          newDashboard,
-          true
+          newDashboard
         );
         trackAnalytics('dashboards_manage.duplicate', {
           organization,
@@ -75,8 +74,7 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
         const copiedDashboard = await createDashboard(
           api,
           organization.slug,
-          newDashboard,
-          true
+          newDashboard
         );
         onSuccess?.(copiedDashboard);
         addSuccessMessage(t('Dashboard duplicated'));

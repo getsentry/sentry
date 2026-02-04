@@ -42,6 +42,8 @@ import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAn
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
 import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
+import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
+import {conversationsEventMap} from './analytics/conversationsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -101,9 +103,11 @@ import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEve
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
-  extends GrowthEventParameters,
+  extends
+    GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
+    ConversationsEventParameters,
     BreadcrumbsAnalyticsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
@@ -144,6 +148,7 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
+  ...conversationsEventMap,
   ...breadcrumbsAnalyticsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,

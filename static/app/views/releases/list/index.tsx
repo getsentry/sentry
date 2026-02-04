@@ -226,25 +226,35 @@ export default function ReleasesList() {
   const selectedProjectIds = useMemo(() => {
     const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    // If no specific projects selected (All Projects), use all accessible project IDs
+    // If no specific projects selected, pass [-1] to represent "all projects"
+    // This avoids expanding to hundreds of project IDs which causes URL length issues
     return selectedIds.length === 0
-      ? projects.map(p => p.id)
+      ? [`${ALL_ACCESS_PROJECTS}`]
       : selectedIds.map(id => `${id}`);
-  }, [selection.projects, projects]);
+  }, [selection.projects]);
 
   const shouldShowMobileBuildsTab = useMemo(() => {
     if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
     // Check if at least one project has a mobile platform
-    const hasAnyStrictlyMobileProject = selectedProjectIds
+    const hasAnyStrictlyMobileProject = projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform, false));
 
     return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds]);
+  }, [organization.features, selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -359,20 +369,29 @@ export default function ReleasesList() {
   );
 
   const hasAnyMobileProject = useMemo(() => {
-    return selectedProjectIds
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform));
-  }, [selectedProjectIds]);
+  }, [selectedProjectIds, projects]);
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
     selectedProject &&
-      // Has not set up releases
-      !selectedProject?.features.includes('releases') &&
-      // Has no releases
-      !releases?.length
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
   );
   const releasesPageLinks = getReleasesResponseHeader?.('Link');
 
@@ -454,7 +473,7 @@ export default function ReleasesList() {
                   >
                     <Flex align="center" gap="sm">
                       {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
+                      <FeatureBadge type="new" />
                     </Flex>
                   </TabList.Item>
                 </TabList>
@@ -522,18 +541,22 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

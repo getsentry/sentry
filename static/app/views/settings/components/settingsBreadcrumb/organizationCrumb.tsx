@@ -1,6 +1,7 @@
 import sortBy from 'lodash/sortBy';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';

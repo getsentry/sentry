@@ -2,12 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {Tag as TagBadge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Tag as TagBadge} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {IconAdd, IconArrow} from 'sentry/icons';
@@ -111,7 +111,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
       <Flex gap="md" justify="end">
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           icon={<IconArrow direction="left" />}
           onClick={() => {
             resetSearch();

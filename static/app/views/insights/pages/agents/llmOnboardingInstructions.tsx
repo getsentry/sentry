@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -58,24 +59,24 @@ If missing, add \`tracesSampleRate: 1.0\` / \`traces_sample_rate=1.0\` and \`sen
 
 Check in this order - **use the highest-level framework found** (e.g., if using Vercel AI SDK with OpenAI provider, use Vercel integration, not OpenAI):
 
-| Library (check in order) | Node.js | Browser | Python Integration | Python Extra |
-|--------------------------|---------|---------|-------------------|--------------|
-| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - | - |
-| LangGraph | Auto-enabled | \`instrumentLangGraph()\` | Auto-enabled | \`sentry-sdk[langgraph]\` |
-| LangChain | Auto-enabled | \`createLangChainCallbackHandler()\` | Auto-enabled | \`sentry-sdk[langchain]\` |
-| OpenAI Agents | - | - | Auto-enabled | - |
-| Pydantic AI | - | - | Auto-enabled | \`sentry-sdk[pydantic_ai]\` |
-| LiteLLM | - | - | \`LiteLLMIntegration()\` | \`sentry-sdk[litellm]\` |
-| OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled | - |
-| Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled | - |
-| Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | \`GoogleGenAIIntegration()\` | \`sentry-sdk[google_genai]\` |
+| Library (check in order) | Node.js | Browser | Python Integration |
+|--------------------------|---------|---------|-------------------|
+| Vercel AI SDK | Auto-enabled (needs \`experimental_telemetry\`) | - | - |
+| LangGraph | Auto-enabled | \`instrumentLangGraph()\` | Auto-enabled |
+| LangChain | Auto-enabled | \`createLangChainCallbackHandler()\` | Auto-enabled |
+| OpenAI Agents | - | - | Auto-enabled |
+| Pydantic AI | - | - | Auto-enabled |
+| LiteLLM | - | - | \`LiteLLMIntegration()\` |
+| OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled |
+| Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled |
+| Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | Auto-enabled |
 
-**If supported library found → Step 3A** (Node.js: auto-enabled, Browser: wrap clients)
+**If supported library found → Step 3A** (Enable Automatic Integration: Node.js, Browser and Python)
 **If no supported library → Step 3B** (Manual span instrumentation)
 
 ## 3A. Enable Automatic Integration
 
-### 3A-1: Node.js (Auto-enabled)
+### Node.js (Auto-enabled)
 
 For Node.js applications (\`@sentry/node\`, \`@sentry/nestjs\`, etc.), AI integrations are **automatically enabled**. Just initialize Sentry with tracing:
 
@@ -104,7 +105,7 @@ const result = await generateText({
 });
 \`\`\`
 
-### 3A-2: Browser (Manual Client Wrapping)
+### Browser (Manual Client Wrapping)
 
 For browser applications (\`@sentry/browser\`, \`@sentry/react\`, etc.), you must **manually wrap each AI client** using helper functions.
 
@@ -207,31 +208,42 @@ Sentry.instrumentLangGraph(agent, {
 
 **Important:** You must wrap EACH client instance separately. The helpers are not global integrations.
 
-### Python
+### Python (Most Libraries are auto-enabled, except LiteLLM)
 
-Install with extras if needed:
-\`\`\`bash
-pip install sentry-sdk[langchain]  # or [langgraph], [litellm], [google_genai], [pydantic_ai]
-\`\`\`
+#### Auto-enabled Libraries (see table above):
 
-Configure (some integrations auto-enable, some need explicit import):
+For most Python AI libraries, integrations are **automatically enabled**. Just initialize Sentry:
 
 \`\`\`python
 import sentry_sdk
-# Only import if NOT auto-enabled (see table above)
-from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="...",
+    # Required for AI monitoring
     traces_sample_rate=1.0,
-    send_default_pii=True,  # Required to capture inputs/outputs
-    integrations=[
-        OpenAIAgentsIntegration(),  # Only if explicit integration needed
-    ],
+    # Add data like request headers and IP for users, if applicable;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
 )
 \`\`\`
 
-**Done.** SDK auto-instruments AI calls.
+#### LiteLLM:
+
+\`\`\`python
+import sentry_sdk
+from sentry_sdk.integrations.litellm import LiteLLMIntegration
+sentry_sdk.init(
+    dsn="...",
+    # Required for AI monitoring
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        LiteLLMIntegration(),
+    ],
+)
+\`\`\`
 
 ## 3B. Manual Instrumentation
 
@@ -250,7 +262,6 @@ with sentry_sdk.start_span(op="gen_ai.request", name=f"chat {model}") as span:
     span.set_data("gen_ai.usage.input_tokens", result.input_tokens)
     span.set_data("gen_ai.usage.output_tokens", result.output_tokens)
     span.set_data("gen_ai.usage.input_tokens.cached", result.cached_tokens)
-
 \`\`\`
 
 ### Invoke Agent

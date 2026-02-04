@@ -4,18 +4,18 @@ import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   type SelectOption,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
+import {Client} from 'sentry/api';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -118,7 +118,8 @@ export interface ChoiceMapperProps extends DefaultProps {
 }
 
 export interface ChoiceMapperFieldProps
-  extends ChoiceMapperProps,
+  extends
+    ChoiceMapperProps,
     Omit<
       InputFieldProps,
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'

@@ -2,9 +2,9 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +22,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,
   getAggregateValueKey,
@@ -97,6 +97,25 @@ function validateParameter(
   return false;
 }
 
+export function sortSelectedFirst(
+  selectedValue: string,
+  options: Array<SelectValue<string>>
+) {
+  // move selected option to front and remove from the rest of the options
+  const result: Array<SelectValue<string>> = [];
+  let selectedOption: SelectValue<string> | undefined;
+
+  for (const option of options) {
+    if (option.value === selectedValue) {
+      selectedOption = option;
+    } else {
+      result.push(option);
+    }
+  }
+
+  return selectedOption ? [selectedOption, ...result] : result;
+}
+
 export function SelectRow({
   field,
   index,
@@ -119,9 +138,9 @@ export function SelectRow({
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
 
-  const updateAction = isChartWidget
+  const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
@@ -143,10 +162,37 @@ export function SelectRow({
         ];
         return [true, options];
       }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
+          },
+        ];
+        return [true, options];
+      }
     }
 
     return [false, defaultColumnOptions];
   }, [defaultColumnOptions, state.dataset, field]);
+
+  const parsedFunction = useMemo(
+    () => parseFunction(stringFields?.[index] ?? ''),
+    [stringFields, index]
+  );
+
+  const aggregateValue = parsedFunction?.name
+    ? getAggregateValueKey(parsedFunction.name)
+    : NONE;
+
+  const columnValue =
+    field.kind === FieldValueKind.FUNCTION
+      ? (parsedFunction?.arguments[0] ?? '')
+      : field.field;
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -154,12 +200,8 @@ export function SelectRow({
         searchable
         hasColumnParameter={hasColumnParameter}
         disabled={disabled || aggregateOptions.length <= 1}
-        options={aggregateOptions}
-        value={
-          parseFunction(stringFields?.[index] ?? '')?.name
-            ? getAggregateValueKey(parseFunction(stringFields?.[index] ?? '')?.name)
-            : NONE
-        }
+        options={sortSelectedFirst(aggregateValue, aggregateOptions)}
+        value={aggregateValue}
         position="bottom-start"
         menuFooter={
           state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
@@ -416,12 +458,8 @@ export function SelectRow({
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
             searchable
-            options={columnOptions}
-            value={
-              field.kind === FieldValueKind.FUNCTION
-                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
-                : field.field
-            }
+            options={sortSelectedFirst(columnValue, columnOptions)}
+            value={columnValue}
             onChange={newField => {
               const newFields = cloneDeep(fields);
               const currentField = newFields[index]!;

@@ -1,4 +1,5 @@
 import type {Deploy} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 function getDeploysQueryKey({
@@ -9,7 +10,12 @@ function getDeploysQueryKey({
   releaseVersion: string;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/releases/${encodeURIComponent(releaseVersion)}/deploys/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/deploys/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        version: releaseVersion,
+      },
+    }),
   ];
 }
 

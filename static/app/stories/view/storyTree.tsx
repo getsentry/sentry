@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
@@ -138,7 +138,15 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
 > = {
   layout: {
     label: 'Layout',
-    components: ['composition', 'container', 'disclosure', 'flex', 'grid', 'stack'],
+    components: [
+      'composition',
+      'container',
+      'flex',
+      'grid',
+      'stack',
+      'surface',
+      'disclosure',
+    ],
   },
   typography: {
     label: 'Typography',
@@ -171,11 +179,11 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
     components: ['link', 'tabs', 'menulistitem'],
   },
   status: {
-    label: 'Status & Feedback',
+    label: 'Status',
     components: ['alert', 'badge', 'tag', 'toast'],
   },
   display: {
-    label: 'Data Display',
+    label: 'Display',
     components: ['avatar', 'image', 'codeblock'],
   },
   overlays: {

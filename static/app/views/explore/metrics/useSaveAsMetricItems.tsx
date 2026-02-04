@@ -72,8 +72,8 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
 
     items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('metrics.save_query_modal', {
           action: 'open',
@@ -101,8 +101,8 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
     if (hasTraceMetricsDashboards) {
       items.push({
         key: 'add-to-dashboard',
-        label: t('A Dashboard widget'),
-        textValue: t('A Dashboard widget'),
+        label: t('Dashboard widget'),
+        textValue: t('Dashboard widget'),
         isSubmenu: true,
         children: [
           ...(metricQueries.length > 1

@@ -16,17 +16,24 @@ if TYPE_CHECKING:
 
 
 def get_digest_subject(
-    group: Group, counts: Counter[Group], date: datetime, timezone: tzinfo | None = None
+    group: Group,
+    counts: Counter[Group],
+    date: datetime,
+    timezone: tzinfo | None = None,
+    clock_24_hours: bool = False,
 ) -> str:
     # Convert date to user's timezone if provided
     if timezone:
         date = date.astimezone(timezone)
 
+    # Use 24-hour format (H:i) or 12-hour format (P) based on user preference
+    date_format = "N j, Y, H:i e" if clock_24_hours else "N j, Y, P e"
+
     return "{short_id} - {count} new {noun} since {date}".format(
         short_id=group.qualified_short_id,
         count=len(counts),
         noun="alert" if len(counts) == 1 else "alerts",
-        date=dateformat.format(date, "N j, Y, P e"),
+        date=dateformat.format(date, date_format),
     )
 
 

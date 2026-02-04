@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';

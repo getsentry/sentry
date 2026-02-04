@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
@@ -375,7 +375,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const {copy} = useCopyToClipboard();
 
   return (
-    <CarouselAndButtonsWrapper>
+    <Flex justify="between" align="start" marginBottom="xs" gap="md">
       <div>
         <EventHeading>
           <EventIdAndTimeContainer>
@@ -390,7 +390,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   ...getAnalyticsDataForEvent(event),
                   streamline: false,
                 }}
-                borderless
+                priority="transparent"
                 onClick={() =>
                   copy(event.id, {
                     successMessage: t('Event ID copied to clipboard'),
@@ -399,7 +399,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
               >
                 <EventId>
                   {getShortEventId(event.id)}
@@ -434,7 +433,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
-      <ActionsWrapper>
+      <Flex align="center" gap="xs">
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
@@ -459,18 +458,10 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             referrer="next-event"
           />
         </NavButtons>
-      </ActionsWrapper>
-    </CarouselAndButtonsWrapper>
+      </Flex>
+    </Flex>
   );
 }
-
-const CarouselAndButtonsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.5)};
-`;
 
 const EventHeading = styled('div')`
   display: flex;
@@ -482,12 +473,6 @@ const EventHeading = styled('div')`
   @media (max-width: 600px) {
     font-size: ${p => p.theme.font.size.md};
   }
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(LinkButton)`

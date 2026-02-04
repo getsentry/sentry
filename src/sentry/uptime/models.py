@@ -32,6 +32,9 @@ from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
+# Separator used in UptimeResponseCapture file storage format.
+RESPONSE_BODY_SEPARATOR = b"\r\n\r\n---BODY---\r\n\r\n"
+
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
 
@@ -94,9 +97,16 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
+
+    # User-controlled setting to enable/disable response capture feature entirely.
+    response_capture_enabled = models.BooleanField(default=True, db_default=True)
+
     # Whether to capture response body and headers on check failures.
-    # Used for debugging - can be disabled after first capture to reduce bandwidth.
+    # System-managed flag - disabled after first capture to reduce bandwidth.
     capture_response_on_failure = models.BooleanField(default=True, db_default=True)
+
+    # runtime assertion executed by the checker against the response body
+    assertion = models.JSONField(null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -316,6 +326,7 @@ class UptimeResponseCapture(DefaultFieldsModel):
         db_table = "uptime_uptimeresponsecapture"
         indexes = [
             models.Index(fields=["uptime_subscription", "scheduled_check_time_ms"]),
+            models.Index(fields=["date_added"]),
         ]
 
     def delete(self, *args, **kwargs):

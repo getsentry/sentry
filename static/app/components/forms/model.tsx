@@ -430,6 +430,7 @@ class FormModel {
         method,
         data,
         success: response => resolve(response),
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         error: error => reject(error),
       })
     );

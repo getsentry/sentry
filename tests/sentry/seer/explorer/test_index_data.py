@@ -60,7 +60,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                     )
                     spans.append(non_tx_span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call our function
         result = get_transactions_for_project(self.project.id)
@@ -116,7 +116,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                 )
                 spans.append(span)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Call our function
         result = get_trace_for_transaction(transaction_name, self.project.id)
@@ -235,7 +235,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
             }
         )
 
-        self.store_spans([span1, span2, span3, span4], is_eap=True)
+        self.store_spans([span1, span2, span3, span4])
 
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
@@ -429,7 +429,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span4.update({"profile_id": different_profile_id})
 
-        self.store_spans([span1, span2, span3, span4], is_eap=True)
+        self.store_spans([span1, span2, span3, span4])
 
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
@@ -556,7 +556,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         spans.append(span_different)
 
-        self.store_spans(spans, is_eap=True)
+        self.store_spans(spans)
 
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.explorer.utils.get_from_profiling_service") as mock_service:
@@ -678,7 +678,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span3.update({"profile_id": profile_id})
 
-        self.store_spans([span1, span2, span3], is_eap=True)
+        self.store_spans([span1, span2, span3])
 
         captured_timestamps = {}
 

@@ -3,38 +3,38 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export interface HybridFilterProps<Value extends SelectKey>
-  extends Omit<
-    MultipleSelectProps<Value>,
-    | 'grid'
-    | 'multiple'
-    | 'value'
-    | 'defaultValue'
-    | 'onChange'
-    | 'clearable'
-    | 'onClear'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'onKeyUp'
-    | 'onToggle'
-  > {
+export interface HybridFilterProps<Value extends SelectKey> extends Omit<
+  MultipleSelectProps<Value>,
+  | 'grid'
+  | 'multiple'
+  | 'value'
+  | 'defaultValue'
+  | 'onChange'
+  | 'clearable'
+  | 'onClear'
+  | 'onInteractOutside'
+  | 'closeOnSelect'
+  | 'onKeyDown'
+  | 'onKeyUp'
+  | 'onToggle'
+> {
   checkboxPosition: 'leading' | 'trailing';
   /**
    * Default selection value. When the user clicks "Reset", the selection value will
@@ -294,7 +294,7 @@ export function HybridFilter<Value extends SelectKey>({
               {hasStagedChanges && (
                 <FooterInnerWrap>
                   <Button
-                    borderless
+                    priority="transparent"
                     size="xs"
                     onClick={() => {
                       closeOverlay();
@@ -405,7 +405,7 @@ export function HybridFilter<Value extends SelectKey>({
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset')}
         </ResetButton>

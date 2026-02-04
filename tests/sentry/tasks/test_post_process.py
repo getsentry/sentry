@@ -1140,8 +1140,12 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         user_3 = self.create_user()
         self.create_team_membership(self.team, user=user_3)
 
-        # Set assignee_exists cache to self.user
-        cache.set(ASSIGNEE_EXISTS_KEY(event.group_id), self.user, ASSIGNEE_EXISTS_DURATION)
+        # Set assignee_exists cache (should be invalidated when ownership changes)
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, timezone.now().timestamp()),
+            ASSIGNEE_EXISTS_DURATION,
+        )
         # De-assign group assignees
         GroupAssignee.objects.deassign(event.group, self.user)
         assert event.group.assignee_set.first() is None
@@ -1181,7 +1185,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             project_id=self.project.id,
         )
 
-        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), True)
+        cache.set(ASSIGNEE_EXISTS_KEY(event.group.id), (True, timezone.now().timestamp()))
         cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group.id), timezone.now().timestamp())
 
         self.call_post_process_group(
@@ -1240,18 +1244,9 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
         assert debounce_time is None
 
-        # First event: evaluates ownership and sets debounce timestamp
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
-        assert debounce_time is not None
-        assert isinstance(debounce_time, float)
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), timezone.now().timestamp())
 
-        # Second event: should debounce because no ownership change occurred
+        # Should debounce because no ownership change occurred and the debounce cache is set
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1261,7 +1256,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
 
     @patch("sentry.utils.metrics.incr")
-    def test_no_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+    def test_no_issue_owners_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1274,21 +1269,12 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
         assert debounce_time is None
 
-        # First event: should evaluate ownership and set debounce timestamp
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
-        assert debounce_time is not None
-        assert isinstance(debounce_time, float)
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), timezone.now().timestamp())
 
         # Simulate ownership rules changing
         GroupOwner.set_project_ownership_version(self.project.id)
 
-        # Second event: should NOT debounce because ownership changed after debounce was set
+        # Should NOT debounce because ownership changed after debounce was set
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1301,10 +1287,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.utils.metrics.incr")
-    def test_debounces_handle_owner_assignments_when_ownership_older(
-        self, mock_incr: MagicMock
-    ) -> None:
-        self.make_ownership()
+    def test_debounces_assignee_existence_check(self, mock_incr: MagicMock) -> None:
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -1313,30 +1296,139 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             },
             project_id=self.project.id,
         )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
-        assert debounce_time is None
+        GroupAssignee.objects.assign(event.group, self.user)
 
-        # Ownership changed in the past (before any events)
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is None
+
+        # First event: should check DB, find assignee exists, cache result with timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is not None
+        assert isinstance(assignee_cache_value, tuple)
+        cached_assignee_exists, cached_timestamp = assignee_cache_value
+        assert cached_assignee_exists is True
+        assert isinstance(cached_timestamp, float)
+
+        # Should return early due to assignee existing
+        mock_incr.assert_any_call(
+            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_no_assignee_exists_debounce_when_ownership_changes(self, mock_incr: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event.group, self.user)
+
+        old_timestamp = timezone.now().timestamp()
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, old_timestamp),
+            ASSIGNEE_EXISTS_DURATION,
+        )
+
+        # Simulate ownership rules changing
         GroupOwner.set_project_ownership_version(self.project.id)
 
-        # First event: evaluates ownership (ownership change is in the past, so no debounce yet)
-        self.call_post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            event=event,
-        )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
-        assert debounce_time is not None
+        mock_incr.reset_mock()
 
-        # Second event: should debounce because ownership change is older than the debounce timestamp
+        # Process event: cache should be invalidated because ownership changed after cache timestamp
+        # The code should re-query DB, find assignee exists, and return early
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
         )
-        mock_incr.assert_any_call("sentry.tasks.post_process.handle_owner_assignment.debounce")
+        new_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert new_cache_value is not None
+        new_assignee_exists, new_timestamp = new_cache_value
+        assert new_assignee_exists is True
+        assert new_timestamp > old_timestamp
+
+    @patch("sentry.utils.metrics.incr")
+    def test_debounces_assignee_existence_check_when_ownership_older(
+        self, mock_incr: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        GroupAssignee.objects.assign(event.group, self.user)
+
+        # Ownership changed in the past (before cache is set)
+        GroupOwner.set_project_ownership_version(self.project.id)
+
+        cache.set(
+            ASSIGNEE_EXISTS_KEY(event.group_id),
+            (True, timezone.now().timestamp()),
+            ASSIGNEE_EXISTS_DURATION,
+        )
+
+        mock_incr.reset_mock()
+
+        # Process event: cache should be valid because ownership change is older than cache timestamp
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        mock_incr.assert_any_call(
+            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
+        )
+
+    @patch("sentry.utils.metrics.incr")
+    def test_caches_assignee_does_not_exist(self, mock_incr: MagicMock) -> None:
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        # No assignee for this group
+
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is None
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Cache should store (False, timestamp)
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assert assignee_cache_value is not None
+        assert isinstance(assignee_cache_value, tuple)
+        cached_assignee_exists, cached_timestamp = assignee_cache_value
+        assert cached_assignee_exists is False
+        assert isinstance(cached_timestamp, float)
+
+        # Should NOT return early - proceeds to ownership evaluation
+        assert (
+            mock.call("sentry.task.post_process.handle_owner_assignment.assignee_exists")
+            not in mock_incr.call_args_list
+        )
 
     @patch("sentry.utils.metrics.incr")
     def test_issue_owners_should_ratelimit(self, mock_incr: MagicMock) -> None:
@@ -2633,7 +2725,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_called_once_with(event.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -2761,7 +2855,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_called_once_with(group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -2829,7 +2925,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
         mock_is_rate_limited.assert_called_once_with(event.project, event.group.organization)
-        mock_generate_summary_and_run_automation.assert_called_once_with(event.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id, trigger_path="old_seer_automation"
+        )
 
         mock_is_rate_limited.reset_mock()
         mock_generate_summary_and_run_automation.reset_mock()
@@ -2942,7 +3040,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
         # Now it should be called since no lock is held
-        mock_generate_summary_and_run_automation.assert_called_once_with(event2.group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event2.group.id, trigger_path="old_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -3145,7 +3245,9 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
             )
 
         # Should call generate_summary_and_run_automation to generate summary + run automation
-        mock_generate_summary_and_run_automation.assert_called_once_with(group.id)
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            group.id, trigger_path="seat_based_seer_automation"
+        )
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
@@ -3295,6 +3397,51 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
             )
 
         # Should not call automation since seer_fixability_score is below MEDIUM threshold
+        mock_run_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @with_feature(
+        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
+    )
+    def test_triage_signals_skips_automation_for_old_issues(
+        self,
+        mock_run_automation,
+        mock_generate_summary_and_run_automation,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Test that automation is skipped for issues older than 14 days."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Old issue with >= 10 events
+        group = event.group
+        group.first_seen = timezone.now() - timedelta(days=20)
+        group.times_seen = 1
+        group.save()
+
+        from sentry import buffer
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Automation should be skipped for old issues
+        mock_generate_summary_and_run_automation.assert_not_called()
         mock_run_automation.assert_not_called()
 
 

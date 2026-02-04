@@ -50,7 +50,7 @@ export function ImageFixture(params: Partial<Image> = {}): Image {
       },
       {
         download: {
-          status: CandidateDownloadStatus.MALFORMED,
+          status: CandidateDownloadStatus.ERROR,
         },
         location: 'arizona',
         source: 'sentry://project_debug_file/20',

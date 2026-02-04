@@ -8,55 +8,57 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_ENTRIES = 1000
-LOGGING_ENTRIES = 50
-LOGGING_INTERVAL = 5  # seconds
+MAX_ENTRIES = 50
+LOGGING_INTERVAL = 60  # 1 minute in seconds
 
 
 class BufferLogger:
     """
-    Tracks slow EVALSHA operations and logs the most problematic
-    project/trace combinations.
+    Tracks EVALSHA operations and logs the dominant project and trace by
+    cumulative latency.
 
-    This logger keeps a bounded map (max 1000 entries) of project_and_trace keys
-    to their occurrence counts and maximum latencies. When the configured latency
-    threshold is exceeded, affected keys are recorded. Every 5 seconds, the top 50
-    entries by count are logged at INFO level, then the tracked data is cleared.
+    This logger keeps a bounded map (max 50 entries) of project_and_trace keys
+    to their occurrence counts and cumulative latencies.
+    Every minute the top 50 traces by cumulative latency are logged at INFO level.
     """
 
     def __init__(self) -> None:
-        self._data: dict[str, tuple[int, float]] = {}
+        self._data: dict[str, tuple[int, int]] = {}
         self._last_log_time: float | None = None
 
-    def log(self, project_and_trace: str, latency_ms: int) -> None:
+    def log(self, entries: list[tuple[str, int]]) -> None:
         """
-        Record a single EVALSHA operation and periodically log the top offenders.
+        Record a batch of EVALSHA operations and periodically log the top offenders.
+
+        :param entries: List of tuples containing (project_and_trace, latency_ms) pairs.
         """
-        if len(self._data) < MAX_ENTRIES:
-            threshold = options.get("spans.buffer.evalsha-latency-threshold")
 
-            if latency_ms <= threshold:
-                return
+        if not options.get("spans.buffer.evalsha-cumulative-logger-enabled"):
+            return
 
-            if not self._last_log_time:
-                self._last_log_time = time.time()
+        if not self._last_log_time:
+            self._last_log_time = time.time()
 
+        for project_and_trace, latency_ms in entries:
             if project_and_trace in self._data:
-                count, max_latency = self._data[project_and_trace]
-                self._data[project_and_trace] = (count + 1, max(max_latency, latency_ms))
+                count, cumulative_latency = self._data[project_and_trace]
+                self._data[project_and_trace] = (count + 1, cumulative_latency + latency_ms)
             else:
                 self._data[project_and_trace] = (1, latency_ms)
 
-        if time.time() - (self._last_log_time or 0.0) >= LOGGING_INTERVAL:
-            if len(self._data) > LOGGING_ENTRIES:
-                sorted_items = sorted(self._data.items(), key=lambda x: x[1][0], reverse=True)
-            else:
-                sorted_items = list(self._data.items())
+        if len(self._data) > MAX_ENTRIES:
+            sorted_items = sorted(self._data.items(), key=lambda x: x[1][1], reverse=True)
+            keys_to_remove = [key for key, _ in sorted_items[MAX_ENTRIES:]]
+            for key in keys_to_remove:
+                del self._data[key]
+
+        if time.time() - self._last_log_time >= LOGGING_INTERVAL:
+            sorted_items = sorted(self._data.items(), key=lambda x: x[1][1], reverse=True)
 
             if len(sorted_items) > 0:
                 entries_str = [
-                    f"{key}:{count}:{max_latency}"
-                    for key, (count, max_latency) in sorted_items[:50]
+                    f"{key}:{count}:{cumulative_latency}"
+                    for key, (count, cumulative_latency) in sorted_items
                 ]
 
                 logger.info(
@@ -138,3 +140,52 @@ def emit_observability_metrics(
     for data_point in longest_evalsha_data[2]:  # gauge_metrics
         key = data_point[0].decode("utf-8")
         metrics.gauge(f"spans.buffer.process_spans.longest_evalsha.{key}", data_point[1])
+
+
+ZSET_TO_SET_KEY_MAPPING: dict[str, str] = {
+    "zpopcalls": "set_spopcalls",
+    "zunionstore_step_latency_ms": "set_sunionstore_step_latency_ms",
+    "zpopmin_step_latency_ms": "set_spop_step_latency_ms",
+}
+
+
+def compare_metrics(
+    zset_metrics: list[EvalshaData],
+    set_metrics: list[EvalshaData],
+) -> None:
+    """
+    Reports the difference (SET - ZSET) between metrics.
+
+    SET metrics are expected to have a "set_" prefix (e.g., "set_redirect_depth").
+    Special cases are handled via ZSET_TO_SET_KEY_MAPPING.
+    """
+    differences: dict[str, tuple[float, float, float, float]] = {}
+
+    for zset_evalsha, set_evalsha in zip(zset_metrics, set_metrics):
+        set_dict: dict[str, float] = {
+            raw_key.decode("utf-8"): value for raw_key, value in set_evalsha
+        }
+
+        for raw_key, zset_value in zset_evalsha:
+            zset_key = raw_key.decode("utf-8")
+            set_key = ZSET_TO_SET_KEY_MAPPING.get(zset_key, f"set_{zset_key}")
+
+            if set_key not in set_dict:
+                continue
+
+            diff = set_dict[set_key] - zset_value
+
+            if zset_key not in differences:
+                differences[zset_key] = (diff, diff, diff, 1.0)
+            else:
+                differences[zset_key] = (
+                    min(differences[zset_key][0], diff),
+                    max(differences[zset_key][1], diff),
+                    differences[zset_key][2] + diff,
+                    differences[zset_key][3] + 1.0,
+                )
+
+    for key, (min_val, max_val, sum_val, count) in differences.items():
+        metrics.gauge(f"spans.buffer.set_vs_zset.min_{key}", min_val)
+        metrics.gauge(f"spans.buffer.set_vs_zset.max_{key}", max_val)
+        metrics.gauge(f"spans.buffer.set_vs_zset.avg_{key}", sum_val / count)

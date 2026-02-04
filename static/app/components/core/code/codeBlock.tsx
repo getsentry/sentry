@@ -3,9 +3,9 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -183,7 +183,7 @@ export function CodeBlock({
           <CopyButton
             type="button"
             size="xs"
-            borderless
+            priority="transparent"
             onClick={handleCopy}
             title={tooltipTitle}
             tooltipProps={{position: 'left'}}

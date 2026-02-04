@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.utils import get_date_range_from_params
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodArtifactApiListBuildsEvent
@@ -134,10 +135,14 @@ class OrganizationPreprodListBuildsEndpoint(OrganizationEndpoint):
             )
 
             if search_term.isdigit():
-                search_query |= Q(
-                    commit_comparison__pr_number=int(search_term),
-                    commit_comparison__organization_id=organization.id,
-                )
+                search_id = int(search_term)
+                # Skip if value exceeds max for BoundedBigIntegerField
+                if search_id <= I64_MAX:
+                    search_query |= Q(id=search_id)
+                    search_query |= Q(
+                        commit_comparison__pr_number=search_id,
+                        commit_comparison__organization_id=organization.id,
+                    )
             queryset = queryset.filter(search_query)
 
         state = params.get("state")

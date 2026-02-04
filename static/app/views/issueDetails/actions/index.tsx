@@ -2,6 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addLoadingMessage,
@@ -17,9 +20,6 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
@@ -397,10 +397,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs">
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
-          <ResolvedActionWapper>
+          <Flex align="center" gap="md">
             <ResolvedWrapper>
               <IconCheckmark size="md" />
               <Flex direction="column">
@@ -443,7 +443,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 {isResolved ? t('Unresolve') : t('Unarchive')}
               </Button>
             )}
-          </ResolvedActionWapper>
+          </Flex>
         ) : (
           <Fragment>
             {resolveCap.enabled && (
@@ -679,15 +679,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           )}
         </Fragment>
       )}
-    </ActionWrapper>
+    </Flex>
   );
 }
-
-const ActionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
 
 const ResolvedWrapper = styled('div')`
   display: flex;
@@ -696,12 +690,6 @@ const ResolvedWrapper = styled('div')`
   color: ${p => p.theme.colors.green500};
   font-weight: bold;
   font-size: ${p => p.theme.font.size.lg};
-`;
-
-const ResolvedActionWapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ReasonBanner = styled('div')`

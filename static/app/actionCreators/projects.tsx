@@ -14,6 +14,7 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -302,7 +303,15 @@ function makeProjectTeamsQueryKey({
   projectSlug: string;
   cursor?: string;
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/teams/`, {query: {cursor}}];
+  return [
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/', {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: projectSlug,
+      },
+    }),
+    {query: {cursor}},
+  ];
 }
 
 export function useFetchProjectTeams({

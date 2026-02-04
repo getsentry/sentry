@@ -7,13 +7,13 @@ import {useTreeState} from '@react-stately/tree';
 
 import error from 'sentry-images/spot/computer-missing.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {ListBox} from '@sentry/scraps/compactSelect';
 import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
-import {Button} from 'sentry/components/core/button';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -117,7 +117,7 @@ export function CommandPaletteList({
         >
           {selectedAction && (
             <Button
-              borderless
+              priority="transparent"
               size="sm"
               icon={<IconArrow direction="left" />}
               onClick={() => {

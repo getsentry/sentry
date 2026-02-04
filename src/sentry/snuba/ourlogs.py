@@ -39,7 +39,6 @@ class OurLogs(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
@@ -80,5 +79,5 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 additional_queries=additional_queries,
             ),
-            debug=debug,
+            debug=params.debug,
         )

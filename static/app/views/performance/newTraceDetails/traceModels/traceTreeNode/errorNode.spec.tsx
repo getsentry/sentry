@@ -462,7 +462,7 @@ describe('ErrorNode', () => {
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
 
-      expect(node.makeBarColor(theme)).toBe(theme.tokens.background.warning.vibrant);
+      expect(node.makeBarColor(theme)).toBe(theme.level.orange);
     });
 
     it('should return semantic bad token for fatal level', () => {
@@ -559,7 +559,7 @@ describe('ErrorNode', () => {
       const theme = ThemeFixture();
 
       expect(warningNode.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.meh);
-      expect(errorNode.makeBarColor(theme)).toBe(theme.tokens.background.warning.vibrant);
+      expect(errorNode.makeBarColor(theme)).toBe(theme.level.orange);
     });
 
     it('should use warning vibrant token for error and semantic bad token for fatal', () => {
@@ -577,7 +577,7 @@ describe('ErrorNode', () => {
       const fatalNode = new ErrorNode(null, fatalValue, extra);
       const theme = ThemeFixture();
 
-      expect(errorNode.makeBarColor(theme)).toBe(theme.tokens.background.warning.vibrant);
+      expect(errorNode.makeBarColor(theme)).toBe(theme.level.orange);
       expect(fatalNode.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.bad);
     });
   });

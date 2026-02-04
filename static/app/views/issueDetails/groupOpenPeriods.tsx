@@ -1,66 +1,88 @@
-import {useState} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {GroupOpenPeriodActivity} from 'sentry/types/group';
+import {getShortEventId} from 'sentry/utils/events';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {unreachable} from 'sentry/utils/unreachable';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 
 interface OpenPeriodDisplayData {
-  duration: React.ReactNode;
+  description: string;
   end: React.ReactNode;
+  eventId: React.ReactNode;
   start: React.ReactNode;
-  title: React.ReactNode;
+}
+
+function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): string {
+  switch (activity.type) {
+    case 'opened':
+      return t('Issue regressed');
+    case 'closed':
+      return t('Resolved');
+    case 'status_change':
+      return t('Priority updated to %s', activity.value);
+    default:
+      unreachable(activity.type);
+      return t('Updated');
+  }
 }
 
 // TODO(snigdha): make this work for the old UI
-// TODO(snigdha): support pagination
 function IssueOpenPeriodsList() {
-  const [now] = useState(() => new Date());
+  const organization = useOrganization();
+  const location = useLocation();
   const params = useParams<{groupId: string}>();
   const {
-    data: openPeriods,
+    data: openPeriods = [],
     isPending,
-    isError,
-    refetch,
+    error,
+    getResponseHeader,
   } = useOpenPeriods({
     groupId: params.groupId,
+    cursor: location.query?.cursor as string | undefined,
+    limit: 10,
   });
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
+  const data: OpenPeriodDisplayData[] = openPeriods.flatMap(period => {
+    const periodActivities = orderBy(
+      period.activities.filter(activity => activity.type !== 'closed'),
+      'dateCreated',
+      'desc'
+    );
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
+    return periodActivities.map((activity, index) => {
+      const startDate = new Date(activity.dateCreated);
+      const endDate =
+        index === 0 ? (period.end ? new Date(period.end) : undefined) : undefined;
 
-  const getDuration = (start: Date, end?: Date) => {
-    const duration = end
-      ? (end.getTime() - start.getTime()) / 1000
-      : (now.getTime() - start.getTime()) / 1000;
-
-    return <Duration seconds={duration} precision="minutes" exact />;
-  };
-
-  const data: OpenPeriodDisplayData[] = openPeriods.map(period => {
-    const startDate = new Date(period.start);
-    const endDate = period.end ? new Date(period.end) : undefined;
-
-    return {
-      title: <DateTime date={startDate} />,
-      start: <DateTime date={startDate} />,
-      end: endDate ? <DateTime date={endDate} /> : '—',
-      duration: getDuration(startDate, endDate),
-    };
+      return {
+        openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
+        eventId: activity.eventId ? (
+          <Link
+            to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
+          >
+            {getShortEventId(activity.eventId)}
+          </Link>
+        ) : (
+          '—'
+        ),
+        description: getOpenPeriodActivityTypeLabel(activity),
+        start: <DateTime date={startDate} />,
+        end: endDate ? <DateTime date={endDate} /> : undefined,
+      };
+    });
   });
 
   const renderHeadCell = (col: GridColumnOrder) => {
@@ -72,19 +94,39 @@ function IssueOpenPeriodsList() {
     dataRow: OpenPeriodDisplayData
   ) => {
     const column = col.key as keyof OpenPeriodDisplayData;
+
     return <AlignLeft>{dataRow[column]}</AlignLeft>;
   };
 
+  const links = parseLinkHeader(getResponseHeader?.('Link') ?? '');
+  const totalCount = getResponseHeader?.('X-Hits') ?? undefined;
+  const previousDisabled = links.previous?.results === false;
+  const nextDisabled = links.next?.results === false;
+
   return (
-    <EventListTable title={t('All Open Periods')} pagination={{enabled: false}}>
+    <EventListTable
+      title={t('All Open Periods')}
+      pagination={{
+        enabled: true,
+        links,
+        paginatorType: 'offset',
+        pageCount: openPeriods.length,
+        totalCount,
+        previousDisabled,
+        nextDisabled,
+        tableUnits: t('open periods'),
+      }}
+    >
       <GridEditable
         isLoading={isPending}
         data={data}
+        error={error}
         columnOrder={[
-          {key: 'title', width: COL_WIDTH_UNDEFINED, name: t('Title')},
+          {key: 'openPeriod', width: COL_WIDTH_UNDEFINED, name: t('Open Period')},
+          {key: 'eventId', width: 100, name: t('Event ID')},
+          {key: 'description', width: COL_WIDTH_UNDEFINED, name: t('Description')},
           {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
           {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
-          {key: 'duration', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
         ]}
         columnSortBy={[]}
         grid={{
@@ -100,4 +142,5 @@ const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
 `;
+
 export default IssueOpenPeriodsList;

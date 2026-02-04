@@ -1,15 +1,16 @@
-import {memo, useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -50,16 +51,39 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       setConversationDrawerQueryState({
         spanId: node.id,
       });
-      trackAnalytics('agent-monitoring.conversation-drawer.span-select', {
+      trackAnalytics('conversations.drawer.span-select', {
         organization,
       });
     },
     [setConversationDrawerQueryState, organization]
   );
 
-  const selectedNode =
-    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
-    getDefaultSelectedNode(nodes);
+  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+
+  const selectedNode = useMemo(() => {
+    if (selectedNodeKey) {
+      const found = nodes.find(node => node.id === selectedNodeKey);
+      if (found) {
+        return found;
+      }
+    }
+    return nodes.find(node => node.id === defaultNodeId);
+  }, [nodes, selectedNodeKey, defaultNodeId]);
+
+  useEffect(() => {
+    if (isLoading || !defaultNodeId) {
+      return;
+    }
+
+    const isCurrentSpanValid =
+      selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
+
+    if (!isCurrentSpanValid) {
+      setConversationDrawerQueryState({
+        spanId: defaultNodeId,
+      });
+    }
+  }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
 
   return (
     <Stack height="100%">
@@ -94,9 +118,18 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions) => {
-      trackAnalytics('agent-monitoring.conversation-drawer.open', {
+    ({
+      conversation,
+      initialSpanId,
+      source,
+    }: {
+      conversation: UseConversationsOptions;
+      source: ConversationDrawerOpenSource;
+      initialSpanId?: string;
+    }) => {
+      trackAnalytics('conversations.drawer.open', {
         organization,
+        source,
       });
 
       return openDrawer(() => <ConversationDrawerContent conversation={conversation} />, {
@@ -106,6 +139,7 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
+        spanId: initialSpanId,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -113,9 +147,13 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId} = drawerUrlState;
+    const {conversationId, spanId} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId});
+      openConversationViewDrawer({
+        conversation: {conversationId},
+        initialSpanId: spanId ?? undefined,
+        source: 'direct_link',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -144,6 +182,20 @@ function ConversationView({
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
+  const handleTabChange = useCallback(
+    (newTab: ConversationTab) => {
+      if (activeTab !== newTab) {
+        trackAnalytics('conversations.drawer.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: newTab,
+        });
+      }
+      setActiveTab(newTab);
+    },
+    [organization, activeTab]
+  );
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" flex="1" height="100%">
@@ -165,7 +217,7 @@ function ConversationView({
       <LeftPanel>
         <StyledTabs
           value={activeTab}
-          onChange={key => setActiveTab(key as ConversationTab)}
+          onChange={key => handleTabChange(key as ConversationTab)}
         >
           <Container padding="xs lg">
             <TabList>

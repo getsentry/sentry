@@ -4,6 +4,7 @@ import type {
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
+import {createEmptyAssertionRoot} from 'sentry/views/alerts/rules/uptime/assertions/field';
 import type {Assertion} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
@@ -32,7 +33,7 @@ interface UptimeDetectorFormData {
 
 type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
 
-const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
+export const DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP: {
   [K in UptimeDetectorFormFieldName]: UptimeDetectorFormData[K];
 } = {
   assertion: null,
@@ -71,6 +72,12 @@ export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName
 export function uptimeFormDataToEndpointPayload(
   data: UptimeDetectorFormData
 ): UptimeDetectorUpdatePayload {
+  // Convert empty assertion structure to null. This handles the case when:
+  // 1. The assertions field isn't rendered (feature flag off) - the field's getValue
+  //    transform doesn't run, so the empty structure from savedDetectorToFormData persists
+  // 2. The user deleted all assertions (getValue in the field also does this conversion)
+  const assertion = data.assertion?.root?.children?.length === 0 ? null : data.assertion;
+
   return {
     type: 'uptime_domain_failure',
     name: data.name || 'New Monitor',
@@ -87,7 +94,7 @@ export function uptimeFormDataToEndpointPayload(
         url: data.url,
         headers: data.headers,
         body: data.body || null,
-        assertion: data.assertion,
+        assertion,
       },
     ],
     config: {
@@ -129,7 +136,9 @@ export function uptimeSavedDetectorToFormData(
       url: dataSource.queryObj.url,
       headers: dataSource.queryObj.headers,
       body: dataSource.queryObj.body ?? '',
-      assertion: dataSource.queryObj.assertion ?? null,
+      // Use empty assertion structure for null - FormField converts null to '' which
+      // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+      assertion: dataSource.queryObj.assertion ?? {root: createEmptyAssertionRoot()},
       workflowIds: detector.workflowIds,
     };
   }
@@ -143,7 +152,9 @@ export function uptimeSavedDetectorToFormData(
     url: 'https://example.com',
     headers: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.headers,
     body: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.body,
-    assertion: DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP.assertion,
+    // Use empty assertion structure for consistency with the main case above.
+    // null would cause a crash in getValue when accessing value.root.children.length
+    assertion: {root: createEmptyAssertionRoot()},
     workflowIds: detector.workflowIds,
   };
 }

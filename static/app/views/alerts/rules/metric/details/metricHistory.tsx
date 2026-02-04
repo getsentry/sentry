@@ -3,8 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Link} from '@sentry/scraps/link';
+
 import CollapsePanel from 'sentry/components/collapsePanel';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';

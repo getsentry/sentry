@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import Pagination from 'sentry/components/pagination';
@@ -478,9 +480,9 @@ export function UsageStatsProjects({
   return (
     <Fragment>
       {isSingleProject && (
-        <PanelHeading>
+        <Flex align="center" marginBottom="xl">
           <Title>{t('All Projects')}</Title>
-        </PanelHeading>
+        </Flex>
       )}
       {!isSingleProject && (
         <Container>
@@ -520,11 +522,5 @@ const Title = styled('div')`
   color: ${p => p.theme.colors.gray500};
   display: flex;
   flex: 1;
-  align-items: center;
-`;
-
-const PanelHeading = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
   align-items: center;
 `;
