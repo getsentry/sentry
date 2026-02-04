@@ -1,0 +1,214 @@
+import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Link} from '@sentry/scraps/link';
+
+import IdBadge from 'sentry/components/idBadge';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {Team} from 'sentry/types/organization';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {
+  useJoinTeam,
+  useRequestTeamAccess,
+} from 'sentry/views/settings/organizationTeams/hooks/useTeamMembership';
+import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
+
+interface OtherTeamsTableProps {
+  allTeamsCount: number;
+  hasSearch: boolean;
+  openMembership: boolean;
+  teams: Team[];
+}
+
+export function OtherTeamsTable({
+  teams,
+  openMembership,
+  hasSearch,
+  allTeamsCount,
+}: OtherTeamsTableProps) {
+  const {projects} = useProjects();
+
+  // Don't show this table if no teams exist at all (YourTeamsTable handles that message)
+  if (allTeamsCount === 0 && !hasSearch) {
+    return null;
+  }
+
+  const renderEmptyState = () => {
+    if (hasSearch) {
+      return <SimpleTable.Empty>{t('No teams match your search.')}</SimpleTable.Empty>;
+    }
+
+    // User is a member of all teams
+    return <SimpleTable.Empty>{t("You're a member of all teams.")}</SimpleTable.Empty>;
+  };
+
+  return (
+    <StyledSimpleTable>
+      <SimpleTable.Header>
+        <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell data-column-name="role" />
+        <SimpleTable.HeaderCell data-column-name="projects">
+          {t('Projects')}
+        </SimpleTable.HeaderCell>
+        <SimpleTable.HeaderCell />
+      </SimpleTable.Header>
+      {teams.length === 0
+        ? renderEmptyState()
+        : teams.map(team => (
+            <OtherTeamRow
+              key={team.slug}
+              team={team}
+              openMembership={openMembership}
+              projects={projects}
+            />
+          ))}
+    </StyledSimpleTable>
+  );
+}
+
+function OtherTeamRow({
+  team,
+  openMembership,
+  projects,
+}: {
+  openMembership: boolean;
+  projects: ReturnType<typeof useProjects>['projects'];
+  team: Team;
+}) {
+  const organization = useOrganization();
+  const theme = useTheme();
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+
+  const {mutate: joinTeam, isPending: isJoinPending} = useJoinTeam({organization, team});
+  const {mutate: requestAccess, isPending: isRequestPending} = useRequestTeamAccess({
+    organization,
+    team,
+  });
+
+  const teamProjects = useMemo(() => {
+    return projects.filter(p => p.teams.some(tm => tm.slug === team.slug));
+  }, [projects, team.slug]);
+
+  const isIdpProvisioned = team.flags['idp:provisioned'];
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
+  const canViewTeam = team.hasAccess;
+  const isLoading = isJoinPending || isRequestPending;
+  const actionSize = isMobile ? 'xs' : 'sm';
+
+  const badge = (
+    <IdBadge
+      team={team}
+      avatarSize={36}
+      description={tn('%s Member', '%s Members', team.memberCount)}
+    />
+  );
+
+  const renderAction = () => {
+    if (isLoading) {
+      return (
+        <Button size="sm" disabled>
+          ...
+        </Button>
+      );
+    }
+
+    if (team.isPending) {
+      return (
+        <Button
+          size={actionSize}
+          disabled
+          title={t(
+            'Your request to join this team is being reviewed by organization owners'
+          )}
+        >
+          {t('Request Pending')}
+        </Button>
+      );
+    }
+
+    if (openMembership) {
+      return (
+        <Button
+          aria-label={t('Join Team')}
+          size={actionSize}
+          onClick={() => joinTeam()}
+          disabled={isIdpProvisioned}
+          title={buttonHelpText}
+        >
+          {t('Join Team')}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        aria-label={t('Request Access')}
+        size={actionSize}
+        onClick={() => requestAccess()}
+        disabled={isIdpProvisioned}
+        title={buttonHelpText}
+      >
+        {t('Request Access')}
+      </Button>
+    );
+  };
+
+  return (
+    <SimpleTable.Row>
+      {canViewTeam && <InteractionStateLayer />}
+      <SimpleTable.RowCell>
+        {canViewTeam ? (
+          <TeamLink
+            data-test-id="team-link"
+            to={`/settings/${organization.slug}/teams/${team.slug}/`}
+          >
+            {badge}
+          </TeamLink>
+        ) : (
+          badge
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="role">{null}</SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="projects">
+        <TeamProjectsCell
+          projects={teamProjects}
+          teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
+        />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">{renderAction()}</SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
+
+const StyledSimpleTable = styled(SimpleTable)`
+  grid-template-columns: 1fr 125px 150px 130px;
+  margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr 125px 130px;
+
+    [data-column-name='projects'] {
+      display: none;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr auto;
+
+    [data-column-name='role'] {
+      display: none;
+    }
+  }
+`;
+
+const TeamLink = styled(Link)`
+  ${SimpleTable.rowLinkStyle}
+`;
