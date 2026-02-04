@@ -25,7 +25,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, hook: ServiceHook, **kwargs) -> Response:
+    def get(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Retrieve a Service Hook
         ```````````````````````
@@ -41,7 +41,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
         """
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def put(self, request: Request, project: Project, hook: ServiceHook) -> Response:
+    def put(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Update a Service Hook
         `````````````````````
@@ -89,7 +89,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
 
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def delete(self, request: Request, project: Project, hook: ServiceHook) -> Response:
+    def delete(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Remove a Service Hook
         `````````````````````
