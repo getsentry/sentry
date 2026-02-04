@@ -158,7 +158,7 @@ def _validate_check_config(
     validated_data = attrs
     if uptime_subscription is not None:
         validated_data = {}
-        validated_data["url"] = (attrs.get("url", uptime_subscription.url),)
+        validated_data["url"] = attrs.get("url", uptime_subscription.url)
         validated_data["interval_seconds"] = attrs.get(
             "interval_seconds", uptime_subscription.interval_seconds
         )
