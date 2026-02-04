@@ -4421,9 +4421,7 @@ class PostProcessGroupInstrumentationIssueTest(
         group_event.occurrence = occurrence
         return group_event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         with self.feature(
             InstrumentationIssueExperimentalGroupType.build_post_process_group_feature_name()
         ):
@@ -4437,7 +4435,6 @@ class PostProcessGroupInstrumentationIssueTest(
                 project_id=event.group.project_id,
                 eventstream_type=EventStreamEventType.Generic.value,
             )
-        return cache_key
 
     @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
