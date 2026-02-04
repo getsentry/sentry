@@ -94,7 +94,7 @@ export function MetricSelector({
       options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
       loading={isFetching}
-      menuTitle={t('Metric')}
+      menuTitle={t('Metrics')}
       onSearch={debouncedSetSearch}
       onChange={option => {
         if ('metricType' in option) {
