@@ -4,6 +4,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -19,6 +20,7 @@ import {
   RepositoryStatus,
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -97,6 +99,19 @@ export default function SeerRepoTableRow({
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
+        <Text size="sm">
+          {repository.settings?.codeReviewTriggers
+            .sort()
+            .map(triggerToLabel)
+            .map((label, index, array) => (
+              <div key={label}>
+                {label}
+                {index === array.length - 1 ? '' : ', '}
+              </div>
+            ))}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <Switch
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
@@ -145,6 +160,17 @@ export default function SeerRepoTableRow({
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
+}
+
+function triggerToLabel(trigger: CodeReviewTrigger) {
+  switch (trigger) {
+    case 'on_new_commit':
+      return t('On New Commit');
+    case 'on_ready_for_review':
+      return t('On Ready for Review');
+    default:
+      return trigger;
+  }
 }
 
 const CheckboxClickTarget = styled('label')`
