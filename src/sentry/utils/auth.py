@@ -48,6 +48,12 @@ def _sso_expiry_from_env(seconds: str | None) -> timedelta:
 
 SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS)
 
+# Provider-specific SSO expiry times
+# SAML: 7 days - no refresh mechanism, expiry is the only re-auth trigger
+# OAuth: 14 days - these providers refresh tokens every 24h via check_auth task
+SSO_EXPIRY_TIME_SAML = timedelta(days=7)
+SSO_EXPIRY_TIME_OAUTH = timedelta(days=14)
+
 
 class SsoSession:
     """
@@ -78,8 +84,10 @@ class SsoSession:
             datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
         )
 
-    def is_sso_authtime_fresh(self) -> bool:
-        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+    def is_sso_authtime_fresh(self, expiry_time: timedelta | None = None) -> bool:
+        if expiry_time is None:
+            expiry_time = SSO_EXPIRY_TIME
+        expired_time_cutoff = datetime.now(tz=timezone.utc) - expiry_time
 
         return self.authenticated_at_time > expired_time_cutoff
 
@@ -256,7 +264,20 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
         organization_id, sso_session_in_request
     )
 
-    if not django_session_value.is_sso_authtime_fresh():
+    # Determine expiry based on provider type:
+    # - SAML providers: 7 days (no refresh mechanism)
+    # - OAuth providers: 14 days (refresh tokens every 24h via check_auth task)
+    from sentry.models.authprovider import AuthProvider
+
+    try:
+        auth_provider = AuthProvider.objects.get(organization_id=organization_id)
+        provider = auth_provider.get_provider()
+        expiry_time = SSO_EXPIRY_TIME_SAML if provider.is_saml else SSO_EXPIRY_TIME_OAUTH
+    except AuthProvider.DoesNotExist:
+        # Default to stricter SAML expiry if no provider found
+        expiry_time = SSO_EXPIRY_TIME_SAML
+
+    if not django_session_value.is_sso_authtime_fresh(expiry_time):
         metrics.incr("sso.session-timed-out")
         return False
 
