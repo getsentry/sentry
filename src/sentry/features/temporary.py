@@ -94,8 +94,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-basic", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable categorical bar charts for dashboards
     manager.add("organizations:dashboards-categorical-bar-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable chart legend breakdown for dashboards
-    manager.add("organizations:dashboards-chart-legend-breakdown", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables custom editable dashboards
     manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enables global filters for dashboards
@@ -313,6 +311,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-mobile-session-health-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable web vitals module dashboard on dashboards platform
     manager.add("organizations:insights-web-vitals-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable frontend overview dashboard on dashboards platform
+    manager.add("organizations:insights-frontend-overview-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable sentry convention fields
