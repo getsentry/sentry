@@ -94,7 +94,11 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return features.has("organizations:seer-slack-workflows", organization)
+        has_feature_flag = features.has("organizations:seer-slack-workflows", organization)
+        has_enhanced_alerts = bool(
+            organization.get_option("sentry:enable_seer_enhanced_alerts", default=True)
+        )
+        return has_feature_flag and has_enhanced_alerts
 
     @staticmethod
     def get_group_link(group: Group) -> str:
