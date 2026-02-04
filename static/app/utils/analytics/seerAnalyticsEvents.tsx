@@ -45,6 +45,12 @@ export type SeerAnalyticsEventsParameters = {
     step_type: 'root_cause' | 'solution' | 'changes';
     user_id: string;
   };
+  'seer.config_reminder.rendered': {
+    has_code_review_beta: boolean;
+    has_legacy_seer: boolean;
+    has_seat_based_seer: boolean;
+    initial_step: string;
+  };
   'seer.explorer.feedback_submitted': {
     block_index: number;
     block_message: string;
@@ -85,6 +91,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
+  'seer.config_reminder.rendered': 'Navigation: Primary Item Rendered',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
