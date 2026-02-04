@@ -60,6 +60,28 @@ class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
         return self._key
 
 
+def _invalidate_all_environments(detector_id: int) -> bool:
+    """
+    Invalidate all cache entries for a detector across all environments.
+
+    TODO - track keys in redis on create to remove DB look-ups
+    """
+    environment_ids = (
+        DetectorWorkflow.objects.filter(detector_id=detector_id)
+        .select_related("workflow")
+        .values_list("workflow__environment_id", flat=True)
+    )
+
+    keys = {_WorkflowCacheAccess(detector_id, env_id).key() for env_id in environment_ids}
+    keys.add(_WorkflowCacheAccess(detector_id, None).key())
+
+    if keys:
+        cache.delete_many(keys)
+        metrics_incr(f"{METRIC_PREFIX}.invalidated_all", value=len(keys))
+
+    return len(keys) > 0
+
+
 @scopedstats.timer()
 def invalidate_processing_workflows(
     detector_id: int, env_id: int | None | Literal["default"] = DEFAULT_VALUE
@@ -78,28 +100,12 @@ def invalidate_processing_workflows(
     Returns:
         True if at least one cache entry was deleted, False otherwise
     """
+
+    if env_id == DEFAULT_VALUE:
+        return _invalidate_all_environments(detector_id)
+
     metrics_incr(f"{METRIC_PREFIX}.invalidated")
-
-    if env_id is not DEFAULT_VALUE:
-        return _WorkflowCacheAccess(detector_id, env_id).delete()
-
-    # TODO - track keys in redis on create to remove DB look-ups
-    # Lookup all of the environment_ids associated with the Detector
-    environment_ids = (
-        DetectorWorkflow.objects.filter(detector_id=detector_id)
-        .select_related("workflow")
-        .values_list("workflow__environment_id", flat=True)
-    )
-
-    # Build the keys to invalidate, and ensure the `None` environment is accounted for
-    keys = {_WorkflowCacheAccess(detector_id, env_id).key() for env_id in environment_ids}
-    keys.add(_WorkflowCacheAccess(detector_id, None).key())
-
-    if keys:
-        cache.delete_many(keys)
-        metrics_incr(f"{METRIC_PREFIX}.keys_deleted", value=len(keys))
-
-    return len(keys) > 0
+    return _WorkflowCacheAccess(detector_id, env_id).delete()
 
 
 def _check_caches_for_detectors(

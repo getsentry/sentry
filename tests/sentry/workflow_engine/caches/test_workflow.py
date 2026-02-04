@@ -65,7 +65,7 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
 
         return env, workflow
 
-    def test_cache_invalidate__by_detector_and_env(self):
+    def test_cache_invalidate__by_detector_and_env(self) -> None:
         invalidate_processing_workflows(self.detector.id, self.environment.id)
 
         # Removes all items for the detector + env
@@ -74,7 +74,7 @@ class TestProcessingWorkflowCacheInvaliadation(TestCase):
         # Other value is still set
         assert self.cache_no_env.get() == self.cache_value
 
-    def test_cache_invalidate__by_detector(self):
+    def test_cache_invalidate__by_detector(self) -> None:
         env, workflow = self._env_and_workflow()
 
         workflow_cache = _WorkflowCacheAccess(self.detector.id, env.id)
@@ -280,8 +280,8 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
 
         result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
 
-        assert self.workflow1 in result.mapping.get(self.detector1.id)
-        assert workflow_no_env in result.mapping.get(self.detector1.id)
+        assert self.workflow1 in result.mapping.get(self.detector1.id, set())
+        assert workflow_no_env in result.mapping.get(self.detector1.id, set())
 
     def test_disabled_workflows_excluded(self) -> None:
         self.workflow1.enabled = False
