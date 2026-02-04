@@ -7,7 +7,7 @@ type Referrer = Literal["emerge", "shared"]
 type RepositoryId = int | tuple[ProviderName, ExternalId]
 
 
-class CommentAuthor(TypedDict):
+class Author(TypedDict):
     id: str
     username: str
 
@@ -15,10 +15,25 @@ class CommentAuthor(TypedDict):
 class Comment(TypedDict):
     id: str
     body: str
-    author: CommentAuthor
+    author: Author
     created_at: str
     updated_at: str
-    extra: dict[str, Any]
+    raw: dict[str, Any]
+
+
+class PullRequestBranch(TypedDict):
+    name: str
+    sha: str
+
+
+class PullRequest(TypedDict):
+    id: str
+    title: str
+    description: str | None
+    head: PullRequestBranch
+    base: PullRequestBranch
+    author: Author
+    raw: dict[str, Any]
 
 
 class Repository(TypedDict):
@@ -40,6 +55,8 @@ class Provider(Protocol):
     """
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
+
+    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest: ...
 
     def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]: ...
 

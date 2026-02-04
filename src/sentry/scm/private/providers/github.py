@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
-from sentry.scm.types import Comment, Provider, Reaction, Referrer, Repository
+from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
 
 REACTION_MAP = {
     "+1": GitHubReaction.PLUS_ONE,
@@ -20,8 +20,6 @@ REACTION_MAP = {
 #       remain unchanged.
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
-COMMENT_FIELDS = {"id", "body", "user", "created_at", "updated_at"}
-
 
 def _transform_comment(raw: dict[str, Any]) -> Comment:
     return Comment(
@@ -30,7 +28,19 @@ def _transform_comment(raw: dict[str, Any]) -> Comment:
         author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
         created_at=raw["created_at"],
         updated_at=raw["updated_at"],
-        extra={k: v for k, v in raw.items() if k not in COMMENT_FIELDS},
+        raw=raw,
+    )
+
+
+def _transform_pull_request(raw: dict[str, Any]) -> PullRequest:
+    return PullRequest(
+        id=str(raw["id"]),
+        title=raw["title"],
+        description=raw.get("body"),
+        head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
+        base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
+        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        raw=raw,
     )
 
 
@@ -62,6 +72,11 @@ class GitHubProvider(Provider):
     def delete_issue_comment(self, repository: Repository, comment_id: str) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
+
+    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        raw = self.client.get_pull_request(repository["name"], pull_request_id)
+        return _transform_pull_request(raw)
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
