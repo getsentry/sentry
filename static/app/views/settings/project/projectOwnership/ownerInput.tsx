@@ -247,7 +247,7 @@ const SyntaxOverlay = styled('div')<{line: number}>`
   top: ${({line}) => TEXTAREA_PADDING + line * TEXTAREA_LINE_HEIGHT + 1}px;
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
-  background-color: ${p => p.theme.tokens.content.danger};
+  background-color: ${p => p.theme.tokens.background.danger.vibrant};
   opacity: 0.1;
   pointer-events: none;
 `;

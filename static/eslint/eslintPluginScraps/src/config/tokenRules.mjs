@@ -30,6 +30,7 @@ const TOKEN_RULES = [
     keywords: ['content', 'link'],
     allowedProperties: new Set([
       'color',
+      'text-decoration',
       'text-decoration-color',
       'text-emphasis-color',
       'caret-color',

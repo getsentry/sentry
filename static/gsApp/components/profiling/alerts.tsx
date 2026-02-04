@@ -646,6 +646,7 @@ const Dot = styled('span')`
   border-radius: ${p => p.theme.radius.md};
   width: ${space(0.5)};
   height: ${space(0.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.content.primary};
 `;
 
