@@ -799,10 +799,12 @@ class TestRunTraceInstrumentationDetectorForProject(TestCase):
         assert call_kwargs.get("artifact_key") == "issues"
         assert call_kwargs.get("artifact_schema") == TraceInstrumentationResult
 
-        # Verify prompt includes trace data
+        # Verify prompt includes project context and trace data
         prompt = mock_client_instance.start_run.call_args[0][0]
         assert self.project.slug in prompt
         assert "DETECTION CRITERIA" in prompt
+        assert "span1" in prompt
+        assert "http.server" in prompt
 
         # Verify issues were created
         assert mock_create_issue.call_count == 2
