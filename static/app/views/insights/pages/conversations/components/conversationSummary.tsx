@@ -29,7 +29,7 @@ interface ConversationSummaryProps {
   isLoading?: boolean;
 }
 
-interface ConversationStats {
+interface ConversationAggregates {
   errorCount: number;
   llmCalls: number;
   toolCalls: number;
@@ -41,7 +41,7 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return node.attributes?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined;
 }
 
-function calculateStats(nodes: AITraceSpanNode[]): ConversationStats {
+function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
@@ -75,7 +75,7 @@ export function ConversationSummary({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const stats = useMemo(() => calculateStats(nodes), [nodes]);
+  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
 
   const baseQuery = `gen_ai.conversation.id:${conversationId}`;
@@ -99,7 +99,7 @@ export function ConversationSummary({
   });
 
   return (
-    <SummaryContainer>
+    <Flex align="center" gap="lg" flex={1}>
       <Flex align="center" gap="sm" flexShrink={0}>
         <Text size="lg" bold>
           {t('Conversation')}
@@ -109,53 +109,53 @@ export function ConversationSummary({
         </Text>
         <CopyToClipboardButton
           aria-label={t('Copy conversation ID')}
-          borderless
+          priority="transparent"
           size="zero"
           text={conversationId}
         />
       </Flex>
       <Divider />
-      <StatsRow>
-        <StatItem
+      <Flex align="center" gap="sm" wrap="wrap">
+        <AggregateItem
           icon={<IconChat size="sm" />}
           iconColor={colors[2]}
           label={t('LLM Calls')}
-          value={<Count value={stats.llmCalls} />}
-          to={stats.llmCalls > 0 ? llmCallsUrl : undefined}
+          value={<Count value={aggregates.llmCalls} />}
+          to={aggregates.llmCalls > 0 ? llmCallsUrl : undefined}
           isLoading={isLoading}
         />
-        <StatItem
+        <AggregateItem
           icon={<IconFix size="sm" />}
           iconColor={colors[5]}
           label={t('Tool Calls')}
-          value={<Count value={stats.toolCalls} />}
-          to={stats.toolCalls > 0 ? toolCallsUrl : undefined}
+          value={<Count value={aggregates.toolCalls} />}
+          to={aggregates.toolCalls > 0 ? toolCallsUrl : undefined}
           isLoading={isLoading}
         />
-        <StatItem
+        <AggregateItem
           icon={<IconFire size="sm" />}
-          iconColor={colors[6]}
+          iconColor={theme.colors.red400}
           label={t('Errors')}
-          value={<Count value={stats.errorCount} />}
-          to={stats.errorCount > 0 ? errorsUrl : undefined}
+          value={<Count value={aggregates.errorCount} />}
+          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           isLoading={isLoading}
         />
-        <StatItem
+        <AggregateItem
           label={t('Tokens')}
-          value={<Count value={stats.totalTokens} />}
+          value={<Count value={aggregates.totalTokens} />}
           isLoading={isLoading}
         />
-        <StatItem
+        <AggregateItem
           label={t('Cost')}
-          value={formatLLMCosts(stats.totalCost)}
+          value={formatLLMCosts(aggregates.totalCost)}
           isLoading={isLoading}
         />
-      </StatsRow>
-    </SummaryContainer>
+      </Flex>
+    </Flex>
   );
 }
 
-function StatItem({
+function AggregateItem({
   icon,
   iconColor,
   label,
@@ -173,15 +173,19 @@ function StatItem({
   const isInteractive = !!to && !isLoading;
 
   const content = (
-    <StatItemContainer isInteractive={isInteractive}>
-      {icon && <IconWrapper color={iconColor}>{icon}</IconWrapper>}
+    <AggregateItemContainer align="center" gap="xs" isInteractive={isInteractive}>
+      {icon && (
+        <Flex as="span" style={{color: iconColor}}>
+          {icon}
+        </Flex>
+      )}
       <Text variant="muted">{label}</Text>
       {isLoading ? (
         <Placeholder width="20px" height="16px" />
       ) : (
-        <StatValue isInteractive={isInteractive}>{value}</StatValue>
+        <AggregateValue isInteractive={isInteractive}>{value}</AggregateValue>
       )}
-    </StatItemContainer>
+    </AggregateItemContainer>
   );
 
   if (isInteractive) {
@@ -191,30 +195,13 @@ function StatItem({
   return content;
 }
 
-const SummaryContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-  flex: 1;
-`;
-
 const Divider = styled('div')`
   width: 1px;
   background-color: ${p => p.theme.tokens.border.primary};
   align-self: stretch;
 `;
 
-const StatsRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  flex-wrap: wrap;
-`;
-
-const StatItemContainer = styled('div')<{isInteractive?: boolean}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+const AggregateItemContainer = styled(Flex)<{isInteractive?: boolean}>`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
   transition: background 50ms ease-in-out;
@@ -232,12 +219,7 @@ const StatItemContainer = styled('div')<{isInteractive?: boolean}>`
     `}
 `;
 
-const IconWrapper = styled('span')<{color?: string}>`
-  display: flex;
-  color: ${p => p.color ?? 'inherit'};
-`;
-
-const StatValue = styled(Text)<{isInteractive?: boolean}>`
+const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>
     p.isInteractive &&
     css`
