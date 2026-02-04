@@ -4387,6 +4387,8 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
                     group_id=event.group_id,
                     error_type="future_timestamp",
                     platform="python",
+                    name="timestamp",
+                    value=None,
                 ),
             ]
             assert recorded_events == expected_events
