@@ -17,6 +17,7 @@ import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueu
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
 
@@ -140,6 +141,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -332,6 +334,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });

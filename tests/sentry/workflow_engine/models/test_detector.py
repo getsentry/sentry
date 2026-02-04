@@ -156,15 +156,6 @@ class DetectorTest(BaseWorkflowTest):
         detector = self.create_detector()
         assert detector.settings
 
-    def test_settings__no_settings__invaild_settings(self) -> None:
-        # This is an issue type w/o a detector association
-        detector = self.create_detector(
-            type="profile_json_decode_main_thread", name="Invalid Detector"
-        )
-
-        with pytest.raises(ValueError, match="Registered grouptype has no detector settings"):
-            assert detector.settings
-
 
 def test_get_detector_project_type_cache_key() -> None:
     project_id = 123

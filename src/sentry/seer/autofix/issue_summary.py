@@ -387,40 +387,12 @@ def run_automation(
         }
     )
 
-    # Only generate fixability if it doesn't already exist
-    fixability_score = get_and_update_group_fixability_score(group)
-
-    if (
-        not _is_issue_fixable(group, fixability_score)
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return
-
-    has_budget: bool = quotas.backend.check_seer_quota(
-        org_id=group.organization.id,
-        data_category=DataCategory.SEER_AUTOFIX,
-    )
-    if not has_budget:
-        return
-
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
-    if autofix_state:
-        return  # already have an autofix on this issue
-
-    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
-    if is_rate_limited:
+    if not is_group_triggering_automation(group):
         return
 
     stopping_point = None
     if is_seer_seat_based_tier_enabled(group.organization):
-        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-
-        # Fetch user preference and apply as upper bound
-        user_preference = _fetch_user_preference(group.project.id)
-
-        stopping_point = _apply_user_preference_upper_bound(
-            fixability_stopping_point, user_preference
-        )
+        stopping_point = get_automation_stopping_point(group)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -429,6 +401,48 @@ def run_automation(
         auto_run_source=auto_run_source,
         stopping_point=stopping_point,
     )
+
+
+def is_group_triggering_automation(group: Group) -> bool:
+    """
+    Checks if a group is eligible for automation.
+    Checks project options (fixability tuning, preferences), billing quota, and rate limiting.
+    Note: If an autofix run is currently in progress, returns False.
+    """
+    fixability_score = get_and_update_group_fixability_score(group)
+
+    if (
+        not _is_issue_fixable(group, fixability_score)
+        and not group.issue_type.always_trigger_seer_automation
+    ):
+        return False
+
+    has_budget: bool = quotas.backend.check_seer_quota(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        return False
+
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    if autofix_state:
+        return False  # already have an autofix on this issue
+
+    is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
+    if is_rate_limited:
+        return False
+
+    return True
+
+
+def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
+    """
+    Get the automation stopping point for a group.
+    """
+    fixability_score = get_and_update_group_fixability_score(group)
+    fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+    user_preference = _fetch_user_preference(group.project.id)
+    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 
 def _generate_summary(

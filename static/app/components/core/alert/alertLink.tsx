@@ -8,8 +8,10 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-interface BaseAlertLinkProps
-  extends Pick<AlertProps, 'system' | 'children' | 'trailingItems' | 'variant'> {}
+interface BaseAlertLinkProps extends Pick<
+  AlertProps,
+  'system' | 'children' | 'trailingItems' | 'variant'
+> {}
 
 interface ExternalAlertLinkProps extends BaseAlertLinkProps {
   href: string;

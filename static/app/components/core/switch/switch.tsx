@@ -4,8 +4,10 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconCheckmark, IconClose} from 'sentry/icons';
 
-export interface SwitchProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'onClick'> {
+export interface SwitchProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'size' | 'type' | 'onClick'
+> {
   ref?: React.Ref<HTMLInputElement>;
   size?: 'sm' | 'lg';
 }

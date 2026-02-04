@@ -9,6 +9,7 @@ from sentry.seer.explorer.client_utils import collect_user_org_context
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.requests import make_request
 from tests.sentry.utils.test_jwt import RS256_KEY
 
 RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
@@ -110,7 +111,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
 
-        # Verify client was called correctly
+        # Verify client was called correctly. Default org option for enable_seer_coding is True.
         mock_client_class.assert_called_once_with(
             self.organization, ANY, is_interactive=True, enable_coding=True
         )
@@ -120,6 +121,32 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             conduit_channel_id=None,
             conduit_url=None,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_with_coding_option(self, mock_client_class: MagicMock):
+        for i, option_value in enumerate([False, True]):
+            self.organization.update_option("sentry:enable_seer_coding", option_value)
+            mock_client = MagicMock()
+            mock_client.start_run.return_value = 456
+            mock_client_class.return_value = mock_client
+
+            data = {"query": "What is this error about?"}
+            response = self.client.post(self.url, data, format="json")
+
+            assert response.status_code == 200
+            assert response.data == {"run_id": 456}
+
+            # Verify client was called correctly with enable_coding matching option_value.
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization, ANY, is_interactive=True, enable_coding=option_value
+            )
+            mock_client.start_run.assert_called_once_with(
+                prompt="What is this error about?",
+                on_page_context=None,
+                conduit_channel_id=None,
+                conduit_url=None,
+            )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
     def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
@@ -136,7 +163,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
 
-        # Verify client was called correctly
+        # Verify client was called correctly. Default org option for enable_seer_coding is True.
         mock_client_class.assert_called_once_with(
             self.organization, ANY, is_interactive=True, enable_coding=True
         )
@@ -148,6 +175,39 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             conduit_channel_id=None,
             conduit_url=None,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_with_coding_option(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        for i, option_value in enumerate([False, True]):
+            self.organization.update_option("sentry:enable_seer_coding", option_value)
+            mock_client = MagicMock()
+            mock_client.continue_run.return_value = 789
+            mock_client_class.return_value = mock_client
+
+            data = {
+                "query": "Follow up question",
+                "insert_index": 2,
+            }
+            response = self.client.post(f"{self.url}789/", data, format="json")
+
+            assert response.status_code == 200
+            assert response.data == {"run_id": 789}
+
+            # Verify client was called correctly with enable_coding matching option_value.
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization, ANY, is_interactive=True, enable_coding=option_value
+            )
+            mock_client.continue_run.assert_called_once_with(
+                run_id=789,
+                prompt="Follow up question",
+                insert_index=2,
+                on_page_context=None,
+                conduit_channel_id=None,
+                conduit_url=None,
+            )
 
 
 class CollectUserOrgContextTest(APITestCase):
@@ -172,20 +232,24 @@ class CollectUserOrgContextTest(APITestCase):
 
         assert context is not None
         assert context["org_slug"] == self.organization.slug
-        assert context["user_id"] == self.user.id
-        assert context["user_name"] == self.user.name
-        assert context["user_email"] == self.user.email
-        assert context["user_timezone"] is None  # No timezone set by default
+        assert context.get("user_id") == self.user.id
+        assert context.get("user_name") == self.user.name
+        assert context.get("user_email") == self.user.email
+        assert context.get("user_timezone") is None  # No timezone set by default
+        assert context.get("user_ip") is None  # No IP address set by default
 
         # Should have exactly one team
+        assert "user_teams" in context
         assert len(context["user_teams"]) == 1
         assert context["user_teams"][0]["slug"] == self.team.slug
 
         # User projects should include project1 and project2 (both on self.team)
+        assert "user_projects" in context
         user_project_slugs = {p["slug"] for p in context["user_projects"]}
         assert user_project_slugs == {"project-1", "project-2"}
 
         # All org projects should include all 3 projects
+        assert "all_org_projects" in context
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
         all_project_ids = {p["id"] for p in context["all_org_projects"]}
@@ -203,6 +267,7 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
+        assert "user_teams" in context
         team_slugs = {t["slug"] for t in context["user_teams"]}
         assert team_slugs == {self.team.slug, "team-2"}
 
@@ -218,9 +283,10 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
-        assert context["user_teams"] == []
-        assert context["user_projects"] == []
+        assert context.get("user_teams") == []
+        assert context.get("user_projects") == []
         # All org projects should still be present
+        assert "all_org_projects" in context
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
@@ -235,4 +301,12 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
-        assert context["user_timezone"] == "America/Los_Angeles"
+        assert context.get("user_timezone") == "America/Los_Angeles"
+
+    def test_collect_context_with_request(self):
+        """Test context collection includes request metadata like IP address"""
+        request, _ = make_request()
+        context = collect_user_org_context(self.user, self.organization, request=request)
+
+        assert context is not None
+        assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
