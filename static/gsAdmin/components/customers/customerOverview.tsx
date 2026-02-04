@@ -482,9 +482,13 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       if (categoryInfo.canProductTrial) {
         return true;
       }
-      // Include admin-only product trials if the feature flag is enabled
+      // Include admin-only product trials if graduated (true) or feature flag is enabled
+      if (categoryInfo.adminOnlyProductTrialFeature === true) {
+        // Graduated flag - always include without feature flag check
+        return true;
+      }
       if (
-        categoryInfo.adminOnlyProductTrialFeature &&
+        typeof categoryInfo.adminOnlyProductTrialFeature === 'string' &&
         organization.features?.includes(categoryInfo.adminOnlyProductTrialFeature)
       ) {
         return true;
