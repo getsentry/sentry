@@ -1,7 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -88,14 +89,14 @@ const HeaderTitle = styled('div')`
 `;
 
 export const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.primary};
   display: block;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 export const ScoreWrapper = styled((props: FlexProps<'div'>) => {

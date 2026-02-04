@@ -1,8 +1,9 @@
 import moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

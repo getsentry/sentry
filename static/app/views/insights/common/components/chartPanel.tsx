@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ export default function ChartPanel({
               {button}
               <Button
                 aria-label={t('Expand Insight Chart')}
-                borderless
+                priority="transparent"
                 size="xs"
                 icon={<IconExpand />}
                 onClick={() => {
@@ -84,7 +84,7 @@ const SubtitleContainer = styled('div')`
 const ChartLabel = styled('div')`
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 

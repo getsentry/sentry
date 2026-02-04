@@ -788,6 +788,6 @@ export function ProductUsageChart({
 }
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: normal;
 `;

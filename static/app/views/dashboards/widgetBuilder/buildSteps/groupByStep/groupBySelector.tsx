@@ -3,8 +3,9 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

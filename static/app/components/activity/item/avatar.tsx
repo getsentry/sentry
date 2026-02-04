@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
+
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
@@ -18,11 +20,18 @@ export function ActivityAvatar({className, type, user, size = 38}: Props) {
   }
 
   if (type === 'system') {
-    // Return Sentry avatar
     return (
-      <SystemAvatar className={className} size={size}>
+      <Flex
+        className={className}
+        align="center"
+        justify="center"
+        width={`${size}px`}
+        height={`${size}px`}
+        background="primary"
+        radius="full"
+      >
         <StyledIconSentry size="md" />
-      </SystemAvatar>
+      </Flex>
     );
   }
 
@@ -35,21 +44,6 @@ export function ActivityAvatar({className, type, user, size = 38}: Props) {
     />
   );
 }
-
-type SystemAvatarProps = {
-  size: number;
-};
-
-const SystemAvatar = styled('span')<SystemAvatarProps>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  color: ${p => p.theme.tokens.background.primary};
-  background-color: ${p => p.theme.tokens.content.primary};
-  border-radius: 50%;
-`;
 
 const StyledIconSentry = styled(IconSentry)`
   padding-bottom: 3px;

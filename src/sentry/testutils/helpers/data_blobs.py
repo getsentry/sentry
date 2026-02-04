@@ -769,7 +769,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "targetIdentifier": "",
         "id": "sentry.mail.actions.NotifyEmailAction",
-        "fallthrough_type": "NoOne",
+        "fallthroughType": "NoOne",
         "uuid": "fb039430-0848-4fc4-89b4-bc7689a9f851",
     },
     # AllMembers Fallthrough (targetIdentifier is None)
@@ -785,7 +785,7 @@ EMAIL_ACTION_DATA_BLOBS: list[dict[str, Any]] = [
         "targetType": "IssueOwners",
         "id": "sentry.mail.actions.NotifyEmailAction",
         "targetIdentifier": "None",
-        "fallthrough_type": "NoOne",
+        "fallthroughType": "NoOne",
         "uuid": "99c9b517-0a0f-47f0-b3ff-2a9cd2fd9c49",
     },
     # ActiveMembers Fallthrough

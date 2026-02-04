@@ -1,0 +1,73 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2023-01-11",
+  "variants": {
+    "app_exception_message": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because custom client fingerprint takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "FailedToFetchError"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": "stripped event-specific values",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "FailedToFetchError: Charlie didn't bring <int> balls back!"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "exception message",
+      "hash": null,
+      "hint": "ignored because custom client fingerprint takes precedence",
+      "key": "app_exception_message",
+      "type": "component"
+    },
+    "custom_fingerprint": {
+      "client_values": [
+        "{{ message }}",
+        "dogs are great"
+      ],
+      "contributes": true,
+      "description": "custom fingerprint",
+      "hash": "69d81763f9ec386fc0c0607ef62cabfa",
+      "hint": null,
+      "key": "custom_fingerprint",
+      "type": "custom_fingerprint",
+      "values": [
+        "FailedToFetchError: Charlie didn't bring 2 balls back!",
+        "dogs are great"
+      ]
+    }
+  }
+}

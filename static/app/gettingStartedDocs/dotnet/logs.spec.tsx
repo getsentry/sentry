@@ -1,39 +1,37 @@
-// Only import and test functions that don't have circular dependencies
-const {dotnetLogs} = jest.requireActual('sentry/gettingStartedDocs/dotnet/logs');
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-describe('logs', () => {
-  const mockParams = {
-    dsn: {
-      public: 'https://test@example.com/123',
-    },
-    sourcePackageRegistries: {
-      isLoading: false,
-    },
-  };
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-  it('generates logs onboarding config with default parameters', () => {
-    const result = dotnetLogs();
+import docs from '.';
 
-    // Test install step
-    const installSteps = result.install(mockParams);
-    expect(installSteps).toHaveLength(1);
-    expect(installSteps[0].type).toBe('install');
-    expect(installSteps[0].content).toHaveLength(2);
+describe('dotnet logs onboarding docs', () => {
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
 
-    // Test configure step
-    const configureSteps = result.configure(mockParams);
-    expect(configureSteps).toHaveLength(1);
-    expect(configureSteps[0].type).toBe('configure');
-    expect(configureSteps[0].content[1].code).toContain('o.EnableLogs = true;');
-    expect(configureSteps[0].content[1].code).toContain(mockParams.dsn.public);
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).toBeInTheDocument();
+  });
 
-    // Test verify step
-    const verifySteps = result.verify({isLogsSelected: true});
-    expect(verifySteps).toHaveLength(1);
-    expect(verifySteps[0].type).toBe('verify');
-    expect(verifySteps[0].content).toHaveLength(1);
-    expect(verifySteps[0].content[0].type).toBe('conditional');
-    const conditionalContent = verifySteps[0].content[0].content;
-    expect(conditionalContent[1].code).toContain('SentrySdk.Logger.LogInfo');
+  it('does not render logs configuration when logs is not enabled', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(await screen.findByRole('heading', {name: 'Install'})).toBeInTheDocument();
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).not.toBeInTheDocument();
   });
 });

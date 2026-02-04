@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading} from 'sentry/components/core/text';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
+
 import {DebugNotificationsSearch} from 'sentry/debug/notifications/components/debugNotificationsSearch';
 import {IconGithub, IconLink, IconMoon} from 'sentry/icons';
 import ConfigStore from 'sentry/stores/configStore';

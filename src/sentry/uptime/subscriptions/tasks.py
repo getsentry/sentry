@@ -145,8 +145,10 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,
         "request_headers": subscription.headers,
         "trace_sampling": subscription.trace_sampling,
+        "capture_response_on_failure": subscription.capture_response_on_failure,
         "active_regions": [r.region_slug for r in subscription.regions.filter(mode=region_mode)],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
+        "assertion": subscription.assertion,
     }
     if subscription.body is not None:
         config["request_body"] = subscription.body

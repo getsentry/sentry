@@ -9,6 +9,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
+from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
@@ -208,12 +209,14 @@ class SeerExplorerClient:
     def start_run(
         self,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         conduit_channel_id: str | None = None,
         conduit_url: str | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -226,6 +229,7 @@ class SeerExplorerClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
             conduit_channel_id: Optional Conduit channel ID for streaming
             conduit_url: Optional Conduit URL for streaming
+            request: Optional rest_framework Request object from endpoints.
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -245,11 +249,16 @@ class SeerExplorerClient:
             "run_id": None,
             "insert_index": None,
             "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(self.user, self.organization),
+            "user_org_context": collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
@@ -297,6 +306,7 @@ class SeerExplorerClient:
         self,
         run_id: int,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
@@ -339,10 +349,17 @@ class SeerExplorerClient:
             "enable_coding": self.enable_coding,
         }
 
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
+
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
@@ -484,6 +501,7 @@ class SeerExplorerClient:
         path = "/v1/automation/explorer/update"
         payload = {
             "run_id": run_id,
+            "organization_id": self.organization.id,
             "payload": {
                 "type": "create_pr",
                 "repo_name": repo_name,
@@ -522,11 +540,13 @@ class SeerExplorerClient:
     def launch_coding_agents(
         self,
         run_id: int,
-        integration_id: int,
+        integration_id: int | None,
         prompt: str,
         repos: list[str],
         branch_name_base: str = "seer",
         auto_create_pr: bool = False,
+        provider: str | None = None,
+        user_id: int | None = None,
     ) -> dict[str, list]:
         """
         Launch coding agents for an Explorer run.
@@ -536,11 +556,13 @@ class SeerExplorerClient:
 
         Args:
             run_id: The Explorer run ID (used to store coding agent state)
-            integration_id: The coding agent integration ID
+            integration_id: The coding agent integration ID (for org-installed integrations)
             prompt: The instruction/prompt for the coding agent
             repos: List of repo names to target (format: "owner/name")
             branch_name_base: Base name for the branch (random suffix will be added)
             auto_create_pr: Whether to automatically create a PR when agent finishes
+            provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
+            user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
 
         Returns:
             Dictionary with 'successes' and 'failures' lists
@@ -553,4 +575,6 @@ class SeerExplorerClient:
             repos=repos,
             branch_name_base=branch_name_base,
             auto_create_pr=auto_create_pr,
+            provider=provider,
+            user_id=user_id,
         )

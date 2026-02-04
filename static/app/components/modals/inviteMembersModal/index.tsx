@@ -136,8 +136,8 @@ export const modalCss = css`
 `;
 
 const Heading = styled('h1')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
   margin-bottom: ${space(0.75)};
 `;

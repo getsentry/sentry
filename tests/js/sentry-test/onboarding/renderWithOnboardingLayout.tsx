@@ -84,7 +84,7 @@ export function renderWithOnboardingLayout<
         otlp_traces: 'test-otlp_traces',
         otlp_logs: 'test-otlp_logs',
       }}
-      platformKey="java-spring-boot"
+      platformKey={project.platform ?? 'other'}
       activeProductSelection={selectedProducts}
       projectKeyId={projectKey}
     />,

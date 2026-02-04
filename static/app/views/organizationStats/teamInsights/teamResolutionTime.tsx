@@ -8,6 +8,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -39,7 +40,9 @@ function TeamResolutionTime({
     refetch,
   } = useApiQuery<TimeToResolution>(
     [
-      `/teams/${organization.slug}/${teamSlug}/time-to-resolution/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      }),
       {
         query: {
           ...normalizeDateTimeParams(datetime),

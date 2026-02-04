@@ -1,14 +1,15 @@
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {IconSync, IconThumb} from 'sentry/icons';
@@ -52,6 +53,14 @@ export default function Ai() {
     isTimedOut,
     startSummaryRequest,
   } = useReplaySummaryContext();
+
+  const onlyInitFrames = useMemo(
+    () =>
+      replay
+        ?.getChapterFrames()
+        ?.every(frame => 'category' in frame && frame.category === 'replay.init'),
+    [replay]
+  );
 
   if (replayRecord?.project_id && !project) {
     return (
@@ -170,26 +179,8 @@ export default function Ai() {
     );
   }
 
-  if (
-    summaryData.data.time_ranges.length <= 1 &&
-    replay
-      ?.getChapterFrames()
-      ?.every(frame => 'category' in frame && frame.category === 'replay.init')
-  ) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={aiBanner} alt="" />
-          <div>
-            {
-              NO_REPLAY_SUMMARY_MESSAGES[
-                Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-              ]
-            }
-          </div>
-        </EndStateContainer>
-      </Wrapper>
-    );
+  if (summaryData.data.time_ranges.length <= 1 && onlyInitFrames) {
+    return <NoReplaySummary />;
   }
 
   return (
@@ -226,12 +217,12 @@ export default function Ai() {
         </Stack>
       </Summary>
       <StyledTabItemContainer>
-        <OverflowBody>
+        <Container as="section" flex="1 1 auto" overflow="auto">
           <ChapterList timeRanges={summaryData.data.time_ranges} />
           {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
             <Subtext>{replayTooLongMessage}</Subtext>
           )}
-        </OverflowBody>
+        </Container>
       </StyledTabItemContainer>
     </Wrapper>
   );
@@ -303,6 +294,29 @@ function ThumbsUpDownButton({type}: {type: 'positive' | 'negative'}) {
   );
 }
 
+/**
+ * Due to the random message generation, the component can show a new message on each render. This is not ideal because we
+ * cause a lot of re-renders when the replay is played.
+ *
+ * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
+ */
+function NoReplaySummary() {
+  const noSummaryMessageRef = useRef(
+    NO_REPLAY_SUMMARY_MESSAGES[
+      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+    ]
+  );
+
+  return (
+    <Wrapper data-test-id="replay-details-ai-summary-tab">
+      <EndStateContainer>
+        <img src={aiBanner} alt="" />
+        <div>{noSummaryMessageRef.current}</div>
+      </EndStateContainer>
+    </Wrapper>
+  );
+}
+
 const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
@@ -335,17 +349,17 @@ const SummaryLeft = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SummaryText = styled('p')`
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledTabItemContainer = styled(TabItemContainer)`
@@ -363,11 +377,6 @@ const StyledTabItemContainer = styled(TabItemContainer)`
   }
 `;
 
-const OverflowBody = styled('section')`
-  flex: 1 1 auto;
-  overflow: auto;
-`;
-
 const EndStateContainer = styled('div')`
   overflow: auto;
   display: flex;
@@ -381,7 +390,7 @@ const EndStateContainer = styled('div')`
 const Subtext = styled(Text)`
   padding: ${space(2)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   display: flex;
   justify-content: center;
 `;

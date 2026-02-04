@@ -1,4 +1,6 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -33,9 +35,14 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
                 mock_client_instance.get_pull_request,
             ) as mock_get_pull_request,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions"
+            ) as mock_get_issue_reactions,
         ):
+            mock_get_issue_reactions.return_value = []
             self.mock_reaction = mock_reaction
             self.mock_get_pull_request = mock_get_pull_request
+            self.mock_get_issue_reactions = mock_get_issue_reactions
             yield
 
     @pytest.fixture(autouse=True)
@@ -56,16 +63,17 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
         comment_body: str,
         comment_id: int | None = 123456789,
         github_org: str = "sentry-ecosystem",
+        is_pr_comment: bool = True,
     ) -> bytes:
-        event = {
+        event: dict[str, Any] = {
             "action": "created",
             "comment": {
                 "body": comment_body,
                 "id": comment_id,
+                "created_at": "2024-01-15T10:30:00Z",
             },
             "issue": {
                 "number": 42,
-                "pull_request": {"url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"},
                 "user": {
                     "id": 12345678,
                     "login": "pr-author",
@@ -85,6 +93,11 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "login": "commenter",
             },
         }
+        if is_pr_comment:
+            issue: dict[str, Any] = event["issue"]
+            issue["pull_request"] = {
+                "url": f"https://api.github.com/repos/{github_org}/repo/pulls/42"
+            }
         return orjson.dumps(event)
 
     def test_skips_when_code_review_features_are_missing(self) -> None:
@@ -107,19 +120,9 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_not_called()
 
-    def test_runs_when_code_review_beta_flag_disabled_but_pr_review_test_generation_enabled(
-        self,
-    ) -> None:
-        """Test that processing runs with gen-ai-features flag alone when org option is enabled."""
-        with self.code_review_setup(features={"organizations:gen-ai-features"}), self.tasks():
-            event = self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
-
-        self.mock_seer.assert_called_once()
-
-    @patch("sentry.seer.code_review.webhooks.issue_comment._add_eyes_reaction_to_comment")
+    @patch(
+        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_reaction"
+    )
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
         with self.code_review_setup(), self.tasks():
@@ -130,6 +133,14 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             mock_reaction.assert_not_called()
             self.mock_seer.assert_called_once()
+
+    def test_skips_when_not_pr_comment(self) -> None:
+        """Test that processing is skipped when comment is not on a PR."""
+        with self.code_review_setup(), self.tasks():
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, is_pr_comment=False)
+            response = self._send_issue_comment_event(event)
+            assert response.status_code == 204
+            self.mock_seer.assert_not_called()
 
     def test_success_case(self) -> None:
         """Test that Seer request includes trigger metadata from the comment."""
@@ -155,3 +166,9 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert payload["data"]["config"]["trigger_user"] == "test-user"
             assert payload["data"]["config"]["trigger_comment_id"] == 123456789
             assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
+            # After Pydantic validation, trigger_at is a datetime object
+            assert payload["data"]["config"]["trigger_at"] == datetime(
+                2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc
+            )
+            # sentry_received_trigger_at is set to current time when transform happens
+            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)

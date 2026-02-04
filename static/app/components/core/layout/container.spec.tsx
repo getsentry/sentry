@@ -3,7 +3,11 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Container, type ContainerProps} from 'sentry/components/core/layout/container';
+import {
+  Container,
+  type ContainerProps,
+  type ContainerPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
 
 describe('Container', () => {
   it('renders children', () => {
@@ -105,5 +109,21 @@ describe('Container', () => {
     const paddingFirst = screen.getByText('Padding First').className;
     const paddingBottomFirst = screen.getByText('PaddingBottom First').className;
     expect(paddingFirst).toEqual(paddingBottomFirst);
+  });
+
+  describe('types', () => {
+    it('default signature limits children to React.ReactNode', () => {
+      const props: ContainerProps<any> = {};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
+    });
+
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: ContainerPropsWithRenderFunction<any> = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });

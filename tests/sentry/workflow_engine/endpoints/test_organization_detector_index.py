@@ -43,6 +43,7 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class OrganizationDetectorIndexBaseTest(APITestCase):
@@ -58,6 +59,12 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
+        self.error_detector = self.create_detector(
+            type=ErrorGroupType.slug, project=self.project, name="Error Monitor"
+        )
+        self.issue_stream_detector = self.create_detector(
+            type=IssueStreamGroupType.slug, project=self.project, name="Issue Stream"
+        )
 
 
 @region_silo_test
@@ -72,7 +79,9 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
-        assert response.data == serialize([detector, detector_2])
+        assert response.data == serialize(
+            [self.error_detector, self.issue_stream_detector, detector, detector_2]
+        )
 
         # Verify openIssues field is present in serialized response
         for detector_data in response.data:
@@ -82,7 +91,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # Verify X-Hits header is present and correct
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
-        assert hits == 2
+        assert hits == 4
 
     def test_uptime_detector(self) -> None:
         subscription = self.create_uptime_subscription()
@@ -109,13 +118,17 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
-        assert response.data[0]["dataSources"][0]["queryObj"] == serialize(subscription)
+        assert response.data[2]["dataSources"][0]["queryObj"] == serialize(subscription)
 
-    def test_empty_result(self) -> None:
+    def test_default_detector_result(self) -> None:
+        """
+        Test that the only results are the default detectors for a project
+        """
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
-        assert len(response.data) == 0
+        assert len(response.data) == 2
+        assert response.data == serialize([self.error_detector, self.issue_stream_detector])
 
     def test_project_unspecified(self) -> None:
         d1 = self.create_detector(
@@ -129,7 +142,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         response = self.get_success_response(
             self.organization.slug,
         )
-        assert {d["name"] for d in response.data} == {d1.name, d2.name}
+
+        assert {d["name"] for d in response.data} == {
+            d1.name,
+            d2.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
 
     def test_invalid_project(self) -> None:
         self.create_detector(project=self.project, name="A Test Detector", type=MetricIssue.slug)
@@ -172,7 +191,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert response.data == {"id": ["Invalid ID format"]}
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_invalid_sort_by(self) -> None:
         response = self.get_error_response(
@@ -192,11 +212,17 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-name"}
         )
         assert [d["name"] for d in response.data] == [
+            self.issue_stream_detector.name,
+            self.error_detector.name,
             detector_2.name,
             detector.name,
         ]
 
     def test_sort_by_connected_workflows(self) -> None:
+        # delete the project default detectors as they cause flaky sorting results
+        self.error_detector.delete()
+        self.issue_stream_detector.delete()
+
         workflow = self.create_workflow(
             organization_id=self.organization.id,
         )
@@ -269,6 +295,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             detector_2.name,
             detector_3.name,
             detector_1.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be last
         ]
 
@@ -277,6 +305,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
         )
         assert [d["name"] for d in response2.data] == [
+            self.error_detector.name,
+            self.issue_stream_detector.name,
             detector_4.name,  # No groups, should be first
             detector_1.name,
             detector_3.name,
@@ -284,6 +314,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         ]
 
     def test_sort_by_open_issues(self) -> None:
+        # delete the project default detectors as they cause flaky sorting results
+        self.error_detector.delete()
+        self.issue_stream_detector.delete()
+
         detector_1 = self.create_detector(
             project=self.project, name="Detector 1", type=MetricIssue.slug
         )
@@ -390,7 +424,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             qs_params={"project": self.project.id, "query": "!type:metric_issue"},
         )
-        assert {d["name"] for d in response3.data} == {detector2.name}
+        assert {d["name"] for d in response3.data} == {
+            detector2.name,
+            self.issue_stream_detector.name,
+        }
 
     def test_query_by_type_alias(self) -> None:
         """
@@ -458,6 +495,16 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id, "query": "lookfor"}
         )
         assert {d["name"] for d in response3.data} == {detector.name, detector2.name}
+
+    def test_query_invalid_search_key(self) -> None:
+        self.create_detector(project=self.project, name="Test Detector", type=MetricIssue.slug)
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "tpe:metric"},
+            status_code=400,
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: tpe" in str(response.data["query"])
 
     def test_query_by_assignee_user_email(self) -> None:
         user = self.create_user(email="assignee@example.com")
@@ -573,7 +620,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             qs_params={"project": self.project.id, "query": "assignee:none"},
         )
-        assert {d["name"] for d in response.data} == {unassigned_detector.name}
+        assert {d["name"] for d in response.data} == {
+            unassigned_detector.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
 
     def test_query_by_assignee_multiple_values(self) -> None:
         user = self.create_user(email="user1@example.com")
@@ -628,7 +679,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             qs_params={"project": self.project.id, "query": f"!assignee:{user.email}"},
         )
-        assert {d["name"] for d in response.data} == {included_detector.name}
+        assert {d["name"] for d in response.data} == {
+            included_detector.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
 
     def test_query_by_assignee_invalid_user(self) -> None:
         self.create_detector(
@@ -664,7 +719,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": new_project.id},
             status_code=200,
         )
-        assert {d["name"] for d in response.data} == {detector.name}
+        assert {d["name"] for d in response.data} == {
+            detector.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
 
     def test_query_by_id_owner_user(self) -> None:
         self.detector = self.create_detector(
@@ -1206,6 +1265,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         Test that members cannot assign a team they are not a member of as owner.
         This is a regression test for an IDOR vulnerability.
         """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         other_team = self.create_team(organization=self.organization, name="other-team")
 
         user_with_team = self.create_user(is_superuser=False)
@@ -1223,7 +1285,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **data,
             status_code=400,
         )
-        assert response.data == {"owner": ["You do not have permission to assign this owner"]}
+        assert response.data == {"owner": ["You can only assign teams you are a member of"]}
 
     def test_owner_team_member_allowed(self) -> None:
         """
@@ -1261,6 +1323,33 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             teams=[self.team],
         )
         self.login_as(admin_user)
+
+        data = {**self.valid_data, "owner": f"team:{other_team.id}"}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            status_code=201,
+        )
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.owner_team_id == other_team.id
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
 
         data = {**self.valid_data, "owner": f"team:{other_team.id}"}
         response = self.get_success_response(
@@ -1424,7 +1513,8 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_update_detectors_no_matching_detectors(self) -> None:
         response = self.get_error_response(
@@ -1708,51 +1798,15 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Other detectors should be unaffected
         self.assert_unaffected_detectors([self.detector_two, self.detector_three])
 
-    def test_delete_detectors_by_project_success(self) -> None:
-        # Create detector in another project
-        other_project = self.create_project(organization=self.organization)
-        detector_other_project = self.create_detector(
-            project_id=other_project.id, name="Other Project Detector", type=MetricIssue.slug
+    def test_cannot_delete_system_created_detector(self) -> None:
+        self.get_error_response(
+            self.organization.slug, qs_params={"project": str(self.project.id)}, status_code=403
         )
 
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                qs_params={"project": str(self.project.id)},
-                status_code=204,
-            )
-
-        # Ensure the detectors in the target project are scheduled for deletion
-        self.detector.refresh_from_db()
-        self.detector_two.refresh_from_db()
-        self.detector_three.refresh_from_db()
-        assert self.detector.status == ObjectStatus.PENDING_DELETION
-        assert self.detector_two.status == ObjectStatus.PENDING_DELETION
-        assert self.detector_three.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector",
-            object_id=self.detector.id,
+        assert self.error_detector.status != ObjectStatus.PENDING_DELETION
+        assert not RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.error_detector.id
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector",
-            object_id=self.detector_two.id,
-        ).exists()
-        assert RegionScheduledDeletion.objects.filter(
-            model_name="Detector",
-            object_id=self.detector_three.id,
-        ).exists()
-
-        # Delete the detectors
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # Ensure detectors are removed
-        assert not Detector.objects.filter(id=self.detector.id).exists()
-        assert not Detector.objects.filter(id=self.detector_two.id).exists()
-        assert not Detector.objects.filter(id=self.detector_three.id).exists()
-
-        # Detector in other project should be unaffected
-        self.assert_unaffected_detectors([detector_other_project])
 
     def test_delete_no_matching_detectors(self) -> None:
         # Test deleting detectors with non-existent ID
@@ -1787,7 +1841,8 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_delete_detectors_filtering_ignored_with_ids(self) -> None:
         # Other project detector

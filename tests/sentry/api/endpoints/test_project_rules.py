@@ -544,8 +544,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner_user_id is None
 
     def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         team = self.create_team(organization=self.organization)
-        # Create a non-privileged member user (without team:admin scope)
         member_user = self.create_user()
         self.create_member(
             user=member_user,
@@ -567,10 +569,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert "owner" in response.data
-        assert (
-            str(response.data["owner"][0])
-            == "You must be a member of a team to assign it as the rule owner."
-        )
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
 
     def test_team_owner_not_member_with_team_admin_scope(self) -> None:
         """Test that users with team:admin scope can assign a team they're not a member of as the owner"""

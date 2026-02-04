@@ -46,7 +46,7 @@ export const typography = {
          */
         regular: 425,
         /**
-         * The medium font weight for text using the sans font family.
+         * The medium font weight for text using the mono font family.
          */
         medium: 500,
       },

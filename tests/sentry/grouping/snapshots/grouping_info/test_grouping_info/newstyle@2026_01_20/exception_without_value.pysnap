@@ -1,0 +1,55 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_type": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "ValueError"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "value",
+                "name": null,
+                "values": []
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception type",
+      "hash": "5a2cfd89b7b171fd7b4794b08023d04f",
+      "hint": null,
+      "key": "app_exception_type",
+      "type": "component"
+    }
+  }
+}

@@ -1,13 +1,15 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 
+import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,7 +57,7 @@ export default function SeerOnboardingSeatBased() {
     }
   }, [organization, initialStep, isPending, canWrite]);
 
-  if (!canWrite) {
+  if (!canWrite && !isActiveSuperuser()) {
     return (
       <Alert variant="warning">
         {t('Only organization administrators can access the Seer Setup Wizard')}
@@ -71,6 +73,18 @@ export default function SeerOnboardingSeatBased() {
         subtitle={t(
           'Follow these steps to configure Seer for your organization. Seer helps automatically analyze, fix, and prevent issues in your codebase.'
         )}
+        action={
+          <FeedbackButton
+            size="md"
+            feedbackOptions={{
+              messagePlaceholder: t('How can we make Seer better for you?'),
+              tags: {
+                ['feedback.source']: 'seer-settings-wizard',
+                ['feedback.owner']: 'coding-workflows',
+              },
+            }}
+          />
+        }
       />
 
       <NoProjectMessage organization={organization}>

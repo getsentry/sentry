@@ -13,7 +13,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 export default function JsonViewer(props: ViewerProps) {
   const query = useApiQuery(
-    [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
+    [
+      getAttachmentUrl(props),
+      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
+    ],
     {
       staleTime: Infinity,
       retry: false,

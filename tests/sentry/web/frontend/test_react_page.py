@@ -1,7 +1,11 @@
 from fnmatch import fnmatch
+from importlib import reload
 
+from django.conf import settings as django_settings
+from django.test import override_settings
 from django.urls import URLResolver, get_resolver, reverse
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -452,3 +456,47 @@ class ReactPageViewTest(TestCase):
                 '<link rel="preconnect" href="https://s1.sentry-cdn.com"'
                 in response_body.decode("utf-8")
             )
+
+    def test_manage_endpoint_only_available_in_non_saas_mode(self) -> None:
+        import sentry.web.urls
+
+        # Test that manage/ route does NOT exist in SAAS mode
+        with override_settings(SENTRY_MODE=SentryMode.SAAS):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert not has_admin_route, (
+                f"sentry-admin-overview should not exist in SAAS mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        # Test that manage/ route IS registered in SELF_HOSTED mode
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert has_admin_route, (
+                f"sentry-admin-overview should exist in SELF_HOSTED mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        # Test that manage/ route IS registered in SINGLE_TENANT mode
+        with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+            reload(sentry.web.urls)
+
+            has_admin_route = any(
+                getattr(pattern, "name", None) == "sentry-admin-overview"
+                for pattern in sentry.web.urls.urlpatterns
+            )
+            assert has_admin_route, (
+                f"sentry-admin-overview should exist in SINGLE_TENANT mode. "
+                f"SENTRY_MODE={django_settings.SENTRY_MODE}"
+            )
+
+        reload(sentry.web.urls)

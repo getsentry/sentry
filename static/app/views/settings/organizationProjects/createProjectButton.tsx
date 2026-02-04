@@ -1,4 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';

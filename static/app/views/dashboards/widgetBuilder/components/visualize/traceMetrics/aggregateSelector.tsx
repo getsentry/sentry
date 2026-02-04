@@ -1,15 +1,20 @@
 import {useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {
   type AggregationKeyWithAlias,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {renderDropdownMenuFooter} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {
+  renderDropdownMenuFooter,
+  sortSelectedFirst,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -28,10 +33,10 @@ export function AggregateSelector({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  // For chart displays, use yAxis. For Big Number, use fields array.
-  const isChart = isChartDisplayType(state.displayType);
-  const aggregateSource = isChart ? state.yAxis : state.fields;
-  const actionType = isChart
+  // For time-series displays, use yAxis. For other types, use fields array.
+  const isTimeSeries = usesTimeSeriesData(state.displayType);
+  const aggregateSource = isTimeSeries ? state.yAxis : state.fields;
+  const actionType = isTimeSeries
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
@@ -40,17 +45,19 @@ export function AggregateSelector({
     [traceMetric?.type]
   );
 
+  const aggregateValue = useMemo(() => {
+    return aggregateSource?.[index]?.kind === 'function'
+      ? (aggregateSource?.[index]?.function?.[0] ?? '')
+      : '';
+  }, [aggregateSource, index]);
+
   return (
     <AggregateCompactSelect
       searchable
       hasColumnParameter={false}
       disabled={disabled || aggregateOptions.length <= 1}
-      options={aggregateOptions}
-      value={
-        aggregateSource?.[index]?.kind === 'function'
-          ? (aggregateSource?.[index]?.function?.[0] ?? '')
-          : ''
-      }
+      options={sortSelectedFirst(aggregateValue, aggregateOptions)}
+      value={aggregateValue}
       position="bottom-start"
       menuFooter={
         state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
@@ -74,9 +81,9 @@ export function AggregateSelector({
           });
         }
       }}
-      triggerProps={{
-        'aria-label': t('Aggregate Selection'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
+      )}
     />
   );
 }

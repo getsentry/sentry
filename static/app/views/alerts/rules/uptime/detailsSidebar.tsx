@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';

@@ -824,15 +824,18 @@ describe('Modals -> WidgetViewerModal', () => {
         });
 
         await renderModal({initialData, widget});
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalledWith(
+            '/organizations/org-slug/events-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                field: ['country', 'count()', 'epm()'],
+              }),
+            })
+          );
+        });
+
         expect(await screen.findByText('epm()')).toBeInTheDocument();
-        expect(eventsStatsMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/events-stats/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              field: ['country', 'count()', 'epm()'],
-            }),
-          })
-        );
       });
     });
 
@@ -1193,7 +1196,7 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/metrics/data/',
         body: MetricsTotalCountByReleaseIn24h(),
         headers: {
-          link:
+          Link:
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
             '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
         },
@@ -1231,6 +1234,9 @@ describe('Modals -> WidgetViewerModal', () => {
 
     it('renders table header and body', async () => {
       await renderModal({initialData, widget: mockWidget});
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalled();
+      });
       expect(await screen.findByText('release')).toBeInTheDocument();
       expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
@@ -1271,7 +1277,7 @@ describe('Modals -> WidgetViewerModal', () => {
         tableData: [],
         seriesData: [],
       });
-      expect(metricsMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(1));
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
       expect(router.location.query).toEqual(
@@ -1279,7 +1285,7 @@ describe('Modals -> WidgetViewerModal', () => {
       );
     });
 
-    it('adds the release column to the table if no group by is set', async () => {
+    it('should add release column and call metrics API with groupBy release', async () => {
       mockQuery = {
         conditions: '',
         fields: [`sum(session)`],
@@ -1297,15 +1303,17 @@ describe('Modals -> WidgetViewerModal', () => {
         widgetType: WidgetType.RELEASE,
       };
       await renderModal({initialData, widget: mockWidget});
+      await waitFor(() => {
+        expect(metricsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/metrics/data/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              groupBy: ['release'],
+            }),
+          })
+        );
+      });
       expect(await screen.findByText('release')).toBeInTheDocument();
-      expect(metricsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/metrics/data/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['release'],
-          }),
-        })
-      );
     });
 
     it('does not add a release grouping to the table if a group by is set', async () => {

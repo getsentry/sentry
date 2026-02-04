@@ -1,6 +1,7 @@
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -54,9 +55,16 @@ export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
   const organization = useOrganization({allowNull: true});
   const {data: sourceMapDebuggerData} = useApiQuery<SourceMapDebugBlueThunderResponse>(
     [
-      `/projects/${organization!.slug}/${projectSlug}/events/${
-        event.id
-      }/source-map-debug-blue-thunder-edition/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug-blue-thunder-edition/',
+        {
+          path: {
+            organizationIdOrSlug: organization!.slug,
+            projectIdOrSlug: projectSlug,
+            eventId: event.id,
+          },
+        }
+      ),
     ],
     {
       enabled: isSdkThatShouldShowSourceMapsDebugger && organization !== null,

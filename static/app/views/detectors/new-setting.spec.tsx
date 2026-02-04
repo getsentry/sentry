@@ -88,6 +88,14 @@ describe('DetectorEdit', () => {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-window/`,
+      body: {start: 1700000000, end: 1700000001},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
+      body: [],
+    });
   });
 
   describe('Metric Detector', () => {
@@ -789,6 +797,10 @@ describe('DetectorEdit', () => {
       await userEvent.click(bodyInput);
       await userEvent.paste('{"test": "data"}');
 
+      await selectEvent.openMenu(screen.getByLabelText('Select Environment'));
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'All Environments'})
+      ).not.toBeInTheDocument();
       await selectEvent.select(screen.getByLabelText('Select Environment'), 'production');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));

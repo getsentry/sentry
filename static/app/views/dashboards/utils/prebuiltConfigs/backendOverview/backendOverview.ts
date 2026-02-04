@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -23,10 +24,13 @@ const disallowedOps = [
 
 const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
@@ -84,26 +88,21 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
     {
-      id: 'recommended-issues-widget',
-      title: 'Recommended Issues',
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      tableWidths: [-1, -1],
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
       queries: [
         {
           name: '',
-          fields: ['title', 'lastSeen'],
-          aggregates: [],
-          columns: ['title', 'lastSeen'],
-          fieldAliases: ['', ''],
-          conditions: 'is:unresolved event.type:error',
-          orderby: 'freq',
-          onDemand: [],
-          isHidden: false,
-          linkedDashboards: [],
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
+          orderby: '',
         },
       ],
-      widgetType: WidgetType.ISSUE,
     },
   ],
   0
@@ -157,6 +156,13 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
           orderby: `-p75(${SpanFields.SPAN_SELF_TIME})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 3,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -192,102 +198,6 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   2
 );
 
-const THIRD_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
-  [
-    {
-      id: 'jobs-table',
-      title: 'Jobs',
-      description: '',
-      displayType: DisplayType.TABLE,
-      thresholds: null,
-      interval: '1h',
-      queries: [
-        {
-          name: '',
-          fields: [
-            `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
-          ],
-          aggregates: [
-            `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
-          fieldAliases: ['Jobs', 'Error Rate'],
-          conditions: `${SpanFields.SPAN_OP}:queue.process`,
-          orderby: `-count(${SpanFields.SPAN_DURATION})`,
-        },
-      ],
-      limit: 4,
-      widgetType: WidgetType.SPANS,
-    },
-    {
-      id: 'queries-by-time-spent-table',
-      title: 'Queries by Time Spent',
-      description: '',
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      tableWidths: [-1, -1],
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.NORMALIZED_DESCRIPTION,
-            `sum(${SpanFields.SPAN_SELF_TIME})`,
-          ],
-          columns: [SpanFields.NORMALIZED_DESCRIPTION],
-          fieldAliases: ['Query Description', 'Time Spent'],
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
-          conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
-          linkedDashboards: [
-            {
-              dashboardId: '-1',
-              field: SpanFields.NORMALIZED_DESCRIPTION,
-              staticDashboardId: 3,
-            },
-          ],
-        },
-      ],
-      widgetType: WidgetType.SPANS,
-      limit: 3,
-    },
-    {
-      id: 'cache-miss-rates-table',
-      title: 'Cache Miss Rates',
-      description: '',
-      displayType: DisplayType.TABLE,
-      thresholds: null,
-      interval: '1h',
-      tableWidths: [-1, -1, -1, -1],
-      queries: [
-        {
-          name: '',
-          fields: [
-            SpanFields.TRANSACTION,
-            'equation|count_if(cache.hit,equals,false)',
-            `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
-          ],
-          aggregates: [
-            'equation|count_if(cache.hit,equals,false)',
-            `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
-          ],
-          columns: [SpanFields.TRANSACTION],
-          fieldMeta: [null, null, null, {valueType: 'percentage', valueUnit: null}],
-          fieldAliases: ['', 'Cache Misses', 'Cache Calls', 'Cache Miss Rate'],
-          conditions: `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`,
-          orderby: '-equation[1]',
-        },
-      ],
-      widgetType: WidgetType.SPANS,
-    },
-  ],
-  4
-);
-
 const TRANSACTIONS_TABLE: Widget = {
   id: 'backend-overview-transactions-table',
   title: 'Transactions',
@@ -298,6 +208,7 @@ const TRANSACTIONS_TABLE: Widget = {
     {
       name: '',
       fields: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
@@ -318,24 +229,27 @@ const TRANSACTIONS_TABLE: Widget = {
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [
+        SpanFields.IS_STARRED_TRANSACTION,
         SpanFields.REQUEST_METHOD,
         SpanFields.TRANSACTION,
         SpanFields.SPAN_OP,
         SpanFields.PROJECT,
       ],
       fieldAliases: [
+        t('Starred'),
         'Http Method',
-        '',
-        'Operation',
-        '',
-        'TPM',
+        t('Transaction'),
+        t('Operation'),
+        t('Project'),
+        t('TPM'),
         'P50()',
         'P95()',
-        'Failure rate',
-        'Users',
-        'Time Spent',
+        t('Failure rate'),
+        t('Users'),
+        t('Time Spent'),
       ],
       fieldMeta: [
+        null,
         null,
         null,
         null,
@@ -365,12 +279,17 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: DASHBOARD_TITLE,
   filters: {
-    globalFilter: [],
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
   },
-  widgets: [
-    ...FIRST_ROW_WIDGETS,
-    ...SECOND_ROW_WIDGETS,
-    ...THIRD_ROW_WIDGETS,
-    TRANSACTIONS_TABLE,
-  ],
+  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
 };

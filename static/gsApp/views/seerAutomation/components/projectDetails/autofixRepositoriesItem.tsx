@@ -1,13 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Input} from '@sentry/scraps/input/input';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import Confirm from 'sentry/components/confirm';
 import type {
@@ -119,7 +116,9 @@ export function AutofixRepositoriesItem({
           size="zero"
           priority="transparent"
         >
-          {repository.name}
+          <Text size="md">
+            {[repository.owner, repository.name].filter(Boolean).join('/')}
+          </Text>
         </RowButton>
       </Flex>
 
@@ -170,7 +169,7 @@ export function AutofixRepositoriesItem({
       </Flex>
 
       {isExpanded && (
-        <Container padding="lg xl" style={{gridColumn: '1 / -1'}}>
+        <Container padding="lg xl" column="1 / -1">
           <Stack gap="lg" justify="between" paddingTop="0" paddingLeft="xl">
             <Flex align="center" justify="between">
               <Heading as="h4">

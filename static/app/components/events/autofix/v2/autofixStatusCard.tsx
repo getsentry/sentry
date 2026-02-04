@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChat} from 'sentry/icons';
@@ -22,6 +21,10 @@ interface ExplorerStatusCardProps {
    * All blocks from the autofix run.
    */
   blocks?: Block[];
+  /**
+   * Whether the chat panel is already open with this run.
+   */
+  isChatAlreadyOpen?: boolean;
   /**
    * The currently loading block (if any).
    */
@@ -41,6 +44,7 @@ export function ExplorerStatusCard({
   status,
   loadingBlock,
   blocks,
+  isChatAlreadyOpen = false,
   onOpenChat,
 }: ExplorerStatusCardProps) {
   if (status !== 'processing') {
@@ -51,6 +55,7 @@ export function ExplorerStatusCard({
     <ExplorerStatusCardContent
       loadingBlock={loadingBlock}
       blocks={blocks}
+      isChatAlreadyOpen={isChatAlreadyOpen}
       onOpenChat={onOpenChat}
     />
   );
@@ -59,9 +64,11 @@ export function ExplorerStatusCard({
 function ExplorerStatusCardContent({
   loadingBlock,
   blocks,
+  isChatAlreadyOpen = false,
   onOpenChat,
 }: {
   blocks?: Block[];
+  isChatAlreadyOpen?: boolean;
   loadingBlock?: Block;
   onOpenChat?: () => void;
 }) {
@@ -179,6 +186,7 @@ function ExplorerStatusCardContent({
                 onClick={onOpenChat}
                 priority="primary"
                 icon={<IconChat />}
+                disabled={isChatAlreadyOpen}
               >
                 {t('Open Chat')}
               </Button>

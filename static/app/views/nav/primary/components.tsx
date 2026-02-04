@@ -2,12 +2,12 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -312,8 +312,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSize.xs};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   letter-spacing: -0.05em;
 `;
 
@@ -442,7 +442,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   background: ${p => p.theme.tokens.graphics.accent.vibrant};
   width: 10px;
   height: 10px;

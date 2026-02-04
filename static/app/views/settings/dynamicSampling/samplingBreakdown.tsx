@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -177,7 +177,7 @@ const StyledPanel = styled(Panel)`
 
 const Heading = styled('h6')`
   margin-bottom: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Breakdown = styled('div')`
@@ -194,7 +194,7 @@ const Legend = styled('div')`
   flex-wrap: wrap;
   margin-top: ${space(1.5)};
   gap: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex: 1;
 `;
 
@@ -202,7 +202,7 @@ const Total = styled('div')`
   display: flex;
   align-items: center;
   margin-top: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   flex-shrink: 0;
 `;
 

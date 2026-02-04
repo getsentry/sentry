@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -237,16 +237,26 @@ def handle_owner_assignment(job):
     project, group = event.project, event.group
 
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignees_exists = cache.get(assignee_key)
-    if assignees_exists is None:
-        assignees_exists = group.assignee_set.exists()
+    assignee_cache_value = cache.get(assignee_key)
+
+    # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
+    assignee_exists = None
+    if assignee_cache_value is not None:
+        # Cache stores (value, timestamp) tuple for timestamp-based invalidation
+        cached_assignee_exists, assignee_debounce_time = assignee_cache_value
+        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
+        if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
+            assignee_exists = cached_assignee_exists
+
+    if assignee_exists is None:
+        assignee_exists = group.assignee_set.exists()
         cache.set(
             assignee_key,
-            assignees_exists,
-            (ASSIGNEE_EXISTS_DURATION if assignees_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
+            (assignee_exists, timezone.now().timestamp()),
+            (ASSIGNEE_EXISTS_DURATION if assignee_exists else ASSIGNEE_DOES_NOT_EXIST_DURATION),
         )
 
-    if assignees_exists:
+    if assignee_exists:
         metrics.incr("sentry.task.post_process.handle_owner_assignment.assignee_exists")
         return
 
@@ -1618,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if is_seer_scanner_rate_limited(group.project, group.organization):
             return
 
-        generate_summary_and_run_automation.delay(group.id)
+        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
     else:
         # Triage signals V0 behaviour
         # If event count < 10, only generate summary (no automation)
@@ -1646,6 +1656,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             # Event count >= 10: run automation
             # Long-term check to avoid re-running
             if group.seer_autofix_last_triggered is not None:
+                return
+
+            # Don't run automation on old issues
+            if group.first_seen < (timezone.now() - timedelta(days=14)):
                 return
 
             # Triage signals will not run issues if they are not fixable at MEDIUM threshold
@@ -1683,7 +1697,9 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
                     return
 
                 # No summary yet, generate summary + run automation in one go
-                generate_summary_and_run_automation.delay(group.id)
+                generate_summary_and_run_automation.delay(
+                    group.id, trigger_path="seat_based_seer_automation"
+                )
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {

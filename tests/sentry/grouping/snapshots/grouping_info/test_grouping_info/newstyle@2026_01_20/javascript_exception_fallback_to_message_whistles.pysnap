@@ -1,0 +1,57 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "Error"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": "stripped event-specific values",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": []
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception message",
+      "hash": "b8e2a347e75266ca7bb565e2b3c0722e",
+      "hint": null,
+      "key": "app_exception_message",
+      "type": "component"
+    }
+  }
+}

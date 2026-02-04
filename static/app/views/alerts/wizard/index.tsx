@@ -1,9 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {ExternalLink} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -173,7 +175,7 @@ export default function AlertWizard() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main width="full">
-          <WizardBody>
+          <Flex paddingTop="md">
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
                 ({categoryHeading, options}: any) => (
@@ -230,7 +232,7 @@ export default function AlertWizard() {
                 )}
               </WizardPanelBody>
             </WizardPanel>
-          </WizardBody>
+          </Flex>
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -242,14 +244,9 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)} !important;
-`;
-
-const WizardBody = styled('div')`
-  display: flex;
-  padding-top: ${space(1)};
 `;
 
 const WizardOptions = styled('div')`
@@ -306,11 +303,11 @@ const PanelDescription = styled('p')`
 
 const ExampleHeader = styled('div')`
   margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const ExampleItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const WizardFooter = styled('div')`

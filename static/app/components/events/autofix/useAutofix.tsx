@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -35,7 +36,12 @@ export const makeAutofixQueryKey = (
   groupId: string,
   isUserWatching = false
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      issueId: groupId,
+    },
+  }),
   {query: {isUserWatching: isUserWatching ? true : false, mode: 'legacy'}},
 ];
 
@@ -311,9 +317,11 @@ export const useAiAutofix = (
 };
 
 export type CodingAgentIntegration = {
-  id: string;
+  id: string | null;
   name: string;
   provider: string;
+  has_identity?: boolean;
+  requires_identity?: boolean;
 };
 
 export function useCodingAgentIntegrations() {
@@ -321,14 +329,24 @@ export function useCodingAgentIntegrations() {
 
   return useApiQuery<{
     integrations: CodingAgentIntegration[];
-  }>([`/organizations/${organization.slug}/integrations/coding-agents/`], {
-    staleTime: 5 * 60 * 1000,
-  });
+  }>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+    ],
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 }
 
 interface LaunchCodingAgentParams {
   agentName: string;
-  integrationId: string;
+  integrationId: string | null;
+  provider: string;
   instruction?: string;
   triggerSource?: 'root_cause' | 'solution';
 }
@@ -353,21 +371,37 @@ function getErrorMessage(error: RequestError, agentName: string): string {
   return t('Failed to launch %s', agentName);
 }
 
+export function needsGitHubAuth(error: RequestError): boolean {
+  const detail = error.responseJSON?.detail;
+  return (
+    typeof detail === 'string' &&
+    detail.toLowerCase().includes('github') &&
+    detail.toLowerCase().includes('authorization')
+  );
+}
+
 export function useLaunchCodingAgent(groupId: string, runId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation<LaunchCodingAgentResponse, RequestError, LaunchCodingAgentParams>({
     mutationFn: (params: LaunchCodingAgentParams) => {
+      const data: Record<string, string | number | undefined> = {
+        run_id: parseInt(runId, 10),
+        trigger_source: params.triggerSource,
+        instruction: params.instruction,
+      };
+
+      if (params.integrationId === null) {
+        data.provider = params.provider;
+      } else {
+        data.integration_id = parseInt(params.integrationId, 10);
+      }
+
       return fetchMutation({
         url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'POST',
-        data: {
-          integration_id: parseInt(params.integrationId, 10),
-          run_id: parseInt(runId, 10),
-          trigger_source: params.triggerSource,
-          instruction: params.instruction,
-        },
+        data,
       });
     },
     onSuccess: (data, params) => {
@@ -399,6 +433,12 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
       });
     },
     onError: (error, params) => {
+      if (needsGitHubAuth(error)) {
+        const currentUrl = window.location.href;
+        const oauthUrl = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        window.location.href = oauthUrl;
+        return;
+      }
       const message = getErrorMessage(error, params.agentName);
       addErrorMessage(message);
     },

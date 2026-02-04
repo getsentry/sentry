@@ -1,6 +1,7 @@
 import {motion} from 'framer-motion';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import {t} from 'sentry/locale';

@@ -1,4 +1,5 @@
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+
 import FormField, {
   type FormFieldProps,
 } from 'sentry/components/deprecatedforms/formField';

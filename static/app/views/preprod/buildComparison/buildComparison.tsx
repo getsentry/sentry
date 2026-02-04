@@ -7,6 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -37,7 +38,16 @@ export default function BuildComparison() {
   const headBuildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
     useApiQuery<BuildDetailsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/${headArtifactId}/build-details/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectId,
+              headArtifactId: headArtifactId!,
+            },
+          }
+        ),
       ],
       {
         staleTime: 0,

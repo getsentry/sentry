@@ -1,60 +1,15 @@
 import {useEffect} from 'react';
-import {
-  Navigate,
-  Outlet,
-  useOutletContext,
-  type NavigateProps,
-  type RouteObject,
-} from 'react-router-dom';
+import {Navigate, type NavigateProps, type RouteObject} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import type {SentryRouteObject} from 'sentry/router/types';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
-
-/**
- * Because some of our views use cloneElement to inject route props into the
- * children views, we need to capture those props and pass them as outlet
- * context. The WithReactRouter3Props HoC component will inject the outlet
- * context into the view
- */
-function OurOutlet(props: any) {
-  return <Outlet context={props} />;
-}
-
-/**
- * HoC which injects params and a route object that emulate react-router3
- */
-function withReactRouter3Props(Component: React.ComponentType<any>) {
-  function WithReactRouter3Props() {
-    const params = useParams();
-    const router = useRouter();
-    const routes = useRoutes();
-    const location = useLocation();
-    const outletContext = useOutletContext<Record<string, unknown>>();
-
-    return (
-      <Component
-        router={router}
-        routes={routes}
-        params={params}
-        location={location}
-        {...outletContext}
-      >
-        <OurOutlet />
-      </Component>
-    );
-  }
-
-  return WithReactRouter3Props;
-}
 
 interface RedirectProps extends Omit<NavigateProps, 'to'> {
   /**
@@ -94,36 +49,15 @@ function Redirect({to, ...rest}: RedirectProps) {
 }
 Redirect.displayName = 'Redirect';
 
-function getElement(
-  Component: React.ComponentType<any> | undefined,
-  deprecatedRouteProps = false
-) {
-  if (!Component) {
-    return undefined;
-  }
-
-  if (deprecatedRouteProps) {
-    const WrappedComponent = withReactRouter3Props(Component);
-
-    return <WrappedComponent />;
-  }
-
-  return <Component />;
+function getElement(Component: React.ComponentType<any> | undefined) {
+  return Component ? <Component /> : undefined;
 }
 
 /**
  * Converts a SentryRouteObject tree into a react-router RouteObject tree.
  */
 export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
-  const {
-    name,
-    path,
-    withOrgPath,
-    redirectTo,
-    customerDomainOnlyRoute,
-    component,
-    deprecatedRouteProps,
-  } = tree;
+  const {name, path, withOrgPath, redirectTo, customerDomainOnlyRoute, component} = tree;
 
   if (customerDomainOnlyRoute && !USING_CUSTOMER_DOMAIN) {
     return {};
@@ -148,7 +82,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   }
 
   if (tree.index) {
-    return {index: true, element: getElement(component, deprecatedRouteProps), handle};
+    return {index: true, element: getElement(component), handle};
   }
 
   const children = tree.children?.map(translateSentryRoute);
@@ -157,7 +91,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   // we need to generate multiple routes, one including the
   // /organizations/:ogId prefix, and one without
   if (!withOrgPath) {
-    return {path, element: getElement(component, deprecatedRouteProps), handle, children};
+    return {path, element: getElement(component), handle, children};
   }
 
   const dualRoutes: RouteObject[] = [];
@@ -167,9 +101,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   if (USING_CUSTOMER_DOMAIN) {
     dualRoutes.push({
       path,
-      element: hasComponent
-        ? getElement(withDomainRequired(component), deprecatedRouteProps)
-        : undefined,
+      element: hasComponent ? getElement(withDomainRequired(component)) : undefined,
       handle,
       children,
     });
@@ -177,9 +109,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
 
   dualRoutes.push({
     path: `/organizations/:orgId${path}`,
-    element: hasComponent
-      ? getElement(withDomainRedirect(component), deprecatedRouteProps)
-      : undefined,
+    element: hasComponent ? getElement(withDomainRedirect(component)) : undefined,
     handle,
     children,
   });

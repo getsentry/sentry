@@ -10,7 +10,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features, quotas
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -27,6 +27,7 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quotas import has_installable_quota, has_size_quota
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -131,28 +132,24 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_bundle_error",
             }
         )
 
         return
 
     try:
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
-
-        requested_features: list[PreprodFeature] = []
-        if has_size_quota:
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota:
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-
+        # Note: requested_features is no longer used for filtering - all features are
+        # requested here, and the actual quota/filter checks happen in the update endpoint
+        # (project_preprod_artifact_update.py) after preprocessing completes.
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            requested_features=requested_features,
+            requested_features=[
+                PreprodFeature.SIZE_ANALYSIS,
+                PreprodFeature.BUILD_DISTRIBUTION,
+            ],
         )
     except Exception as e:
         user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
@@ -174,6 +171,7 @@ def assemble_preprod_artifact(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_dispatch_error",
             }
         )
         return
@@ -196,6 +194,7 @@ def create_preprod_artifact(
     checksum: str,
     build_configuration_name: str | None = None,
     release_notes: str | None = None,
+    install_groups: list[str] | None = None,
     head_sha: str | None = None,
     base_sha: str | None = None,
     provider: str | None = None,
@@ -211,19 +210,17 @@ def create_preprod_artifact(
         bind_organization_context(organization)
 
         # Check if organization has quota for either SIZE_ANALYSIS or INSTALLABLE_BUILD
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
-        if not has_size_quota and not has_installable_quota:
+        org_has_size_quota = has_size_quota(organization)
+        org_has_installable_quota = has_installable_quota(organization)
+        if not org_has_size_quota and not org_has_installable_quota:
             logger.info(
                 "No quota available for preprod artifact creation",
                 extra={
                     "project_id": project_id,
                     "organization_id": org_id,
                     "checksum": checksum,
-                    "has_size_quota": has_size_quota,
-                    "has_installable_quota": has_installable_quota,
+                    "has_size_quota": org_has_size_quota,
+                    "has_installable_quota": org_has_installable_quota,
                 },
             )
             raise NoPreprodQuota(
@@ -236,14 +233,16 @@ def create_preprod_artifact(
             if head_sha and head_repo_name and provider and head_ref:
                 commit_comparison, _ = CommitComparison.objects.get_or_create(
                     organization_id=org_id,
+                    head_repo_name=head_repo_name,
                     head_sha=head_sha,
                     base_sha=base_sha,
-                    provider=provider,
-                    head_repo_name=head_repo_name,
-                    base_repo_name=base_repo_name,
-                    head_ref=head_ref,
-                    base_ref=base_ref,
-                    pr_number=pr_number,
+                    defaults={
+                        "provider": provider,
+                        "base_repo_name": base_repo_name,
+                        "head_ref": head_ref,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
+                    },
                 )
             else:
                 logger.info(
@@ -269,10 +268,14 @@ def create_preprod_artifact(
                     name=build_configuration_name,
                 )
 
-            # Prepare extras data if release_notes is provided
-            extras = None
-            if release_notes:
-                extras = {"release_notes": release_notes}
+            # Prepare extras data if release_notes, install_groups is provided
+            extras: dict[str, str | list[str]] | None = None
+            if release_notes or install_groups:
+                extras = {}
+                if release_notes:
+                    extras["release_notes"] = release_notes
+                if install_groups:
+                    extras["install_groups"] = install_groups
 
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
@@ -404,7 +407,7 @@ def _assemble_preprod_artifact_size_analysis(
 
     preprod_artifact = None
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -637,6 +640,7 @@ def _assemble_preprod_artifact_size_analysis(
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
             }
         )
 
@@ -706,7 +710,7 @@ def _assemble_preprod_artifact_installable_app(
     assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
 ) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(
+        preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
             project=project,
             id=artifact_id,
         )
@@ -879,7 +883,7 @@ def detect_expired_preprod_artifacts() -> None:
             )
             try:
                 create_preprod_status_check_task.apply_async(
-                    kwargs={"preprod_artifact_id": artifact_id}
+                    kwargs={"preprod_artifact_id": artifact_id, "caller": "expired_artifact"}
                 )
             except Exception:
                 logger.exception(

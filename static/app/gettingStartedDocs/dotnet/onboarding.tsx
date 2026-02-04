@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -6,7 +7,6 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
-import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -16,14 +16,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '4.3.0'
+  '6.0.0'
 )}`;
 
 enum DotNetPlatform {
@@ -268,14 +268,6 @@ export const onboarding: OnboardingConfig = {
           {
             title: t('Verify Logs'),
             content: [logsVerify(params)],
-          },
-        ]
-      : []),
-    ...(params.isMetricsSelected
-      ? [
-          {
-            title: t('Verify Metrics'),
-            content: [metricsVerify(params)],
           },
         ]
       : []),

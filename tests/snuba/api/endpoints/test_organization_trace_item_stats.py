@@ -45,7 +45,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
-            is_eap=True,
         )
 
     def test_no_project(self) -> None:
@@ -122,7 +121,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=100,
             ),
-            is_eap=True,
         )
         self.store_span(
             self.create_span(
@@ -132,7 +130,6 @@ class OrganizationTraceItemsStatsEndpointTest(
                 start_ts=self.ten_mins_ago,
                 duration=200,
             ),
-            is_eap=True,
         )
 
         response = self.do_request(

@@ -12,20 +12,10 @@ from sentry.hybridcloud.apigateway.proxy import (
     proxy_error_embed_request,
     proxy_region_request,
     proxy_request,
-    proxy_sentryapp_request,
-    proxy_sentryappinstallation_request,
 )
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import get_region_by_name
 from sentry.utils import metrics
-
-SENTRY_APP_REGION_URL_NAMES = (
-    "sentry-api-0-sentry-app-installation-external-requests",
-    "sentry-api-0-sentry-app-installation-external-issue-actions",
-    "sentry-api-0-sentry-app-installation-external-issues",
-    "sentry-api-0-sentry-app-installation-external-issue-details",
-    "sentry-api-0-sentry-app-interaction",
-)
 
 logger = logging.getLogger(__name__)
 
@@ -72,38 +62,6 @@ def proxy_request_if_needed(
             },
         )
         return proxy_request(request, org_id_or_slug, url_name)
-
-    if (
-        "uuid" in view_kwargs
-        and request.resolver_match
-        and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
-    ):
-        install_uuid = view_kwargs["uuid"]
-        metrics.incr(
-            "apigateway.proxy_request",
-            tags={
-                "url_name": url_name,
-                "kind": "sentryapp-installation",
-            },
-        )
-        return proxy_sentryappinstallation_request(request, install_uuid, url_name)
-
-    if (
-        ("sentry_app_slug" in view_kwargs or "sentry_app_id_or_slug" in view_kwargs)
-        and request.resolver_match
-        and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
-    ):
-        app_id_or_slug = str(
-            view_kwargs.get("sentry_app_slug") or view_kwargs.get("sentry_app_id_or_slug", "")
-        )
-        metrics.incr(
-            "apigateway.proxy_request",
-            tags={
-                "url_name": url_name,
-                "kind": "sentryapp",
-            },
-        )
-        return proxy_sentryapp_request(request, app_id_or_slug, url_name)
 
     if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
         # Error embed modal is special as customers can't easily use region URLs.

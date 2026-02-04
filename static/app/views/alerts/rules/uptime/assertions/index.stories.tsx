@@ -48,7 +48,9 @@ export default Storybook.story('Uptime Assertions', story => {
     const [jsonPathOp, setJsonPathOp] = useState<JsonPathOp>({
       id: 'story-json-1',
       op: 'json_path',
-      value: '$.data.success',
+      value: '$.status',
+      operator: {cmp: 'equals'},
+      operand: {jsonpath_op: 'literal', value: 'ok'},
     });
 
     return (
@@ -56,6 +58,32 @@ export default Storybook.story('Uptime Assertions', story => {
         <p>
           The <Storybook.JSXNode name="AssertionOpJsonPath" /> component allows users to
           configure JSON path assertions for response body validation.
+        </p>
+        <AssertionOpJsonPath
+          value={jsonPathOp}
+          onChange={setJsonPathOp}
+          onRemove={() => {}}
+        />
+        <CodeBlock language="javascript">{JSON.stringify(jsonPathOp, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('JSON Path Op - Glob Pattern', () => {
+    const [jsonPathOp, setJsonPathOp] = useState<JsonPathOp>({
+      id: 'story-json-glob-1',
+      op: 'json_path',
+      value: '$.status',
+      operator: {cmp: 'equals'},
+      operand: {jsonpath_op: 'glob', pattern: {value: 'ok*'}},
+    });
+
+    return (
+      <Fragment>
+        <p>
+          JSON path assertions can compare against glob patterns. The operand type
+          selector allows switching between literal string matching and glob pattern
+          matching.
         </p>
         <AssertionOpJsonPath
           value={jsonPathOp}
@@ -147,6 +175,8 @@ export default Storybook.story('Uptime Assertions', story => {
       id: 'story-json-2',
       op: 'json_path',
       value: '$.error',
+      operator: {cmp: 'equals'},
+      operand: {jsonpath_op: 'literal', value: ''},
     });
 
     const [headerOp, setHeaderOp] = useState<HeaderCheckOp>({
@@ -252,6 +282,8 @@ export default Storybook.story('Uptime Assertions', story => {
           id: 'story-json-3',
           op: 'json_path',
           value: '$.success',
+          operator: {cmp: 'equals'},
+          operand: {jsonpath_op: 'literal', value: 'true'},
         },
       ],
     });
@@ -392,6 +424,8 @@ export default Storybook.story('Uptime Assertions', story => {
               id: 'story-json-4',
               op: 'json_path',
               value: '$.status',
+              operator: {cmp: 'equals'},
+              operand: {jsonpath_op: 'literal', value: 'ok'},
             },
             {
               id: 'story-header-5',
@@ -453,6 +487,8 @@ export default Storybook.story('Uptime Assertions', story => {
           id: 'story-json-5',
           op: 'json_path',
           value: '$.success',
+          operator: {cmp: 'equals'},
+          operand: {jsonpath_op: 'literal', value: 'true'},
         },
         {
           id: 'story-header-6',
@@ -491,6 +527,103 @@ export default Storybook.story('Uptime Assertions', story => {
         <p>
           An empty root group shows only the "Add Assertion" button, providing a clean
           starting point for building assertions.
+        </p>
+        <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
+        <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('Drag and Drop - Reordering', () => {
+    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+      id: 'story-dnd-1',
+      op: 'and',
+      children: [
+        {
+          id: 'story-status-dnd-1',
+          op: 'status_code_check',
+          operator: {cmp: 'less_than'},
+          value: 400,
+        },
+        {
+          id: 'story-json-dnd-1',
+          op: 'json_path',
+          value: '$.success',
+          operator: {cmp: 'equals'},
+          operand: {jsonpath_op: 'literal', value: 'true'},
+        },
+        {
+          id: 'story-header-dnd-1',
+          op: 'header_check',
+          key_op: {cmp: 'equals'},
+          key_operand: {header_op: 'literal', value: 'Content-Type'},
+          value_op: {cmp: 'equals'},
+          value_operand: {header_op: 'literal', value: 'application/json'},
+        },
+      ],
+    });
+
+    return (
+      <Fragment>
+        <p>
+          Assertions can be reordered using drag and drop. Click and drag the{' '}
+          <strong>grip handle</strong> (⠿) next to each assertion label to reorder them.
+          The tree structure updates in real-time as items are dragged.
+        </p>
+        <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
+        <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('Drag and Drop - Between Groups', () => {
+    const [rootGroup, setRootGroup] = useState<LogicalOp>({
+      id: 'story-dnd-2',
+      op: 'and',
+      children: [
+        {
+          id: 'story-status-dnd-2',
+          op: 'status_code_check',
+          operator: {cmp: 'less_than'},
+          value: 400,
+        },
+        {
+          id: 'story-or-dnd-1',
+          op: 'or',
+          children: [
+            {
+              id: 'story-json-dnd-2',
+              op: 'json_path',
+              value: '$.data.id',
+              operator: {cmp: 'equals'},
+              operand: {jsonpath_op: 'literal', value: '1234567890'},
+            },
+            {
+              id: 'story-json-dnd-3',
+              op: 'json_path',
+              value: '$.data.name',
+              operator: {cmp: 'equals'},
+              operand: {jsonpath_op: 'literal', value: 'John Doe'},
+            },
+          ],
+        },
+        {
+          id: 'story-header-dnd-2',
+          op: 'header_check',
+          key_op: {cmp: 'equals'},
+          key_operand: {header_op: 'literal', value: 'X-Request-Id'},
+          value_op: {cmp: 'always'},
+          value_operand: {header_op: 'none'},
+        },
+      ],
+    });
+
+    return (
+      <Fragment>
+        <p>
+          Assertions can be moved between groups. Drag an assertion from the root level
+          into the nested "Assert Any" group, or drag items out of the group to the root
+          level. You can also drag items into empty groups.
         </p>
         <AssertionOpGroup value={rootGroup} onChange={setRootGroup} root />
         <CodeBlock language="javascript">{JSON.stringify(rootGroup, null, 2)}</CodeBlock>

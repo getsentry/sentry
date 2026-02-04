@@ -188,33 +188,37 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       Select a transaction to see more details.`
         )}
       >
-        <GridEditable
-          aria-label={t('Domains')}
-          isLoading={isLoading}
-          error={response.error}
-          data={data}
-          columnOrder={filteredColumns}
-          columnSortBy={[
-            {
-              key: sort.field,
-              order: sort.kind,
-            },
-          ]}
-          grid={{
-            prependColumnWidths: ['max-content'],
-            renderPrependColumns,
-            renderHeadCell: column =>
-              renderHeadCell({
-                column,
-                sort,
-                location,
-              }),
-            renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization, theme),
-            onResizeColumn: handleResizeColumn,
-          }}
-        />
-        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+        {tourProps => (
+          <div {...tourProps}>
+            <GridEditable
+              aria-label={t('Domains')}
+              isLoading={isLoading}
+              error={response.error}
+              data={data}
+              columnOrder={filteredColumns}
+              columnSortBy={[
+                {
+                  key: sort.field,
+                  order: sort.kind,
+                },
+              ]}
+              grid={{
+                prependColumnWidths: ['max-content'],
+                renderPrependColumns,
+                renderHeadCell: column =>
+                  renderHeadCell({
+                    column,
+                    sort,
+                    location,
+                  }),
+                renderBodyCell: (column, row) =>
+                  renderBodyCell(column, row, meta, location, organization, theme),
+                onResizeColumn: handleResizeColumn,
+              }}
+            />
+            <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+          </div>
+        )}
       </DemoTourElement>
     </VisuallyCompleteWithData>
   );

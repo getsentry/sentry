@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -215,8 +215,20 @@ function AcceptOrganizationInvite() {
     isError,
   } = useApiQuery<InviteDetails>(
     orgSlug
-      ? [`/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`]
-      : [`/accept-invite/${params.memberId}/${params.token}/`],
+      ? [
+          getApiUrl('/accept-invite/$organizationIdOrSlug/$memberId/$token/', {
+            path: {
+              organizationIdOrSlug: orgSlug,
+              memberId: params.memberId,
+              token: params.token,
+            },
+          }),
+        ]
+      : [
+          getApiUrl('/accept-invite/$memberId/$token/', {
+            path: {memberId: params.memberId, token: params.token},
+          }),
+        ],
     {
       staleTime: Infinity,
       retry: false,

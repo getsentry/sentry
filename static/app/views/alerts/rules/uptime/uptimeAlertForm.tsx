@@ -4,11 +4,13 @@ import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -34,10 +36,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
-import {UptimeAssertionsField} from './assertions/field';
+import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
+import {mapAssertionFormErrors} from './assertionFormErrors';
 import {HTTPSnippet} from './httpSnippet';
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
@@ -53,6 +57,8 @@ const MINUTE = 60;
 
 const DEFAULT_DOWNTIME_THRESHOLD = 3;
 const DEFAULT_RECOVERY_THRESHOLD = 1;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_METHOD = 'GET';
 
 const VALID_INTERVALS_SEC = [
   MINUTE * 1,
@@ -82,7 +88,9 @@ function getFormDataFromRule(rule: UptimeRule) {
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
     recoveryThreshold: rule.recoveryThreshold,
     downtimeThreshold: rule.downtimeThreshold,
-    assertion: rule.assertion,
+    // Use empty assertion structure for null - FormField converts null to '' which
+    // we can't distinguish from "new form". Empty children signals "edit with no assertions".
+    assertion: rule.assertion ?? {root: createEmptyAssertionRoot()},
   };
 }
 
@@ -92,6 +100,9 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const hasRuntimeAssertions = organization.features.includes(
+    'uptime-runtime-assertions'
+  );
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -99,7 +110,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project?.slug, method: 'GET', headers: []};
+    : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
 
@@ -195,26 +206,53 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={mapAssertionFormErrors}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
         }
+        // When runtime assertions are disabled, the assertions field is not mounted,
+        // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
+        if (!hasRuntimeAssertions) {
+          const assertion = formModel.getValue<Assertion | null>('assertion');
+          if (!assertion?.root || assertion.root.children?.length === 0) {
+            formModel.setValue('assertion', null);
+          }
+        }
       }}
       extraButton={
-        rule && handleDelete ? (
-          <Confirm
-            message={t(
-              'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-              rule.name
-            )}
-            header={<h5>{t('Delete Uptime Rule?')}</h5>}
-            priority="danger"
-            confirmText={t('Delete Rule')}
-            onConfirm={handleDelete}
-          >
-            <Button priority="danger">{t('Delete Rule')}</Button>
-          </Confirm>
-        ) : undefined
+        <Flex gap="md">
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {hasRuntimeAssertions && (
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+            />
+          )}
+        </Flex>
       }
     >
       <List symbol="colored-numeric">
@@ -317,7 +355,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               max={60_000}
               step={250}
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-              defaultValue={5_000}
+              defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
               flexibleControlStateSize
@@ -382,7 +420,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
             )}
           </Observer>
         </Configuration>
-        {organization.features.includes('uptime-runtime-assertions') && (
+        {hasRuntimeAssertions && (
           <Fragment>
             <AlertListItem>{t('Verification')}</AlertListItem>
             <ListItemSubText>
@@ -494,8 +532,8 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.3;
 `;
 

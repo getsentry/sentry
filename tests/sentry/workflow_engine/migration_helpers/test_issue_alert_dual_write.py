@@ -346,13 +346,19 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         self.workflow = alert_rule_workflow.workflow
-        self.when_dcg = self.workflow.when_condition_group
-        self.if_dcg = WorkflowDataConditionGroup.objects.get(workflow=self.workflow).condition_group
+        when_dcg = self.workflow.when_condition_group
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=self.workflow).condition_group
 
-        assert self.when_dcg is not None
-        assert self.if_dcg is not None
+        assert when_dcg is not None
+        assert if_dcg is not None
 
-    def assert_issue_alert_deleted(self, workflow, when_dcg, if_dcg):
+        # Narrow types for mypy
+        self.when_dcg: DataConditionGroup = when_dcg
+        self.if_dcg: DataConditionGroup = if_dcg
+
+    def assert_issue_alert_deleted(
+        self, workflow: Workflow, when_dcg: DataConditionGroup, if_dcg: DataConditionGroup
+    ) -> None:
         assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()

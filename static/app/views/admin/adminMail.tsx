@@ -1,8 +1,10 @@
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -19,9 +21,12 @@ type Data = {
 };
 
 export default function AdminMail() {
-  const {data, isPending, isError, refetch} = useApiQuery<Data>(['/internal/mail/'], {
-    staleTime: 0,
-  });
+  const {data, isPending, isError, refetch} = useApiQuery<Data>(
+    [getApiUrl('/internal/mail/')],
+    {
+      staleTime: 0,
+    }
+  );
   const api = useApi({persistInFlight: true});
 
   if (isPending) {

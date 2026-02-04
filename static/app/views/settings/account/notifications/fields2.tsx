@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import upperFirst from 'lodash/upperFirst';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {Field} from 'sentry/components/forms/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
@@ -189,7 +190,6 @@ const quotaSeerBudgetField = {
   ] as const,
 };
 
-// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {

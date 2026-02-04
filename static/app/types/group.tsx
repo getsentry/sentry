@@ -63,6 +63,8 @@ export enum SavedSearchType {
   TRANSACTION = 7,
   LOG = 8,
   TRACEMETRIC = 9,
+  PREPROD_APP_SIZE = 10,
+  // This and src/sentry/models/search_common.py must be updated together.
 }
 
 export enum IssueCategory {
@@ -360,7 +362,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
   return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
 }
 
-// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
@@ -986,8 +988,9 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
-interface GroupOpenPeriodActivity {
+export interface GroupOpenPeriodActivity {
   dateCreated: string;
+  eventId: string | null;
   id: string;
   type: 'opened' | 'status_change' | 'closed';
   value: 'high' | 'medium' | null;

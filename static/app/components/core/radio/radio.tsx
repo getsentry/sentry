@@ -8,7 +8,7 @@ export interface RadioProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
   ref?: React.Ref<HTMLInputElement>;
-  size?: 'sm';
+  size?: 'sm' | 'md';
 }
 
 const radioConfig = {

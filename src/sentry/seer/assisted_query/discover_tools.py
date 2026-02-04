@@ -6,7 +6,6 @@ from sentry.api import client
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.utils import validate_date_params
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 
@@ -183,8 +182,6 @@ def get_event_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    stats_period, start, end = validate_date_params(stats_period, start, end)
-
     # Treat empty projects as a query for all projects.
     if not project_ids:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -251,8 +248,6 @@ def get_event_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
-
-    stats_period, start, end = validate_date_params(stats_period, start, end)
 
     # Treat empty projects as a query for all projects.
     if not project_ids:

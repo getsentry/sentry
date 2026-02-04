@@ -1,15 +1,16 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 
-import {Badge} from '@sentry/scraps/badge/badge';
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -20,6 +21,7 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
@@ -44,6 +46,8 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 
 export function ExploreTables(props: ExploreTablesProps) {
   const organization = useOrganization();
+
+  const crossEvents = useQueryParamsCrossEvents();
 
   const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
@@ -88,6 +92,16 @@ export function ExploreTables(props: ExploreTablesProps) {
     );
   }, [aggregateFields, setAggregateFields, stringTags, numberTags]);
 
+  useEffect(() => {
+    if (
+      props.tab === Tab.ATTRIBUTE_BREAKDOWNS &&
+      defined(crossEvents) &&
+      crossEvents.length > 0
+    ) {
+      props.setTab(Tab.SPAN);
+    }
+  }, [crossEvents, props]);
+
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md">
@@ -97,7 +111,10 @@ export function ExploreTables(props: ExploreTablesProps) {
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
             {attributeBreakdownsEnabled ? (
-              <TabList.Item key={Tab.ATTRIBUTE_BREAKDOWNS}>
+              <TabList.Item
+                key={Tab.ATTRIBUTE_BREAKDOWNS}
+                disabled={defined(crossEvents) && crossEvents.length > 0}
+              >
                 {t('Attribute Breakdowns')}
                 <Badge variant="beta">Beta</Badge>
               </TabList.Item>

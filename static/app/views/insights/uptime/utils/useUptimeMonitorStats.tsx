@@ -1,4 +1,5 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {CheckStatusBucket} from 'sentry/views/alerts/rules/uptime/types';
@@ -33,11 +34,12 @@ export function useUptimeMonitorStats(
   };
 
   const organization = useOrganization();
-  const monitorStatsQueryKey = `/organizations/${organization.slug}/uptime-stats/`;
 
   return useApiQuery<Result>(
     [
-      monitorStatsQueryKey,
+      getApiUrl('/organizations/$organizationIdOrSlug/uptime-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           uptimeDetectorId: detectorIds,

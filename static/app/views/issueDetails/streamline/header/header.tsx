@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
+
+import {Tag} from '@sentry/scraps/badge';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -265,32 +266,36 @@ export default function StreamlinedGroupHeader({
         id={IssueDetailsTour.WORKFLOWS}
         title={t('Take action')}
         description={t(
-          'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+          "Now that you've learned about this issue, it's time to assign an owner, update priority, and take additional actions."
         )}
         position="bottom-end"
       >
-        <ActionBar isComplete={isComplete} role="banner">
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-          />
-          <WorkflowActions>
-            <Workflow>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Workflow>
-            <Workflow>
-              {t('Assignee')}
-              <GroupHeaderAssigneeSelector
+        {tourProps => (
+          <div {...tourProps}>
+            <ActionBar isComplete={isComplete} role="banner">
+              <GroupActions
                 group={group}
                 project={project}
+                disabled={disableActions}
                 event={event}
               />
-            </Workflow>
-          </WorkflowActions>
-        </ActionBar>
+              <WorkflowActions>
+                <Workflow>
+                  {t('Priority')}
+                  <GroupPriority group={group} />
+                </Workflow>
+                <Workflow>
+                  {t('Assignee')}
+                  <GroupHeaderAssigneeSelector
+                    group={group}
+                    project={project}
+                    event={event}
+                  />
+                </Workflow>
+              </WorkflowActions>
+            </ActionBar>
+          </div>
+        )}
       </TourElement>
     </Fragment>
   );
@@ -313,15 +318,15 @@ const PrimaryTitle = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   flex-shrink: 0;
 `;
 
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   justify-self: flex-end;
 `;
@@ -364,7 +369,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     background: linear-gradient(
       to right,
       ${p => p.theme.tokens.background.primary},
-      ${p => Color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
     );
   }
   &:after {

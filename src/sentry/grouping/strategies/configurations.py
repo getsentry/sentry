@@ -80,5 +80,5 @@ register_grouping_config(
         "prevent_python_multiprocessing_context_line_parameterization": False,
         "use_legacy_unknown_variable_handling": False,
     },
-    enhancements_base="all-platforms:2025-11-21",
+    enhancements_base="all-platforms:2026-01-20",
 )

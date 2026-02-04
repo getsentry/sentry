@@ -1,4 +1,5 @@
 import type {CommitFile, Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,9 +30,9 @@ export function useReleaseCommitFiles(
   const organization = useOrganization();
   return useApiQuery<CommitFile[]>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
-        release
-      )}/commitfiles/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/commitfiles/', {
+        path: {organizationIdOrSlug: organization.slug, version: release},
+      }),
       {
         query: {
           ...query,
