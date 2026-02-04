@@ -61,11 +61,11 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
-        organization_id: int,
+        organization_id: int | None = None,
         sentry_app_id: int | None = None,
     ) -> None:
         actions = None
-        if sentry_app_id:
+        if sentry_app_id and organization_id:
             actions = Action.objects.filter(
                 Q(config__target_identifier=sentry_app_install_uuid)
                 | Q(config__target_identifier=str(sentry_app_id)),
@@ -73,10 +73,11 @@ class DatabaseBackedActionService(ActionService):
                 dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
         else:
+            # we previously only used the installation id, so without the org id we can't do the sentry app id lookup
             actions = Action.objects.filter(
                 config__target_identifier=sentry_app_install_uuid,
                 type=Action.Type.SENTRY_APP,
-                dataconditiongroupaction__condition_group__organization_id=organization_id,
+                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
             )
 
         if actions:
