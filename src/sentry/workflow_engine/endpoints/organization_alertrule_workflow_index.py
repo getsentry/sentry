@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -15,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.alertrule_workflow_serializer import (
     AlertRuleWorkflowSerializer,
 )
@@ -45,7 +47,7 @@ class OrganizationAlertRuleWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a dual-written rule/alert rule and its associated workflow.
         """

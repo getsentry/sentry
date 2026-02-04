@@ -1,3 +1,6 @@
+import builtins
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -5,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
+from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
 
@@ -17,27 +21,27 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
 
-    def validate_type(self, value: str):
+    def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = super().validate_type(value)
         if type.slug != "error":
             raise serializers.ValidationError("Detector type must be error")
 
         return type
 
-    def validate_condition_group(self, value):
+    def validate_condition_group(self, value: Any) -> Any:
         if value is not None:
             raise serializers.ValidationError(
                 "Condition group is not supported for error detectors"
             )
         return value
 
-    def validate_name(self, value):
+    def validate_name(self, value: Any) -> str:
         # if name is different from existing, raise an error
         if self.instance and self.instance.name != value:
             raise serializers.ValidationError("Name changes are not supported for error detectors")
         return value
 
-    def validate_fingerprinting_rules(self, value):
+    def validate_fingerprinting_rules(self, value: Any) -> str | None:
         if not value:
             return value
 
@@ -48,16 +52,16 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
         return value
 
-    def validate_resolve_age(self, value):
+    def validate_resolve_age(self, value: Any) -> int | None:
         if value is not None and value < 0:
             raise serializers.ValidationError("Resolve age must be a non-negative number")
 
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         raise PermissionDenied("Creating error detectors is not supported")
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         with transaction.atomic(router.db_for_write(Detector)):
             # ignores name update
 

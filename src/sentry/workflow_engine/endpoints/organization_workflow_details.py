@@ -58,7 +58,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
-    def get(self, request: Request, organization: Organization, workflow: Workflow):
+    def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -87,7 +87,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
-    def put(self, request: Request, organization: Organization, workflow: Workflow):
+    def put(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -153,7 +153,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, workflow: Workflow):
+    def delete(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 

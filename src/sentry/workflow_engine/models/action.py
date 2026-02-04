@@ -51,7 +51,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     __repr__ = sane_repr("id", "type")
 
     objects: ClassVar[ActionManager] = ActionManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Action]] = BaseManager()
 
     class Type(StrEnum):
         SLACK = "slack"

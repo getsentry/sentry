@@ -35,7 +35,7 @@ def bulk_create_data_conditions(
     conditions: list[dict[str, Any]],
     dcg: DataConditionGroup,
     filters: list[dict[str, Any]] | None = None,
-):
+) -> None:
     dcg_conditions: list[DataCondition] = []
 
     for condition in conditions:
@@ -60,7 +60,7 @@ def create_if_dcg(
     conditions: list[dict[str, Any]],
     filters: list[dict[str, Any]],
     filter_match: str | None = None,
-):
+) -> DataConditionGroup:
     if filter_match == "any":  # must create IF DCG even if it's empty, to attach actions
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
     elif filter_match is None:
@@ -164,7 +164,7 @@ def update_dcg(
     type: WorkflowDataConditionGroupType,
     filters: list[dict[str, Any]],
     match: str | None = None,
-):
+) -> DataConditionGroup:
     DataCondition.objects.filter(condition_group=dcg).delete()
 
     if dcg.logic_type != match:
@@ -206,7 +206,7 @@ def delete_migrated_issue_alert(rule: Rule) -> int | None:
     return workflow_id
 
 
-def delete_workflow_actions(if_dcg: DataConditionGroup):
+def delete_workflow_actions(if_dcg: DataConditionGroup) -> None:
     dcg_actions = DataConditionGroupAction.objects.filter(condition_group=if_dcg)
     action_ids = dcg_actions.values_list("action_id", flat=True)
     Action.objects.filter(id__in=action_ids).delete()
