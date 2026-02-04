@@ -112,7 +112,6 @@ type Props = WithRouterProps & {
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
-  showLegendBreakdown?: boolean;
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;

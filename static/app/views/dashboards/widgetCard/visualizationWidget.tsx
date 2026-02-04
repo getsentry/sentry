@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -24,6 +26,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
@@ -67,8 +70,6 @@ export function VisualizationWidget({
     enabled: showReleaseAs !== 'none',
   });
 
-  const showLegendBreakdown = widget.legendType === 'breakdown';
-
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -103,7 +104,6 @@ export function VisualizationWidget({
             loading={loading}
             releases={releases}
             showReleaseAs={showReleaseAs}
-            showLegendBreakdown={showLegendBreakdown}
             renderErrorMessage={renderErrorMessage}
           />
         );
@@ -121,7 +121,6 @@ interface VisualizationWidgetContentProps {
   dashboardFilters?: DashboardFilters;
   errorMessage?: string;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  showLegendBreakdown?: boolean;
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -138,7 +137,6 @@ function VisualizationWidgetContent({
   loading,
   releases,
   showReleaseAs,
-  showLegendBreakdown,
   renderErrorMessage,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
@@ -187,7 +185,7 @@ function VisualizationWidgetContent({
     widget: tableWidget,
     organization,
     pageFilters: selection ?? pageFiltersSelection,
-    enabled: showLegendBreakdown ?? false,
+    enabled: widget?.legendType === 'breakdown',
     dashboardFilters,
   });
 
@@ -203,7 +201,9 @@ function VisualizationWidgetContent({
   }, [plottables, theme.chart]);
 
   const hasBreakdownData =
-    showLegendBreakdown && timeseriesResults && timeseriesResults.length > 0;
+    widget.legendType === 'breakdown' &&
+    timeseriesResults &&
+    timeseriesResults.length > 0;
 
   const tableDataRows = tableResults?.[0]?.data;
   const tableErrorMessage = tableQueryResult?.errorMessage;
@@ -229,17 +229,19 @@ function VisualizationWidgetContent({
 
           let value: number | null = null;
           if (tableDataRows) {
-            // If there is only one aggregate, we can match by index
+            // If the there is one groupby and one aggregate, the table results will be
+            // [{groupBy: 'value', aggregate: 123}. {groupBy: 'value', aggregate: 123}]
             if (columns.length === 1 && aggregates.length === 1) {
-              // With group by: match by filteredIndex (both timeseries and table are ordered by aggregate desc, excluding "Other")
               const aggregate = aggregates[0];
               const row = tableDataRows[filteredIndex];
               // TODO: We should ideally match row[columns[0]] with the series, however series can have aliases
               if (aggregate && row?.[aggregate] !== undefined) {
                 value = row[aggregate] as number;
               }
-            } else if (columns.length === 0 && aggregates.length > 1) {
-              // Without group by: single row with multiple aggregates
+            }
+            // If there is no groupby, and multiple aggregates, the table result will be
+            // [{aggregate1: 123}, {aggregate2: 345}]
+            else if (columns.length === 0 && aggregates.length > 1) {
               const aggregate = aggregates[index];
               const row = tableDataRows[0];
               if (aggregate && row?.[aggregate] !== undefined) {
@@ -247,7 +249,7 @@ function VisualizationWidgetContent({
               }
             }
           }
-          const dataType = plottable?.dataType ?? 'number';
+          const dataType = plottable?.dataType ?? FALLBACK_TYPE;
           const dataUnit = plottable?.dataUnit ?? undefined;
           const label = plottable?.label ?? series.seriesName;
           return (
@@ -262,9 +264,9 @@ function VisualizationWidgetContent({
               <Tooltip title={label} showOnlyOnOverflow>
                 <SeriesNameCell>{label}</SeriesNameCell>
               </Tooltip>
-              <div>
+              <Text>
                 {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
-              </div>
+              </Text>
             </Fragment>
           );
         })}
@@ -272,7 +274,7 @@ function VisualizationWidgetContent({
     )
   ) : null;
 
-  if (loading || (showLegendBreakdown && tableLoading)) {
+  if (loading || (widget.legendType === 'breakdown' && tableLoading)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
   if (errorDisplay) {
@@ -281,7 +283,7 @@ function VisualizationWidgetContent({
 
   if (hasBreakdownData) {
     return (
-      <VisualizationContainer>
+      <Flex direction="column" height="100%">
         <ChartWrapper>
           <TimeSeriesWidgetVisualization
             plottables={plottables}
@@ -293,7 +295,7 @@ function VisualizationWidgetContent({
         <FooterWrapper>
           <FooterTableWrapper>{footerTable}</FooterTableWrapper>
         </FooterWrapper>
-      </VisualizationContainer>
+      </Flex>
     );
   }
 
@@ -305,12 +307,6 @@ function VisualizationWidgetContent({
     />
   );
 }
-
-const VisualizationContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
 
 const ChartWrapper = styled('div')`
   flex: 2;
