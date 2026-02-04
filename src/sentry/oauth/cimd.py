@@ -24,9 +24,9 @@ class CIMDError(Exception):
     to users without leaking sensitive information about the client or error.
     """
 
-    def __init__(self, message: str, client_id_url: str | None = None):
+    def __init__(self, message: str, url: str | None = None):
         super().__init__(message)
-        self.client_id_url = client_id_url
+        self.url = url
 
     def get_safe_hostname(self) -> str:
         """Extract hostname from client_id URL for safe user display.
@@ -34,9 +34,9 @@ class CIMDError(Exception):
         Per RFC, if metadata fetch fails, display only the client_id hostname
         to the user (don't show potentially spoofed metadata).
         """
-        if not self.client_id_url:
+        if not self.url:
             return "unknown"
-        return urlparse(self.client_id_url).hostname or "unknown"
+        return urlparse(self.url).hostname or "unknown"
 
     @property
     def safe_message(self) -> str:
@@ -88,13 +88,13 @@ VALID_AUTH_METHODS: frozenset[str] = frozenset(
 )
 
 
-def validate_cimd_document(document: dict, client_id_url: str) -> None:
+def validate_cimd_document(document: dict, url: str) -> None:
     """
     Validate a CIMD document per RFC draft-ietf-oauth-client-id-metadata-document.
 
     Args:
         document: The parsed CIMD metadata document.
-        client_id_url: The URL from which the document was fetched.
+        url: The URL from which the document was fetched.
 
     Raises:
         CIMDValidationError: If the document fails validation.
@@ -103,68 +103,66 @@ def validate_cimd_document(document: dict, client_id_url: str) -> None:
     # Per RFC 3986 §6.2.1, simple string comparison is used
     client_id = document.get("client_id")
     if client_id is None:
-        raise CIMDValidationError("Missing required field: client_id", client_id_url)
+        raise CIMDValidationError("Missing required field: client_id", url)
 
-    if client_id != client_id_url:
+    if client_id != url:
         raise CIMDValidationError(
-            f"client_id mismatch: document contains '{client_id}' but was fetched from '{client_id_url}'",
-            client_id_url,
+            f"client_id mismatch: document contains '{client_id}' but was fetched from '{url}'",
+            url,
         )
 
     # 2. Prohibited fields MUST NOT appear
     for field in PROHIBITED_FIELDS:
         if field in document:
-            raise CIMDValidationError(f"Prohibited field present: {field}", client_id_url)
+            raise CIMDValidationError(f"Prohibited field present: {field}", url)
 
     # 3. token_endpoint_auth_method validation
     auth_method = document.get("token_endpoint_auth_method")
     if auth_method is not None and auth_method not in VALID_AUTH_METHODS:
         # Provide specific error for prohibited methods (require client secrets)
         if auth_method in PROHIBITED_AUTH_METHODS:
-            raise CIMDValidationError(
-                f"Prohibited authentication method: {auth_method}", client_id_url
-            )
-        raise CIMDValidationError(f"Invalid authentication method: {auth_method}", client_id_url)
+            raise CIMDValidationError(f"Prohibited authentication method: {auth_method}", url)
+        raise CIMDValidationError(f"Invalid authentication method: {auth_method}", url)
 
     # 4. redirect_uris validation
     redirect_uris = document.get("redirect_uris")
     if redirect_uris is not None:
         if not isinstance(redirect_uris, list):
-            raise CIMDValidationError("redirect_uris must be an array", client_id_url)
+            raise CIMDValidationError("redirect_uris must be an array", url)
 
         if not all(isinstance(uri, str) for uri in redirect_uris):
-            raise CIMDValidationError("redirect_uris must contain only strings", client_id_url)
+            raise CIMDValidationError("redirect_uris must contain only strings", url)
 
         # Validate redirect_uri origins match client_id origin (Sentry policy)
-        client_origin = _get_origin(client_id_url)
+        client_origin = _get_origin(url)
         for uri in redirect_uris:
             redirect_origin = _get_origin(uri)
             if redirect_origin != client_origin:
                 raise CIMDValidationError(
                     f"redirect_uri origin '{redirect_origin}' does not match client_id origin '{client_origin}'",
-                    client_id_url,
+                    url,
                 )
 
     # 5. Optional field type validation
-    _validate_optional_string_array(document, "grant_types", client_id_url)
-    _validate_optional_string_array(document, "response_types", client_id_url)
+    _validate_optional_string_array(document, "grant_types", url)
+    _validate_optional_string_array(document, "response_types", url)
 
     # 6. jwks_uri validation (if present, must be a valid HTTPS URL)
     jwks_uri = document.get("jwks_uri")
     if jwks_uri is not None:
         if not isinstance(jwks_uri, str):
-            raise CIMDValidationError("jwks_uri must be a string", client_id_url)
+            raise CIMDValidationError("jwks_uri must be a string", url)
         if urlparse(jwks_uri).scheme != "https":
-            raise CIMDValidationError("jwks_uri must use HTTPS", client_id_url)
+            raise CIMDValidationError("jwks_uri must use HTTPS", url)
 
     # 7. jwks validation (if present, must be an object with keys array)
     jwks = document.get("jwks")
     if jwks is not None:
         if not isinstance(jwks, dict):
-            raise CIMDValidationError("jwks must be an object", client_id_url)
+            raise CIMDValidationError("jwks must be an object", url)
         keys = jwks.get("keys")
         if not isinstance(keys, list):
-            raise CIMDValidationError("jwks must contain a 'keys' array", client_id_url)
+            raise CIMDValidationError("jwks must contain a 'keys' array", url)
 
 
 def _get_origin(url: str) -> str:
@@ -173,16 +171,14 @@ def _get_origin(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
-def _validate_optional_string_array(
-    document: dict, field: str, client_id_url: str | None = None
-) -> None:
+def _validate_optional_string_array(document: dict, field: str, url: str | None = None) -> None:
     """Validate that an optional field, if present, is an array of strings."""
     value = document.get(field)
     if value is not None:
         if not isinstance(value, list):
-            raise CIMDValidationError(f"{field} must be an array", client_id_url)
+            raise CIMDValidationError(f"{field} must be an array", url)
         if not all(isinstance(item, str) for item in value):
-            raise CIMDValidationError(f"{field} must contain only strings", client_id_url)
+            raise CIMDValidationError(f"{field} must contain only strings", url)
 
 
 class CIMDCache:
@@ -204,48 +200,48 @@ class CIMDCache:
 
     CACHE_KEY_PREFIX = "cimd:metadata"
 
-    def get_cache_key(self, client_id_url: str) -> str:
+    def get_cache_key(self, url: str) -> str:
         """Generate a cache key from the client_id URL."""
-        url_hash = hashlib.sha256(client_id_url.encode()).hexdigest()[:32]
+        url_hash = hashlib.sha256(url.encode()).hexdigest()[:32]
         return f"{self.CACHE_KEY_PREFIX}:{url_hash}"
 
-    def get(self, client_id_url: str) -> dict | None:
+    def get(self, url: str) -> dict | None:
         """
         Retrieve cached CIMD metadata for a client_id URL.
 
         Args:
-            client_id_url: The client_id URL to look up.
+            url: The client_id URL to look up.
 
         Returns:
             Cached metadata dictionary, or None if not cached.
         """
-        key = self.get_cache_key(client_id_url)
+        key = self.get_cache_key(url)
         return cache.get(key)
 
-    def set(self, client_id_url: str, metadata: dict, cache_control: str | None = None) -> None:
+    def set(self, url: str, metadata: dict, cache_control: str | None = None) -> None:
         """
         Cache validated CIMD metadata.
 
         Args:
-            client_id_url: The client_id URL the metadata was fetched from.
+            url: The client_id URL the metadata was fetched from.
             metadata: The validated metadata document.
             cache_control: HTTP Cache-Control header value from the response.
         """
-        key = self.get_cache_key(client_id_url)
+        key = self.get_cache_key(url)
         ttl = self._calculate_ttl(cache_control)
         cache.set(key, metadata, ttl)
         logger.debug(
             "cimd.cache.set",
             extra={
-                "url": client_id_url,
+                "url": url,
                 "ttl": ttl,
                 "cache_control": cache_control,
             },
         )
 
-    def delete(self, client_id_url: str) -> None:
+    def delete(self, url: str) -> None:
         """Remove cached metadata for a client_id URL."""
-        key = self.get_cache_key(client_id_url)
+        key = self.get_cache_key(url)
         cache.delete(key)
 
     def _calculate_ttl(self, cache_control: str | None) -> int:
@@ -307,7 +303,7 @@ class CIMDClient:
         """
         self._cache = cache if cache is not None else cimd_cache
 
-    def fetch_and_validate(self, client_id_url: str, *, skip_cache: bool = False) -> dict:
+    def fetch_and_validate(self, url: str, *, skip_cache: bool = False) -> dict:
         """
         Fetch, validate, and cache CIMD metadata document.
 
@@ -318,7 +314,7 @@ class CIMDClient:
         4. Caches valid metadata respecting HTTP Cache-Control headers
 
         Args:
-            client_id_url: The client_id URL which must be a valid HTTPS URL.
+            url: The client_id URL which must be a valid HTTPS URL.
             skip_cache: If True, bypasses cache lookup (but still caches results).
 
         Returns:
@@ -330,28 +326,28 @@ class CIMDClient:
         """
         # Check cache first (unless explicitly skipped)
         if not skip_cache:
-            cached = self._cache.get(client_id_url)
+            cached = self._cache.get(url)
             if cached is not None:
                 logger.debug(
                     "cimd.cache.hit",
-                    extra={"url": client_id_url},
+                    extra={"url": url},
                 )
                 metrics.incr("oauth.cimd.cache.hit", sample_rate=1.0)
                 return cached
 
         # Fetch and parse (cache miss)
         metrics.incr("oauth.cimd.cache.miss", sample_rate=1.0)
-        metadata, cache_control = self._fetch_metadata_with_headers(client_id_url)
+        metadata, cache_control = self._fetch_metadata_with_headers(url)
 
         # Validate (may raise CIMDValidationError)
-        validate_cimd_document(metadata, client_id_url)
+        validate_cimd_document(metadata, url)
 
         # Cache valid metadata
-        self._cache.set(client_id_url, metadata, cache_control)
+        self._cache.set(url, metadata, cache_control)
 
         return metadata
 
-    def _fetch_metadata_with_headers(self, client_id_url: str) -> tuple[dict, str | None]:
+    def _fetch_metadata_with_headers(self, url: str) -> tuple[dict, str | None]:
         """
         Fetch CIMD metadata and return it along with Cache-Control header.
 
@@ -360,7 +356,7 @@ class CIMDClient:
         """
         try:
             response = safe_urlopen(
-                client_id_url,
+                url,
                 timeout=self.TIMEOUT,
                 headers={"Accept": "application/json"},
                 allow_redirects=False,
@@ -368,26 +364,22 @@ class CIMDClient:
         except RestrictedIPAddress:
             logger.warning(
                 "cimd.fetch.restricted-ip",
-                extra={"url": client_id_url},
+                extra={"url": url},
             )
-            raise CIMDFetchError(
-                "Client ID URL resolves to restricted IP address", client_id_url
-            ) from None
+            raise CIMDFetchError("Client ID URL resolves to restricted IP address", url) from None
         except Timeout:
             logger.warning(
                 "cimd.fetch.timeout",
-                extra={"url": client_id_url, "timeout": self.TIMEOUT},
+                extra={"url": url, "timeout": self.TIMEOUT},
             )
-            raise CIMDFetchError(
-                "Timeout fetching client metadata document", client_id_url
-            ) from None
+            raise CIMDFetchError("Timeout fetching client metadata document", url) from None
         except RequestsConnectionError as e:
             logger.warning(
                 "cimd.fetch.connection-error",
-                extra={"url": client_id_url, "error": str(e)},
+                extra={"url": url, "error": str(e)},
             )
             raise CIMDFetchError(
-                "Connection error fetching client metadata document", client_id_url
+                "Connection error fetching client metadata document", url
             ) from None
 
         # Check HTTP status code
@@ -395,12 +387,12 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.http-error",
                 extra={
-                    "url": client_id_url,
+                    "url": url,
                     "status_code": response.status_code,
                 },
             )
             raise CIMDFetchError(
-                f"HTTP {response.status_code} fetching client metadata document", client_id_url
+                f"HTTP {response.status_code} fetching client metadata document", url
             )
 
         # Verify content type is JSON
@@ -409,13 +401,13 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.invalid-content-type",
                 extra={
-                    "url": client_id_url,
+                    "url": url,
                     "content_type": content_type,
                 },
             )
             raise CIMDFetchError(
                 f"Invalid content type: expected application/json, got {content_type}",
-                client_id_url,
+                url,
             )
 
         # Read response with size limit
@@ -424,14 +416,14 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.response-too-large",
                 extra={
-                    "url": client_id_url,
+                    "url": url,
                     "size": len(body),
                     "max_size": self.MAX_RESPONSE_SIZE,
                 },
             )
             raise CIMDFetchError(
                 f"Response too large: {len(body)} bytes exceeds {self.MAX_RESPONSE_SIZE} byte limit",
-                client_id_url,
+                url,
             )
 
         # Parse JSON
@@ -440,25 +432,23 @@ class CIMDClient:
         except orjson.JSONDecodeError as e:
             logger.warning(
                 "cimd.fetch.invalid-json",
-                extra={"url": client_id_url, "error": str(e)},
+                extra={"url": url, "error": str(e)},
             )
-            raise CIMDFetchError(
-                "Invalid JSON in client metadata document", client_id_url
-            ) from None
+            raise CIMDFetchError("Invalid JSON in client metadata document", url) from None
 
         if not isinstance(metadata, dict):
             logger.warning(
                 "cimd.fetch.not-object",
-                extra={"url": client_id_url, "type": type(metadata).__name__},
+                extra={"url": url, "type": type(metadata).__name__},
             )
-            raise CIMDFetchError("Client metadata document must be a JSON object", client_id_url)
+            raise CIMDFetchError("Client metadata document must be a JSON object", url)
 
         # Extract Cache-Control header for caching
         cache_control = response.headers.get("Cache-Control")
 
         return metadata, cache_control
 
-    def fetch_metadata(self, client_id_url: str) -> dict:
+    def fetch_metadata(self, url: str) -> dict:
         """
         Fetch and return CIMD metadata document from the client_id URL.
 
@@ -466,7 +456,7 @@ class CIMDClient:
         prefer `fetch_and_validate()` which includes caching and validation.
 
         Args:
-            client_id_url: The client_id URL which must be a valid HTTPS URL.
+            url: The client_id URL which must be a valid HTTPS URL.
                            URL validation should be done before calling this method.
 
         Returns:
@@ -475,5 +465,5 @@ class CIMDClient:
         Raises:
             CIMDFetchError: If the metadata cannot be fetched or is invalid.
         """
-        metadata, _ = self._fetch_metadata_with_headers(client_id_url)
+        metadata, _ = self._fetch_metadata_with_headers(url)
         return metadata

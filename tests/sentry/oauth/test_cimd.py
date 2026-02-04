@@ -837,15 +837,15 @@ class CIMDErrorHandlingTest(TestCase):
     to the user (don't show potentially spoofed metadata).
     """
 
-    def test_cimd_error_stores_client_id_url(self):
-        """CIMDError should store the client_id_url."""
+    def test_cimd_error_stores_url(self):
+        """CIMDError should store the url."""
         error = CIMDError("Test error", "https://example.com/oauth/client")
-        assert error.client_id_url == "https://example.com/oauth/client"
+        assert error.url == "https://example.com/oauth/client"
 
-    def test_cimd_error_without_client_id_url(self):
-        """CIMDError should work without client_id_url."""
+    def test_cimd_error_without_url(self):
+        """CIMDError should work without url."""
         error = CIMDError("Test error")
-        assert error.client_id_url is None
+        assert error.url is None
 
     def test_get_safe_hostname_extracts_hostname(self):
         """get_safe_hostname should extract hostname from client_id URL."""
@@ -904,8 +904,8 @@ class CIMDErrorHandlingTest(TestCase):
         assert "Unable to verify client" not in str(error)
 
 
-class CIMDExceptionClientIdUrlPropagationTest(TestCase):
-    """Tests to verify client_id_url is properly propagated through exceptions."""
+class CIMDExceptionUrlPropagationTest(TestCase):
+    """Tests to verify url is properly propagated through exceptions."""
 
     def setUp(self):
         super().setUp()
@@ -913,8 +913,8 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         self.test_url = "https://example.com/oauth/client"
 
     @responses.activate
-    def test_fetch_error_includes_client_id_url(self):
-        """CIMDFetchError from fetch should include client_id_url."""
+    def test_fetch_error_includes_url(self):
+        """CIMDFetchError from fetch should include url."""
         responses.add(
             responses.GET,
             self.test_url,
@@ -924,12 +924,12 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDFetchError) as exc_info:
             self.cimd_client.fetch_metadata(self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
         assert exc_info.value.get_safe_hostname() == "example.com"
 
     @responses.activate
-    def test_fetch_timeout_includes_client_id_url(self):
-        """CIMDFetchError from timeout should include client_id_url."""
+    def test_fetch_timeout_includes_url(self):
+        """CIMDFetchError from timeout should include url."""
         responses.add(
             responses.GET,
             self.test_url,
@@ -939,11 +939,11 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDFetchError) as exc_info:
             self.cimd_client.fetch_metadata(self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
     @responses.activate
-    def test_fetch_connection_error_includes_client_id_url(self):
-        """CIMDFetchError from connection error should include client_id_url."""
+    def test_fetch_connection_error_includes_url(self):
+        """CIMDFetchError from connection error should include url."""
         responses.add(
             responses.GET,
             self.test_url,
@@ -953,21 +953,21 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDFetchError) as exc_info:
             self.cimd_client.fetch_metadata(self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
-    def test_restricted_ip_includes_client_id_url(self):
-        """CIMDFetchError from restricted IP should include client_id_url."""
+    def test_restricted_ip_includes_url(self):
+        """CIMDFetchError from restricted IP should include url."""
         with patch("sentry.oauth.cimd.safe_urlopen") as mock_urlopen:
             mock_urlopen.side_effect = RestrictedIPAddress("127.0.0.1")
 
             with pytest.raises(CIMDFetchError) as exc_info:
                 self.cimd_client.fetch_metadata(self.test_url)
 
-            assert exc_info.value.client_id_url == self.test_url
+            assert exc_info.value.url == self.test_url
 
     @responses.activate
-    def test_invalid_json_includes_client_id_url(self):
-        """CIMDFetchError from invalid JSON should include client_id_url."""
+    def test_invalid_json_includes_url(self):
+        """CIMDFetchError from invalid JSON should include url."""
         responses.add(
             responses.GET,
             self.test_url,
@@ -979,7 +979,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDFetchError) as exc_info:
             self.cimd_client.fetch_metadata(self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
     def test_validation_missing_client_id_includes_url(self):
         """CIMDValidationError for missing client_id should include URL."""
@@ -988,7 +988,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDValidationError) as exc_info:
             validate_cimd_document(document, self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
     def test_validation_client_id_mismatch_includes_url(self):
         """CIMDValidationError for client_id mismatch should include URL."""
@@ -997,7 +997,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDValidationError) as exc_info:
             validate_cimd_document(document, self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
     def test_validation_prohibited_field_includes_url(self):
         """CIMDValidationError for prohibited field should include URL."""
@@ -1006,7 +1006,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDValidationError) as exc_info:
             validate_cimd_document(document, self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
 
     def test_validation_invalid_auth_method_includes_url(self):
         """CIMDValidationError for invalid auth method should include URL."""
@@ -1018,4 +1018,4 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         with pytest.raises(CIMDValidationError) as exc_info:
             validate_cimd_document(document, self.test_url)
 
-        assert exc_info.value.client_id_url == self.test_url
+        assert exc_info.value.url == self.test_url
