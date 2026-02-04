@@ -47,7 +47,7 @@ SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration
   ],
 });
 
-export const dotnetMetrics = (): OnboardingConfig => ({
+export const metrics: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -124,4 +124,4 @@ SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration
       ],
     },
   ],
-});
+};
