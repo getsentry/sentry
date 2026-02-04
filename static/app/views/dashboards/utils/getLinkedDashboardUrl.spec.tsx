@@ -48,7 +48,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -80,7 +80,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedNewFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -95,7 +95,7 @@ describe('getLinkedDashboardUrl', () => {
         {
           dataset: WidgetType.SPANS,
           tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-          value: 'browser.name:Firefox',
+          value: 'browser.name:[Firefox]',
           isTemporary: true,
         },
       ],
@@ -112,7 +112,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -139,7 +139,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -163,7 +163,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -190,14 +190,14 @@ describe('getLinkedDashboardUrl', () => {
     const expectedSpansFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
     const expectedErrorsFilter: GlobalFilter = {
       dataset: WidgetType.ERRORS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -224,21 +224,21 @@ describe('getLinkedDashboardUrl', () => {
     const expectedSpansFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
     const expectedErrorsFilter: GlobalFilter = {
       dataset: WidgetType.ERRORS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
     const expectedTransactionsFilter: GlobalFilter = {
       dataset: WidgetType.TRANSACTIONS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:Chrome',
+      value: 'browser.name:[Chrome]',
       isTemporary: true,
     };
 
@@ -258,7 +258,7 @@ describe('getLinkedDashboardUrl', () => {
     const expectedFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
       tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
-      value: 'browser.name:"Chrome \\"Browser\\""',
+      value: 'browser.name:["Chrome \\"Browser\\""]',
       isTemporary: true,
     };
 

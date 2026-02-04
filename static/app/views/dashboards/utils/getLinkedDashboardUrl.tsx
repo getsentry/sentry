@@ -2,8 +2,8 @@ import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 import qs from 'query-string';
 
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {FieldKind} from 'sentry/utils/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {
   DashboardFilters,
   GlobalFilter,
@@ -57,10 +57,10 @@ export function getLinkedDashboardUrl({
       !(filter.tag.key === field && datasetsToApplyFiltersTo.includes(filter.dataset))
   );
 
-  // Format the value as a proper filter condition string
-  const mutableSearch = new MutableSearch('');
-  mutableSearch.addFilterValues(field, [value]);
-  const formattedValue = mutableSearch.formatString();
+  // Format the value as a proper filter condition string (bracket syntax e.g. field:[value])
+  const formattedValue = new MutableSearch('')
+    .addFilterValueList(field, [value])
+    .toString();
 
   // Add temporary filters for each dataset
   datasetsToApplyFiltersTo.forEach(dataset => {

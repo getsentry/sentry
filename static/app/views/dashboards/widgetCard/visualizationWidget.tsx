@@ -210,7 +210,7 @@ function VisualizationWidgetContent({
         const dataUnit = plottable?.dataUnit ?? undefined;
         const label = plottable?.label ?? series.seriesName;
         const linkedUrl =
-          linkedDashboard && firstColumn
+          linkedDashboard && firstColumn && widget.widgetType
             ? getLinkedDashboardUrl({
                 linkedDashboard,
                 organizationSlug: organization.slug,
