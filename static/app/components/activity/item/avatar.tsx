@@ -27,7 +27,6 @@ export function ActivityAvatar({className, type, user, size = 38}: Props) {
         justify="center"
         width={`${size}px`}
         height={`${size}px`}
-        color="primary"
         background="primary"
         radius="full"
       >
