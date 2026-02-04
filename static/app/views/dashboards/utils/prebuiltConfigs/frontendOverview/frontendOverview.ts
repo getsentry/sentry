@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -258,6 +259,18 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
-  filters: {},
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
 };
