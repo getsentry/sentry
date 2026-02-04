@@ -604,7 +604,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {
