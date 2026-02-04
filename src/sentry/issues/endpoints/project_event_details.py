@@ -43,6 +43,11 @@ def wrap_event_response(
         IssueEventSerializer(),
         include_full_release_data=include_full_release_data,
     )
+    
+    # Handle serialization failure gracefully
+    if event_data is None:
+        return None
+    
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -146,6 +151,10 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             start=start,
             end=end,
         )
+        
+        if data is None:
+            return Response({"detail": "Failed to serialize event"}, status=500)
+        
         return Response(data)
 
 
