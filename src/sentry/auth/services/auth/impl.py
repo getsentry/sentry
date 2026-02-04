@@ -211,6 +211,17 @@ class DatabaseBackedAuthService(AuthService):
         current_provider.provider = provider
         current_provider.save()
 
+    def update_session_duration(
+        self, *, provider_id: int, session_duration_seconds: int | None
+    ) -> None:
+        with outbox_context(transaction.atomic(router.db_for_write(AuthProvider))):
+            try:
+                auth_provider = AuthProvider.objects.get(id=provider_id)
+            except AuthProvider.DoesNotExist:
+                return
+            auth_provider.session_duration_seconds = session_duration_seconds
+            auth_provider.save()
+
 
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]

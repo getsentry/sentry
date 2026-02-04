@@ -206,6 +206,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             default_global_access=auth_provider.default_global_access,
             allow_unlinked=auth_provider.flags.allow_unlinked,
             scim_enabled=auth_provider.flags.scim_enabled,
+            session_duration_seconds=auth_provider.session_duration_seconds,
         )
 
         handle_replication(AuthProvider, destination)

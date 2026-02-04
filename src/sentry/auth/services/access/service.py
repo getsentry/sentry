@@ -79,7 +79,11 @@ class AccessService(abc.ABC):
             return _SSO_BYPASS
 
         if auth_provider.flags.allow_unlinked:
-            return _SSO_BYPASS
+            return RpcMemberSsoState(
+                is_required=False,
+                is_valid=True,
+                session_duration_seconds=auth_provider.session_duration_seconds,
+            )
         else:
             requires_sso = True
 
@@ -94,7 +98,11 @@ class AccessService(abc.ABC):
                     auth_provider=auth_provider, auth_identity=auth_identity, member=member
                 )
 
-        return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+        return RpcMemberSsoState(
+            is_required=requires_sso,
+            is_valid=sso_is_valid,
+            session_duration_seconds=auth_provider.session_duration_seconds,
+        )
 
     def get_user_auth_state(
         self,

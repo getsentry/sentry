@@ -44,6 +44,8 @@ class AuthProvider(ReplicatedControlModel):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
+    # SSO session duration in seconds. None means use global default (SENTRY_SSO_EXPIRY_SECONDS).
+    session_duration_seconds = BoundedPositiveIntegerField(null=True, default=None)
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_provider

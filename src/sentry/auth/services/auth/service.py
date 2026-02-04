@@ -114,5 +114,12 @@ class AuthService(RpcService):
     ) -> RpcAuthProvider | None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def update_session_duration(
+        self, *, provider_id: int, session_duration_seconds: int | None
+    ) -> None:
+        pass
+
 
 auth_service = AuthService.create_delegation()

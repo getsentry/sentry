@@ -78,7 +78,9 @@ class OrganizationPermission(DemoSafePermission):
         # logic for checking valid SSO
         if not request.access.requires_sso:
             return False
-        if not auth.has_completed_sso(request, organization.id):
+        if not auth.has_completed_sso(
+            request, organization.id, request.access.session_duration_seconds
+        ):
             return True
         if not request.access.sso_is_valid:
             return True

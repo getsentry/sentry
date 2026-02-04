@@ -28,6 +28,7 @@ def serialize_auth_provider(ap: AuthProvider) -> RpcAuthProvider:
         config=ap.config,
         default_role=ap.default_role,
         default_global_access=ap.default_global_access,
+        session_duration_seconds=ap.session_duration_seconds,
     )
 
 
@@ -42,6 +43,7 @@ def serialize_auth_provider_replica(ap: AuthProviderReplica) -> RpcAuthProvider:
         config=ap.config,
         default_role=ap.default_role,
         default_global_access=ap.default_global_access,
+        session_duration_seconds=ap.session_duration_seconds,
     )
 
 

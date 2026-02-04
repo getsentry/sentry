@@ -48,6 +48,14 @@ def _sso_expiry_from_env(seconds: str | None) -> timedelta:
 
 SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS)
 
+# Available SSO session duration choices (value in seconds, human-readable label)
+SSO_SESSION_DURATION_CHOICES = [
+    (86400, "24 hours"),
+    (172800, "2 days"),
+    (604800, "7 days"),
+    (1209600, "14 days"),
+]
+
 
 class SsoSession:
     """
@@ -78,8 +86,13 @@ class SsoSession:
             datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
         )
 
-    def is_sso_authtime_fresh(self) -> bool:
-        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+    def is_sso_authtime_fresh(self, session_duration_seconds: int | None = None) -> bool:
+        if session_duration_seconds is None:
+            expiry_time = SSO_EXPIRY_TIME
+        else:
+            expiry_time = timedelta(seconds=session_duration_seconds)
+
+        expired_time_cutoff = datetime.now(tz=timezone.utc) - expiry_time
 
         return self.authenticated_at_time > expired_time_cutoff
 
@@ -237,7 +250,9 @@ def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
     request.session.modified = True
 
 
-def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
+def has_completed_sso(
+    request: HttpRequest, organization_id: int, session_duration_seconds: int | None = None
+) -> bool:
     """
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
@@ -256,7 +271,7 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
         organization_id, sso_session_in_request
     )
 
-    if not django_session_value.is_sso_authtime_fresh():
+    if not django_session_value.is_sso_authtime_fresh(session_duration_seconds):
         metrics.incr("sso.session-timed-out")
         return False
 

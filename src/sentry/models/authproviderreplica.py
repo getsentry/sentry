@@ -32,6 +32,8 @@ class AuthProviderReplica(Model):
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
+    # SSO session duration in seconds. None means use global default (SENTRY_SSO_EXPIRY_SECONDS).
+    session_duration_seconds = BoundedPositiveIntegerField(null=True, default=None)
 
     # This represents the time at which this model was created, NOT the date_added of the original auth provider
     # we are replicating from.

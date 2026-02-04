@@ -21,6 +21,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.plugins.base.response import DeferredResponse
 from sentry.tasks.auth.auth import email_missing_links_control
+from sentry.utils.auth import SSO_SESSION_DURATION_CHOICES
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -80,6 +81,15 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             disabled=disabled,
         )
 
+        session_duration = forms.ChoiceField(
+            label=_("Session Duration"),
+            choices=[("", _("Default (7 days)"))]
+            + [(str(seconds), label) for seconds, label in SSO_SESSION_DURATION_CHOICES],
+            help_text=_("How long until members must re-authenticate via SSO"),
+            required=False,
+            disabled=disabled,
+        )
+
         if provider.is_saml and provider.name != "SAML2":
             # Generic SAML2 provider already includes the certificate field in it's own configure view
             x509cert = forms.CharField(
@@ -93,6 +103,11 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     initial = {
         "require_link": not auth_provider.flags.allow_unlinked,
         "default_role": organization.default_role,
+        "session_duration": (
+            str(auth_provider.session_duration_seconds)
+            if auth_provider.session_duration_seconds
+            else ""
+        ),
     }
     if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
@@ -179,6 +194,17 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             organization = organization_service.update_default_role(
                 organization_id=organization.id, default_role=form.cleaned_data["default_role"]
             )
+
+            # Update session duration if changed
+            session_duration_str = form.cleaned_data.get("session_duration", "")
+            session_duration_seconds = int(session_duration_str) if session_duration_str else None
+            if form.initial.get("session_duration", "") != form.cleaned_data.get(
+                "session_duration", ""
+            ):
+                auth_service.update_session_duration(
+                    provider_id=auth_provider.id,
+                    session_duration_seconds=session_duration_seconds,
+                )
 
             if form.initial != form.cleaned_data:
                 changed_data = {}

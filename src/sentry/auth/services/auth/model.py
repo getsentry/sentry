@@ -47,6 +47,7 @@ class RpcApiToken(RpcModel):
 class RpcMemberSsoState(RpcModel):
     is_required: bool = False
     is_valid: bool = False
+    session_duration_seconds: int | None = None
 
 
 class RpcAuthState(RpcModel):
@@ -181,6 +182,7 @@ class RpcAuthProvider(RpcModel):
     config: dict[str, Any]
     default_role: int = -1
     default_global_access: bool = False
+    session_duration_seconds: int | None = None
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))

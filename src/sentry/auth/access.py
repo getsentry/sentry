@@ -65,6 +65,11 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def session_duration_seconds(self) -> int | None:
+        pass
+
+    @property
+    @abc.abstractmethod
     def has_open_membership(self) -> bool:
         pass
 
@@ -199,6 +204,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    session_duration_seconds: int | None = None
     has_open_membership: bool = False
 
     # if has_global_access is True, then any project
@@ -414,6 +420,10 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
+    def session_duration_seconds(self) -> int | None:
+        return self.auth_state.sso_state.session_duration_seconds
+
+    @property
     def has_open_membership(self) -> bool:
         return self.rpc_user_organization_context.organization.flags.allow_joinleave
 
@@ -616,6 +626,7 @@ class OrganizationMemberAccess(DbAccess):
             _member=member,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
+            session_duration_seconds=sso_state.session_duration_seconds,
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
@@ -792,6 +803,10 @@ class OrganizationlessAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def session_duration_seconds(self) -> int | None:
+        return self.auth_state.sso_state.session_duration_seconds
 
     @property
     def has_open_membership(self) -> bool:
