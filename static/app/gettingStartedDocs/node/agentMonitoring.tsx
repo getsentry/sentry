@@ -469,7 +469,7 @@ const text = lastMessage.content;`,
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
-  minVersion = '10.28.0',
+  minVersion = MIN_REQUIRED_VERSION,
 }: {
   configFileName?: string;
   minVersion?: string;
