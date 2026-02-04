@@ -13,9 +13,9 @@ export default function useProjectSdkNeedsUpdate({
   minVersion,
   projectId,
 }: Opts):
-  | {isError: false; isFetching: true; needsUpdate: undefined}
-  | {isError: true; isFetching: false; needsUpdate: undefined}
-  | {isError: false; isFetching: false; needsUpdate: boolean} {
+  | {isError: false; isFetching: true; needsUpdate: undefined; data: undefined}
+  | {isError: true; isFetching: false; needsUpdate: undefined; data: undefined}
+  | {isError: false; isFetching: false; needsUpdate: boolean; data: ProjectSdkUpdates[]} {
   const organization = useOrganization();
 
   const {data, isError, isPending} = useApiQuery<ProjectSdkUpdates[]>(
@@ -31,10 +31,10 @@ export default function useProjectSdkNeedsUpdate({
   );
 
   if (isPending) {
-    return {isError: false, isFetching: true, needsUpdate: undefined};
+    return {isError: false, isFetching: true, needsUpdate: undefined, data: undefined};
   }
   if (isError) {
-    return {isError: true, isFetching: false, needsUpdate: undefined};
+    return {isError: true, isFetching: false, needsUpdate: undefined, data: undefined};
   }
 
   const selectedProjects = data.filter(sdkUpdate =>
@@ -51,5 +51,6 @@ export default function useProjectSdkNeedsUpdate({
     isError: false,
     isFetching: false,
     needsUpdate,
+    data: selectedProjects,
   };
 }
