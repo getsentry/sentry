@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
@@ -17,8 +19,11 @@ from sentry.api.authentication import (
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
+if TYPE_CHECKING:
+    from sentry.users.models.user import User
 
-def get_user(request):
+
+def get_user(request: HttpRequest) -> User | AnonymousUser:
     if not hasattr(request, "_cached_user"):
         user = auth_get_user(request)
         # If the user bound to this request matches a real user,
@@ -28,12 +33,12 @@ def get_user(request):
         # actions take place, this nonce will rotate causing a
         # mismatch here forcing the session to be logged out and
         # requiring re-validation.
-        if user.is_authenticated and not user.is_sentry_app:
+        if user.is_authenticated and not user.is_sentry_app:  # type: ignore[union-attr]
             # We only need to check the nonce if there is a nonce
             # currently set on the User. By default, the value will
             # be None until the first action has been taken, at
             # which point, a nonce will always be required.
-            if user.session_nonce and request.session.get("_nonce", "") != user.session_nonce:
+            if user.session_nonce and request.session.get("_nonce", "") != user.session_nonce:  # type: ignore[union-attr]
                 # If the nonces don't match, this session is anonymous.
                 logger.info(
                     "user.auth.invalid-nonce",
@@ -44,9 +49,9 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                UserIP.log(user, request.META["REMOTE_ADDR"])
-        request._cached_user = user
-    return request._cached_user
+                UserIP.log(user, request.META["REMOTE_ADDR"])  # type: ignore[arg-type]
+        request._cached_user = user  # type: ignore[attr-defined]
+    return request._cached_user  # type: ignore[attr-defined, return-value]
 
 
 class AuthenticationMiddleware(MiddlewareMixin):
@@ -54,7 +59,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
-            request.user, request.auth = AnonymousUser(), None
+            request.user, request.auth = AnonymousUser(), None  # type: ignore[attr-defined]
             return
 
         auth = get_authorization_header(request).split()
@@ -73,14 +78,14 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 except AuthenticationFailed:
                     result = None
                 if result:
-                    request.user, request.auth = result
+                    request.user, request.auth = result  # type: ignore[attr-defined]
                 else:
                     # default to anonymous user and use IP ratelimit
-                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
+                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type: ignore[assignment, attr-defined]
                 return
 
         # default to anonymous user and use IP ratelimit
-        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None
+        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type: ignore[assignment, attr-defined]
 
     def process_exception(
         self, request: HttpRequest, exception: Exception

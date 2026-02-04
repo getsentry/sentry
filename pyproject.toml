@@ -323,7 +323,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
-    "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
     "sentry.release_health.metrics_sessions_v2",
