@@ -14,7 +14,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
-from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
+from sentry.utils.auth import SSO_EXPIRY_TIME_OAUTH, SsoSession
 
 
 def create_authenticator(user: User) -> None:
@@ -243,9 +243,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
 
+            # Use SSO_EXPIRY_TIME_OAUTH since "dummy" provider is OAuth-like (14 days)
             sso_session_expired = SsoSession(
                 self.organization.id,
-                datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+                datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME_OAUTH - timedelta(hours=1),
             )
             self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
             self.save_session()
@@ -294,9 +295,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
 
+            # Use SSO_EXPIRY_TIME_OAUTH since "dummy" provider is OAuth-like (14 days)
             sso_session_expired = SsoSession(
                 self.organization.id,
-                datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+                datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME_OAUTH - timedelta(hours=1),
             )
             self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
             self.save_session()
