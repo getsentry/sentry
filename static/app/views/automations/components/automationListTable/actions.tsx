@@ -54,15 +54,15 @@ export function AutomationsTableActions({
   const getEnableConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
       return tct(
-        'Are you sure you want to enable all [queryCount] automations that match the search?',
+        'Are you sure you want to enable all [queryCount] alerts that match the search?',
         {
           queryCount,
         }
       );
     }
     return tn(
-      `Are you sure you want to enable this %s automation?`,
-      `Are you sure you want to enable these %s automations?`,
+      `Are you sure you want to enable this %s alert?`,
+      `Are you sure you want to enable these %s alerts?`,
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -70,15 +70,15 @@ export function AutomationsTableActions({
   const getDisableConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
       return tct(
-        'Are you sure you want to disable all [queryCount] automations that match the search?',
+        'Are you sure you want to disable all [queryCount] alerts that match the search?',
         {
           queryCount,
         }
       );
     }
     return tn(
-      `Are you sure you want to disable this %s automation?`,
-      `Are you sure you want to disable these %s automations?`,
+      `Are you sure you want to disable this %s alert?`,
+      `Are you sure you want to disable these %s alerts?`,
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
