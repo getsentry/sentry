@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import Q
@@ -10,6 +13,11 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_model,
 )
+
+if TYPE_CHECKING:
+    from sentry.incidents.models.incident import Incident
+    from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.models.groupopenperiod import GroupOpenPeriod
 
 logger = logging.getLogger(__name__)
 

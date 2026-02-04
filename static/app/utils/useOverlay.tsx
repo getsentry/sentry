@@ -87,7 +87,8 @@ const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<AriaOverlayProps>,
+  extends
+    Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
   /**

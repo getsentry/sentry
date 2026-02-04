@@ -58,8 +58,10 @@ interface SearchItem {
   source: string;
 }
 
-interface SearchComboBoxProps<T extends SearchItem>
-  extends Omit<AriaComboBoxProps<T>, 'children'> {
+interface SearchComboBoxProps<T extends SearchItem> extends Omit<
+  AriaComboBoxProps<T>,
+  'children'
+> {
   children: CollectionChildren<T>;
   defaultItems: T[];
   inputRef: React.RefObject<HTMLInputElement | null>;

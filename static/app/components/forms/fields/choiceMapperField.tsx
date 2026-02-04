@@ -118,7 +118,8 @@ export interface ChoiceMapperProps extends DefaultProps {
 }
 
 export interface ChoiceMapperFieldProps
-  extends ChoiceMapperProps,
+  extends
+    ChoiceMapperProps,
     Omit<
       InputFieldProps,
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'

@@ -5,8 +5,10 @@ import {ActorAvatar, type ActorAvatarProps} from '@sentry/scraps/avatar';
 
 import type {Actor} from 'sentry/types/core';
 
-interface SuggestedAvatarStackProps
-  extends Omit<ActorAvatarProps, 'actor' | 'hasTooltip'> {
+interface SuggestedAvatarStackProps extends Omit<
+  ActorAvatarProps,
+  'actor' | 'hasTooltip'
+> {
   owners: Actor[];
   reverse?: boolean;
 }

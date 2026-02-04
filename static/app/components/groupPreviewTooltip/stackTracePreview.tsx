@@ -101,11 +101,10 @@ type StackTracePreviewProps = {
   query?: string;
 };
 
-interface StackTracePreviewBodyProps
-  extends Pick<
-    StackTracePreviewProps,
-    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
-  > {
+interface StackTracePreviewBodyProps extends Pick<
+  StackTracePreviewProps,
+  'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
+> {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;

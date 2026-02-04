@@ -22,7 +22,8 @@ import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
-  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
+  extends
+    Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
       | 'disabledKeys'
