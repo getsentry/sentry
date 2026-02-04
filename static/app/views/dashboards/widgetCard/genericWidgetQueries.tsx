@@ -115,33 +115,38 @@ export type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
  * Creates a table widget variant for fetching breakdown totals.
  * Used when legendType is 'breakdown' to fetch aggregate values for the legend.
  */
-function createBreakdownTableWidget(widget: Widget): Widget {
+function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget {
+  // rendering of the breakdown table assuming one query
+  const queries = [];
+  const firstQuery = widget.queries[0];
+
+  if (firstQuery) {
+    const aggregates = [...(firstQuery.aggregates ?? [])];
+    const columns = [...(firstQuery.columns ?? [])];
+
+    if (firstQuery.orderby) {
+      // TODO: table requests uses `eventViewFromWidget`, which does not automatically add orderby's to the fields to prevent the error
+      // `orderby must also be in the selected columns or groupby`
+      const orderbyField = trimStart(firstQuery.orderby, '-');
+      if (isAggregateField(orderbyField) && !aggregates.includes(orderbyField)) {
+        aggregates.push(orderbyField);
+      }
+      if (!isAggregateField(orderbyField) && !columns.includes(orderbyField)) {
+        columns.push(orderbyField);
+      }
+      queries.push({
+        ...firstQuery,
+        fields: [...columns, ...aggregates],
+        aggregates,
+        columns,
+      });
+    }
+  }
   return {
     ...widget,
     displayType: DisplayType.TABLE,
     limit: widget.limit ?? TOP_N,
-    queries: widget.queries.map(query => {
-      const aggregates = [...(query.aggregates ?? [])];
-      const columns = [...(query.columns ?? [])];
-
-      // Table requests require the orderby field to be included in the fields,
-      // but series results don't always need that
-      if (query.orderby) {
-        const orderbyField = trimStart(query.orderby, '-');
-        if (isAggregateField(orderbyField) && !aggregates.includes(orderbyField)) {
-          aggregates.push(orderbyField);
-        }
-        if (!isAggregateField(orderbyField) && !columns.includes(orderbyField)) {
-          columns.push(orderbyField);
-        }
-      }
-      return {
-        ...query,
-        fields: [...columns, ...aggregates],
-        aggregates,
-        columns,
-      };
-    }),
+    queries,
   };
 }
 
@@ -180,7 +185,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
-    () => (needsBreakdownTable ? createBreakdownTableWidget(widget) : widget),
+    () =>
+      needsBreakdownTable
+        ? createBreakdownTableWidgetFromTimeSeriesWidget(widget)
+        : widget,
     [needsBreakdownTable, widget]
   );
 

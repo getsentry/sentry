@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {PageFilters} from 'sentry/types/core';
@@ -202,7 +203,7 @@ function VisualizationWidgetContent({
               />
             </Container>
             <Tooltip title={label} showOnlyOnOverflow>
-              <SeriesNameCell>{label}</SeriesNameCell>
+              <Text>{label}</Text>
             </Tooltip>
             <TextAlignRight>
               {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
@@ -257,10 +258,4 @@ const FooterWrapper = styled('div')`
   margin: 0 -${p => p.theme.space.xl} -${p => p.theme.space.lg} -${p => p.theme.space.xl};
   width: calc(100% + ${p => p.theme.space.xl} * 2);
   border-top: 1px solid ${p => p.theme.border};
-`;
-
-const SeriesNameCell = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
