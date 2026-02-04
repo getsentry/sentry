@@ -158,6 +158,10 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                 # to avoid breaking the endpoint
                 sentry_sdk.capture_exception()
 
+        # Add environment filter if specified
+        if environments:
+            conditions.append(Condition(Column("environment"), Op.IN, environment_names))
+
         data = wrap_event_response(
             request_user=request.user,
             event=event,
