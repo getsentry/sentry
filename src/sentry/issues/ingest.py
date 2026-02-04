@@ -262,24 +262,40 @@ def save_issue_from_occurrence(
                     detector_id = occurrence.evidence_data.get("detector_id")
                 associate_new_group_with_detector(group, detector_id)
 
-            open_period = get_latest_open_period(group)
-            if open_period is not None:
-                highest_seen_priority = group.priority
-                open_period.update(
-                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                open_period = get_latest_open_period(group)
+                if open_period is not None:
+                    highest_seen_priority = group.priority
+                    open_period.update(
+                        data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                    )
+                is_regression = False
+                span.set_tag("save_issue_from_occurrence.outcome", "new_group")
+                metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
+                metrics.incr(
+                    "group.created",
+                    skip_internal=True,
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "type": occurrence.type.type_id,
+                        "sdk": normalized_sdk_tag_from_event(event.data),
+                    },
                 )
-            is_regression = False
-            span.set_tag("save_issue_from_occurrence.outcome", "new_group")
-            metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
-            metrics.incr(
-                "group.created",
-                skip_internal=True,
-                tags={
-                    "platform": event.platform or "unknown",
-                    "type": occurrence.type.type_id,
-                    "sdk": normalized_sdk_tag_from_event(event.data),
-                },
-            )
+            else:
+                # Race condition: another worker created the group while we were trying to.
+                # We still need to increment times_seen for this occurrence.
+                group_event = GroupEvent.from_event(event, group)
+                group_event.occurrence = occurrence
+                is_regression = _process_existing_aggregate(
+                    group, group_event, issue_kwargs, release
+                )
+                span.set_tag("save_issue_from_occurrence.outcome", "race_condition")
+                metric_tags["save_issue_from_occurrence.outcome"] = "race_condition"
+
+                detector_id = None
+                if occurrence.evidence_data:
+                    detector_id = occurrence.evidence_data.get("detector_id")
+                ensure_association_with_detector(group, detector_id)
+
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
             # This only applies to events with stacktraces
