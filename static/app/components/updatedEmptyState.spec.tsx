@@ -31,9 +31,7 @@ describe('UpdatedEmptyState', () => {
     expect(await screen.findByText('Preview a Sentry Issue')).toBeInTheDocument();
 
     expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Install sentry-sdk from PyPI with the django extra:')
-      )
+      await screen.findByText(textWithMarkupMatcher('Install sentry-sdk from PyPI:'))
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));

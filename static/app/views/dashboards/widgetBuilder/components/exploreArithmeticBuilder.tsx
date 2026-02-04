@@ -21,6 +21,7 @@ export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const expression = stripEquationPrefix(equation);
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
@@ -59,6 +60,7 @@ export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (

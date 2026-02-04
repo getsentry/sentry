@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import toArray from 'sentry/utils/array/toArray';
+import parseApiError from 'sentry/utils/parseApiError';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import SelectedGroupStore from './selectedGroupStore';
@@ -325,8 +326,13 @@ const storeConfig: GroupStoreDefinition = {
   // TODO(dcramer): This is not really the best place for this
   onAssignToError(_changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
-    if (error.responseJSON?.detail === 'Cannot assign to non-team member') {
-      showAlert(t('Cannot assign to non-team member'), 'error');
+    const assignedToError = error.responseJSON?.assignedTo;
+    if (Array.isArray(assignedToError) && assignedToError.length > 0) {
+      showAlert(assignedToError[0], 'error');
+    } else if (typeof assignedToError === 'string') {
+      showAlert(assignedToError, 'error');
+    } else if (error.responseJSON?.detail) {
+      showAlert(parseApiError(error), 'error');
     } else {
       showAlert(t('Unable to change assignee. Please try again.'), 'error');
     }
