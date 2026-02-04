@@ -22,7 +22,7 @@ from sentry.testutils.cases import TestCase
 class CIMDClientTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.client = CIMDClient()
+        self.cimd_client = CIMDClient()
         self.test_url = "https://example.com/oauth/client"
 
     @responses.activate
@@ -41,7 +41,7 @@ class CIMDClientTest(TestCase):
             content_type="application/json",
         )
 
-        result = self.client.fetch_metadata(self.test_url)
+        result = self.cimd_client.fetch_metadata(self.test_url)
 
         assert result == metadata
         assert len(responses.calls) == 1
@@ -59,7 +59,7 @@ class CIMDClientTest(TestCase):
             content_type="application/json; charset=utf-8",
         )
 
-        result = self.client.fetch_metadata(self.test_url)
+        result = self.cimd_client.fetch_metadata(self.test_url)
 
         assert result == metadata
 
@@ -73,7 +73,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "HTTP 404" in str(exc_info.value)
 
@@ -87,7 +87,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "HTTP 500" in str(exc_info.value)
 
@@ -103,7 +103,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "Invalid content type" in str(exc_info.value)
         assert "text/html" in str(exc_info.value)
@@ -120,7 +120,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "Invalid content type" in str(exc_info.value)
 
@@ -137,7 +137,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "too large" in str(exc_info.value)
 
@@ -153,7 +153,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "Invalid JSON" in str(exc_info.value)
 
@@ -169,7 +169,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "must be a JSON object" in str(exc_info.value)
 
@@ -183,7 +183,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "Timeout" in str(exc_info.value)
 
@@ -197,7 +197,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "Connection error" in str(exc_info.value)
 
@@ -207,7 +207,7 @@ class CIMDClientTest(TestCase):
             mock_urlopen.side_effect = RestrictedIPAddress("127.0.0.1")
 
             with pytest.raises(CIMDFetchError) as exc_info:
-                self.client.fetch_metadata(self.test_url)
+                self.cimd_client.fetch_metadata(self.test_url)
 
             assert "restricted IP" in str(exc_info.value)
 
@@ -222,7 +222,7 @@ class CIMDClientTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert "HTTP 302" in str(exc_info.value)
         assert len(responses.calls) == 1
@@ -699,7 +699,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
     def setUp(self):
         super().setUp()
         self.cache = CIMDCache()
-        self.client = CIMDClient(cache=self.cache)
+        self.cimd_client = CIMDClient(cache=self.cache)
         self.test_url = "https://example.com/oauth/client"
         self.test_metadata = {
             "client_id": self.test_url,
@@ -718,7 +718,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
             content_type="application/json",
         )
 
-        self.client.fetch_and_validate(self.test_url)
+        self.cimd_client.fetch_and_validate(self.test_url)
 
         # Verify it's in the cache
         cached = self.cache.get(self.test_url)
@@ -731,7 +731,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
         self.cache.set(self.test_url, self.test_metadata)
 
         # No HTTP responses registered - fetch would fail if attempted
-        result = self.client.fetch_and_validate(self.test_url)
+        result = self.cimd_client.fetch_and_validate(self.test_url)
 
         assert result == self.test_metadata
         assert len(responses.calls) == 0
@@ -755,7 +755,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
             content_type="application/json",
         )
 
-        result = self.client.fetch_and_validate(self.test_url, skip_cache=True)
+        result = self.cimd_client.fetch_and_validate(self.test_url, skip_cache=True)
 
         assert result == self.test_metadata
         assert len(responses.calls) == 1
@@ -773,7 +773,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
         )
 
         with patch.object(self.cache, "set", wraps=self.cache.set) as mock_set:
-            self.client.fetch_and_validate(self.test_url)
+            self.cimd_client.fetch_and_validate(self.test_url)
             mock_set.assert_called_once()
             # Verify the cache_control header was passed
             _, kwargs = mock_set.call_args
@@ -790,7 +790,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError):
-            self.client.fetch_and_validate(self.test_url)
+            self.cimd_client.fetch_and_validate(self.test_url)
 
         # Verify nothing was cached
         assert self.cache.get(self.test_url) is None
@@ -811,7 +811,7 @@ class CIMDClientCacheIntegrationTest(TestCase):
         )
 
         with pytest.raises(CIMDValidationError):
-            self.client.fetch_and_validate(self.test_url)
+            self.cimd_client.fetch_and_validate(self.test_url)
 
         # Verify nothing was cached
         assert self.cache.get(self.test_url) is None
@@ -909,7 +909,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
 
     def setUp(self):
         super().setUp()
-        self.client = CIMDClient()
+        self.cimd_client = CIMDClient()
         self.test_url = "https://example.com/oauth/client"
 
     @responses.activate
@@ -922,7 +922,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert exc_info.value.client_id_url == self.test_url
         assert exc_info.value.get_safe_hostname() == "example.com"
@@ -937,7 +937,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert exc_info.value.client_id_url == self.test_url
 
@@ -951,7 +951,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert exc_info.value.client_id_url == self.test_url
 
@@ -961,7 +961,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
             mock_urlopen.side_effect = RestrictedIPAddress("127.0.0.1")
 
             with pytest.raises(CIMDFetchError) as exc_info:
-                self.client.fetch_metadata(self.test_url)
+                self.cimd_client.fetch_metadata(self.test_url)
 
             assert exc_info.value.client_id_url == self.test_url
 
@@ -977,7 +977,7 @@ class CIMDExceptionClientIdUrlPropagationTest(TestCase):
         )
 
         with pytest.raises(CIMDFetchError) as exc_info:
-            self.client.fetch_metadata(self.test_url)
+            self.cimd_client.fetch_metadata(self.test_url)
 
         assert exc_info.value.client_id_url == self.test_url
 
