@@ -5,16 +5,21 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
-from sentry import features
-from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, HIDE_AI_FEATURES_DEFAULT
+from sentry import features, quotas
+from sentry.constants import (
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
+    DataCategory,
+)
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import (
     CodeReviewSettings,
     CodeReviewTrigger,
     RepositorySettings,
 )
-from sentry.seer.code_review.billing import passes_code_review_billing_check
+from sentry.utils import metrics
 
 
 class PreflightDenialReason(StrEnum):
@@ -26,6 +31,7 @@ class PreflightDenialReason(StrEnum):
     REPO_CODE_REVIEW_DISABLED = "repo_code_review_disabled"
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
+    ORG_CONTRIBUTOR_IS_BOT = "org_contributor_is_bot"
 
 
 @dataclass
@@ -119,6 +125,12 @@ class CodeReviewPreflightService:
             return PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     def _check_billing(self) -> PreflightDenialReason | None:
+        """
+        Check if contributor exists and is not a bot, and if there's either a seat or quota available.
+        NOTE: We explicitly check billing as the source of truth because if the contributor exists,
+        then that means that they've opened a PR before, and either have a seat already OR it's their
+        "Free action."
+        """
         # Code review beta and legacy usage-based plan orgs are exempt from billing checks
         # as long as they haven't purchased the new seat-based plan
         if not self._is_seat_based_seer_plan_org and (
@@ -129,10 +141,23 @@ class CodeReviewPreflightService:
         if self.integration_id is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-        billing_ok = passes_code_review_billing_check(
-            organization_id=self.organization.id,
-            integration_id=self.integration_id,
-            external_identifier=self.pr_author_external_id,
+        try:
+            contributor = OrganizationContributors.objects.get(
+                organization_id=self.organization.id,
+                integration_id=self.integration_id,
+                external_identifier=self.pr_author_external_id,
+            )
+        except OrganizationContributors.DoesNotExist:
+            metrics.incr("seer.code_review.error.contributor_not_found")
+            return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
+
+        if contributor.is_bot:
+            return PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
+
+        billing_ok = quotas.backend.check_seer_quota(
+            org_id=self.organization.id,
+            data_category=DataCategory.SEER_USER,
+            seat_object=contributor,
         )
         if not billing_ok:
             return PreflightDenialReason.BILLING_QUOTA_EXCEEDED

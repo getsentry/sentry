@@ -135,18 +135,17 @@ def should_create_or_increment_contributor_seat(
     organization: Organization, repo: Repository, contributor: OrganizationContributors
 ) -> bool:
     """
-    Guard for OrganizationContributor creation/incrementing and seat assignment.
-
-    Determines if we should create or increment an OrganizationContributor record
+    Determines if we should increment an OrganizationContributor record
     and potentially assign a new seat.
 
     Require repo integration, code review OR autofix enabled for the repo,
-    and seat-based Seer enabled for the organization.
+    seat-based Seer enabled for the organization, and contributor is not a bot.
     """
     if (
         repo.integration_id is None
         or not _has_code_review_or_autofix_enabled(organization.id, repo.id)
         or not features.has("organizations:seat-based-seer-enabled", organization)
+        or contributor.is_bot
     ):
         return False
 

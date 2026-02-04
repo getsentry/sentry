@@ -107,13 +107,6 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
-    """
-    Determine if a contributor is eligible for seat assignment based on their user type.
-    """
-    return user_type != "Bot"
-
-
 def _handle_pr_webhook_for_autofix_processor(
     *,
     github_event: GithubWebhookType,
@@ -821,7 +814,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
-        user_type = user.get("type")
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -904,65 +896,49 @@ class PullRequestEventWebhook(GitHubWebhook):
                     },
                 )
 
-                logger.info(
-                    "github.webhook.organization_contributor.eligibility_check",
-                    extra={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
-                        "pr_number": number,
-                        "user_login": user["login"],
-                        "user_type": user_type,
-                        "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=integration.id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
                     },
                 )
 
-                if is_contributor_eligible_for_seat_assignment(user_type):
-                    # Track AI contributor if eligible
-                    contributor, _ = OrganizationContributors.objects.get_or_create(
-                        organization_id=organization.id,
-                        integration_id=integration.id,
-                        external_identifier=user["id"],
-                        defaults={
-                            "alias": user["login"],
-                        },
+                if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                    metrics.incr(
+                        "github.webhook.organization_contributor.should_create",
+                        sample_rate=1.0,
                     )
 
-                    if should_create_or_increment_contributor_seat(organization, repo, contributor):
-                        metrics.incr(
-                            "github.webhook.organization_contributor.should_create",
-                            sample_rate=1.0,
-                        )
+                    locked_contributor = None
+                    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                        try:
+                            locked_contributor = (
+                                OrganizationContributors.objects.select_for_update().get(
+                                    organization_id=organization.id,
+                                    integration_id=integration.id,
+                                    external_identifier=user["id"],
+                                )
+                            )
+                            locked_contributor.num_actions += 1
+                            locked_contributor.save(update_fields=["num_actions", "date_updated"])
+                        except OrganizationContributors.DoesNotExist:
+                            logger.warning(
+                                "github.webhook.organization_contributor.not_found",
+                                extra={
+                                    "organization_id": organization.id,
+                                    "integration_id": integration.id,
+                                    "external_identifier": user["id"],
+                                },
+                            )
 
-                        locked_contributor = None
-                        with transaction.atomic(router.db_for_write(OrganizationContributors)):
-                            try:
-                                locked_contributor = (
-                                    OrganizationContributors.objects.select_for_update().get(
-                                        organization_id=organization.id,
-                                        integration_id=integration.id,
-                                        external_identifier=user["id"],
-                                    )
-                                )
-                                locked_contributor.num_actions += 1
-                                locked_contributor.save(
-                                    update_fields=["num_actions", "date_updated"]
-                                )
-                            except OrganizationContributors.DoesNotExist:
-                                logger.warning(
-                                    "github.webhook.organization_contributor.not_found",
-                                    extra={
-                                        "organization_id": organization.id,
-                                        "integration_id": integration.id,
-                                        "external_identifier": user["id"],
-                                    },
-                                )
-
-                        if (
-                            locked_contributor
-                            and locked_contributor.num_actions
-                            >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-                        ):
-                            assign_seat_to_organization_contributor.delay(locked_contributor.id)
+                    if (
+                        locked_contributor
+                        and locked_contributor.num_actions
+                        >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                    ):
+                        assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
         except IntegrityError:
             pass

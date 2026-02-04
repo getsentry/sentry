@@ -21,7 +21,6 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.webhook import is_contributor_eligible_for_seat_assignment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -35,22 +34,11 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
-
-
-class IsContributorEligibleForSeatAssignmentTest(TestCase):
-    def test_user_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment("User")
-
-    def test_bot_is_not_eligible(self):
-        assert not is_contributor_eligible_for_seat_assignment("Bot")
-
-    def test_user_with_none_type_is_eligible(self):
-        assert is_contributor_eligible_for_seat_assignment(None)
 
 
 class WebhookTest(APITestCase):

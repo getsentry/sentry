@@ -365,6 +365,26 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    def test_denied_when_contributor_is_bot(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+            alias="dependabot[bot]",
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
+
     @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
