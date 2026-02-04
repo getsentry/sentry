@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
