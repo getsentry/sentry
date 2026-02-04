@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 
@@ -16,7 +18,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services import eventstore
