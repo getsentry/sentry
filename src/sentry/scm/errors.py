@@ -17,7 +17,8 @@ ERROR_CODES: dict[ErrorCode, str] = {
 }
 
 
-class SCMError(Exception): ...
+class SCMError(Exception):
+    pass
 
 
 class SCMCodedError(SCMError):
@@ -28,4 +29,5 @@ class SCMCodedError(SCMError):
         super().__init__(self.code, self.message, *args, **kwargs)
 
 
-class SCMUnhandledException(SCMError): ...
+class SCMUnhandledException(SCMError):
+    pass

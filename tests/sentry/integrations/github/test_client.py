@@ -537,7 +537,9 @@ class GitHubApiClientTest(TestCase):
             json=pr_data,
         )
 
-        result = self.github_client.get_pull_request(repo=self.repo.name, pull_number=pull_number)
+        result = self.github_client.get_pull_request(
+            repo=self.repo.name, pull_number=str(pull_number)
+        )
         assert result["number"] == pull_number
         assert result["title"] == "Test PR"
         assert result["state"] == "open"

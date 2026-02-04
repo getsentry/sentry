@@ -1,10 +1,39 @@
-from typing import Literal, Protocol, TypedDict
+from typing import Any, Literal, Protocol, TypedDict
 
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type ExternalId = str
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
 type Referrer = Literal["emerge", "shared"]
 type RepositoryId = int | tuple[ProviderName, ExternalId]
+
+
+class Author(TypedDict):
+    id: str
+    username: str
+
+
+class Comment(TypedDict):
+    id: str
+    body: str
+    author: Author
+    created_at: str
+    updated_at: str
+    raw: dict[str, Any]
+
+
+class PullRequestBranch(TypedDict):
+    name: str
+    sha: str
+
+
+class PullRequest(TypedDict):
+    id: str
+    title: str
+    description: str | None
+    head: PullRequestBranch
+    base: PullRequestBranch
+    author: Author
+    raw: dict[str, Any]
 
 
 class Repository(TypedDict):
@@ -27,25 +56,43 @@ class Provider(Protocol):
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
+    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest: ...
+
+    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]: ...
+
+    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None: ...
+
+    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None: ...
+
+    def get_pull_request_comments(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[Comment]: ...
+
+    def create_pull_request_comment(
+        self, repository: Repository, pull_request_id: str, body: str
+    ) -> None: ...
+
+    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None: ...
+
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]: ...
+
+    def create_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None: ...
+
+    def delete_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None: ...
+
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]: ...
+
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
-    ) -> None:
-        """Create a reaction to an issue."""
-        ...
+    ) -> None: ...
 
-    # Examples of how you might implement some of the permutations of issue reaction:
-
-    # def create_comment_reaction(
-    #     self, repository: Repository, comment_id: str, reaction: Reaction
-    # ) -> None: ...
-
-    # def create_pull_request_reaction(
-    #     self, repository: Repository, pull_request_id: str, reaction: Reaction
-    # ) -> None: ...
-
-    # def create_pull_request_review_reaction(
-    #     self, repository: Repository, review_id: str, reaction: Reaction
-    # ) -> None: ...
+    def delete_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction: Reaction
+    ) -> None: ...
 
 
 class SubscriptionEvent(TypedDict):

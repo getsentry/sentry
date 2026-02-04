@@ -11,7 +11,15 @@ from sentry.scm.helpers import (
     map_integration_to_provider,
     map_repository_model_to_repository,
 )
-from sentry.scm.types import Provider, Reaction, Referrer, Repository, RepositoryId
+from sentry.scm.types import (
+    Comment,
+    Provider,
+    PullRequest,
+    Reaction,
+    Referrer,
+    Repository,
+    RepositoryId,
+)
 
 
 class SourceCodeManager:
@@ -83,8 +91,129 @@ class SourceCodeManager:
             fetch_service_provider=lambda _, __: provider,
         )
 
-    def create_issue_reaction(self, issue_id: str, reaction: Reaction):
-        """Create a reaction to an issue."""
+    def get_issue_comments(self, issue_id: str) -> list[Comment]:
+        """Get comments on an issue."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.get_issue_comments(r, issue_id),
+        )
+
+    def create_issue_comment(self, issue_id: str, body: str) -> None:
+        """Create a comment on an issue."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.create_issue_comment(r, issue_id, body),
+        )
+
+    def delete_issue_comment(self, comment_id: str) -> None:
+        """Delete a comment on an issue."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.delete_issue_comment(r, comment_id),
+        )
+
+    def get_pull_request(self, pull_request_id: str) -> PullRequest:
+        """Get a pull request."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.get_pull_request(r, pull_request_id),
+        )
+
+    def get_pull_request_comments(self, pull_request_id: str) -> list[Comment]:
+        """Get comments on a pull request."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.get_pull_request_comments(r, pull_request_id),
+        )
+
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> None:
+        """Create a comment on a pull request."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.create_pull_request_comment(r, pull_request_id, body),
+        )
+
+    def delete_pull_request_comment(self, comment_id: str) -> None:
+        """Delete a comment on a pull request."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.delete_pull_request_comment(r, comment_id),
+        )
+
+    def get_comment_reactions(self, comment_id: str) -> list[Reaction]:
+        """Get reactions on a comment."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.get_comment_reactions(r, comment_id),
+        )
+
+    def create_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+        """Create a reaction on a comment."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.create_comment_reaction(r, comment_id, reaction),
+        )
+
+    def delete_comment_reaction(self, comment_id: str, reaction: Reaction):
+        """Delete a reaction on a comment."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.delete_comment_reaction(r, comment_id, reaction),
+        )
+
+    def get_issue_reactions(self, issue_id: str) -> list[Reaction]:
+        """Get reactions on an issue."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.get_issue_reactions(r, issue_id),
+        )
+
+    def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
+        """Create a reaction on an issue."""
         return exec_provider_fn(
             self.organization_id,
             self.repository_id,
@@ -92,4 +221,15 @@ class SourceCodeManager:
             fetch_repository=self.fetch_repository,
             fetch_service_provider=self.fetch_service_provider,
             provider_fn=lambda r, p: p.create_issue_reaction(r, issue_id, reaction),
+        )
+
+    def delete_issue_reaction(self, issue_id: str, reaction: Reaction):
+        """Delete a reaction on an issue."""
+        return exec_provider_fn(
+            self.organization_id,
+            self.repository_id,
+            referrer=self.referrer,
+            fetch_repository=self.fetch_repository,
+            fetch_service_provider=self.fetch_service_provider,
+            provider_fn=lambda r, p: p.delete_issue_reaction(r, issue_id, reaction),
         )
