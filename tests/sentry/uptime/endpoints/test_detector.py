@@ -4,8 +4,10 @@ from rest_framework import status
 from sentry.testutils.cases import APITestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import update_uptime_detector
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -535,3 +537,25 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
         # Verify we got the correct detector
         assert response.data["id"] == str(active_detector.id)
         assert response.data["name"] == "Active Auto Detector"
+
+
+class UptimeDetectorUpdateCacheInvalidationTest(UptimeDetectorBaseTest):
+    """Tests that updating detectors correctly invalidates the cache."""
+
+    def test_update_detector_invalidates_cache(self) -> None:
+        data_source = self.detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == self.detector.id
+        original_name = cached_detectors[0].name
+
+        update_uptime_detector(self.detector, name="Updated Detector Name")
+
+        # Cache should have been invalidated and refreshed with new data
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].name == "Updated Detector Name"
+        assert cached_detectors[0].name != original_name

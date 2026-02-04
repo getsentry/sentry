@@ -3,6 +3,7 @@ import logging
 import sentry_sdk
 
 from sentry.utils import metrics
+from sentry.workflow_engine.caches.detector import DetectorByDataSourceCacheAccess
 from sentry.workflow_engine.models import DataPacket, Detector
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
@@ -13,15 +14,22 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     Get all of the enabled detectors for a list of detector source ids and types.
     This will also prefetch all the subsequent data models for evaluating the detector.
     """
-    return list(
-        Detector.objects.filter(
-            enabled=True, data_sources__source_id=source_id, data_sources__type=query_type
+    cache_access = DetectorByDataSourceCacheAccess(source_id, query_type)
+    detectors = cache_access.get()
+    if detectors is None:
+        detectors = list(
+            Detector.objects.filter(
+                data_sources__source_id=source_id,
+                data_sources__type=query_type,
+                enabled=True,
+            )
+            .select_related("workflow_condition_group")
+            .prefetch_related("workflow_condition_group__conditions")
+            .distinct()
+            .order_by("id")
         )
-        .select_related("workflow_condition_group")
-        .prefetch_related("workflow_condition_group__conditions")
-        .distinct()
-        .order_by("id")
-    )
+        cache_access.set(detectors, Detector.CACHE_TTL)
+    return detectors
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.

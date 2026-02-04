@@ -224,7 +224,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
-    def _create_data_source(self, validated_data_source, detector: Detector):
+    def _create_data_source(self, validated_data_source, detector: Detector) -> None:
         data_source_creator = validated_data_source["_creator"]
         data_source = data_source_creator.create()
 
