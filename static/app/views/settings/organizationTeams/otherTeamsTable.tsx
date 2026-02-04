@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import IdBadge from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -14,10 +16,8 @@ import type {Team} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  useJoinTeam,
-  useRequestTeamAccess,
-} from 'sentry/views/settings/organizationTeams/hooks/useTeamMembership';
+import {useJoinTeam} from 'sentry/views/settings/organizationTeams/hooks/useJoinTeam';
+import {useRequestTeamAccess} from 'sentry/views/settings/organizationTeams/hooks/useRequestTeamAccess';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
@@ -58,7 +58,7 @@ export function OtherTeamsTable({
         <SimpleTable.HeaderCell data-column-name="projects">
           {t('Projects')}
         </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell />
+        <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
       {teams.length === 0
         ? renderEmptyState()
@@ -115,22 +115,23 @@ function OtherTeamRow({
     if (isLoading) {
       return (
         <Button size="sm" disabled>
-          ...
+          {'\u2026'}
         </Button>
       );
     }
 
     if (team.isPending) {
       return (
-        <Button
-          size={actionSize}
-          disabled
+        <Tooltip
           title={t(
             'Your request to join this team is being reviewed by organization owners'
           )}
+          skipWrapper
         >
-          {t('Request Pending')}
-        </Button>
+          <Text variant="muted" wrap="nowrap">
+            {t('Request Pending')}
+          </Text>
+        </Tooltip>
       );
     }
 
@@ -183,7 +184,9 @@ function OtherTeamRow({
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">{renderAction()}</SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" data-column-name="actions">
+        {renderAction()}
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -191,6 +194,10 @@ function OtherTeamRow({
 const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr 125px 150px 130px;
   margin-bottom: ${space(2)};
+
+  [data-column-name='actions'] {
+    padding-left: 0;
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 125px 130px;

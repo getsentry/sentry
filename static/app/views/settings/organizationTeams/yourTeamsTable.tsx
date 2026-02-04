@@ -16,7 +16,7 @@ import type {Team} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useTeamMembership';
+import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -90,7 +90,7 @@ export function YourTeamsTable({
         <SimpleTable.HeaderCell data-column-name="projects">
           {t('Projects')}
         </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell />
+        <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
       <FullWidthAlert>
         <RoleOverwritePanelAlert
@@ -176,7 +176,7 @@ function YourTeamRow({
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
+      <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
           <Button size="sm" disabled>
             ...
@@ -200,6 +200,10 @@ function YourTeamRow({
 const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr 125px 150px 130px;
   margin-bottom: ${space(2)};
+
+  [data-column-name='actions'] {
+    padding-left: 0;
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr 125px 130px;
