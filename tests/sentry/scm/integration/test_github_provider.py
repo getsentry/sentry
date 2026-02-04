@@ -5,7 +5,7 @@ import pytest
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Repository
+from sentry.scm.types import Reaction, Repository
 from tests.sentry.scm.test_fixtures import (
     FakeGitHubApiClient,
     make_github_comment,
@@ -307,7 +307,7 @@ class TestGitHubProviderCreateCommentReaction:
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
-            provider.create_comment_reaction(repository, "101", "invalid_reaction")
+            provider.create_comment_reaction(repository, "101", cast(Reaction, "invalid_reaction"))
 
 
 class TestGitHubProviderDeleteCommentReaction:
@@ -377,7 +377,7 @@ class TestGitHubProviderCreateIssueReaction:
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
-            provider.create_issue_reaction(repository, "42", "not_a_reaction")
+            provider.create_issue_reaction(repository, "42", cast(Reaction, "not_a_reaction"))
 
 
 class TestGitHubProviderDeleteIssueReaction:
