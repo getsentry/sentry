@@ -106,23 +106,12 @@ class GitHubProvider(Provider):
         self.client.create_comment_reaction(repository["name"], comment_id, REACTION_MAP[reaction])
 
     def delete_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
+        self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        # Fetch reactions to find the ID for the given reaction type, filtered by bot user
-        reactions = self.client.get(
-            f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions"
+        self.client.delete(
+            f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{reaction_id}"
         )
-        reaction_content = REACTION_MAP[reaction].value
-        for r in reactions:
-            if (
-                r.get("user", {}).get("login") == "sentry[bot]"
-                and r.get("content") == reaction_content
-            ):
-                self.client.delete(
-                    f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{r['id']}"
-                )
-                return
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
@@ -135,16 +124,7 @@ class GitHubProvider(Provider):
         self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
 
     def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
+        self, repository: Repository, issue_id: str, reaction_id: str
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        # Fetch reactions to find the ID for the given reaction type, filtered by bot user
-        reactions = self.client.get_issue_reactions(repository["name"], issue_id)
-        reaction_content = REACTION_MAP[reaction].value
-        for r in reactions:
-            if (
-                r.get("user", {}).get("login") == "sentry[bot]"
-                and r.get("content") == reaction_content
-            ):
-                self.client.delete_issue_reaction(repository["name"], issue_id, str(r["id"]))
-                return
+        self.client.delete_issue_reaction(repository["name"], issue_id, reaction_id)

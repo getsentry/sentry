@@ -34,11 +34,11 @@ ALL_ACTIONS = (
     # Comment reactions
     ("get_comment_reactions", {"comment_id": "1"}),
     ("create_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
+    ("delete_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
     # Issue reactions
     ("get_issue_reactions", {"issue_id": "1"}),
     ("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
-    ("delete_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
+    ("delete_issue_reaction", {"issue_id": "1", "reaction_id": "456"}),
 )
 
 
@@ -164,7 +164,7 @@ def test_create_comment_reaction():
 
 def test_delete_comment_reaction():
     scm = make_scm()
-    scm.delete_comment_reaction(comment_id="1", reaction="eyes")
+    scm.delete_comment_reaction(comment_id="1", reaction_id="123")
 
 
 def test_get_issue_reactions():
@@ -180,4 +180,4 @@ def test_create_issue_reaction():
 
 def test_delete_issue_reaction():
     scm = make_scm()
-    scm.delete_issue_reaction(issue_id="1", reaction="eyes")
+    scm.delete_issue_reaction(issue_id="1", reaction_id="456")

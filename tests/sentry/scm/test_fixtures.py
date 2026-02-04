@@ -84,7 +84,7 @@ class BaseTestProvider(Provider):
         return None
 
     def delete_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction: Reaction
+        self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None:
         return None
 
@@ -99,6 +99,6 @@ class BaseTestProvider(Provider):
         return None
 
     def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction: Reaction
+        self, repository: Repository, issue_id: str, reaction_id: str
     ) -> None:
         return None
