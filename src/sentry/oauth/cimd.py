@@ -237,7 +237,7 @@ class CIMDCache:
         logger.debug(
             "cimd.cache.set",
             extra={
-                "client_id_url": client_id_url,
+                "url": client_id_url,
                 "ttl": ttl,
                 "cache_control": cache_control,
             },
@@ -334,7 +334,7 @@ class CIMDClient:
             if cached is not None:
                 logger.debug(
                     "cimd.cache.hit",
-                    extra={"client_id_url": client_id_url},
+                    extra={"url": client_id_url},
                 )
                 metrics.incr("oauth.cimd.cache.hit", sample_rate=1.0)
                 return cached
@@ -368,7 +368,7 @@ class CIMDClient:
         except RestrictedIPAddress:
             logger.warning(
                 "cimd.fetch.restricted-ip",
-                extra={"client_id_url": client_id_url},
+                extra={"url": client_id_url},
             )
             raise CIMDFetchError(
                 "Client ID URL resolves to restricted IP address", client_id_url
@@ -376,7 +376,7 @@ class CIMDClient:
         except Timeout:
             logger.warning(
                 "cimd.fetch.timeout",
-                extra={"client_id_url": client_id_url, "timeout": self.TIMEOUT},
+                extra={"url": client_id_url, "timeout": self.TIMEOUT},
             )
             raise CIMDFetchError(
                 "Timeout fetching client metadata document", client_id_url
@@ -384,7 +384,7 @@ class CIMDClient:
         except RequestsConnectionError as e:
             logger.warning(
                 "cimd.fetch.connection-error",
-                extra={"client_id_url": client_id_url, "error": str(e)},
+                extra={"url": client_id_url, "error": str(e)},
             )
             raise CIMDFetchError(
                 "Connection error fetching client metadata document", client_id_url
@@ -395,7 +395,7 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.http-error",
                 extra={
-                    "client_id_url": client_id_url,
+                    "url": client_id_url,
                     "status_code": response.status_code,
                 },
             )
@@ -409,7 +409,7 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.invalid-content-type",
                 extra={
-                    "client_id_url": client_id_url,
+                    "url": client_id_url,
                     "content_type": content_type,
                 },
             )
@@ -424,7 +424,7 @@ class CIMDClient:
             logger.warning(
                 "cimd.fetch.response-too-large",
                 extra={
-                    "client_id_url": client_id_url,
+                    "url": client_id_url,
                     "size": len(body),
                     "max_size": self.MAX_RESPONSE_SIZE,
                 },
@@ -440,7 +440,7 @@ class CIMDClient:
         except orjson.JSONDecodeError as e:
             logger.warning(
                 "cimd.fetch.invalid-json",
-                extra={"client_id_url": client_id_url, "error": str(e)},
+                extra={"url": client_id_url, "error": str(e)},
             )
             raise CIMDFetchError(
                 "Invalid JSON in client metadata document", client_id_url
@@ -449,7 +449,7 @@ class CIMDClient:
         if not isinstance(metadata, dict):
             logger.warning(
                 "cimd.fetch.not-object",
-                extra={"client_id_url": client_id_url, "type": type(metadata).__name__},
+                extra={"url": client_id_url, "type": type(metadata).__name__},
             )
             raise CIMDFetchError("Client metadata document must be a JSON object", client_id_url)
 

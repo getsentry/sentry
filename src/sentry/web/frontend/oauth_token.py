@@ -164,7 +164,7 @@ class OAuthTokenView(View):
             if not features.has("oauth:cimd-enabled"):
                 logger.info(
                     "oauth.cimd.token.disabled",
-                    extra={"client_id": client_id},
+                    extra={"url": client_id},
                 )
                 metrics.incr("oauth.cimd.token.disabled", sample_rate=1.0)
                 return self.error(
@@ -342,7 +342,7 @@ class OAuthTokenView(View):
         if client_secret:
             logger.warning(
                 "oauth.cimd.secret-provided",
-                extra={"client_id": client_id},
+                extra={"url": client_id},
             )
             return self.error(
                 request=request,
@@ -368,7 +368,7 @@ class OAuthTokenView(View):
         except CIMDFetchError as e:
             logger.warning(
                 "oauth.cimd.token.fetch-error",
-                extra={"client_id": client_id, "error": str(e)},
+                extra={"url": client_id, "error": str(e)},
             )
             metrics.incr("oauth.cimd.token.metadata_fetch.error", sample_rate=1.0)
             return self.error(
@@ -380,7 +380,7 @@ class OAuthTokenView(View):
         except CIMDValidationError as e:
             logger.warning(
                 "oauth.cimd.token.validation-error",
-                extra={"client_id": client_id, "error": str(e)},
+                extra={"url": client_id, "error": str(e)},
             )
             metrics.incr("oauth.cimd.token.validation.error", sample_rate=1.0)
             return self.error(
@@ -395,7 +395,7 @@ class OAuthTokenView(View):
         if auth_method != "none":
             logger.warning(
                 "oauth.cimd.token.unsupported-auth-method",
-                extra={"client_id": client_id, "auth_method": auth_method},
+                extra={"url": client_id, "auth_method": auth_method},
             )
             return self.error(
                 request=request,
@@ -443,7 +443,7 @@ class OAuthTokenView(View):
         if not grant.code_challenge:
             logger.warning(
                 "oauth.cimd.token.no-pkce",
-                extra={"client_id": client_id, "grant_id": grant.id},
+                extra={"url": client_id, "grant_id": grant.id},
             )
             with unguarded_write(using=router.db_for_write(ApiGrant)):
                 grant.delete()
