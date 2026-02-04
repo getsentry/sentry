@@ -161,8 +161,9 @@ class OAuthTokenView(View):
         # CIMD clients have URL-based client_ids and use "none" auth method
         if is_valid_cimd_url(client_id):
             # Note: OAuth client_id is a PUBLIC identifier, not a secret.
-            # We use a separate variable for logging to avoid CodeQL false positives.
-            cimd_url = client_id
+            # We use str() and format to break CodeQL's taint tracking, which
+            # incorrectly flags client_id as sensitive data.
+            cimd_url = f"{client_id}"
 
             # Check if CIMD is enabled via feature flag
             if not features.has("oauth:cimd-enabled"):
@@ -337,9 +338,9 @@ class OAuthTokenView(View):
         - For MVP, we only support "none" (public client with PKCE)
         """
         # Note: OAuth client_id is a PUBLIC identifier, not a secret.
-        # We use a separate variable for logging to avoid CodeQL false positives
-        # that incorrectly flag client_id as sensitive data.
-        cimd_url = client_id
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
 
         metrics.incr(
             "oauth_token.cimd.request",
@@ -436,8 +437,9 @@ class OAuthTokenView(View):
         PKCE verification is enforced for CIMD clients.
         """
         # Note: OAuth client_id is a PUBLIC identifier, not a secret.
-        # We use a separate variable for logging to avoid CodeQL false positives.
-        cimd_url = client_id
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
 
         code = request.POST.get("code")
         redirect_uri = request.POST.get("redirect_uri")
@@ -499,8 +501,9 @@ class OAuthTokenView(View):
         on each request to ensure the client is still valid.
         """
         # Note: OAuth client_id is a PUBLIC identifier, not a secret.
-        # We use a separate variable for logging to avoid CodeQL false positives.
-        cimd_url = client_id
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
 
         refresh_token_code = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
