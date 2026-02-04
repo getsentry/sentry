@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from jsonschema import ValidationError, validate
@@ -6,7 +8,7 @@ from sentry.workflow_engine.models.action import Action
 
 
 @receiver(pre_save, sender=Action)
-def enforce_action_config_schema(sender, instance: Action, **kwargs):
+def enforce_action_config_schema(sender: type[Action], instance: Action, **kwargs: Any) -> None:
     handler = instance.get_handler()
 
     config_schema = handler.config_schema
