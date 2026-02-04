@@ -19,7 +19,6 @@ from sentry.models.repositorysettings import (
     CodeReviewTrigger,
     RepositorySettings,
 )
-from sentry.utils import metrics
 
 
 class PreflightDenialReason(StrEnum):
@@ -149,7 +148,6 @@ class CodeReviewPreflightService:
                 external_identifier=self.pr_author_external_id,
             )
         except OrganizationContributors.DoesNotExist:
-            metrics.incr("seer.code_review.error.contributor_not_found")
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
         if contributor.is_bot:
