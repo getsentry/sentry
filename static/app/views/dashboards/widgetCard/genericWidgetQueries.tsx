@@ -177,6 +177,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
   const enableTableHook = !isTimeSeriesData && !disabled && !propsLoading;
+  const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
+
+  const tableWidget = useMemo(
+    () => (needsBreakdownTable ? createBreakdownTableWidget(widget) : widget),
+    [needsBreakdownTable, widget]
+  );
 
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
@@ -192,12 +198,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     cursor,
   });
 
-  const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
-
-  const tableWidget = useMemo(
-    () => (needsBreakdownTable ? createBreakdownTableWidget(widget) : widget),
-    [needsBreakdownTable, widget]
-  );
   const hookTableResults = config.useTableQuery?.({
     widget: tableWidget,
     organization,
@@ -282,24 +282,21 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   ]);
 
   // Return hook results, with a fallback for the loading state
-  const baseResult = hookResults ?? {
+  const baseResults = hookResults ?? {
     loading: true,
     rawData: [],
   };
 
-  // For breakdown legend, merge the table results with the series results
-  if (needsBreakdownTable) {
-    return {
-      ...baseResult,
-      loading: baseResult.loading || (hookTableResults?.loading ?? false),
-      tableResults: hookTableResults?.tableResults,
-      // Include breakdown table error if present
-      errorMessage:
-        baseResult.errorMessage || hookTableResults?.errorMessage || undefined,
-    };
+  if (!needsBreakdownTable) {
+    return baseResults;
   }
 
-  return baseResult;
+  return {
+    ...baseResults,
+    loading: baseResults.loading || (hookTableResults?.loading ?? false),
+    tableResults: hookTableResults?.tableResults,
+    errorMessage: baseResults.errorMessage || hookTableResults?.errorMessage || undefined,
+  };
 }
 
 export function cleanWidgetForRequest(widget: Widget): Widget {

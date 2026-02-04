@@ -12,6 +12,7 @@ import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
@@ -39,7 +40,6 @@ interface VisualizationWidgetProps {
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  showLegendBreakdown?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
 }
@@ -142,15 +142,18 @@ function VisualizationWidgetContent({
     return paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
   }, [plottables, theme.chart]);
 
-  const hasBreakdownData =
-    widget.legendType === 'breakdown' && tableResults && tableResults.length > 0;
+  const showBreakdownData =
+    widget.legendType === 'breakdown' &&
+    usesTimeSeriesData(widget.displayType) &&
+    tableResults &&
+    tableResults.length > 0;
 
   const tableDataRows = tableResults?.[0]?.data;
   const aggregates = widget.queries[0]?.aggregates ?? [];
   const columns = widget.queries[0]?.columns ?? [];
 
   // Filter out "Other" series for the legend breakdown
-  const filteredSeriesWithIndex = hasBreakdownData
+  const filteredSeriesWithIndex = showBreakdownData
     ? timeseriesResults
         .map((series, index) => ({series, index}))
         .filter(({series}) => {
@@ -158,7 +161,7 @@ function VisualizationWidgetContent({
         })
     : [];
 
-  const footerTable = hasBreakdownData ? (
+  const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
       {filteredSeriesWithIndex.map(({series, index}, filteredIndex) => {
         const plottable = plottables[index];
@@ -216,7 +219,7 @@ function VisualizationWidgetContent({
     return errorDisplay;
   }
 
-  if (hasBreakdownData) {
+  if (showBreakdownData) {
     return (
       <Flex direction="column" height="100%">
         <Container overflow="hidden" flex={2}>
