@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 from django.urls import reverse
 
+from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -162,6 +165,64 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.next_event.event_id)
+        assert response.data["nextEventID"] is None
+
+    def test_release_filter(self) -> None:
+        """Test that release filter is applied when navigating through events"""
+        # Create a release
+        release_version = uuid4().hex
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version=release_version
+        )
+        release.add_project(self.project)
+
+        # Create events with different releases
+        event_with_release_1 = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "timestamp": before_now(minutes=10).isoformat(),
+                "fingerprint": ["group-1"],
+                "release": release_version,
+            },
+            project_id=self.project.id,
+        )
+        event_with_release_2 = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "timestamp": before_now(minutes=8).isoformat(),
+                "fingerprint": ["group-1"],
+                "release": release_version,
+            },
+            project_id=self.project.id,
+        )
+        # Event without release (should be filtered out)
+        self.store_event(
+            data={
+                "event_id": "g" * 32,
+                "timestamp": before_now(minutes=9).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        # Query for event with release filter
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": event_with_release_2.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+        response = self.client.get(
+            url, format="json", data={"query": f"release:{release_version}"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(event_with_release_2.event_id)
+        # Previous event should be the one with the same release
+        assert response.data["previousEventID"] == str(event_with_release_1.event_id)
+        # Next event should be None (no newer events with this release)
         assert response.data["nextEventID"] is None
 
 

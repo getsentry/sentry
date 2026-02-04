@@ -5,17 +5,18 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Condition
+from snuba_sdk import Column, Condition, Op
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services import eventstore
@@ -132,17 +133,37 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        environments = set(request.GET.getlist("environment"))
+        organization = project.organization
+        environments = [e for e in get_environments(request, organization)]
+        environment_names = [e.name for e in environments]
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
+        # Parse query parameter to apply filters for next/previous event navigation
+        query = request.GET.get("query")
+        conditions: list[Condition] = []
+        if query and event.group:
+            from sentry.issues.endpoints.group_event_details import (
+                issue_search_query_to_conditions,
+            )
+
+            try:
+                conditions = issue_search_query_to_conditions(
+                    query, event.group, request.user, environments
+                )
+            except Exception:
+                # If query parsing fails, log and continue without filters
+                # to avoid breaking the endpoint
+                sentry_sdk.capture_exception()
+
         data = wrap_event_response(
             request_user=request.user,
             event=event,
-            environments=list(environments),
+            environments=environment_names,
             include_full_release_data=True,
+            conditions=conditions,
             start=start,
             end=end,
         )
