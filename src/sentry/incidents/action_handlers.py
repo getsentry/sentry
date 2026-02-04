@@ -66,7 +66,6 @@ from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 EMAIL_STATUS_DISPLAY = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
@@ -584,17 +583,9 @@ def generate_incident_trigger_email_context(
         alert_link_params["notification_uuid"] = notification_uuid
 
     if should_fire_workflow_actions(organization, MetricIssue.type_id):
-        # lookup the incident_id from the open_period_identifier
-        try:
-            incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
-                group_open_period_id=metric_issue_context.open_period_identifier
-            )
-            incident_identifier = incident_group_open_period.incident_identifier
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            # the corresponding metric detector was not dual written
-            incident_identifier = get_fake_id_from_object_id(
-                metric_issue_context.open_period_identifier
-            )
+        incident_identifier = get_fake_id_from_object_id(
+            metric_issue_context.open_period_identifier
+        )
 
         alert_link = organization.absolute_url(
             reverse(

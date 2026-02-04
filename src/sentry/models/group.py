@@ -471,12 +471,8 @@ class GroupManager(BaseManager["Group"]):
         update_date: datetime | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
-        from sentry.incidents.grouptype import MetricIssue
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
-        from sentry.workflow_engine.models.incident_groupopenperiod import (
-            update_incident_based_on_open_period_status_change,
-        )
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -551,19 +547,6 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
-
-            should_update_incident = is_status_resolved or (
-                is_status_unresolved and should_reopen_open_period[group.id]
-            )
-            # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id and should_update_incident:
-                if detector_id is None:
-                    logger.error(
-                        "Call to update metric issue status missing detector ID",
-                        extra={"group_id": group.id},
-                    )
-                    continue
-                update_incident_based_on_open_period_status_change(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

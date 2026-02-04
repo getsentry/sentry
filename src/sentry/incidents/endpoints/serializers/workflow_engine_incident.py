@@ -27,7 +27,6 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
     DetectorGroup,
-    IncidentGroupOpenPeriod,
 )
 
 
@@ -141,13 +140,8 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-        try:
-            igop = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
-            incident_id = igop.incident_id
-            incident_identifier = igop.incident_identifier
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            incident_id = get_fake_id_from_object_id(obj.id)
-            incident_identifier = incident_id
+        incident_id = get_fake_id_from_object_id(obj.id)
+        incident_identifier = incident_id
 
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {

@@ -300,9 +300,6 @@ class TestProcessWorkflowActivity(TestCase):
             },
         )
 
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed(
         self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
@@ -345,9 +342,6 @@ class TestProcessWorkflowActivity(TestCase):
             )
 
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed_activity_data_is_set(
         self,

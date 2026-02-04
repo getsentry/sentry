@@ -29,7 +29,6 @@ from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
@@ -244,16 +243,9 @@ def incident_attachment_info(
 
         workflow_engine_params = title_link_params.copy()
 
-        try:
-            open_period_incident = IncidentGroupOpenPeriod.objects.get(
-                group_open_period_id=metric_issue_context.open_period_identifier
-            )
-            workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
-        except IncidentGroupOpenPeriod.DoesNotExist:
-            # the corresponding metric detector was not dual written
-            workflow_engine_params["alert"] = str(
-                get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
-            )
+        workflow_engine_params["alert"] = str(
+            get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
+        )
 
         title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
     else:

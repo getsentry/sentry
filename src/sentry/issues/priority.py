@@ -46,14 +46,10 @@ def update_priority(
     """
     Update the priority of a group and record the change in the activity and group history.
     """
-    from sentry.incidents.grouptype import MetricIssue
     from sentry.models.groupopenperiod import get_latest_open_period, should_create_open_periods
     from sentry.models.groupopenperiodactivity import (
         GroupOpenPeriodActivity,
         OpenPeriodActivityType,
-    )
-    from sentry.workflow_engine.models.incident_groupopenperiod import (
-        update_incident_activity_based_on_group_activity,
     )
 
     if priority is None or group.priority == priority:
@@ -72,11 +68,6 @@ def update_priority(
     )
 
     record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
-
-    # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity
-    # we will remove this once we've fully deprecated the Incident model
-    if group.type == MetricIssue.type_id:
-        update_incident_activity_based_on_group_activity(group, priority)
 
     issue_update_priority.send_robust(
         group=group,
