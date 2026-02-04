@@ -170,7 +170,7 @@ class SeerExplorerClient:
             on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
-            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
+            enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
     """
 
     def __init__(
@@ -193,6 +193,10 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+
+        if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
+            raise SeerPermissionError("Seer coding is not enabled for this organization")
+
         self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together

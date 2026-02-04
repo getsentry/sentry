@@ -247,6 +247,19 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         if next_step is None:
             return
 
+        # Stop if next step is code_changes and enable_seer_coding is False
+        if next_step == AutofixStep.CODE_CHANGES and not organization.get_option(
+            "sentry:enable_seer_coding", True
+        ):
+            logger.warning(
+                "autofix.on_completion_hook.code_changes_step_disabled",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                },
+            )
+            return
+
         # Get the group
         try:
             group = Group.objects.get(id=group_id, project__organization=organization)
