@@ -194,7 +194,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       content: [
