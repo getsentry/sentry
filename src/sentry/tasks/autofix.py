@@ -181,9 +181,11 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
+        autofix_automation_tuning = project.get_option("sentry:autofix_automation_tuning")
+        if autofix_automation_tuning != AutofixAutomationTuningSettings.OFF:
+            project.update_option(
+                "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+            )
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 

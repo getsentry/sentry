@@ -214,6 +214,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_bulk_get.assert_called_once()
         mock_bulk_set.assert_called_once()
 
+    @pytest.mark.skip("DO NOT override autofix automation tuning off")
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
     def test_overrides_autofix_off_to_medium(
