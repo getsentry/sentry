@@ -300,7 +300,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
-        assert conversation["timestamp"] > 0
+        assert conversation["startTimestamp"] > 0
+        assert conversation["endTimestamp"] > 0
+        assert conversation["endTimestamp"] >= conversation["startTimestamp"]
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
         assert len(conversation["traceIds"]) == 1
         assert conversation["traceIds"][0] == trace_id
