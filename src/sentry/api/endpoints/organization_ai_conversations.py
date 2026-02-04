@@ -342,8 +342,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
-                "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.cost.total_tokens)",
+                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
@@ -425,8 +425,18 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     errors=int(row.get("failure_count()") or 0),
                     llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
                     tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
-                    total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
-                    total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
+                    total_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    total_cost=float(
+                        row.get(
+                            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
                     trace_ids=[],
                     flow=[],
                     first_input=None,
