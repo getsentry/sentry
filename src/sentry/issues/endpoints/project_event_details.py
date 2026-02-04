@@ -146,16 +146,17 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         # Parse query parameter to apply filters for next/previous event navigation
         query = request.GET.get("query")
         conditions: list[Condition] = []
-        
+
         # Get the group for query filtering
         group = event.group if hasattr(event, "group") and event.group else None
         if not group and group_id:
             from sentry.models.group import Group
+
             try:
                 group = Group.objects.get(id=group_id, project=project)
             except Group.DoesNotExist:
                 group = None
-        
+
         if query and group:
             from sentry.issues.endpoints.group_event_details import issue_search_query_to_conditions
 
