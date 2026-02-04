@@ -91,7 +91,7 @@ class TestCodeReviewPreflightService(TestCase):
         )
 
         with patch(
-            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+            "sentry.quotas.backend.check_seer_quota",
             return_value=True,
         ):
             service = self._create_service()
@@ -134,7 +134,7 @@ class TestCodeReviewPreflightService(TestCase):
         )
 
         with patch(
-            "sentry.seer.code_review.billing.quotas.backend.check_seer_quota",
+            "sentry.quotas.backend.check_seer_quota",
             return_value=True,
         ):
             service = self._create_service()
@@ -143,7 +143,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is True
         assert result.denial_reason is None
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
     def test_seer_added_org_bypasses_repo_settings_check(self, mock_check_quota: MagicMock) -> None:
         """Seer-added orgs don't need repo settings to be enabled."""
@@ -194,7 +194,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_allowed_when_seat_based_org_has_repo_settings_enabled(
         self, mock_check_quota: MagicMock
@@ -224,7 +224,7 @@ class TestCodeReviewPreflightService(TestCase):
     # Settings retrieval tests
     # -------------------------------------------------------------------------
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_returns_repo_settings_when_allowed(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = True
@@ -253,7 +253,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_returns_default_settings_for_beta_org_without_repo_settings(
         self, mock_check_quota: MagicMock
@@ -277,7 +277,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(
         [
             "organizations:gen-ai-features",
@@ -385,7 +385,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
         mock_check_quota.return_value = False
@@ -407,7 +407,7 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
-    @patch("sentry.seer.code_review.billing.quotas.backend.check_seer_quota")
+    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(
         [
             "organizations:gen-ai-features",
