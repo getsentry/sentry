@@ -16,10 +16,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {DataCategory} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import CustomerOverview from 'admin/components/customers/customerOverview';
+import * as constants from 'getsentry/constants';
 import {AddOnCategory, PlanTier} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
@@ -440,6 +441,55 @@ describe('CustomerOverview', () => {
     // Regular product trials should still appear
     expect(screen.getByText('Spans:')).toBeInTheDocument();
     expect(screen.getByText('Replays:')).toBeInTheDocument();
+  });
+
+  it('renders admin-only product trials when feature flag is graduated (true)', () => {
+    // Mock BILLED_DATA_CATEGORY_INFO to simulate a graduated flag (adminOnlyProductTrialFeature: true)
+    const originalBilledDataCategoryInfo = constants.BILLED_DATA_CATEGORY_INFO;
+    const mockedBilledDataCategoryInfo = {
+      ...originalBilledDataCategoryInfo,
+      [DataCategoryExact.SIZE_ANALYSIS]: {
+        ...originalBilledDataCategoryInfo[DataCategoryExact.SIZE_ANALYSIS],
+        adminOnlyProductTrialFeature: true, // Graduated - no feature flag check needed
+      },
+    };
+
+    // Override the module export for this test
+    Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
+      value: mockedBilledDataCategoryInfo,
+      configurable: true,
+    });
+
+    // Organization has NO feature flags - but graduated flag should still show
+    const organization = OrganizationFixture({
+      features: [], // No feature flags!
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    // SIZE_ANALYSIS should appear because the flag is graduated (true), not requiring feature flag
+    expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
+    // Regular product trials should still appear
+    expect(screen.getByText('Spans:')).toBeInTheDocument();
+    expect(screen.getByText('Replays:')).toBeInTheDocument();
+
+    // Restore the original
+    Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
+      value: originalBilledDataCategoryInfo,
+      configurable: true,
+    });
   });
 
   it('renders product trials based on current subscription state', () => {
