@@ -108,7 +108,10 @@ def make_scm():
 def test_get_issue_comments():
     scm = make_scm()
     result = scm.get_issue_comments(issue_id="1")
-    assert result == []
+    assert len(result) == 1
+    assert result[0]["id"] == "101"
+    assert result[0]["body"] == "Test comment"
+    assert result[0]["author"]["username"] == "testuser"
 
 
 def test_create_issue_comment():
@@ -132,7 +135,10 @@ def test_get_pull_request():
 def test_get_pull_request_comments():
     scm = make_scm()
     result = scm.get_pull_request_comments(pull_request_id="1")
-    assert result == []
+    assert len(result) == 1
+    assert result[0]["id"] == "201"
+    assert result[0]["body"] == "PR review comment"
+    assert result[0]["author"]["username"] == "reviewer"
 
 
 def test_create_pull_request_comment():
@@ -148,7 +154,7 @@ def test_delete_pull_request_comment():
 def test_get_comment_reactions():
     scm = make_scm()
     result = scm.get_comment_reactions(comment_id="1")
-    assert result == []
+    assert result == ["+1", "eyes"]
 
 
 def test_create_comment_reaction():
@@ -164,7 +170,7 @@ def test_delete_comment_reaction():
 def test_get_issue_reactions():
     scm = make_scm()
     result = scm.get_issue_reactions(issue_id="1")
-    assert result == []
+    assert result == ["+1", "heart"]
 
 
 def test_create_issue_reaction():

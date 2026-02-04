@@ -32,7 +32,16 @@ class BaseTestProvider(Provider):
     # Issue comments
 
     def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
-        return []
+        return [
+            Comment(
+                id="101",
+                body="Test comment",
+                author={"id": "1", "username": "testuser"},
+                created_at="2024-01-01T00:00:00Z",
+                updated_at="2024-01-01T00:00:00Z",
+                raw={},
+            )
+        ]
 
     def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None:
         return None
@@ -45,7 +54,16 @@ class BaseTestProvider(Provider):
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
     ) -> list[Comment]:
-        return []
+        return [
+            Comment(
+                id="201",
+                body="PR review comment",
+                author={"id": "2", "username": "reviewer"},
+                created_at="2024-01-02T00:00:00Z",
+                updated_at="2024-01-02T00:00:00Z",
+                raw={},
+            )
+        ]
 
     def create_pull_request_comment(
         self, repository: Repository, pull_request_id: str, body: str
@@ -58,7 +76,7 @@ class BaseTestProvider(Provider):
     # Comment reactions
 
     def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]:
-        return []
+        return ["+1", "eyes"]
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -73,7 +91,7 @@ class BaseTestProvider(Provider):
     # Issue reactions
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
-        return []
+        return ["+1", "heart"]
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
