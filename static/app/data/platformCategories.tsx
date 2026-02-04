@@ -394,7 +394,10 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir', 'dotnet-xamarin']);
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'dotnet-xamarin',
+]);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
