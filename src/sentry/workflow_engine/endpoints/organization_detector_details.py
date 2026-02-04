@@ -46,7 +46,7 @@ def get_detector_validator(
     request: Request,
     project: Project,
     detector_type_slug: str,
-    instance: Any = None,
+    instance: Detector | None = None,
     partial: bool = False,
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
