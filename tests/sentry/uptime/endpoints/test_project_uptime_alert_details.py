@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -36,6 +37,14 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             self.organization.slug, onboarding_detector.project.slug, onboarding_detector.id
         )
         assert resp.status_code == 404
+
+    def test_disabled_detector_accessible(self) -> None:
+        """Disabled detectors should still be accessible via the endpoint."""
+        detector = self.create_uptime_detector()
+        detector.update(status=ObjectStatus.DISABLED, enabled=False)
+
+        resp = self.get_success_response(self.organization.slug, detector.project.slug, detector.id)
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
