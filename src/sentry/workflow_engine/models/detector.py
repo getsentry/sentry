@@ -6,9 +6,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 
 from django.conf import settings
-from django.db import models, router, transaction
-from django.db.models.signals import post_save, pre_delete
-from django.dispatch import receiver
+from django.db import models
 from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
@@ -231,25 +229,3 @@ def enforce_config_schema(instance: Detector) -> None:
         raise ValidationError("Detector config must be a dictionary")
 
     instance.validate_config(group_type.detector_settings.config_schema)
-
-
-def _schedule_detector_cache_invalidation(instance: Detector) -> None:
-    data_sources = list(instance.data_sources.values_list("source_id", "type"))
-
-    def invalidate_cache():
-        from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
-
-        for source_id, source_type in data_sources:
-            invalidate_detectors_by_data_source_cache(source_id, source_type)
-
-    transaction.on_commit(invalidate_cache, using=router.db_for_write(Detector))
-
-
-@receiver(post_save, sender=Detector)
-def invalidate_detector_cache_on_save(sender, instance: Detector, **kwargs):
-    _schedule_detector_cache_invalidation(instance)
-
-
-@receiver(pre_delete, sender=Detector)
-def invalidate_detector_cache_on_delete(sender, instance: Detector, **kwargs):
-    _schedule_detector_cache_invalidation(instance)
