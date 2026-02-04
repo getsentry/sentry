@@ -20,6 +20,7 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
     extract_github_info,
+    is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
@@ -686,3 +687,15 @@ class TestConvertEnumKeysToStrings:
 
         assert result == {"bug_prediction": True}
         assert isinstance(list(result.keys())[0], str)
+
+
+class CodeReviewExperimentAssignmentTest(TestCase):
+
+    def test_enabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        with self.feature("organizations:code-review-experiments-enabled"):
+            assert is_org_enabled_for_code_review_experiments(org)
+
+    def test_disabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        assert not is_org_enabled_for_code_review_experiments(org)
