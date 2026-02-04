@@ -34,6 +34,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
@@ -49,6 +50,7 @@ function ConversationsOverviewPage({
 }: ConversationsOverviewPageProps) {
   const organization = useOrganization();
   useDefaultToAllProjects();
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -148,7 +150,9 @@ function ConversationsOverviewPage({
                 </ModuleLayout.Full>
 
                 <ModuleLayout.Full>
-                  <ConversationsTable />
+                  <ConversationsTable
+                    openConversationViewDrawer={openConversationViewDrawer}
+                  />
                 </ModuleLayout.Full>
               </ModuleLayout.Layout>
             </Layout.Main>
