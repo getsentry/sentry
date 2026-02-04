@@ -9,6 +9,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
+from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
@@ -215,6 +216,7 @@ class SeerExplorerClient:
         metadata: dict[str, Any] | None = None,
         conduit_channel_id: str | None = None,
         conduit_url: str | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -227,6 +229,7 @@ class SeerExplorerClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
             conduit_channel_id: Optional Conduit channel ID for streaming
             conduit_url: Optional Conduit URL for streaming
+            request: Optional rest_framework Request object from endpoints.
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -246,7 +249,9 @@ class SeerExplorerClient:
             "run_id": None,
             "insert_index": None,
             "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(self.user, self.organization),
+            "user_org_context": collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
@@ -351,6 +356,10 @@ class SeerExplorerClient:
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:

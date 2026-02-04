@@ -4,6 +4,7 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -189,7 +190,9 @@ export function useGetSavedQueries({
 
   const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<ReadableSavedQuery[]>(
     [
-      `/organizations/${organization.slug}/explore/saved/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           sortBy,
@@ -218,7 +221,11 @@ export function useInvalidateSavedQueries() {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
   }, [queryClient, organization.slug]);
 }
@@ -226,7 +233,11 @@ export function useInvalidateSavedQueries() {
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
   const {data, isLoading, ...rest} = useApiQuery<ReadableSavedQuery>(
-    [`/organizations/${organization.slug}/explore/saved/${id}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+        path: {organizationIdOrSlug: organization.slug, id: id!},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: defined(id),
@@ -242,7 +253,11 @@ export function useInvalidateSavedQuery(id?: string) {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+          path: {organizationIdOrSlug: organization.slug, id: id!},
+        }),
+      ],
     });
   }, [queryClient, organization.slug, id]);
 }

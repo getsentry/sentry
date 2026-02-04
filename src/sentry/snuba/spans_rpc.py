@@ -173,13 +173,15 @@ class Spans(rpc_dataset_common.RPCBase):
                     spans.append(span)
 
         response = snuba_rpc.get_trace_rpc(request)
-        for _ in range(MAX_ITERATIONS):
+        for iteration in range(MAX_ITERATIONS):
             columns_by_name = {col.proto_definition.name: col for col in columns}
             if response.page_token.end_pagination:
                 # always need to process the last response
                 process_item_groups(response.item_groups)
                 break
-            if MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+            elif MAX_TIMEOUT > 0 and time.time() - start_time > MAX_TIMEOUT:
+                # process the last response even if we've hit timeout cause so we don't waste the time making the request
+                process_item_groups(response.item_groups)
                 # If timeout is not set then logging this is not helpful
                 rpc_debug_json = json.loads(MessageToJson(request))
                 logger.info(
@@ -188,7 +190,12 @@ class Spans(rpc_dataset_common.RPCBase):
                         "rpc_query": rpc_debug_json,
                         "referrer": request.meta.referrer,
                         "trace_item_type": request.meta.trace_item_type,
+                        "iteration": iteration,
                     },
+                )
+                sentry_sdk.metrics.distribution(
+                    "performance.trace.iteration.count",
+                    iteration,
                 )
                 break
             request.page_token.CopyFrom(response.page_token)
