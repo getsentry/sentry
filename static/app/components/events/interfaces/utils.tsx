@@ -380,11 +380,14 @@ export function getStacktracePlatform(
   event: Event,
   stacktrace?: StacktraceType | null
 ): PlatformKey {
-  const overridePlatform = stacktrace?.frames?.find(frame =>
-    defined(frame.platform)
-  )?.platform;
+  const frames = stacktrace?.frames;
+  const eventPlatform = event.platform ?? 'other';
 
-  return overridePlatform ?? event.platform ?? 'other';
+  return (
+    frames?.find(frame => frame.platform === eventPlatform)?.platform ??
+    frames?.find(frame => defined(frame.platform))?.platform ??
+    eventPlatform
+  );
 }
 
 export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
