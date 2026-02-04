@@ -102,7 +102,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_issue_comments(r, issue_id),
         )
 
-    def create_issue_comment(self, issue_id: str, body: str):
+    def create_issue_comment(self, issue_id: str, body: str) -> None:
         """Create a comment on an issue."""
         return exec_provider_fn(
             self.organization_id,
@@ -113,7 +113,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.create_issue_comment(r, issue_id, body),
         )
 
-    def delete_issue_comment(self, comment_id: str):
+    def delete_issue_comment(self, comment_id: str) -> None:
         """Delete a comment on an issue."""
         return exec_provider_fn(
             self.organization_id,
@@ -124,7 +124,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_issue_comment(r, comment_id),
         )
 
-    def get_pull_request(self, pull_request_id: int) -> PullRequest:
+    def get_pull_request(self, pull_request_id: str) -> PullRequest:
         """Get a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -135,7 +135,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_pull_request(r, pull_request_id),
         )
 
-    def get_pull_request_comments(self, pull_request_id: str):
+    def get_pull_request_comments(self, pull_request_id: str) -> list[Comment]:
         """Get comments on a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -146,7 +146,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_pull_request_comments(r, pull_request_id),
         )
 
-    def create_pull_request_comment(self, pull_request_id: str, body: str):
+    def create_pull_request_comment(self, pull_request_id: str, body: str) -> None:
         """Create a comment on a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -157,7 +157,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.create_pull_request_comment(r, pull_request_id, body),
         )
 
-    def delete_pull_request_comment(self, comment_id: str):
+    def delete_pull_request_comment(self, comment_id: str) -> None:
         """Delete a comment on a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -168,7 +168,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_pull_request_comment(r, comment_id),
         )
 
-    def get_comment_reactions(self, comment_id: str):
+    def get_comment_reactions(self, comment_id: str) -> list[Reaction]:
         """Get reactions on a comment."""
         return exec_provider_fn(
             self.organization_id,
@@ -179,7 +179,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_comment_reactions(r, comment_id),
         )
 
-    def create_comment_reaction(self, comment_id: str, reaction: Reaction):
+    def create_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
         """Create a reaction on a comment."""
         return exec_provider_fn(
             self.organization_id,
@@ -201,7 +201,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_comment_reaction(r, comment_id, reaction),
         )
 
-    def get_issue_reactions(self, issue_id: str):
+    def get_issue_reactions(self, issue_id: str) -> list[Reaction]:
         """Get reactions on an issue."""
         return exec_provider_fn(
             self.organization_id,
@@ -212,7 +212,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_issue_reactions(r, issue_id),
         )
 
-    def create_issue_reaction(self, issue_id: str, reaction: Reaction):
+    def create_issue_reaction(self, issue_id: str, reaction: Reaction) -> None:
         """Create a reaction on an issue."""
         return exec_provider_fn(
             self.organization_id,

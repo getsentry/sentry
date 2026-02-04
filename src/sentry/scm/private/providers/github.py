@@ -73,7 +73,7 @@ class GitHubProvider(Provider):
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
 
-    def get_pull_request(self, repository: Repository, pull_request_id: int) -> PullRequest:
+    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         raw = self.client.get_pull_request(repository["name"], pull_request_id)
         return _transform_pull_request(raw)
@@ -109,9 +109,17 @@ class GitHubProvider(Provider):
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        self.client.delete(
-            f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{REACTION_MAP[reaction]}"
+        # Fetch reactions to find the ID for the given reaction type
+        reactions = self.client.get(
+            f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions"
         )
+        reaction_content = REACTION_MAP[reaction].value
+        for r in reactions:
+            if r["content"] == reaction_content:
+                self.client.delete(
+                    f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{r['id']}"
+                )
+                return
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
@@ -127,4 +135,10 @@ class GitHubProvider(Provider):
         self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        self.client.delete_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
+        # Fetch reactions to find the ID for the given reaction type
+        reactions = self.client.get_issue_reactions(repository["name"], issue_id)
+        reaction_content = REACTION_MAP[reaction].value
+        for r in reactions:
+            if r["content"] == reaction_content:
+                self.client.delete_issue_reaction(repository["name"], issue_id, str(r["id"]))
+                return
