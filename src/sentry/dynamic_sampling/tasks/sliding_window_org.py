@@ -34,22 +34,32 @@ def sliding_window_org() -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.
     if window_size is not None:
+        segments_org_ids = set(
+            options.get("dynamic-sampling.sliding_window_org.span-metric-orgs") or []
+        )
         # Process orgs using transaction metrics (default)
-        _process_sliding_window_for_measure(window_size, SamplingMeasure.TRANSACTIONS)
+        _process_sliding_window_for_measure(
+            window_size, SamplingMeasure.TRANSACTIONS, segments_org_ids
+        )
         # Process orgs using segment metrics (opted-in via option)
-        _process_sliding_window_for_measure(window_size, SamplingMeasure.SEGMENTS)
+        _process_sliding_window_for_measure(window_size, SamplingMeasure.SEGMENTS, segments_org_ids)
 
         # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
         # that the execution of the sliding window org was successful. We will keep this state for 1 hour.
         mark_sliding_window_org_executed()
 
 
-def _process_sliding_window_for_measure(window_size: int, measure: SamplingMeasure) -> None:
+def _process_sliding_window_for_measure(
+    window_size: int, measure: SamplingMeasure, segments_orgs: set[int]
+) -> None:
     """
     Process sliding window calculations for organizations using the specified measure.
-    """
-    segment_org_ids = set(options.get("dynamic-sampling.sliding_window_org.span-metric-orgs") or [])
 
+    Args:
+        window_size: The sliding window size in hours.
+        measure: The sampling measure to use for querying volumes.
+        segments_orgs: Set of org IDs that should use SEGMENTS measure (opted-in).
+    """
     orgs_volumes_iterator = GetActiveOrgsVolumes(
         max_orgs=CHUNK_SIZE,
         time_interval=timedelta(hours=window_size),
@@ -61,7 +71,7 @@ def _process_sliding_window_for_measure(window_size: int, measure: SamplingMeasu
         for org_volume in orgs_volume:
             # Filter orgs based on measure: SEGMENTS measure only for opted-in orgs,
             # TRANSACTIONS measure for all others
-            org_uses_segments = org_volume.org_id in segment_org_ids
+            org_uses_segments = org_volume.org_id in segments_orgs
             if measure == SamplingMeasure.SEGMENTS and not org_uses_segments:
                 continue
             if measure == SamplingMeasure.TRANSACTIONS and org_uses_segments:

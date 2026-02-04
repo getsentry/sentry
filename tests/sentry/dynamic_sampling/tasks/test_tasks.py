@@ -677,6 +677,56 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                     org_id=org.id,
                 )
 
+    def add_measure_metrics(
+        self,
+        org,
+        project,
+        *,
+        transaction_keep: int,
+        transaction_drop: int,
+        segment_keep: int,
+        segment_drop: int,
+    ) -> None:
+        base_tags = {"transaction": "trans-x"}
+        if transaction_drop:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**base_tags, "decision": "drop"},
+                minutes_before_now=2,
+                value=transaction_drop,
+                project_id=project.id,
+                org_id=org.id,
+            )
+        if transaction_keep:
+            self.store_performance_metric(
+                name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**base_tags, "decision": "keep"},
+                minutes_before_now=2,
+                value=transaction_keep,
+                project_id=project.id,
+                org_id=org.id,
+            )
+
+        segment_tags = {**base_tags, "is_segment": "true"}
+        if segment_drop:
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**segment_tags, "decision": "drop"},
+                minutes_before_now=2,
+                value=segment_drop,
+                project_id=project.id,
+                org_id=org.id,
+            )
+        if segment_keep:
+            self.store_performance_metric(
+                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={**segment_tags, "decision": "keep"},
+                minutes_before_now=2,
+                value=segment_keep,
+                project_id=project.id,
+                org_id=org.id,
+            )
+
     @staticmethod
     def set_sliding_window_org_cache_entry(org_id: int, value: str):
         redis = get_redis_client_for_ds()
@@ -907,6 +957,52 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         assert val is not None
         assert float(val) == 0.5
 
+    @with_feature("organizations:dynamic-sampling")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_recalibrate_orgs_uses_segment_option(self, get_blended_sample_rate: MagicMock) -> None:
+        get_blended_sample_rate.return_value = 0.2
+        segment_org = self.create_old_organization("segment-org")
+        transaction_org = self.create_old_organization("transaction-org")
+        segment_project = self.create_old_project(name="segment-project", organization=segment_org)
+        transaction_project = self.create_old_project(
+            name="transaction-project", organization=transaction_org
+        )
+
+        self.add_measure_metrics(
+            segment_org,
+            segment_project,
+            transaction_keep=10,
+            transaction_drop=90,
+            segment_keep=10,
+            segment_drop=90,
+        )
+        self.add_measure_metrics(
+            transaction_org,
+            transaction_project,
+            transaction_keep=50,
+            transaction_drop=50,
+            segment_keep=50,
+            segment_drop=50,
+        )
+
+        self.set_sliding_window_org_sample_rate(segment_org.id, 0.2)
+        self.set_sliding_window_org_sample_rate(transaction_org.id, 0.2)
+
+        with self.options({"dynamic-sampling.recalibrate_orgs.span-metric-orgs": [segment_org.id]}):
+            with self.tasks():
+                recalibrate_orgs()
+
+        redis_client = get_redis_client_for_ds()
+        segment_value = redis_client.get(generate_recalibrate_orgs_cache_key(segment_org.id))
+        transaction_value = redis_client.get(
+            generate_recalibrate_orgs_cache_key(transaction_org.id)
+        )
+
+        assert segment_value is not None
+        assert transaction_value is not None
+        assert float(segment_value) == pytest.approx(2.0)
+        assert float(transaction_value) == pytest.approx(0.4)
+
 
 @freeze_time(MOCK_DATETIME)
 class TestSlidingWindowOrgTask(TasksTestCase):
@@ -941,10 +1037,18 @@ class TestSlidingWindowOrgTask(TasksTestCase):
                 )
 
     @with_feature("organizations:dynamic-sampling")
-    def test_sliding_window_org_processes_all_orgs_by_default(self) -> None:
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_org_processes_all_orgs_by_default(
+        self,
+        get_transaction_sampling_tier_for_volume: MagicMock,
+        extrapolate_monthly_volume: MagicMock,
+    ) -> None:
         """
         Test that sliding_window_org processes all orgs using TRANSACTIONS measure by default.
         """
+        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
+        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
         redis_client = get_redis_client_for_ds()
 
         with self.tasks():
@@ -957,13 +1061,21 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             assert val is not None, f"Org {org.id} should have sliding window cache entry"
 
     @with_feature("organizations:dynamic-sampling")
-    def test_sliding_window_org_with_span_metric_option(self) -> None:
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_org_with_span_metric_option(
+        self,
+        get_transaction_sampling_tier_for_volume: MagicMock,
+        extrapolate_monthly_volume: MagicMock,
+    ) -> None:
         """
         Test that orgs in the span-metric-orgs option use segment metrics (SEGMENTS measure).
 
         Both transaction metrics and segment metrics are stored with same values,
         so results should be equivalent regardless of which measure is used.
         """
+        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
+        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
         redis_client = get_redis_client_for_ds()
 
         # Enable segment metrics for first org only
@@ -980,13 +1092,21 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             assert val is not None, f"Org {org.id} should have sliding window cache entry"
 
     @with_feature("organizations:dynamic-sampling")
-    def test_sliding_window_org_partitions_orgs_by_measure(self) -> None:
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_org_partitions_orgs_by_measure(
+        self,
+        get_transaction_sampling_tier_for_volume: MagicMock,
+        extrapolate_monthly_volume: MagicMock,
+    ) -> None:
         """
         Test that orgs are correctly partitioned by measure based on the option.
 
         When an org is in the span-metric-orgs option, it should be processed
         with SEGMENTS measure (and skipped by TRANSACTIONS measure processing).
         """
+        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
+        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
         redis_client = get_redis_client_for_ds()
 
         # Enable segment metrics for first two orgs

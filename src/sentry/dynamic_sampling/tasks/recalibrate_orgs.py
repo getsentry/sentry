@@ -10,7 +10,7 @@ from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationI
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
@@ -35,9 +35,9 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 
 
-def _get_segment_org_ids() -> set[int]:
+def _get_segments_org_ids() -> set[int]:
     """
-    Returns the set of organization IDs that should use SEGMENTS measure.
+    Returns the set of organization IDs that should use SEGMENTS measure (new).
     """
     return set(options.get("dynamic-sampling.recalibrate_orgs.span-metric-orgs") or [])
 
@@ -51,53 +51,48 @@ def _get_segment_org_ids() -> set[int]:
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    # Process orgs using transaction metrics (default)
-    _process_orgs_volumes(measure=SamplingMeasure.TRANSACTIONS)
+    segments_org_ids = _get_segments_org_ids()
+
     # Process orgs using segment metrics (opted-in via option)
-    _process_orgs_volumes(measure=SamplingMeasure.SEGMENTS)
+    if segments_org_ids:
+        for segment_volumes in GetActiveOrgsVolumes(
+            measure=SamplingMeasure.SEGMENTS, orgs=list(segments_org_ids)
+        ):
+            _process_orgs_volumes(segment_volumes)
+
+    # Process orgs using transaction metrics (default)
+    for transaction_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.TRANSACTIONS):
+        filtered_volumes = [v for v in transaction_volumes if v.org_id not in segments_org_ids]
+        _process_orgs_volumes(filtered_volumes)
 
 
-def _process_orgs_volumes(measure: SamplingMeasure) -> None:
+def _process_orgs_volumes(org_volumes: Sequence[OrganizationDataVolume]) -> None:
     """
     Process organization volumes for recalibration.
 
     Args:
-        measure: The sampling measure to use for querying volumes.
+        org_volumes: Volumes to process for recalibration.
     """
-    segment_org_ids = _get_segment_org_ids()
+    if not org_volumes:
+        return
 
-    for org_volumes in GetActiveOrgsVolumes(measure=measure):
-        # Filter to only orgs that match the measure type based on option
-        filtered_volumes = []
-        for v in org_volumes:
-            org_uses_segments = v.org_id in segment_org_ids
-            if measure == SamplingMeasure.SEGMENTS and org_uses_segments:
-                filtered_volumes.append(v)
-            elif measure == SamplingMeasure.TRANSACTIONS and not org_uses_segments:
-                filtered_volumes.append(v)
-
-        if not filtered_volumes:
+    modes = OrganizationOption.objects.get_value_bulk_id(
+        [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+    )
+    orgs_batch = []
+    projects_batch = []
+    for org_volume in org_volumes:
+        if not org_volume.is_valid_for_recalibration():
             continue
+        if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
+            projects_batch.append(org_volume.org_id)
+        else:
+            orgs_batch.append((org_volume.org_id, org_volume.total, org_volume.indexed))
 
-        modes = OrganizationOption.objects.get_value_bulk_id(
-            [v.org_id for v in filtered_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
-        )
-        orgs_batch = []
-        projects_batch = []
-        for org_volume in filtered_volumes:
-            if not org_volume.is_valid_for_recalibration():
-                continue
-            if modes[org_volume.org_id] == DynamicSamplingMode.PROJECT:
-                projects_batch.append(org_volume.org_id)
-            else:
-                orgs_batch.append((org_volume.org_id, org_volume.total, org_volume.indexed))
-
-        # We run an asynchronous job for recalibrating a batch of orgs whose
-        # size is specified in `GetActiveOrgsVolumes`.
-        if orgs_batch:
-            recalibrate_orgs_batch.delay(orgs_batch)
-        if projects_batch:
-            recalibrate_projects_batch.delay(projects_batch)
+    if orgs_batch:
+        recalibrate_orgs_batch.delay(orgs_batch)
+    if projects_batch:
+        recalibrate_projects_batch.delay(projects_batch)
 
 
 @instrumented_task(
