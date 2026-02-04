@@ -15,6 +15,11 @@ import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/utils/timePeriods';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -178,6 +183,58 @@ export function getAlertRuleLogsUrl({
   }
 
   return `${basePath}` + `?${qs.stringify(queryParams, {skipNull: true})}`;
+}
+
+export function getAlertRuleMetricsUrl({
+  rule,
+  organization,
+  timePeriod,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  rule: MetricRule;
+  timePeriod: TimePeriodType;
+}) {
+  if (
+    rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM ||
+    !rule.eventTypes?.includes(EventTypes.TRACE_ITEM_METRIC)
+  ) {
+    return '';
+  }
+
+  const interval =
+    TIME_WINDOW_TO_INTERVAL[rule.timeWindow as keyof typeof TIME_WINDOW_TO_INTERVAL];
+
+  const {aggregation, traceMetric} = parseMetricAggregate(rule.aggregate);
+
+  const metricQuery = defaultMetricQuery();
+  metricQuery.metric = traceMetric;
+  metricQuery.queryParams = metricQuery.queryParams.replace({
+    mode: Mode.AGGREGATE,
+    query: rule.query,
+    aggregateFields: [new VisualizeFunction(`${aggregation}(value)`)],
+  });
+
+  return getMetricsUrl({
+    organization,
+    selection: {
+      datetime: {
+        period: timePeriod.usingPeriod
+          ? timePeriod.period === '9998m'
+            ? '7d'
+            : timePeriod.period
+          : null,
+        start: timePeriod.usingPeriod ? null : timePeriod.start,
+        end: timePeriod.usingPeriod ? null : timePeriod.end,
+        utc: timePeriod.utc || null,
+      },
+      environments: rule.environment ? [rule.environment] : [],
+      projects: [parseInt(projectId, 10)],
+    },
+    interval,
+    metricQueries: [metricQuery],
+  });
 }
 
 export function isEapAlertType(alertType?: AlertType) {
