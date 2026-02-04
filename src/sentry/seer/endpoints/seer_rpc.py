@@ -225,6 +225,9 @@ class SeerRpcServiceEndpoint(Endpoint):
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
+        method_categories = seer_method_categories.get(method_name)
+        if method_categories:
+            sentry_sdk.set_tag("rpc.method_category", ",".join(method_categories))
 
         if not self._is_authorized(request):
             raise PermissionDenied
@@ -799,6 +802,60 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Issue Detection
     "create_issue_occurrence": create_issue_occurrence,
+}
+
+# For telemetry tagging - serialized as a comma-separated string
+seer_method_categories: dict[str, tuple[str, ...]] = {
+    # Autofix
+    "get_organization_slug": ("autofix",),
+    "get_organization_autofix_consent": ("autofix",),
+    "get_error_event_details": ("autofix",),
+    "get_profile_details": ("autofix",),
+    "send_seer_webhook": ("autofix",),
+    "get_attributes_for_span": ("autofix",),
+    "trigger_coding_agent_launch": ("autofix",),
+    #
+    # Bug prediction
+    "get_issues_by_function_name": ("bug_prediction",),
+    "get_issues_related_to_exception_type": ("bug_prediction",),
+    "get_issues_by_raw_query": ("bug_prediction",),
+    "get_latest_issue_event": ("bug_prediction",),
+    #
+    # Assisted query tools
+    "get_attribute_names": ("explorer", "assisted_query"),
+    "get_attribute_values_with_substring": ("explorer", "assisted_query"),
+    "get_attributes_and_values": ("explorer", "assisted_query"),
+    "get_issue_filter_keys": ("explorer", "assisted_query"),
+    "get_filter_key_values": ("explorer", "assisted_query"),
+    "get_issues_stats": ("explorer", "assisted_query"),
+    "get_event_filter_keys": ("explorer", "assisted_query"),
+    "get_event_filter_key_values": ("explorer", "assisted_query"),
+    #
+    # Explorer tools
+    "get_transactions_for_project": ("explorer",),
+    "get_trace_for_transaction": ("explorer",),
+    "get_profiles_for_trace": ("explorer",),
+    "get_issues_for_transaction": ("explorer",),
+    "get_trace_waterfall": ("explorer",),
+    "get_issue_and_event_details_v2": ("explorer",),
+    "get_profile_flamegraph": ("explorer",),
+    "execute_table_query": ("explorer",),
+    "execute_timeseries_query": ("explorer",),
+    "execute_trace_table_query": ("explorer",),
+    "execute_issues_query": ("explorer",),
+    "get_trace_item_attributes": ("explorer",),
+    "get_repository_definition": ("explorer",),
+    "call_custom_tool": ("explorer",),
+    "call_on_completion_hook": ("explorer",),
+    "get_log_attributes_for_trace": ("explorer",),
+    "get_metric_attributes_for_trace": ("explorer",),
+    "get_baseline_tag_distribution": ("explorer",),
+    "get_comparative_attribute_distributions": ("explorer",),
+    "get_replay_summary_logs": ("explorer",),
+    "get_replay_metadata": ("explorer",),
+    #
+    # Issue Detection
+    "create_issue_occurrence": ("issue_detection",),
 }
 
 
