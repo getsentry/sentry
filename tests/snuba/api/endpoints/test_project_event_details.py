@@ -214,9 +214,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
                 "organization_id_or_slug": self.project.organization.slug,
             },
         )
-        response = self.client.get(
-            url, format="json", data={"query": f"release:{release_version}"}
-        )
+        response = self.client.get(url, format="json", data={"query": f"release:{release_version}"})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(event_with_release_2.event_id)

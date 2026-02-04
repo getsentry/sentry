@@ -145,9 +145,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
         conditions: list[Condition] = []
         if query and event.group:
-            from sentry.issues.endpoints.group_event_details import (
-                issue_search_query_to_conditions,
-            )
+            from sentry.issues.endpoints.group_event_details import issue_search_query_to_conditions
 
             try:
                 conditions = issue_search_query_to_conditions(
