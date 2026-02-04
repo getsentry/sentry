@@ -13,8 +13,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 interface CursorIntegrationCtaProps {
   project: Project;
@@ -22,6 +24,7 @@ interface CursorIntegrationCtaProps {
 
 export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
   const organization = useOrganization();
+  const user = useUser();
 
   const {preference, isFetching: isLoadingPreferences} =
     useProjectSeerPreferences(project);
@@ -42,10 +45,28 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
     project.seerScannerAutomation !== false && project.autofixAutomationTuning !== 'off';
   const isConfigured = Boolean(preference?.automation_handoff) && isAutomationEnabled;
 
+  const handleInstallClick = useCallback(() => {
+    trackAnalytics('coding_integration.install_clicked', {
+      organization,
+      project_slug: project.slug,
+      provider: 'cursor',
+      source: 'cta',
+      user_id: user.id,
+    });
+  }, [organization, project.slug, user.id]);
+
   const handleSetupClick = useCallback(async () => {
     if (!cursorIntegration?.id) {
       throw new Error('Cursor integration not found');
     }
+
+    trackAnalytics('coding_integration.setup_handoff_clicked', {
+      organization,
+      project_slug: project.slug,
+      provider: 'cursor',
+      source: 'cta',
+      user_id: user.id,
+    });
 
     const isAutomationDisabled =
       project.seerScannerAutomation === false ||
@@ -68,12 +89,15 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
       },
     });
   }, [
+    organization,
+    project.slug,
     project.seerScannerAutomation,
     project.autofixAutomationTuning,
     updateProjectSeerPreferences,
     updateProjectAutomation,
     preference?.repositories,
     cursorIntegration,
+    user.id,
   ]);
 
   if (!hasCursorIntegrationFeatureFlag) {
@@ -113,6 +137,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
               href="/settings/integrations/cursor/"
               priority="default"
               size="sm"
+              onClick={handleInstallClick}
             >
               {t('Install Cursor Integration')}
             </LinkButton>

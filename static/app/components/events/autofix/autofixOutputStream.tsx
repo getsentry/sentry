@@ -387,7 +387,7 @@ const Container = styled(motion.div)<{required: boolean}>`
         ${p =>
             p.required
               ? p.theme.colors.pink500
-              : p.theme.tokens.interactive.link.accent.active}
+              : p.theme.tokens.background.accent.vibrant}
           12.5%,
         transparent
       ),

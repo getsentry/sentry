@@ -43,7 +43,7 @@ const TOKEN_RULES = [
   {
     name: 'background',
     keywords: ['background'],
-    allowedProperties: new Set(['background', 'background-color']),
+    allowedProperties: new Set(['background', 'background-color', 'background-image']),
   },
   {
     name: 'border',
@@ -85,6 +85,7 @@ const TOKEN_RULES = [
     allowedProperties: new Set([
       'background',
       'background-color',
+      'background-image',
       'fill',
       'stroke',
       'stop-color',
@@ -99,6 +100,7 @@ const TOKEN_RULES = [
       '-webkit-text-stroke-color',
       'background',
       'background-color',
+      'background-image',
     ]),
   },
 ];

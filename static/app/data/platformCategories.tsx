@@ -400,6 +400,7 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'android',
+  'flutter',
   'apple',
   'apple-ios',
   'apple-macos',
@@ -481,6 +482,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'android',
   'apple',
   'bun',
+  'dart',
   'electron',
   'go',
   'java',
@@ -490,6 +492,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'php',
   'react-native',
   'ruby',
+  'flutter',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -499,6 +502,11 @@ export const profiling: PlatformKey[] = [
   'apple-macos',
   'dotnet',
   'flutter',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -515,7 +523,6 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
-
   'node',
   'node-awslambda',
   'node-azurefunctions',
