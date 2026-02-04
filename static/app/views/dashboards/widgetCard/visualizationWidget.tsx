@@ -169,8 +169,8 @@ function VisualizationWidgetContent({
 
         let value: number | null = null;
         if (tableDataRows) {
-          // If the there is one groupby and one aggregate, the table results will be
-          // [{groupBy: 'value', aggregate: 123}. {groupBy: 'value', aggregate: 123}]
+          // If the there is one groupby and one aggregate, the table results will an array with multiple elemtents
+          // [{groupBy: 'value', aggregate: 123}, {groupBy: 'value', aggregate: 123}]
           if (columns.length === 1 && aggregates.length === 1) {
             const aggregate = aggregates[0];
             const row = tableDataRows[filteredIndex];
@@ -179,7 +179,7 @@ function VisualizationWidgetContent({
               value = row[aggregate] as number;
             }
           }
-          // If there is no groupby, and multiple aggregates, the table result will be
+          // If there is no groupby, and multiple aggregates, the table result will be an array with a single element
           // [{aggregate1: 123}, {aggregate2: 345}]
           else if (columns.length === 0 && aggregates.length > 1) {
             const aggregate = aggregates[index];
