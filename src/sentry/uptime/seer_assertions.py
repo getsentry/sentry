@@ -273,10 +273,12 @@ def generate_assertion_suggestions(
     logger.info("Built prompt for Seer LLM proxy (length=%d)", len(prompt))
 
     # Call Seer's LLM proxy endpoint
+    # Note: Using Gemini for structured output support (response_schema).
+    # Anthropic models don't support structured output in Seer's LLM proxy.
     body = orjson.dumps(
         {
-            "provider": "anthropic",
-            "model": "sonnet",
+            "provider": "gemini",
+            "model": "flash",
             "referrer": "sentry.uptime.assertion-suggestions",
             "prompt": prompt,
             "system_prompt": SYSTEM_PROMPT,
@@ -310,7 +312,7 @@ def generate_assertion_suggestions(
 
         # Parse the structured JSON response
         suggestions_data = json.loads(content)
-        suggestions = AssertionSuggestions.model_validate(suggestions_data)
+        suggestions = AssertionSuggestions.parse_obj(suggestions_data)
 
         logger.info("Got %d suggestions from Seer LLM proxy", len(suggestions.suggestions))
         return suggestions, None

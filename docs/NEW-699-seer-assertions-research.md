@@ -62,9 +62,10 @@ RESPONSE_SCHEMA = {
 }
 
 # Call Seer's LLM proxy
+# Note: Using Gemini for structured output (response_schema) support
 body = orjson.dumps({
-    "provider": "anthropic",
-    "model": "sonnet",
+    "provider": "gemini",
+    "model": "flash",
     "referrer": "sentry.uptime.assertion-suggestions",
     "prompt": f"Analyze this HTTP response: {response_data}",
     "system_prompt": "You are an expert at suggesting monitoring assertions...",
@@ -435,55 +436,29 @@ invoke_checker_preview() ◄────── CheckResult (no body on success)
 
 ---
 
-## Implementation: `always_capture_response` Flag (✅ Complete)
+## Implementation: Response Body Capture (✅ Complete)
 
-### Option A: Add `always_capture_response` Flag (Implemented)
+### Approach: Server-Side Force Capture (Implemented by Christopher)
 
-**1. Uptime-Checker (Rust)**
+The uptime-checker's `/execute_config` endpoint (used for preview checks) now **automatically** forces response body capture. This is handled server-side via the `force_body_capture` flag on `ScheduledCheck`.
 
-Add new field to `CheckConfig`:
-
-```rust
-// src/types/check_config.rs
-pub struct CheckConfig {
-    // ... existing fields ...
-
-    /// When true, always capture response body regardless of success/failure.
-    /// Used for preview checks that need response data for assertion suggestions.
-    #[serde(default)]
-    pub always_capture_response: bool,
-}
-```
-
-Modify `check_url()` to respect new flag:
+**Uptime-Checker (Rust)** - Branch: `christopherklochek/force_body_capture`
 
 ```rust
-// src/checker/reqwest_checker.rs
-// Change line 559 from:
-if should_capture && check_result.result == CheckStatus::Failure {
-// To:
-let should_attach = should_capture &&
-    (check_result.result == CheckStatus::Failure || check.get_config().always_capture_response);
-if should_attach {
+// src/endpoint/execute_config.rs
+// The /execute_config endpoint always passes force_body_capture=true
+let scheduled_check = ScheduledCheck::new(
+    crate::check_executor::CheckKind::Uptime,
+    Tick::from_time(Utc::now()),
+    Arc::new(check_config),
+    true,  // force_body_capture - always true for preview checks
+    resolve_tx,
+);
 ```
 
-**2. Sentry (Python)**
+**Sentry (Python)** - No special config needed
 
-Update `create_preview_check()`:
-
-```python
-# src/sentry/uptime/checker_api.py
-def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckConfig:
-    config: CheckConfig = {
-        # ... existing fields ...
-        "always_capture_response": True,  # NEW: Enable for assertion suggestions
-    }
-    return config
-```
-
-### Option B: Always Return Body for `/execute_config`
-
-Modify the uptime-checker's `/execute_config` endpoint to always include response body (preview-specific behavior). Less flexible but simpler.
+Since the uptime-checker handles this server-side, Sentry's `create_preview_check()` doesn't need any special flag. The response body will automatically be included in all `/execute_config` responses.
 
 ---
 
@@ -491,7 +466,7 @@ Modify the uptime-checker's `/execute_config` endpoint to always include respons
 
 1. [x] ~~Set up Seer repo locally~~ ✅
 2. [x] ~~Verify Vertex AI access~~ ✅ - Resolved with correct project ID (`ml-ai-420606`)
-3. [x] ~~Create uptime-checker PR~~ ✅ - Added `always_capture_response` flag (branch: `jaygoss/uptime-assertions-ai`)
+3. [x] ~~Create uptime-checker PR~~ ✅ - Christopher's `force_body_capture` branch handles this server-side
 4. [x] ~~Create Sentry PR~~ ✅ - Using new flag in preview checks (branch: `jaygoss/uptime-assertions-ai`)
 5. [x] ~~Design the assertion suggestion prompt~~ ✅ - See `seer_assertions.py:build_assertion_prompt()`
 6. [x] ~~Create API endpoint for suggestions~~ ✅ - `POST /api/0/organizations/{org}/uptime-assertion-suggestions/`
@@ -536,7 +511,7 @@ From the client's perspective, assertion suggestions is a **single request**. Th
 
 1. User clicks "Suggest Assertions" in the UI
 2. Frontend sends single POST to `/api/0/organizations/{org}/uptime-assertion-suggestions/`
-3. Backend calls uptime-checker to hit the user's endpoint (preview check with `always_capture_response: true`)
+3. Backend calls uptime-checker to hit the user's endpoint (preview check via `/execute_config` which forces body capture)
 4. Uptime-checker returns response headers + body (base64 encoded) to backend
 5. Backend calls Seer's LLM proxy (`/v1/llm/generate`) with structured output schema
 6. Seer makes a single LLM call and returns structured suggestions (~5-10 sec)
@@ -550,7 +525,9 @@ From the client's perspective, assertion suggestions is a **single request**. Th
 
 Using Seer's `/v1/llm/generate` endpoint with structured output takes approximately **5-10 seconds**.
 
-**Model used**: `claude-sonnet-4-5` via Anthropic (through Seer)
+**Model used**: `gemini-2.5-flash` via Google (through Seer)
+
+> **Note**: Seer's LLM proxy only supports `response_schema` (structured output) with Gemini models, not Anthropic models. This is why we use Gemini for assertion suggestions.
 
 This is a single LLM call with JSON schema-based structured output.
 
@@ -724,4 +701,4 @@ sentry django shell < scripts/test_seer_explorer.py
 ---
 
 _Research conducted: January 2026_
-_Last updated: February 2, 2026_
+_Last updated: February 4, 2026_
