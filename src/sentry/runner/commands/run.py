@@ -454,6 +454,58 @@ def taskbroker_send_tasks(
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
+@run.command()
+@log_options()
+@configuration
+@click.option(
+    "--seed", type=int, help="Seed for generating the task lengths", default=1, show_default=True
+)
+@click.option(
+    "--count",
+    type=int,
+    help="Number of messages to send to the kafka topic",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--choices",
+    type=str,
+    help="List of task length choices separated by commas (like '1,2,3,5')",
+    callback=lambda ctx, param, value: [int(x.strip()) for x in value.split(",")] if value else [],
+)
+@click.option(
+    "--bootstrap-servers",
+    type=str,
+    help="The bootstrap servers to use for the kafka topic",
+    default="127.0.0.1:9092",
+)
+def taskbroker_send_timed_tasks(
+    seed: int,
+    count: int,
+    choices: list[int],
+    bootstrap_servers: str,
+) -> None:
+    if not choices:
+        raise click.ClickException("At least one choice must be provided via --choices")
+
+    import random
+
+    from sentry.conf.server import KAFKA_CLUSTERS
+    from sentry.taskworker.tasks.examples import timed_task
+
+    random.seed(seed)
+
+    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+
+    checkmarks = {int(count * (i / 10)) for i in range(1, 10)}
+    for i in range(count):
+        timed_task.delay(seconds=random.choice(choices))
+        if i in checkmarks:
+            click.echo(message=f"{int((i / count) * 100)}% complete")
+
+    click.echo(message=f"Successfully sent {count} messages.")
+
+
 @run.command("consumer")
 @log_options()
 @click.argument(

@@ -60,6 +60,16 @@ def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
     logger.info("Simple task complete!")
 
 
+@exampletasks.register(name="examples.simple_task")
+def simple_task(*args: list[Any], **kwargs: dict[str, Any]) -> None:
+    logger.info("Starting simple task...")
+
+    sleep_time = 0.1
+    time.sleep(sleep_time)
+
+    logger.info("Simple task complete!")
+
+
 @exampletasks.register(
     name="examples.simple_task_with_processing_deadline", processing_deadline_duration=30
 )
@@ -88,10 +98,11 @@ def at_most_once_task() -> None:
     pass
 
 
-@exampletasks.register(name="examples.timed")
-def timed_task(sleep_seconds: float | str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
-    sleep(float(sleep_seconds))
-    logger.debug("timed_task complete")
+@exampletasks.register(name="examples.timed_task")
+def timed_task(seconds: float | str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
+    logger.info(f"Starting timed task ({seconds} seconds)...")
+    sleep(float(seconds))
+    logger.info("Timed task complete!")
 
 
 # @exampletasks.register(name="examples.simple_task", compression_type=CompressionType.ZSTD)
