@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
 
 
@@ -8,8 +10,8 @@ class BaseTestProvider(Provider):
 
     # Pull request
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
-        raw = {
+    def get_pull_request(self, repository: Repository, pull_request_id: int) -> PullRequest:
+        raw: dict[str, Any] = {
             "id": 1,
             "title": "Test PR",
             "body": None,

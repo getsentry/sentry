@@ -73,7 +73,7 @@ class GitHubProvider(Provider):
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
+    def get_pull_request(self, repository: Repository, pull_request_id: int) -> PullRequest:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         raw = self.client.get_pull_request(repository["name"], pull_request_id)
         return _transform_pull_request(raw)

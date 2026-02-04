@@ -26,7 +26,7 @@ ALL_ACTIONS = (
     ("create_issue_comment", {"issue_id": "1", "body": "test"}),
     ("delete_issue_comment", {"comment_id": "1"}),
     # Pull request
-    ("get_pull_request", {"pull_request_id": "1"}),
+    ("get_pull_request", {"pull_request_id": 1}),
     # Pull request comments
     ("get_pull_request_comments", {"pull_request_id": "1"}),
     ("create_pull_request_comment", {"pull_request_id": "1", "body": "test"}),
@@ -123,7 +123,7 @@ def test_delete_issue_comment():
 
 def test_get_pull_request():
     scm = make_scm()
-    result = scm.get_pull_request(pull_request_id="1")
+    result = scm.get_pull_request(pull_request_id=1)
     assert result["id"] == "1"
     assert result["head"]["sha"] == "abc123"
     assert result["base"]["sha"] == "def456"
