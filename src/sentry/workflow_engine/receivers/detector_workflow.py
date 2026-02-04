@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 
@@ -6,7 +8,9 @@ from sentry.workflow_engine.models import DetectorWorkflow
 
 
 @receiver(pre_save, sender=DetectorWorkflow)
-def invalidate_processing_workflows_cache_pre(sender, instance: DetectorWorkflow, **kwargs) -> None:
+def invalidate_processing_workflows_cache_pre(
+    sender: type[DetectorWorkflow], instance: DetectorWorkflow, **kwargs: Any
+) -> None:
     """
     Clear cache for BOTH old and new relationships when a DetectorWorkflow changes.
 
@@ -32,7 +36,7 @@ def invalidate_processing_workflows_cache_pre(sender, instance: DetectorWorkflow
 
 @receiver(pre_delete, sender=DetectorWorkflow)
 def invalidate_processing_workflows_cache_delete_relationship(
-    sender, instance: DetectorWorkflow, **kwargs
+    sender: type[DetectorWorkflow], instance: DetectorWorkflow, **kwargs: Any
 ) -> None:
     """
     Clear cache when a DetectorWorkflow is deleted to ensure the workflow

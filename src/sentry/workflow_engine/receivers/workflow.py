@@ -1,9 +1,8 @@
-from typing import Any
-
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
+from sentry.workflow_engine.models import Detector, Workflow
 
 
 @receiver(pre_save, sender=Workflow)
@@ -11,3 +10,21 @@ def enforce_workflow_config_schema(
     sender: type[Workflow], instance: Workflow, **kwargs: Any
 ) -> None:
     instance.validate_config(instance.config_schema)
+
+
+@receiver(pre_delete, sender=Workflow)
+@receiver(post_save, sender=Workflow)
+def invalidate_processing_cache(sender: type[Workflow], instance: Workflow, **kwargs: Any) -> None:
+    """
+    Invalidate the cache of workflows for processing when a workflow: changes, is removed, or is migrated.
+    """
+    # If this is a _new_ workflow, we can early exit.
+    # There will be no associations or caches using this model yet.
+    if kwargs.get("created") or not instance.id:
+        return
+
+    # get the list of associated detectors that need the caches cleared
+    detectors = Detector.objects.filter(detectorworkflow__workflow=instance)
+
+    for detector in detectors:
+        invalidate_processing_workflows(detector.id, instance.environment_id)
