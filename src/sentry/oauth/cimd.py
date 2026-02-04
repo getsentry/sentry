@@ -166,9 +166,21 @@ def validate_cimd_document(document: dict, url: str) -> None:
 
 
 def _get_origin(url: str) -> str:
-    """Extract the origin (scheme + host + port) from a URL."""
+    """Extract the origin (scheme + host + port) from a URL.
+
+    Normalizes default ports (80 for http, 443 for https) by omitting them,
+    ensuring that https://example.com and https://example.com:443 compare equal.
+    """
     parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}"
+    scheme = parsed.scheme
+    hostname = parsed.hostname or ""
+    port = parsed.port
+
+    # Omit default ports for normalized comparison
+    # RFC 3986 §3.2.3: default ports should be omitted in normalized form
+    if port is None or (scheme == "https" and port == 443) or (scheme == "http" and port == 80):
+        return f"{scheme}://{hostname}"
+    return f"{scheme}://{hostname}:{port}"
 
 
 def _validate_optional_string_array(document: dict, field: str, url: str | None = None) -> None:
@@ -222,13 +234,28 @@ class CIMDCache:
         """
         Cache validated CIMD metadata.
 
+        Respects Cache-Control no-store/no-cache by not caching.
+
         Args:
             url: The client_id URL the metadata was fetched from.
             metadata: The validated metadata document.
             cache_control: HTTP Cache-Control header value from the response.
         """
-        key = self.get_cache_key(url)
         ttl = self._calculate_ttl(cache_control)
+
+        # Don't cache if no-store/no-cache was specified
+        if ttl is None:
+            logger.debug(
+                "cimd.cache.skip",
+                extra={
+                    "url": url,
+                    "cache_control": cache_control,
+                    "reason": "no-store or no-cache directive",
+                },
+            )
+            return
+
+        key = self.get_cache_key(url)
         cache.set(key, metadata, ttl)
         logger.debug(
             "cimd.cache.set",
@@ -244,22 +271,31 @@ class CIMDCache:
         key = self.get_cache_key(url)
         cache.delete(key)
 
-    def _calculate_ttl(self, cache_control: str | None) -> int:
+    def _calculate_ttl(self, cache_control: str | None) -> int | None:
         """
         Calculate TTL from Cache-Control header, applying bounds.
 
         Parses the max-age directive from Cache-Control and clamps it
-        between MIN_TTL and MAX_TTL.
+        between MIN_TTL and MAX_TTL. Respects no-store and no-cache
+        directives by returning None (do not cache).
 
         Args:
             cache_control: HTTP Cache-Control header value, or None.
 
         Returns:
             TTL in seconds, bounded by MIN_TTL and MAX_TTL.
+            Returns None if caching should be disabled (no-store/no-cache).
         """
         ttl = self.DEFAULT_TTL
 
         if cache_control:
+            # Check for no-store or no-cache directives (RFC 7234)
+            # no-store: MUST NOT store the response
+            # no-cache: response MUST NOT be used without revalidation
+            cache_control_lower = cache_control.lower()
+            if "no-store" in cache_control_lower or "no-cache" in cache_control_lower:
+                return None
+
             # Parse max-age directive (e.g., "max-age=3600" or "public, max-age=600")
             match = re.search(r"max-age=(\d+)", cache_control, re.IGNORECASE)
             if match:
@@ -417,6 +453,29 @@ class CIMDClient:
                 f"Invalid content type: expected application/json, got {content_type}",
                 url,
             )
+
+        # Check Content-Length header before downloading (defense against large responses)
+        # This is a first-pass check; we still verify actual size after download
+        # since Content-Length can be missing, incorrect, or spoofed
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                declared_size = int(content_length)
+                if declared_size > self.MAX_RESPONSE_SIZE:
+                    logger.warning(
+                        "cimd.fetch.content-length-too-large",
+                        extra={
+                            "url": log_url,
+                            "declared_size": declared_size,
+                            "max_size": self.MAX_RESPONSE_SIZE,
+                        },
+                    )
+                    raise CIMDFetchError(
+                        f"Response too large: {declared_size} bytes exceeds {self.MAX_RESPONSE_SIZE} byte limit",
+                        url,
+                    )
+            except ValueError:
+                pass  # Invalid Content-Length header, continue to download with post-check
 
         # Read response with size limit
         body = safe_urlread(response)

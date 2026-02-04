@@ -515,12 +515,13 @@ class OAuthTokenView(View):
         if scope:
             return {"error": "invalid_request", "reason": "scope parameter not supported"}
 
-        # For CIMD clients, tokens don't have an application association
-        # We need to find the token by refresh_token and verify it was
-        # created for this CIMD client (via grant)
+        # For CIMD clients, tokens have cimd_client_id set instead of application.
+        # We verify the token belongs to the requesting CIMD client to prevent
+        # cross-client token refresh attacks.
         try:
             refresh_token = ApiToken.objects.get(
                 application__isnull=True,
+                cimd_client_id=client_id,  # Verify token belongs to this CIMD client
                 refresh_token=refresh_token_code,
             )
         except ApiToken.DoesNotExist:

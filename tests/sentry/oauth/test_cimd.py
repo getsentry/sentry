@@ -461,6 +461,33 @@ class CIMDValidationTest(TestCase):
 
         assert "redirect_uri origin" in str(exc_info.value)
 
+    def test_validate_redirect_uri_default_port_normalized(self):
+        """Default ports (443 for HTTPS) should be normalized for comparison.
+
+        https://example.com and https://example.com:443 are the same origin.
+        """
+        # client_id without explicit port
+        document = {
+            "client_id": self.test_url,  # https://example.com/oauth/client
+            "redirect_uris": ["https://example.com:443/callback"],
+        }
+        # Should not raise - :443 is normalized away for HTTPS
+        validate_cimd_document(document, self.test_url)
+
+    def test_validate_redirect_uri_default_port_normalized_reverse(self):
+        """Default port normalization works in both directions.
+
+        https://example.com:443 and https://example.com are the same origin.
+        """
+        # client_id with explicit default port
+        test_url_with_port = "https://example.com:443/oauth/client"
+        document = {
+            "client_id": test_url_with_port,
+            "redirect_uris": ["https://example.com/callback"],  # No explicit port
+        }
+        # Should not raise - both normalize to same origin
+        validate_cimd_document(document, test_url_with_port)
+
     def test_validate_grant_types_not_array(self):
         """Reject document where grant_types is not an array."""
         document = {
@@ -691,6 +718,42 @@ class CIMDCacheTest(TestCase):
         assert CIMDCache.DEFAULT_TTL == 900  # 15 minutes
         assert CIMDCache.MAX_TTL == 3600  # 1 hour
         assert CIMDCache.MIN_TTL == 60  # 1 minute
+
+    def test_calculate_ttl_no_store_returns_none(self):
+        """no-store directive should return None (don't cache)."""
+        ttl = self.cache._calculate_ttl("no-store")
+        assert ttl is None
+
+    def test_calculate_ttl_no_cache_returns_none(self):
+        """no-cache directive should return None (don't cache)."""
+        ttl = self.cache._calculate_ttl("no-cache")
+        assert ttl is None
+
+    def test_calculate_ttl_no_store_with_max_age_returns_none(self):
+        """no-store takes precedence over max-age."""
+        ttl = self.cache._calculate_ttl("no-store, max-age=3600")
+        assert ttl is None
+
+    def test_calculate_ttl_no_cache_with_max_age_returns_none(self):
+        """no-cache takes precedence over max-age."""
+        ttl = self.cache._calculate_ttl("max-age=600, no-cache")
+        assert ttl is None
+
+    def test_set_does_not_cache_when_no_store(self):
+        """set() should not cache when Cache-Control: no-store."""
+        url = "https://example.com/oauth/client"
+        metadata = {"client_id": url}
+        self.cache.set(url, metadata, cache_control="no-store")
+        # Should not be cached
+        assert self.cache.get(url) is None
+
+    def test_set_does_not_cache_when_no_cache(self):
+        """set() should not cache when Cache-Control: no-cache."""
+        url = "https://example.com/oauth/client"
+        metadata = {"client_id": url}
+        self.cache.set(url, metadata, cache_control="no-cache")
+        # Should not be cached
+        assert self.cache.get(url) is None
 
 
 class CIMDClientCacheIntegrationTest(TestCase):

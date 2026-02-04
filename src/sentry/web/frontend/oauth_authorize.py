@@ -688,9 +688,30 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
-        # PKCE validation - CIMD clients SHOULD use PKCE (it's recommended for public clients)
+        # PKCE validation - CIMD clients MUST use PKCE (they are public clients)
+        # This is enforced at authorization time to provide clear error feedback,
+        # rather than failing later at token exchange.
         code_challenge = request.GET.get("code_challenge")
         code_challenge_method = request.GET.get("code_challenge_method")
+
+        # PKCE is required for CIMD clients (OAuth 2.1 best practice for public clients)
+        if not code_challenge:
+            logger.warning(
+                "oauth.pkce.missing",
+                extra={
+                    "client_id": client_id,
+                    "client_type": "cimd",
+                },
+            )
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="invalid_request",
+                state=state,
+                err_response="code_challenge",
+            )
 
         pkce_error = _validate_pkce_params(code_challenge, code_challenge_method)
         if pkce_error:

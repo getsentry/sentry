@@ -184,6 +184,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
+    # For CIMD (Client ID Metadata Document) clients, stores the URL-based client_id.
+    # When application is null and cimd_client_id is set, this token was created
+    # for a CIMD client. Used to verify refresh token requests belong to the
+    # correct CIMD client.
+    cimd_client_id = models.URLField(max_length=2048, null=True, db_index=True)
     user = FlexibleForeignKey("sentry.User")
     # Tokens can be scoped to only access a single organization.
     #
@@ -439,10 +444,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                     raise InvalidGrantError(error_reason)
 
                 # Create token and delete grant atomically
-                # For CIMD clients, application is None
+                # For CIMD clients, application is None and cimd_client_id is set
                 with transaction.atomic(router.db_for_write(cls)):
                     api_token = cls.objects.create(
                         application=grant.application,  # None for CIMD clients
+                        cimd_client_id=grant.cimd_client_id,  # URL for CIMD clients
                         user=grant.user,
                         scope_list=grant.get_scopes(),
                         scoping_organization_id=grant.organization_id,
