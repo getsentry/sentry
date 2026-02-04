@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -54,9 +54,12 @@ def apply_default_project_settings(organization: Organization, project: Project)
     if project_is_seer_eligible(project):
         project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
-    set_default_project_autofix_automation_tuning(organization, project)
-    set_default_project_seer_scanner_automation(organization, project)
-    set_default_project_auto_open_prs(organization, project)
+    if features.has("organizations:seat-based-seer-enabled", organization) or features.has(
+        "organizations:seer-added", organization
+    ):
+        set_default_project_autofix_automation_tuning(organization, project)
+        set_default_project_seer_scanner_automation(organization, project)
+        set_default_project_auto_open_prs(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
