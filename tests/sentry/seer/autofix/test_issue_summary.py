@@ -19,12 +19,14 @@ from sentry.seer.autofix.issue_summary import (
     _get_event,
     _get_stopping_point_from_fixability,
     get_and_update_group_fixability_score,
+    get_automation_stopping_point,
     get_issue_summary,
+    is_group_triggering_automation,
     run_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -1254,3 +1256,106 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         assert summary_payload["whats_wrong"] == "Test whats wrong"
         assert summary_payload["trace"] == "Test trace"
         assert summary_payload["possible_cause"] == "Test cause"
+
+
+@with_feature("organizations:gen-ai-features")
+class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+
+    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_true_when_all_checks_pass(
+        self, mock_fixability, mock_quota, mock_state, mock_rate_limit
+    ):
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = True
+        mock_state.return_value = None
+        mock_rate_limit.return_value = False
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+
+        assert is_group_triggering_automation(self.group) is True
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_not_fixable(self, mock_fixability):
+        mock_fixability.return_value = 0.20
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+        # Set automation tuning to "never" to ensure fixability check triggers rejection
+        self.project.update_option("sentry:autofix_automation_tuning", "never")
+
+        assert is_group_triggering_automation(self.group) is False
+
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_no_budget(self, mock_fixability, mock_quota):
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = False
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+
+        assert is_group_triggering_automation(self.group) is False
+
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_autofix_in_progress(self, mock_fixability, mock_quota, mock_state):
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = True
+        mock_state.return_value = {"status": "in_progress"}
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+
+        assert is_group_triggering_automation(self.group) is False
+
+    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_rate_limited(
+        self, mock_fixability, mock_quota, mock_state, mock_rate_limit
+    ):
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = True
+        mock_state.return_value = None
+        mock_rate_limit.return_value = True
+        self.group.times_seen = 10
+        self.group.times_seen_pending = 0
+
+        assert is_group_triggering_automation(self.group) is False
+
+
+@with_feature({"organizations:gen-ai-features": True})
+class TestGetAutomationStoppingPoint(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_stopping_point_based_on_fixability(self, mock_fixability, mock_preference):
+        mock_fixability.return_value = 0.80
+        mock_preference.return_value = None
+
+        assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.OPEN_PR
+
+    @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_user_preference_limits_stopping_point(self, mock_fixability, mock_preference):
+        mock_fixability.return_value = 0.80
+        mock_preference.return_value = "solution"
+
+        assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.SOLUTION
+
+    @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_low_fixability_returns_root_cause(self, mock_fixability, mock_preference):
+        mock_fixability.return_value = 0.50
+        mock_preference.return_value = "open_pr"
+
+        assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE

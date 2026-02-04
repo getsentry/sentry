@@ -9,7 +9,6 @@ from typing import Any, TypedDict
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
-from slack_sdk.models.blocks import ButtonElement
 
 from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
@@ -57,7 +56,6 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAutofixTrigger
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -839,13 +837,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if SeerOperator.has_access(
             organization=self.group.project.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ):
-            autofix_button: ButtonElement = SeerSlackRenderer.render_autofix_button(
-                data=SeerAutofixTrigger(
-                    group_id=self.group.id,
-                    project_id=self.group.project_id,
-                    organization_id=self.group.project.organization_id,
-                )
-            )
+            autofix_button = SeerSlackRenderer.render_alert_autofix_element(group=self.group)
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.
             actions.append(autofix_button.to_dict())
