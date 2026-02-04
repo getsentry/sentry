@@ -14,10 +14,15 @@ describe('getHighlightedSpanAttributes', () => {
 
   it('should emit Sentry error when gen_ai span has model but no cost', () => {
     const attributes = {
+      'gen_ai.system': 'openai',
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.cost.total_tokens': '0',
       'gen_ai.usage.input_tokens': '100',
       'gen_ai.operation.type': 'ai_client',
+      'sdk.name': 'sentry.python',
+      'sdk.version': '2.0.0',
+      platform: 'python',
+      'org.id': '42',
     };
 
     getHighlightedSpanAttributes({
@@ -25,22 +30,32 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
+    const expectedContext = {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        model: 'gpt-4',
+        integration: 'openai',
+        platform: 'python',
+        version: '2.0.0',
+        org_id: '42',
+      },
+      extra: {
+        total_costs: '0',
+        attributes,
+      },
+    };
+
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'Gen AI span missing cost calculation',
-      {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: 'false',
-          model: 'gpt-4',
-        },
-        extra: {
-          total_costs: '0',
-          attributes,
-        },
-      }
+      expectedContext
+    );
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Gen AI cost data missing for model: gpt-4',
+      expectedContext
     );
   });
 
@@ -71,6 +86,46 @@ describe('getHighlightedSpanAttributes', () => {
     });
 
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('should emit Sentry error when gen_ai span has negative cost', () => {
+    const attributes = {
+      'gen_ai.system': 'openai',
+      'gen_ai.request.model': 'gpt-4',
+      'gen_ai.cost.total_tokens': '-1',
+      'gen_ai.operation.type': 'ai_client',
+      'sdk.name': 'sentry.python',
+      'sdk.version': '2.0.0',
+      platform: 'python',
+      'org.id': '42',
+    };
+
+    getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'Gen AI span with negative cost: gpt-4',
+      {
+        level: 'warning',
+        tags: {
+          feature: 'agent-monitoring',
+          span_type: 'gen_ai',
+          has_model: 'true',
+          has_cost: 'true',
+          model: 'gpt-4',
+          integration: 'openai',
+          platform: 'python',
+          version: '2.0.0',
+          org_id: '42',
+        },
+        extra: {
+          total_costs: '-1',
+          attributes,
+        },
+      }
+    );
   });
 
   it('should not emit Sentry error for non-gen_ai spans', () => {
