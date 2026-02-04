@@ -32,6 +32,7 @@ class PreflightDenialReason(StrEnum):
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
     ORG_CONTRIBUTOR_IS_BOT = "org_contributor_is_bot"
+    ORG_CONTRIBUTOR_NOT_FOUND = "org_contributor_not_found"
 
 
 @dataclass
@@ -149,17 +150,17 @@ class CodeReviewPreflightService:
             )
         except OrganizationContributors.DoesNotExist:
             metrics.incr("seer.code_review.error.contributor_not_found")
-            return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
+            return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
         if contributor.is_bot:
             return PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
 
-        billing_ok = quotas.backend.check_seer_quota(
+        has_quota = quotas.backend.check_seer_quota(
             org_id=self.organization.id,
             data_category=DataCategory.SEER_USER,
             seat_object=contributor,
         )
-        if not billing_ok:
+        if not has_quota:
             return PreflightDenialReason.BILLING_QUOTA_EXCEEDED
 
         return None

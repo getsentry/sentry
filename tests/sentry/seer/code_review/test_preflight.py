@@ -363,7 +363,7 @@ class TestCodeReviewPreflightService(TestCase):
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.BILLING_QUOTA_EXCEEDED
+        assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_contributor_is_bot(self) -> None:

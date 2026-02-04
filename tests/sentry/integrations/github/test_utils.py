@@ -60,7 +60,9 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
             )
             assert result is False
 
-    def test_returns_false_when_contributor_is_bot(self):
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_false_when_contributor_is_bot(self, mock_quota):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
         self.contributor.alias = "testuser[bot]"
         self.contributor.save()
 
