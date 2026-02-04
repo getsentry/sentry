@@ -8,12 +8,12 @@ import {Select} from '@sentry/scraps/select';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -38,29 +38,6 @@ interface MetricSelectOption {
 
 function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}`;
-}
-
-function parseMetricAggregate(aggregate: string): {
-  aggregation: string;
-  traceMetric: TraceMetric;
-} {
-  const parsed = parseFunction(aggregate);
-  if (!parsed) {
-    return {
-      aggregation: 'count',
-      traceMetric: {name: '', type: ''},
-    };
-  }
-
-  // Format is: aggregate(value,metric_name,metric_type,unit)
-  const args = parsed.arguments ?? [];
-  const metricName = args[1] ?? '';
-  const metricType = args[2] ?? '';
-
-  return {
-    aggregation: parsed.name,
-    traceMetric: {name: metricName, type: metricType},
-  };
 }
 
 export default function EAPMetricsField({
