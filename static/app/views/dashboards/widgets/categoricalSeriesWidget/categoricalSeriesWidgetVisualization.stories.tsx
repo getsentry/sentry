@@ -3,7 +3,8 @@ import documentation from '!!type-loader!sentry/views/dashboards/widgets/categor
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 

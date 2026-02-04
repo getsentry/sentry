@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';

@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';

@@ -16,6 +16,7 @@ export interface ConversationUser {
 }
 
 interface ConversationApiResponse extends Omit<Conversation, 'firstInput'> {
+  endTimestamp?: number;
   firstInput?: Array<{text: string; type: string}> | string | null;
 }
 
@@ -71,14 +72,14 @@ export function useConversations() {
 
   const data = useMemo(() => {
     return (rawData ?? []).map((conversation): Conversation => {
+      const {endTimestamp: _, firstInput: rawFirstInput, ...rest} = conversation;
       let firstInput: string | null = null;
-      if (typeof conversation.firstInput === 'string') {
-        firstInput = conversation.firstInput;
-      } else if (Array.isArray(conversation.firstInput)) {
-        firstInput =
-          conversation.firstInput.find(content => content.type === 'text')?.text ?? null;
+      if (typeof rawFirstInput === 'string') {
+        firstInput = rawFirstInput;
+      } else if (Array.isArray(rawFirstInput)) {
+        firstInput = rawFirstInput.find(content => content.type === 'text')?.text ?? null;
       }
-      return {...conversation, firstInput};
+      return {...rest, firstInput};
     });
   }, [rawData]);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -163,7 +163,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Layout.Title>
           <Flex align="center" gap="sm" minHeight="1lh">

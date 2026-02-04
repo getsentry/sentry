@@ -15,6 +15,7 @@ class GroupOpenPeriodActivityResponse(TypedDict):
     type: str
     value: str | None
     dateCreated: datetime
+    eventId: str | None
 
 
 class GroupOpenPeriodResponse(TypedDict):
@@ -36,6 +37,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
             type=OpenPeriodActivityType(obj.type).to_str(),
             value=PriorityLevel(obj.value).to_str() if obj.value else None,
             dateCreated=obj.date_added,
+            eventId=obj.event_id,
         )
 
 
