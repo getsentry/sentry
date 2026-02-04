@@ -156,6 +156,12 @@ class SAML2ACSView(AuthView):
 
         pipeline.bind_state("auth_attributes", auth.get_attributes())
 
+        # Extract SessionNotOnOrAfter from the SAML response if present
+        # This allows the IdP to control session expiry
+        session_not_on_or_after = auth.get_session_expiration()
+        if session_not_on_or_after:
+            pipeline.bind_state("saml_session_not_on_or_after", session_not_on_or_after)
+
         # Extract the provider key from the RelayState parameter.
         # This was encoded when the SAML flow started (in SAML2LoginView) and survives
         # the redirect through the IdP, allowing us to detect if the user completed

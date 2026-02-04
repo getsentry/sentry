@@ -56,18 +56,25 @@ class SsoSession:
 
     SSO_SESSION_KEY = "sso_s"
     SSO_LOGIN_TIMESTAMP = "ts"
+    SSO_SESSION_NOT_ON_OR_AFTER = "snoa"
 
-    def __init__(self, organization_id: int, time: datetime) -> None:
+    def __init__(
+        self, organization_id: int, time: datetime, session_not_on_or_after: int | None = None
+    ) -> None:
         self.organization_id = organization_id
         self.authenticated_at_time = time
+        self.session_not_on_or_after = session_not_on_or_after
         self.session_key = self.django_session_key(organization_id)
 
     def to_dict(self) -> dict[str, Any]:
-        return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
+        result: dict[str, Any] = {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
+        if self.session_not_on_or_after is not None:
+            result[self.SSO_SESSION_NOT_ON_OR_AFTER] = self.session_not_on_or_after
+        return result
 
     @classmethod
-    def create(cls, organization_id: int) -> SsoSession:
-        return cls(organization_id, datetime.now(tz=timezone.utc))
+    def create(cls, organization_id: int, session_not_on_or_after: int | None = None) -> SsoSession:
+        return cls(organization_id, datetime.now(tz=timezone.utc), session_not_on_or_after)
 
     @classmethod
     def from_django_session_value(
@@ -76,11 +83,19 @@ class SsoSession:
         return cls(
             organization_id,
             datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
+            session_value.get(cls.SSO_SESSION_NOT_ON_OR_AFTER),
         )
 
     def is_sso_authtime_fresh(self) -> bool:
-        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+        now = datetime.now(tz=timezone.utc)
 
+        # If the IdP specified a session expiry time, check that first
+        if self.session_not_on_or_after is not None:
+            expiry_time = datetime.fromtimestamp(self.session_not_on_or_after, tz=timezone.utc)
+            return now < expiry_time
+
+        # Fall back to default expiry based on authentication time
+        expired_time_cutoff = now - SSO_EXPIRY_TIME
         return self.authenticated_at_time > expired_time_cutoff
 
     @staticmethod
@@ -222,14 +237,19 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
     return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
 
 
-def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
+def mark_sso_complete(
+    request: HttpRequest, organization_id: int, session_not_on_or_after: int | None = None
+) -> None:
     """
     Store sso session status in the django session per org, with the value being the timestamp of when they logged in,
     for usage when expiring sso sessions.
+
+    If session_not_on_or_after is provided (from SAML SessionNotOnOrAfter), that expiry time takes precedence
+    over the default SSO_EXPIRY_TIME.
     """
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso_session = SsoSession.create(organization_id)
+    sso_session = SsoSession.create(organization_id, session_not_on_or_after)
     request.session[sso_session.session_key] = sso_session.to_dict()
 
     metrics.incr("sso.session-added-success")
@@ -298,6 +318,7 @@ def login(
     after_2fa: str | None = None,
     organization_id: int | None = None,
     source: Any = None,
+    session_not_on_or_after: int | None = None,
 ) -> bool:
     """
     This logs a user in for the session and current request.
@@ -354,7 +375,7 @@ def login(
     if not hasattr(user, "backend"):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
     if organization_id:
-        mark_sso_complete(request, organization_id)
+        mark_sso_complete(request, organization_id, session_not_on_or_after)
 
     # Do not require flush the user during login -- the mutation here is just  `last_login` update which isn't
     # critical to flush.
