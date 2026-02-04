@@ -37,7 +37,7 @@ class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
         }
     )
 
-    def get(self, request: Request, project: Project, key: ProjectKey) -> Response:
+    def get(self, request: Request, project: Project, project_key: ProjectKey) -> Response:
 
         try:
             stats_params = self._parse_args(request)
@@ -57,7 +57,7 @@ class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
                 ],
                 group_by=["outcome"],
                 category=["error"],
-                key_id=key.id,
+                key_id=project_key.id,
                 interval=request.GET.get("resolution", "1d"),
             )
             results = massage_outcomes_result(

@@ -51,11 +51,11 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def get(self, request: Request, key: ProjectKey, **kwargs) -> Response:
+    def get(self, request: Request, project_key: ProjectKey, **kwargs) -> Response:
         """
         Return a client key bound to a project.
         """
-        return Response(serialize(key, request.user, request=request), status=200)
+        return Response(serialize(project_key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Update a Client Key",
@@ -97,7 +97,9 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def put(self, request: Request, key: ProjectKey, project: Project, **kwargs) -> Response:
+    def put(
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+    ) -> Response:
         """
         Update various settings for a client key.
         """
@@ -109,59 +111,59 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         result = serializer.validated_data
 
         if result.get("name"):
-            key.label = result["name"]
-        if not key.data:
-            key.data = {}
-        key.data["browserSdkVersion"] = (
+            project_key.label = result["name"]
+        if not project_key.data:
+            project_key.data = {}
+        project_key.data["browserSdkVersion"] = (
             default_version if not result.get("browserSdkVersion") else result["browserSdkVersion"]
         )
 
         result_dynamic_sdk_options = result.get("dynamicSdkLoaderOptions")
         if result_dynamic_sdk_options:
-            if key.data.get("dynamicSdkLoaderOptions"):
-                key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
+            if project_key.data.get("dynamicSdkLoaderOptions"):
+                project_key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
             else:
-                key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
+                project_key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
 
         if result.get("isActive") is True:
-            key.status = ProjectKeyStatus.ACTIVE
+            project_key.status = ProjectKeyStatus.ACTIVE
         elif result.get("isActive") is False:
-            key.status = ProjectKeyStatus.INACTIVE
+            project_key.status = ProjectKeyStatus.INACTIVE
 
         if features.has("projects:rate-limits", project):
             ratelimit = result.get("rateLimit", -1)
-            prev_rate_limit_count = key.rate_limit_count
-            prev_rate_limit_window = key.rate_limit_window
+            prev_rate_limit_count = project_key.rate_limit_count
+            prev_rate_limit_window = project_key.rate_limit_window
             if (
                 ratelimit is None
                 or ratelimit != -1
                 and ratelimit
                 and (ratelimit["count"] is None or ratelimit["window"] is None)
             ):
-                key.rate_limit_count = None
-                key.rate_limit_window = None
+                project_key.rate_limit_count = None
+                project_key.rate_limit_window = None
             elif result.get("rateLimit"):
-                key.rate_limit_count = result["rateLimit"]["count"]
-                key.rate_limit_window = result["rateLimit"]["window"]
+                project_key.rate_limit_count = result["rateLimit"]["count"]
+                project_key.rate_limit_window = result["rateLimit"]["window"]
 
-        key.save()
+        project_key.save()
 
-        data = key.get_audit_log_data()
+        data = project_key.get_audit_log_data()
         if features.has("projects:rate-limits", project):
-            if prev_rate_limit_count != key.rate_limit_count:
+            if prev_rate_limit_count != project_key.rate_limit_count:
                 data["prev_rate_limit_count"] = prev_rate_limit_count
-            if prev_rate_limit_window != key.rate_limit_window:
+            if prev_rate_limit_window != project_key.rate_limit_window:
                 data["prev_rate_limit_window"] = prev_rate_limit_window
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=key.id,
+            target_object=project_key.id,
             event=audit_log.get_event_id("PROJECTKEY_EDIT"),
             data=data,
         )
 
-        return Response(serialize(key, request.user, request=request), status=200)
+        return Response(serialize(project_key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Delete a Client Key",
@@ -177,18 +179,20 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         },
         examples=None,
     )
-    def delete(self, request: Request, key: ProjectKey, project: Project, **kwargs) -> Response:
+    def delete(
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+    ) -> Response:
         """
         Delete a client key for a given project.
         """
         self.create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=key.id,
+            target_object=project_key.id,
             event=audit_log.get_event_id("PROJECTKEY_REMOVE"),
-            data=key.get_audit_log_data(),
+            data=project_key.get_audit_log_data(),
         )
 
-        key.delete()
+        project_key.delete()
 
         return Response(status=204)

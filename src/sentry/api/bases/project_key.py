@@ -13,7 +13,7 @@ class ProjectKeyEndpoint(ProjectEndpoint):
     Base endpoint for ProjectKey resources.
 
     Automatically fetches and validates the ProjectKey based on the key_id URL parameter.
-    Subclasses receive the key as a parameter in their HTTP methods.
+    Subclasses receive the project_key as a parameter in their HTTP methods.
     """
 
     def convert_args(
@@ -22,7 +22,7 @@ class ProjectKeyEndpoint(ProjectEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
         try:
-            kwargs["key"] = ProjectKey.objects.for_request(request).get(
+            kwargs["project_key"] = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
