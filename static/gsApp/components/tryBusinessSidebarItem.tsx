@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -48,7 +47,7 @@ function TryBusinessNavigationItem({
   const {layout} = useNavContext();
 
   return (
-    <StackedNavTrialStartedSidebarItem {...{organization, subscription}}>
+    <TrialStartedSidebarItem {...{organization, subscription}}>
       <SidebarButton
         label={t('Try Business')}
         onClick={() => {
@@ -62,7 +61,7 @@ function TryBusinessNavigationItem({
           <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
         )}
       </SidebarButton>
-    </StackedNavTrialStartedSidebarItem>
+    </TrialStartedSidebarItem>
   );
 }
 
@@ -127,11 +126,5 @@ function TryBusinessSidebarItem(props: Props) {
     />
   );
 }
-
-const StackedNavTrialStartedSidebarItem = styled(TrialStartedSidebarItem)`
-  margin: 0;
-  padding: 0;
-  border-radius: ${p => p.theme.radius.md};
-`;
 
 export default withSubscription(TryBusinessSidebarItem, {noLoader: true});
