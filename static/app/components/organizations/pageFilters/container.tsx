@@ -161,13 +161,19 @@ function PageFiltersContainer({
         period: `${maxPickableDays}d`,
         start: null,
         end: null,
-        utc: null,
+        utc: selection.datetime.utc,
         environment: [],
         project: [],
       });
       updateDateTime(newDateState, router);
     }
-  }, [maxPickableDays, previousMaxPickableDays, router, shouldResetDateTime]);
+  }, [
+    maxPickableDays,
+    previousMaxPickableDays,
+    router,
+    selection.datetime.utc,
+    shouldResetDateTime,
+  ]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
