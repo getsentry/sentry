@@ -37,7 +37,7 @@ class DetectorSignalCacheInvalidationTests(TestCase):
         self.detector.save()
 
         # Ensure the modified detector clears the workflow cache
-        mock_invalidate.assert_called_with(self.detector.id, None)
+        mock_invalidate.assert_called_with(self.detector.id)
 
     def test_enforce_config__raises_errors(self) -> None:
         with pytest.raises(ValidationError):

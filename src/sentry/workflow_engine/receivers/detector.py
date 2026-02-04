@@ -16,7 +16,7 @@ def invalidate_processing_workflows_cache(
     if kwargs.get("created") or not instance.id:
         return
 
-    invalidate_processing_workflows(instance.id, None)
+    invalidate_processing_workflows(instance.id)
 
 
 @receiver(pre_save, sender=Detector)
