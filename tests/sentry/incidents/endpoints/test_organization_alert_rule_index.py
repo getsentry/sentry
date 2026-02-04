@@ -52,8 +52,8 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
-from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.tasks import create_subscription_in_snuba
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
