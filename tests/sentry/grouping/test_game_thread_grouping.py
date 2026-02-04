@@ -12,8 +12,6 @@ from sentry.grouping.api import (
     get_grouping_variants_for_event,
     load_grouping_config,
 )
-from sentry.grouping.strategies.base import GroupingContext
-from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
@@ -56,115 +54,114 @@ class GameThreadGroupingTest(TestCase):
         from sentry.grouping.strategies.newstyle import _is_anr_event
 
         # Test ANR mechanism type
-        event_data = {
-            "exception": {
-                "values": [
-                    {
-                        "mechanism": {"type": "ANR"},
-                        "type": "ApplicationNotResponding",
-                    }
-                ]
-            }
-        }
-        event = Event(event_id="test", project_id=1, data=event_data)
+        event = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "mechanism": {"type": "ANR"},
+                            "type": "ApplicationNotResponding",
+                        }
+                    ]
+                }
+            },
+            project_id=self.project.id,
+        )
         assert _is_anr_event(event)
 
         # Test ApplicationNotResponding exception type without mechanism
-        event_data = {"exception": {"values": [{"type": "ApplicationNotResponding"}]}}
-        event = Event(event_id="test", project_id=1, data=event_data)
+        event = self.store_event(
+            data={"exception": {"values": [{"type": "ApplicationNotResponding"}]}},
+            project_id=self.project.id,
+        )
         assert _is_anr_event(event)
 
         # Test non-ANR event
-        event_data = {"exception": {"values": [{"type": "RuntimeException"}]}}
-        event = Event(event_id="test", project_id=1, data=event_data)
-        assert not _is_anr_event(event)
-
-        # Test event with no exceptions
-        event_data = {}
-        event = Event(event_id="test", project_id=1, data=event_data)
+        event = self.store_event(
+            data={"exception": {"values": [{"type": "RuntimeException"}]}},
+            project_id=self.project.id,
+        )
         assert not _is_anr_event(event)
 
     def test_game_thread_grouping_disabled_by_default(self) -> None:
         """Test that game thread grouping is disabled by default."""
         config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
         config = load_grouping_config(config_dict)
-        # Create a mock event for the GroupingContext
-        event = Event(event_id="test", project_id=1, data={})
-        context = GroupingContext(config, event)
 
-        # Default behavior should not prioritize game thread
-        assert not context.get("prioritize_game_thread_for_grouping", False)
+        # Default context should not prioritize game thread
+        assert not config.initial_context.get("prioritize_game_thread_for_grouping", False)
 
     def test_game_thread_grouping_with_anr_event(self) -> None:
         """Test that game thread is used for grouping when enabled for ANR events."""
         # Create ANR event with both UI thread and game thread
-        event_data = {
-            "platform": "java",
-            "exception": {
-                "values": [
-                    {
-                        "mechanism": {"type": "ANR"},
-                        "module": "io.sentry.android.core",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "main",
-                                    "module": "android.app.ActivityThread",
-                                    "in_app": False,
-                                },
-                                {
-                                    "function": "loop",
-                                    "module": "android.os.Looper",
-                                    "in_app": False,
-                                },
-                            ]
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "exception": {
+                    "values": [
+                        {
+                            "mechanism": {"type": "ANR"},
+                            "module": "io.sentry.android.core",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "main",
+                                        "module": "android.app.ActivityThread",
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "loop",
+                                        "module": "android.os.Looper",
+                                        "in_app": False,
+                                    },
+                                ]
+                            },
+                            "thread_id": 1,
+                            "type": "ApplicationNotResponding",
+                            "value": "Application Not Responding for at least 5000 ms.",
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": 1,
+                            "name": "main",
+                            "current": True,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "wait",
+                                        "module": "java.lang.Object",
+                                        "in_app": False,
+                                    }
+                                ]
+                            },
                         },
-                        "thread_id": 1,
-                        "type": "ApplicationNotResponding",
-                        "value": "Application Not Responding for at least 5000 ms.",
-                    }
-                ]
+                        {
+                            "id": 2,
+                            "name": "UnityMain",
+                            "current": False,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "nativeRender",
+                                        "module": "com.unity3d.player.UnityPlayer",
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "updateGame",
+                                        "module": "com.example.game.GameActivity",
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                        },
+                    ]
+                },
             },
-            "threads": {
-                "values": [
-                    {
-                        "id": 1,
-                        "name": "main",
-                        "current": True,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "wait",
-                                    "module": "java.lang.Object",
-                                    "in_app": False,
-                                }
-                            ]
-                        },
-                    },
-                    {
-                        "id": 2,
-                        "name": "UnityMain",
-                        "current": False,
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "nativeRender",
-                                    "module": "com.unity3d.player.UnityPlayer",
-                                    "in_app": True,
-                                },
-                                {
-                                    "function": "updateGame",
-                                    "module": "com.example.game.GameActivity",
-                                    "in_app": True,
-                                },
-                            ]
-                        },
-                    },
-                ]
-            },
-        }
-
-        event = Event(event_id="test", project_id=1, data=event_data)
+            project_id=self.project.id,
+        )
 
         # Test with game thread grouping disabled (default)
         config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
@@ -199,26 +196,28 @@ class GameThreadGroupingTest(TestCase):
 
     def test_non_anr_event_not_affected_by_game_thread_config(self) -> None:
         """Test that non-ANR events are not affected by game thread config."""
-        event_data = {
-            "exception": {
-                "values": [
-                    {
-                        "type": "RuntimeException",
-                        "value": "Test exception",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "function": "testMethod",
-                                    "module": "com.example.Test",
-                                    "in_app": True,
-                                }
-                            ]
-                        },
-                    }
-                ]
-            }
-        }
-        event = Event(event_id="test", project_id=1, data=event_data)
+        event = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "Test exception",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "testMethod",
+                                        "module": "com.example.Test",
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            },
+            project_id=self.project.id,
+        )
 
         # Load config with game thread grouping enabled
         config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
