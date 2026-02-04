@@ -182,7 +182,8 @@ def _build_user_response(
 
 def _build_conversation_response(
     conv_id: str,
-    timestamp: int,
+    start_timestamp: int,
+    end_timestamp: int,
     errors: int,
     llm_calls: int,
     tool_calls: int,
@@ -204,7 +205,8 @@ def _build_conversation_response(
         "toolCalls": tool_calls,
         "totalTokens": total_tokens,
         "totalCost": total_cost,
-        "timestamp": timestamp,
+        "startTimestamp": start_timestamp,
+        "endTimestamp": end_timestamp,
         "traceCount": len(trace_ids),
         "traceIds": trace_ids,
         "firstInput": first_input,
@@ -340,8 +342,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "failure_count()",
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
-                "sum(gen_ai.usage.total_tokens)",
-                "sum(gen_ai.cost.total_tokens)",
+                "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
             orderby=None,
@@ -412,16 +415,28 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
             for row in aggregations.get("data", []):
                 conv_id = row.get("gen_ai.conversation.id", "")
+                start_ts = row.get("min(precise.start_ts)", 0)
                 finish_ts = row.get("max(precise.finish_ts)", 0)
 
                 conversations_map[conv_id] = _build_conversation_response(
                     conv_id=conv_id,
-                    timestamp=_compute_timestamp_ms(finish_ts),
+                    start_timestamp=_compute_timestamp_ms(start_ts),
+                    end_timestamp=_compute_timestamp_ms(finish_ts),
                     errors=int(row.get("failure_count()") or 0),
                     llm_calls=int(row.get("count_if(gen_ai.operation.type,equals,ai_client)") or 0),
                     tool_calls=int(row.get("count_if(gen_ai.operation.type,equals,tool)") or 0),
-                    total_tokens=int(row.get("sum(gen_ai.usage.total_tokens)") or 0),
-                    total_cost=float(row.get("sum(gen_ai.cost.total_tokens)") or 0),
+                    total_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    total_cost=float(
+                        row.get(
+                            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
                     trace_ids=[],
                     flow=[],
                     first_input=None,

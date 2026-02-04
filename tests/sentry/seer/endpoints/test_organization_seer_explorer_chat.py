@@ -9,6 +9,7 @@ from sentry.seer.explorer.client_utils import collect_user_org_context
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.requests import make_request
 from tests.sentry.utils.test_jwt import RS256_KEY
 
 RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
@@ -172,20 +173,24 @@ class CollectUserOrgContextTest(APITestCase):
 
         assert context is not None
         assert context["org_slug"] == self.organization.slug
-        assert context["user_id"] == self.user.id
-        assert context["user_name"] == self.user.name
-        assert context["user_email"] == self.user.email
-        assert context["user_timezone"] is None  # No timezone set by default
+        assert context.get("user_id") == self.user.id
+        assert context.get("user_name") == self.user.name
+        assert context.get("user_email") == self.user.email
+        assert context.get("user_timezone") is None  # No timezone set by default
+        assert context.get("user_ip") is None  # No IP address set by default
 
         # Should have exactly one team
+        assert "user_teams" in context
         assert len(context["user_teams"]) == 1
         assert context["user_teams"][0]["slug"] == self.team.slug
 
         # User projects should include project1 and project2 (both on self.team)
+        assert "user_projects" in context
         user_project_slugs = {p["slug"] for p in context["user_projects"]}
         assert user_project_slugs == {"project-1", "project-2"}
 
         # All org projects should include all 3 projects
+        assert "all_org_projects" in context
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
         all_project_ids = {p["id"] for p in context["all_org_projects"]}
@@ -203,6 +208,7 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
+        assert "user_teams" in context
         team_slugs = {t["slug"] for t in context["user_teams"]}
         assert team_slugs == {self.team.slug, "team-2"}
 
@@ -218,9 +224,10 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
-        assert context["user_teams"] == []
-        assert context["user_projects"] == []
+        assert context.get("user_teams") == []
+        assert context.get("user_projects") == []
         # All org projects should still be present
+        assert "all_org_projects" in context
         all_project_slugs = {p["slug"] for p in context["all_org_projects"]}
         assert all_project_slugs == {"project-1", "project-2", "other-project"}
 
@@ -235,4 +242,12 @@ class CollectUserOrgContextTest(APITestCase):
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
-        assert context["user_timezone"] == "America/Los_Angeles"
+        assert context.get("user_timezone") == "America/Los_Angeles"
+
+    def test_collect_context_with_request(self):
+        """Test context collection includes request metadata like IP address"""
+        request, _ = make_request()
+        context = collect_user_org_context(self.user, self.organization, request=request)
+
+        assert context is not None
+        assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
