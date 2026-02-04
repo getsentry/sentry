@@ -70,7 +70,7 @@ export function MetricAlertOngoingIssues({project, rule}: Props) {
 
   return (
     <GroupList
-      withChart={false}
+      withChart
       withPagination={false}
       withColumns={['assignee']}
       queryParams={{
