@@ -199,14 +199,18 @@ function useMobileAppSizeSearchBarDataProvider(
     useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.PREPROD,
       numberAttributes,
       stringAttributes,
+      booleanAttributes,
       numberSecondaryAliases,
       stringSecondaryAliases,
+      booleanSecondaryAliases,
       searchSource: 'dashboards',
       initialQuery: props.widgetQuery?.conditions ?? '',
       projects,

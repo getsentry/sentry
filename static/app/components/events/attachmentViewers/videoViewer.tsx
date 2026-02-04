@@ -5,7 +5,8 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import {t} from 'sentry/locale';
 
 interface WebMViewerProps
-  extends Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
+  extends
+    Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
     Partial<Pick<HTMLVideoElement, 'controls'>> {
   onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
 }
