@@ -72,14 +72,15 @@ export function useConversations() {
 
   const data = useMemo(() => {
     return (rawData ?? []).map((conversation): Conversation => {
-      const {endTimestamp: _, firstInput: rawFirstInput, ...rest} = conversation;
+      const {endTimestamp, firstInput: rawFirstInput, ...rest} = conversation;
       let firstInput: string | null = null;
       if (typeof rawFirstInput === 'string') {
         firstInput = rawFirstInput;
       } else if (Array.isArray(rawFirstInput)) {
         firstInput = rawFirstInput.find(content => content.type === 'text')?.text ?? null;
       }
-      return {...rest, firstInput};
+
+      return {...rest, firstInput, timestamp: endTimestamp ?? Date.now()};
     });
   }, [rawData]);
 
