@@ -3,6 +3,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
+import {getProfilingSentryPropertiesSnippet} from 'sentry/gettingStartedDocs/java/profiling';
 import {
   getGradleInstallSnippet,
   getMavenInstallSnippet,
@@ -31,7 +32,7 @@ logs.enabled=true`
     ? `
 traces-sample-rate=1.0`
     : ''
-}`;
+}${params.isProfilingSelected ? getProfilingSentryPropertiesSnippet() : ''}`;
 
 const getConsoleAppenderSnippet = (params: Params) => `
 <?xml version="1.0" encoding="UTF-8"?>

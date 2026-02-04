@@ -398,7 +398,7 @@ const ProfilingDetailsListItem = styled('li')<{
 
   &.active button {
     font-weight: ${p => p.theme.font.weight.sans.medium};
-    border-bottom: 2px solid ${prop => prop.theme.tokens.interactive.link.accent.active};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 

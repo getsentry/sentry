@@ -5,7 +5,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   serializeFields,
   serializeThresholds,
@@ -40,7 +40,7 @@ export function convertWidgetToBuilderStateParams(
   const firstWidgetQuery = widget.queries[0];
   let yAxis = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'aggregates') : [];
   let field: string[] = [];
-  if (isChartDisplayType(widget.displayType)) {
+  if (usesTimeSeriesData(widget.displayType)) {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   } else {
     // For TRACEMETRICS table/big_number widgets, use raw field strings directly

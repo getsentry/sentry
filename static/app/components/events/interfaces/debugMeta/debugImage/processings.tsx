@@ -1,7 +1,7 @@
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 import type {ImageStatus} from 'sentry/types/debugImage';
 

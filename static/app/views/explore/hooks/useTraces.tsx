@@ -3,6 +3,7 @@ import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -94,7 +95,9 @@ export function useTraces({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/traces/`;
+  const path = getApiUrl('/organizations/$organizationIdOrSlug/traces/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const endpointOptions = {
     query: {
