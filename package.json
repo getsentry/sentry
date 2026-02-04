@@ -218,7 +218,7 @@
     "eslint-plugin-sentry": "^2.10.0",
     "eslint-plugin-testing-library": "^7.1.1",
     "eslint-plugin-typescript-sort-keys": "^3.3.0",
-    "eslint-plugin-unicorn": "^57.0.0",
+    "eslint-plugin-unicorn": "^61.0.2",
     "expect-type": "1.2.1",
     "globals": "16.3.0",
     "jest": "30.0.4",
