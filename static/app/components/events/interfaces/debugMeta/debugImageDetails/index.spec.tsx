@@ -59,7 +59,7 @@ describe('Debug Meta - Image Details', () => {
     const statusColumns = screen
       .getAllByTestId('status')
       .map(statusColumn => statusColumn.textContent);
-    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted']);
+    expect(statusColumns).toEqual(['Malformed', 'Malformed', 'Malformed', 'Deleted']);
 
     // const informationColumn = candidates.find('InformationColumn');
 
