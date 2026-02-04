@@ -7,7 +7,7 @@ import {ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import {CopyAsDropdown} from 'sentry/components/copyAs';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

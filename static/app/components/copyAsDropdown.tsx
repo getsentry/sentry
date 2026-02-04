@@ -6,11 +6,11 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {}
+interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {
+  items: DropdownMenuProps['items'];
+}
 
 export function CopyAsDropdown(props: CopyAsDropdownProps) {
-  const enabledItems = props.items.filter(item => !item.disabled);
-
   return (
     <DropdownMenu
       size={props.size}
@@ -20,7 +20,7 @@ export function CopyAsDropdown(props: CopyAsDropdownProps) {
         </OverlayTrigger.Button>
       )}
       {...props}
-      items={enabledItems}
+      items={props.items.filter(item => !item.disabled)}
     />
   );
 }

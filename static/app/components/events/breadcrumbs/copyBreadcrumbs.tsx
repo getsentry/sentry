@@ -1,4 +1,4 @@
-import {CopyAsDropdown} from 'sentry/components/copyAs';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 
 function escapeMarkdownCell(value: string): string {
