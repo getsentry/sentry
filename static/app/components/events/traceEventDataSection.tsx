@@ -6,12 +6,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconSort} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -453,24 +452,19 @@ export function TraceEventDataSection({
         !stackTraceNotFound && (
           <ButtonBar>
             {!displayOptions.includes('raw-stack-trace') && (
-              <Tooltip
-                title={t('Only full version available')}
-                disabled={!forceFullStackTrace}
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter frames')}
+                value={isFullStackTrace ? 'full' : 'relevant'}
+                onChange={handleFilterFramesChange}
               >
-                <SegmentedControl
-                  size="xs"
-                  aria-label={t('Filter frames')}
-                  value={isFullStackTrace ? 'full' : 'relevant'}
-                  onChange={handleFilterFramesChange}
-                >
-                  <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
-                    {t('Most Relevant')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="full">
-                    {t('Full Stack Trace')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Tooltip>
+                <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+                  {t('Most Relevant')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="full">
+                  {t('Full Stack Trace')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
             )}
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
@@ -511,9 +505,14 @@ export function TraceEventDataSection({
             />
             <CompactSelect
               trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} size="xs">
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Display as')}
+                >
                   {t('Display as')}
-                </OverlayTrigger.Button>
+                </OverlayTrigger.IconButton>
               )}
               multiple
               position="bottom-end"
@@ -521,6 +520,7 @@ export function TraceEventDataSection({
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: optionsToShow}]}
             />
+
             <CopyAsDropdown
               size="xs"
               items={CopyAsDropdown.makeDefaultCopyAsOptions({
