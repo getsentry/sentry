@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {Button} from 'sentry/components/core/button';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';

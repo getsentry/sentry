@@ -823,4 +823,30 @@ describe('ExploreToolbar', () => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
   });
+
+  it('disables save as and compare when cross events are present', async () => {
+    render(<ExploreToolbar />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+          },
+        },
+      },
+    });
+
+    const section = await screen.findByTestId('section-save-as');
+
+    // Save As button should be disabled
+    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+
+    // Compare Queries button should be disabled (LinkButton renders with role="button")
+    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
 });

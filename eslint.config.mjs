@@ -452,6 +452,7 @@ export default typescript.config([
     name: 'plugin/@sentry/scraps',
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
+      '@sentry/scraps/no-core-import': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/use-semantic-token': 'off',
     },
@@ -1091,11 +1092,7 @@ export default typescript.config([
           type: 'test',
           pattern: 'tests/js',
         },
-        // --- specifics ---
-        {
-          type: 'core-button',
-          pattern: 'static/app/components/core/button',
-        },
+        // --- scraps core components ---
         {
           type: 'core',
           pattern: 'static/app/components/core',
@@ -1234,14 +1231,30 @@ export default typescript.config([
               allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
-            {
-              from: ['core-button'],
-              allow: ['core*'],
-            },
             // todo: sentry* shouldn't be allowed
             {
               from: ['core'],
               allow: ['core*', 'sentry*'],
+            },
+          ],
+        },
+      ],
+      'boundaries/entry-point': [
+        'error',
+        {
+          default: 'disallow',
+          rules: [
+            {
+              target: ['core'],
+              allow: [
+                '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
+                '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
+                '**/*.png', // needed for story-files
+              ],
+            },
+            {
+              target: ['!core'],
+              allow: '**/*',
             },
           ],
         },

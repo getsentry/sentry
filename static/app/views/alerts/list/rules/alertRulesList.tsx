@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert/alert';
-import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';

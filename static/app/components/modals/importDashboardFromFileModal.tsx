@@ -2,12 +2,13 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

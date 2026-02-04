@@ -34,6 +34,7 @@ KEY_RATE_LIMIT = {
         "hasPerformance": True,
         "hasDebug": True,
         "hasFeedback": False,
+        "hasLogsAndMetrics": False,
     },
 }
 

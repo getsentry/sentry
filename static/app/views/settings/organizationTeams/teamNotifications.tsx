@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import LoadingError from 'sentry/components/loadingError';
@@ -21,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -157,7 +159,9 @@ export default function TeamNotificationSettings() {
     refetch: refetchTeam,
   } = useApiQuery<Team>(
     [
-      `/teams/${organization.slug}/${params.teamId}/`,
+      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: params.teamId},
+      }),
       {
         query: {expand: ['externalTeams']},
       },
@@ -174,7 +178,9 @@ export default function TeamNotificationSettings() {
     refetch: refetchIntegrations,
   } = useApiQuery<Integration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {includeConfig: '0'},
       },

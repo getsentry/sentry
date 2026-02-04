@@ -12,6 +12,14 @@ from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
 
 
+def format_no_quota_messages() -> tuple[str, str, str]:
+    """Format status check messages when quota is exhausted."""
+    title = _SIZE_ANALYZER_TITLE_BASE
+    subtitle = _("Quota exceeded")
+    summary = _("No quota available for size analysis. Contact support to increase your quota.")
+    return str(title), str(subtitle), str(summary)
+
+
 def format_status_check_messages(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
@@ -75,7 +83,7 @@ def format_status_check_messages(
         raise ValueError("No metrics exist for VCS size status check")
 
     parts = []
-    if analyzed_count > 0:
+    if analyzed_count > 0 and not triggered_rules:
         parts.append(
             ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
             % {"count": analyzed_count}

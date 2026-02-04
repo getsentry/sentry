@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

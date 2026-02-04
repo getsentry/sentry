@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import override
+from typing import Any, override
 
 from django.db.models import Q
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, CheckStatus
@@ -18,7 +18,7 @@ from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
@@ -214,7 +214,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         result = data_packet.packet.check_result
         uptime_subscription = data_packet.packet.subscription
 
-        evidence_data: dict[str, int] = {}
+        evidence_data: dict[str, Any] = {}
 
         # Find the most recent response capture for this failure sequence
         threshold = self.detector.config["downtime_threshold"]
@@ -235,6 +235,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         )
         if capture:
             evidence_data["response_capture_id"] = capture.id
+
+        assertion_failure_data = result.get("assertion_failure_data")
+        if assertion_failure_data is not None:
+            evidence_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
 
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",

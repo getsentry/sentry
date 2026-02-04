@@ -2,10 +2,10 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,

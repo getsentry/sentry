@@ -7,143 +7,112 @@ from sentry.spans.buffer_logger import BufferLogger, compare_metrics, emit_obser
 from sentry.testutils.helpers.options import override_options
 
 
-class TestBufferLogger:
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
+    """
+    Test that batches are accumulated with cumulative latency tracking,
+    and that trimming occurs when exceeding MAX_ENTRIES (1000).
+    """
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
 
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_logs_only_above_threshold_with_repeating_traces(self, mock_time, mock_logger):
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                1000.0,
-                1000.0,
-                1006.0,
-            ]
-
-            buffer_logger = BufferLogger()
-
-            # Log below threshold - should not be recorded, no time calls
-            buffer_logger.log("project1:trace1", latency_ms=50)
-            assert len(buffer_logger._data) == 0
-
-            # Log above threshold - should be recorded (calls time.time() twice)
-            buffer_logger.log("project1:trace1", latency_ms=150)
-            assert buffer_logger._data["project1:trace1"] == (1, 150)
-
-            buffer_logger.log("project1:trace1", latency_ms=200)
-            assert buffer_logger._data["project1:trace1"] == (2, 200)
-
-            buffer_logger.log("project2:trace2", latency_ms=120)
-            assert buffer_logger._data["project2:trace2"] == (1, 120)
-
-            buffer_logger.log("project1:trace1", latency_ms=180)
-
-            # Verify logging was called
-            assert mock_logger.info.call_count == 1
-
-            # Verify exact log content
-            call_args = mock_logger.info.call_args
-            assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
-            extra = call_args[1]["extra"]
-
-            # Check that logged entries include the correct format
-            entries = extra["top_slow_operations"]
-            assert "project1:trace1:3:200" in entries  # count=3, max_latency=200
-            assert "project2:trace2:1:120" in entries  # count=1, max_latency=120
-            assert extra["num_tracked_keys"] == 2  # only 2 unique keys tracked
-
-            # Verify data was cleared after logging
-            assert len(buffer_logger._data) == 0
-            assert buffer_logger._last_log_time is None
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_clears_old_traces_after_logging_period(self, mock_time, mock_logger):
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                6000.0,
-                1013.0,
-            ]
-
-            buffer_logger = BufferLogger()
-
-            buffer_logger.log("old_project1:trace1", latency_ms=151)
-            assert len(buffer_logger._data) == 1
-            assert mock_logger.info.call_count == 0
-
-            buffer_logger.log("old_project1:trace1", latency_ms=170)
-            assert len(buffer_logger._data) == 0
-
-            # First logging should have occurred
-            assert mock_logger.info.call_count == 1
-            first_call = mock_logger.info.call_args
-            first_entries = first_call[1]["extra"]["top_slow_operations"]
-            assert "old_project1:trace1:2:170" in first_entries
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_logs_only_top_50_when_more_than_1000_traces(self, mock_time, mock_logger):
-        """
-        Test that when MAX_ENTRIES (1000) is reached, no more traces are recorded.
-        Also verifies that entries with > LOGGING_ENTRIES (50) are sorted by count.
-        """
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            time_calls = (
-                [1000.0, 1000.0]  # First log: set + check
-                + [1000.0] * 1200  # Logs 2-1000: check only
-                + [1006.0]  # 1000th entry triggers logging
-            )
-            mock_time.time.side_effect = time_calls
-
-            buffer_logger = BufferLogger()
-
-            for i in range(10):
-                buffer_logger.log("high_project:trace", latency_ms=150)
-
-            for i in range(1100):
-                buffer_logger.log(f"high_project{i}:trace{i}", latency_ms=150)
-
-            assert len(buffer_logger._data) == 1000
-
-            mock_time.time.side_effect = [10000.0]
-
-            buffer_logger.log("trigger:trace", latency_ms=150)
-
-            # Verify logging occurred
-            assert mock_logger.info.call_count == 1
-
-            # Verify exact log content
-            call_args = mock_logger.info.call_args
-            assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
-            extra = call_args[1]["extra"]
-
-            # Top 50 entries are logged (implementation logs all, not just top 50)
-            entries_list = extra["top_slow_operations"]
-            assert len(entries_list) == 50
-
-            # Verify entries are sorted by count (descending) since > LOGGING_ENTRIES
-            # Check that first entries have highest counts
-            assert entries_list[0] == "high_project:trace:10:150"
-
-            # Verify total tracked keys
-            assert extra["num_tracked_keys"] == 1000
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    def test_no_logging_when_no_data(self, mock_logger):
-        """Test that nothing is logged when _data is empty."""
         buffer_logger = BufferLogger()
 
-        # Internal state check - no data
-        assert len(buffer_logger._data) == 0
+        # Process first batch - all entries should be tracked
+        buffer_logger.log(
+            [
+                ("project1:trace1", 50),
+                ("project1:trace1", 150),
+                ("project1:trace1", 200),
+                ("project2:trace2", 120),
+            ]
+        )
 
-        # Even if we somehow trigger the logging path, it should not log
-        # This is testing the internal behavior, but we can't easily trigger
-        # the logging path without going through log() method
-        # So we just verify initial state
-        assert mock_logger.info.call_count == 0
+        # Verify cumulative latency is tracked (50 + 150 + 200 = 400)
+        assert buffer_logger._data["project1:trace1"] == (3, 400)
+        assert buffer_logger._data["project2:trace2"] == (1, 120)
+
+        buffer_logger.log([("project1:trace1", 180), ("project2:trace2", 80)])
+
+        assert buffer_logger._data["project1:trace1"] == (4, 580)  # 400 + 180
+        assert buffer_logger._data["project2:trace2"] == (2, 200)  # 120 + 80
+
+        # Test trimming: add 1100 entries to exceed MAX_ENTRIES
+        entries_to_add = []
+        for i in range(1100):
+            # Create entries with different latencies
+            # Lower i values get higher latencies to test trimming
+            latency = 1000 - i if i < 500 else 100
+            entries_to_add.append((f"project{i}:trace{i}", latency))
+
+        buffer_logger.log(entries_to_add)
+
+        # Verify trimming occurred - should be exactly 1000 entries
+        assert len(buffer_logger._data) == 50
+
+        assert "project0:trace0" in buffer_logger._data
+        assert "project10:trace10" in buffer_logger._data
+
+        # Verify low-latency entries from the end were removed
+        assert "project1099:trace1099" not in buffer_logger._data
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
+    """
+    Test periodic logging (every 1 minute) of top 50 entries by cumulative latency,
+    and verify dictionary is cleared after logging.
+    """
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.side_effect = [
+            1000.0,  # Set _last_log_time on first log
+            1000.0,
+            1000.0,
+            1061.0,
+        ]
+
+        buffer_logger = BufferLogger()
+
+        buffer_logger.log([("high_project:trace", 150)] * 10)
+
+        entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
+        buffer_logger.log(entries)
+
+        assert len(buffer_logger._data) == 50
+
+        buffer_logger.log([("trigger:trace", 50)])
+
+        assert mock_logger.info.call_count == 1
+
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
+        extra = call_args[1]["extra"]
+
+        entries_list = extra["top_slow_operations"]
+        assert len(entries_list) == 50
+
+        assert entries_list[0] == "high_project:trace:10:1500"
+
+        assert extra["num_tracked_keys"] == 50
+
+        assert len(buffer_logger._data) == 0
+        assert buffer_logger._last_log_time is None
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+def test_no_logging_when_no_data(mock_logger):
+    """Test that nothing is logged when _data is empty."""
+    buffer_logger = BufferLogger()
+
+    # Internal state check - no data
+    assert len(buffer_logger._data) == 0
+
+    # Even if we somehow trigger the logging path, it should not log
+    # This is testing the internal behavior, but we can't easily trigger
+    # the logging path without going through log() method
+    # So we just verify initial state
+    assert mock_logger.info.call_count == 0
 
 
 class TestEmitObservabilityMetrics:

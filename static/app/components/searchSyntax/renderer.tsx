@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 
 import type {ParseResult, TokenResult} from './parser';
@@ -336,7 +337,7 @@ const TokenGroup = styled('span')<TokenGroupProps>`
       ? p.theme.colors.red500
       : p.warning
         ? p.theme.colors.gray500
-        : p.theme.tokens.content.accent};
+        : p.theme.colors.blue500};
 
   position: relative;
   animation-name: ${shakeAnimation};

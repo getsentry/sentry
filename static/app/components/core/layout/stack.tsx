@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Separator, type SeparatorProps} from 'sentry/components/core/separator';
+import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
 
 import type {ContainerElement} from './container';
 import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';

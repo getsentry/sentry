@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Text} from '@sentry/scraps/text';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';

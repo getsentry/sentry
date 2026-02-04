@@ -2,12 +2,11 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';

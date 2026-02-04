@@ -16,6 +16,7 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,6 +26,7 @@ import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/trace
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -32,7 +34,6 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {AgentSelector} from 'sentry/views/insights/pages/conversations/components/agentSelector';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
@@ -54,6 +55,12 @@ function ConversationsOverviewPage({
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  useEffect(() => {
+    trackAnalytics('conversations.page-view', {
+      organization,
+    });
+  }, [organization]);
 
   useEffect(() => {
     if (searchQuery === null) {
@@ -121,7 +128,10 @@ function ConversationsOverviewPage({
                           resetParamsOnChange={[TableUrlParams.CURSOR]}
                         />
                       </PageFilterBar>
-                      <AgentSelector />
+                      <AgentSelector
+                        storageKeyPrefix="conversations:agent-filter"
+                        referrer="api.insights.conversations.get-agent-names"
+                      />
                       <Flex flex={2}>
                         <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
                       </Flex>

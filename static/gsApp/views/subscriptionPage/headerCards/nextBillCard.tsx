@@ -1,12 +1,14 @@
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -32,7 +34,11 @@ function NextBillCard({
     isLoading,
     isError,
   } = useApiQuery<PreviewData>(
-    [`/customers/${organization.slug}/subscription/next-bill/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: !!subscription.plan,

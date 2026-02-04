@@ -2,10 +2,9 @@ import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 're
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import FormContext from 'sentry/components/forms/formContext';

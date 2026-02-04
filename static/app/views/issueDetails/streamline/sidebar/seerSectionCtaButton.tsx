@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
   AutofixStepType,

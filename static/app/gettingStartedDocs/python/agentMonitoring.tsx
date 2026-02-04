@@ -1,15 +1,22 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const MIN_REQUIRED_VERSION = '2.43.0';
+
 export const agentMonitoring: OnboardingConfig = {
+  introduction: params => (
+    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+  ),
   install: params => {
     const selected = (params.platformOptions as any)?.integration ?? 'openai_agents';
     let packageName = 'sentry-sdk';
@@ -34,7 +41,7 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock({packageName, minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },
     ];

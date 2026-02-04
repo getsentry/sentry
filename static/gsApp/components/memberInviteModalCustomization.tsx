@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

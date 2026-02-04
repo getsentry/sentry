@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {t} from 'sentry/locale';
 
 interface DifferentialFlamegraphNegationSwitchProps {

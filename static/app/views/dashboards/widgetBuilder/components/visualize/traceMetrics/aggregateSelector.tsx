@@ -9,7 +9,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {
   renderDropdownMenuFooter,
@@ -33,10 +33,10 @@ export function AggregateSelector({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  // For chart displays, use yAxis. For Big Number, use fields array.
-  const isChart = isChartDisplayType(state.displayType);
-  const aggregateSource = isChart ? state.yAxis : state.fields;
-  const actionType = isChart
+  // For time-series displays, use yAxis. For other types, use fields array.
+  const isTimeSeries = usesTimeSeriesData(state.displayType);
+  const aggregateSource = isTimeSeries ? state.yAxis : state.fields;
+  const actionType = isTimeSeries
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 

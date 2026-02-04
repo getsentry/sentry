@@ -2,14 +2,14 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -269,7 +269,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};

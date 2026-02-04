@@ -16,7 +16,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 const SentryComponentInspector =
   NODE_ENV === 'development'
     ? lazy(() =>
-        import('sentry/components/core/inspector').then(module => ({
+        import('@sentry/scraps/inspector').then(module => ({
           default: module.SentryComponentInspector,
         }))
       )

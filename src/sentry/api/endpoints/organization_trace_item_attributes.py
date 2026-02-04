@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
+    TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
@@ -294,18 +295,37 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def data_fn(offset: int, limit: int):
+            with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
+                all_aliased_attributes = []
+                # our aliases don't exist in the db, so filter over our aliases
+                # virtually page through defined aliases before we hit the db
+                if substring_match and offset <= len(column_definitions.columns):
+                    for index, column in enumerate(column_definitions.columns.values()):
+                        if (
+                            column.proto_type == attr_type
+                            and substring_match in column.public_alias
+                            and not column.secondary_alias
+                            and not column.private
+                        ):
+                            all_aliased_attributes.append(column)
+                aliased_attributes = all_aliased_attributes[offset : offset + limit]
             with sentry_sdk.start_span(op="query", name="attribute_names") as span:
-                rpc_request = TraceItemAttributeNamesRequest(
-                    meta=meta,
-                    limit=limit,
-                    page_token=PageToken(offset=offset),
-                    type=attr_type,
-                    value_substring_match=value_substring_match,
-                    intersecting_attributes_filter=query_filter,
-                )
+                if len(aliased_attributes) < limit - 1:
+                    offset -= len(all_aliased_attributes) - len(aliased_attributes)
+                    limit -= len(aliased_attributes)
+                    rpc_request = TraceItemAttributeNamesRequest(
+                        meta=meta,
+                        limit=limit,
+                        page_token=PageToken(offset=offset),
+                        type=attr_type,
+                        value_substring_match=value_substring_match,
+                        intersecting_attributes_filter=query_filter,
+                    )
 
-                with handle_query_errors():
-                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                    with handle_query_errors():
+                        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                else:
+                    rpc_response = TraceItemAttributeNamesResponse()
 
                 if use_sentry_conventions:
                     attribute_keys = {}
@@ -332,6 +352,13 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
 
                             attribute_keys[attr_key["name"]] = attr_key
+                    for aliased_attr in aliased_attributes:
+                        attr_key = as_attribute_key(
+                            aliased_attr.internal_name,
+                            serialized["attribute_type"],
+                            trace_item_type,
+                        )
+                        attribute_keys[attr_key["name"]] = attr_key
 
                     attributes = list(attribute_keys.values())
                     sentry_sdk.set_context("api_response", {"attributes": attributes})
@@ -339,8 +366,14 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
                 attributes = list(
                     filter(
-                        lambda x: not is_sentry_convention_replacement_attribute(
-                            x["name"], trace_item_type
+                        lambda x: (
+                            not is_sentry_convention_replacement_attribute(
+                                x["name"], trace_item_type
+                            )
+                            # Remove anything where the public alias doesn't match the substring
+                            # This can happen when the public alias is different, but that's handled by
+                            # aliased_attributes
+                            and (substring_match in x["name"] if substring_match else True)
                         ),
                         [
                             as_attribute_key(
@@ -358,6 +391,18 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                         ],
                     )
                 )
+                for aliased_attr in aliased_attributes:
+                    if can_expose_attribute(
+                        aliased_attr.public_alias,
+                        trace_item_type,
+                        include_internal=include_internal,
+                    ):
+                        attr_key = as_attribute_key(
+                            aliased_attr.internal_name,
+                            serialized["attribute_type"],
+                            trace_item_type,
+                        )
+                        attributes.append(attr_key)
                 sentry_sdk.set_context("api_response", {"attributes": attributes})
                 span.set_data("attribute_count", len(attributes))
                 span.set_data("attribute_type", attribute_type)

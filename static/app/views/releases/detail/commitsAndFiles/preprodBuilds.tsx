@@ -1,6 +1,7 @@
 import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 
-import {Container} from 'sentry/components/core/layout';
+import {Container} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
   revertToPinnedFilters,
   saveDesyncedFilters,
 } from 'sentry/actionCreators/pageFilters';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +41,7 @@ export const DesyncedFilterIndicator = styled('div')`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   border: solid 1px ${p => p.theme.tokens.background.primary};
   position: absolute;
   top: 0;

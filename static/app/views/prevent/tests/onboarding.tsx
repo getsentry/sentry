@@ -5,9 +5,10 @@ import {useTheme} from '@emotion/react';
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Prose, Text} from 'sentry/components/core/text';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Prose, Text} from '@sentry/scraps/text';
+
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';

@@ -187,6 +187,13 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
+// intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
+// unit itself indicates its base. If this list contains "byte" (the default
+// unit for size data in Sentry), "byte" becomes a base 10 unit everywhere. That
+// will force effectively all tables and chart to format size data multipliers
+// using base 10. This is not a problem, it's just an important implication to
+// be aware of.
 export const ABYTE_UNITS = [
   'byte',
   'kilobyte',
@@ -1680,6 +1687,13 @@ export function prettifyParsedFunction(func: ParsedFunction) {
     func.arguments[0] === 'message'
   ) {
     return 'count(logs)';
+  }
+
+  // special case for trace metrics format: function(value,metricName,metricType,unit)
+  // display as function(metricName)
+  if (func.arguments.length === 4 && func.arguments[0] === 'value') {
+    const metricName = func.arguments[1];
+    return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
   }
 
   const args = func.arguments.map(prettifyTagKey);

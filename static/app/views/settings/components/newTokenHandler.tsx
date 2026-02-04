@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 

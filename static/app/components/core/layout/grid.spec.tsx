@@ -7,7 +7,7 @@ import {
   Grid,
   type GridProps,
   type GridPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
+} from '@sentry/scraps/layout';
 
 describe('Grid', () => {
   it('renders children', () => {

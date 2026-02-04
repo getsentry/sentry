@@ -1,6 +1,6 @@
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {
   getDefaultOrderBy,
   getSelectionType,

@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';

@@ -2,9 +2,9 @@ import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 
-import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {

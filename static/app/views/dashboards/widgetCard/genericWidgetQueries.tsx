@@ -14,7 +14,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {
+  dashboardFiltersToString,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -130,7 +133,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
 
-  const isChartDisplay = isChartDisplayType(widget.displayType);
+  const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
@@ -141,7 +144,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     mepSetting,
     samplingMode,
-    enabled: isChartDisplay && !disabled && !propsLoading,
+    enabled: isTimeSeriesData && !disabled && !propsLoading,
     limit,
     cursor,
   });
@@ -155,12 +158,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     onDemandControlContext,
     mepSetting,
     samplingMode,
-    enabled: !isChartDisplay && !disabled && !propsLoading,
+    enabled: !isTimeSeriesData && !disabled && !propsLoading,
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
   });
 
-  const hookResults = isChartDisplay ? hookSeriesResults : hookTableResults;
+  const hookResults = isTimeSeriesData ? hookSeriesResults : hookTableResults;
 
   // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
@@ -193,7 +196,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     prevRawDataRef.current = hookResults.rawData;
 
     // Call afterFetch callbacks with raw data
-    if (isChartDisplay) {
+    if (isTimeSeriesData) {
       hookResults.rawData.forEach((data: any) => {
         afterFetchSeriesData?.(data as SeriesResponse);
       });
@@ -223,7 +226,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     }
   }, [
     hookResults,
-    isChartDisplay,
+    isTimeSeriesData,
     afterFetchSeriesData,
     afterFetchTableData,
     onDataFetched,
@@ -246,4 +249,36 @@ export function cleanWidgetForRequest(widget: Widget): Widget {
   });
 
   return _widget;
+}
+
+/**
+ * Helper to apply dashboard filters and clean widget for API request.
+ */
+export function applyDashboardFiltersToWidget(
+  widget: Widget,
+  dashboardFilters?: DashboardFilters,
+  skipParens?: boolean
+): Widget {
+  let processedWidget = widget;
+
+  if (dashboardFilters) {
+    const filtered = cloneDeep(widget);
+    const dashboardFilterConditions = dashboardFiltersToString(
+      dashboardFilters,
+      filtered.widgetType
+    );
+
+    filtered.queries.forEach(query => {
+      if (dashboardFilterConditions) {
+        if (query.conditions && !skipParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = `${query.conditions} ${dashboardFilterConditions}`;
+      }
+    });
+
+    processedWidget = filtered;
+  }
+
+  return cleanWidgetForRequest(processedWidget);
 }

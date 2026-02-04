@@ -24,10 +24,13 @@ const disallowedOps = [
 
 const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
@@ -85,26 +88,21 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
     {
-      id: 'recommended-issues-widget',
-      title: 'Recommended Issues',
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      tableWidths: [-1, -1],
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
       queries: [
         {
           name: '',
-          fields: ['title', 'lastSeen'],
-          aggregates: [],
-          columns: ['title', 'lastSeen'],
-          fieldAliases: ['', ''],
-          conditions: 'is:unresolved event.type:error',
-          orderby: 'freq',
-          onDemand: [],
-          isHidden: false,
-          linkedDashboards: [],
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
+          orderby: '',
         },
       ],
-      widgetType: WidgetType.ISSUE,
     },
   ],
   0

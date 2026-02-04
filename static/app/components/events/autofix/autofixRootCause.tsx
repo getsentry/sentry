@@ -2,12 +2,12 @@ import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -39,6 +39,7 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -433,6 +434,7 @@ function AutofixRootCauseDisplay({
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const organization = useOrganization();
+  const user = useUser();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [solutionText, setSolutionText] = useState('');
@@ -527,6 +529,13 @@ function AutofixRootCauseDisplay({
     trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
       group_id: groupId,
+    });
+    trackAnalytics('coding_integration.send_to_agent_clicked', {
+      organization,
+      group_id: groupId,
+      provider: integration.provider,
+      source: 'autofix',
+      user_id: user.id,
     });
   };
 

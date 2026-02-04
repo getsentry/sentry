@@ -1,13 +1,13 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';

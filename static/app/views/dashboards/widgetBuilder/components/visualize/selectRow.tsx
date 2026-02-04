@@ -2,9 +2,9 @@ import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +22,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,
   getAggregateValueKey,
@@ -138,9 +138,9 @@ export function SelectRow({
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
 
-  const updateAction = isChartWidget
+  const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 

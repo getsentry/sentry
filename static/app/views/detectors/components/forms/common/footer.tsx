@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';

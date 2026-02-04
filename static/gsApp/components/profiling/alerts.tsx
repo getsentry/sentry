@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Heading, Text} from 'sentry/components/core/text';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -617,7 +618,9 @@ function useSDKDeprecations() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/sdk-deprecations/`;
+  const path = getApiUrl(`/organizations/$organizationIdOrSlug/sdk-deprecations/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const options = {
     query: {
       project: selection.projects,

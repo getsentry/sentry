@@ -41,7 +41,7 @@ MAX_LLM_FIELD_LENGTH = 2000
 
 
 seer_issue_detection_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL,
+    settings.SEER_AUTOFIX_URL,
     timeout=SEER_TIMEOUT_S,
     retries=0,
     maxsize=10,
@@ -222,7 +222,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 120,
+            countdown=index * 90,
             headers={"sentry-propagate-traces": False},
         )
 

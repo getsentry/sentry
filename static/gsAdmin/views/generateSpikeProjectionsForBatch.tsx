@@ -2,12 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';

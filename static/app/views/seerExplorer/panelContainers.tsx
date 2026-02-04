@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Block, PanelSize} from 'sentry/views/seerExplorer/types';

@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {
   fetchMutation,
@@ -64,7 +65,9 @@ export function useGetBulkAutofixAutomationSettings() {
     perPage: 100,
     getQueryKey: useCallback(
       ({cursor, per_page}: {cursor: string; per_page: number}) => [
-        `/organizations/${organization.slug}/autofix/automation-settings/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: {cursor, per_page}},
       ],
       [organization.slug]
@@ -121,14 +124,23 @@ export function useUpdateBulkAutofixAutomationSettings(
     mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
         method: 'POST',
-        url: `/organizations/${organization.slug}/autofix/automation-settings/`,
+        url: getApiUrl(
+          `/organizations/$organizationIdOrSlug/autofix/automation-settings/`,
+          {
+            path: {organizationIdOrSlug: organization.slug},
+          }
+        ),
         data,
       });
     },
     ...options,
     onSettled: (...args) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+        queryKey: [
+          getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
       const [, , data] = args;
       data.projectIds.forEach(projectId => {
@@ -138,11 +150,28 @@ export function useUpdateBulkAutofixAutomationSettings(
         }
         // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [`/projects/${organization.slug}/${project.slug}/`],
+          queryKey: [
+            getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+              },
+            }),
+          ],
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [`/projects/${organization.slug}/${project.slug}/seer/preferences/`],
+          queryKey: [
+            getApiUrl(
+              `/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/`,
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }
+            ),
+          ],
         });
       });
 

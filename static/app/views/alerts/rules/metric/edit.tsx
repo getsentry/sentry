@@ -1,8 +1,9 @@
 import {useCallback, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

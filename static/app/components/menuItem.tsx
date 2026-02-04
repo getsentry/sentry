@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 
-import type {LinkProps} from 'sentry/components/core/link';
-import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 
 type MenuItemProps = {
@@ -214,10 +214,10 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return css`
       ${common}
       color: ${props.theme.colors.white};
-      background: ${props.theme.tokens.interactive.link.accent.active};
+      background: ${props.theme.tokens.background.accent.vibrant};
 
       &:hover {
-        background: ${props.theme.tokens.interactive.link.accent.hover};
+        background: ${props.theme.tokens.interactive.chonky.embossed.accent.background};
       }
     `;
   }

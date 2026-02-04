@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import type {FlexProps} from 'sentry/components/core/layout/flex';
-import {Heading} from 'sentry/components/core/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 
 function StepContainer({children}: {children: React.ReactNode}) {

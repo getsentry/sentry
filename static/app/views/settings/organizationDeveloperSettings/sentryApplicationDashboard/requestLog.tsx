@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button, StyledButton} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button, StyledButton} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,6 +26,7 @@ import type {
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -121,7 +122,12 @@ function makeRequestLogQueryKey(
   slug: string,
   query: Record<string, string>
 ): ApiQueryKey {
-  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+      path: {sentryAppIdOrSlug: slug},
+    }),
+    {query},
+  ];
 }
 
 export default function RequestLog({app}: RequestLogProps) {

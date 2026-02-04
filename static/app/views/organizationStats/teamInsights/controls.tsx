@@ -4,7 +4,8 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   TimeRangeSelector,

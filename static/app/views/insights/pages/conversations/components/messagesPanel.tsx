@@ -1,15 +1,17 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ClippedBox from 'sentry/components/clippedBox';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconUser} from 'sentry/icons';
+import {IconFire, IconUser} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -19,6 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 interface ToolCall {
+  hasError: boolean;
   name: string;
   nodeId: string;
 }
@@ -81,7 +84,7 @@ function findToolCallsBetween(
     })
     .map(span => {
       const name = span.attributes?.[SpanFields.GEN_AI_TOOL_NAME] as string | undefined;
-      return name ? {name, nodeId: span.id} : null;
+      return name ? {name, nodeId: span.id, hasError: hasError(span)} : null;
     })
     .filter((tc): tc is ToolCall => tc !== null);
 }
@@ -113,7 +116,7 @@ function parseUserContent(node: AITraceSpanNode): string | null {
     | undefined;
 
   const requestMessages =
-    inputMessages ??
+    inputMessages ||
     (node.attributes?.[SpanFields.GEN_AI_REQUEST_MESSAGES] as string | undefined);
 
   if (!requestMessages) {
@@ -284,7 +287,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'assistant' ? 'end' : 'start'}>
+              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
                 {message.role === 'user' ? <IconUser size="sm" /> : <IconBot size="sm" />}
                 <Text bold size="sm">
                   {message.role === 'user' ? t('User') : t('Assistant')}
@@ -328,7 +331,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                       return (
                         <ClickableTag
                           key={tool.nodeId}
-                          variant="info"
+                          variant={tool.hasError ? 'danger' : 'info'}
+                          icon={tool.hasError ? <IconFire /> : undefined}
+                          hasError={tool.hasError}
                           isSelected={isToolSelected}
                           onClick={e => {
                             e.stopPropagation();
@@ -374,21 +379,34 @@ const MessageBubble = styled('div')<{
   isClickable?: boolean;
   isSelected?: boolean;
 }>`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
+  z-index: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
   width: 90%;
-  align-self: ${p => (p.role === 'user' ? 'flex-start' : 'flex-end')};
+  align-self: ${p => (p.role === 'user' ? 'flex-end' : 'flex-start')};
   background-color: ${p =>
     p.role === 'user'
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: inherit;
+    box-sizing: border-box;
+    z-index: 1;
+    pointer-events: none;
+  }
   ${p =>
     p.isClickable &&
     `
     cursor: pointer;
-    &:hover {
+    &:hover::after {
       border-color: ${p.theme.tokens.border.accent.moderate};
+    }
+    &:hover {
       background-color: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
     &:active {
@@ -398,8 +416,13 @@ const MessageBubble = styled('div')<{
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
-    outline-offset: -2px;
+    &::after {
+      border-color: ${p.theme.tokens.focus.default};
+      border-width: 2px;
+    }
+    &:hover::after {
+      border-color: ${p.theme.tokens.focus.default};
+    }
   `}
 `;
 
@@ -411,7 +434,7 @@ const ToolCallsFooter = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
+const ClickableTag = styled(Tag)<{hasError?: boolean; isSelected?: boolean}>`
   cursor: pointer;
   &:hover {
     opacity: 0.8;
@@ -419,7 +442,7 @@ const ClickableTag = styled(Tag)<{isSelected?: boolean}>`
   ${p =>
     p.isSelected &&
     `
-    outline: 2px solid ${p.theme.tokens.focus.default};
+    outline: 2px solid ${p.hasError ? p.theme.tokens.content.danger : p.theme.tokens.focus.default};
     outline-offset: -2px;
   `}
 `;

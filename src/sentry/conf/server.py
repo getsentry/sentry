@@ -71,7 +71,8 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        if "SENTRY_RUNNING_UWSGI" in os.environ:
+        # TODO: check this is actually still correct, since granian doesn't fork
+        if "SENTRY_RUNNING_GRANIAN" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -896,6 +897,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
+    "sentry.seer.entrypoints.integrations.slack",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -2758,7 +2760,7 @@ BETA_GROUPING_CONFIG = ""
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_UWSGI = True
+SENTRY_USE_GRANIAN = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
@@ -3122,7 +3124,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",

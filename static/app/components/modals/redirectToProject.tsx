@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';

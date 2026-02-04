@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {Badge} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

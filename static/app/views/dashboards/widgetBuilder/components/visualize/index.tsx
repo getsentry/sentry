@@ -5,14 +5,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
-import {Input} from 'sentry/components/core/input';
-import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
@@ -47,7 +46,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
@@ -286,7 +285,7 @@ function Visualize({error, setError}: VisualizeProps) {
   const isEditing = useIsEditingWidget();
   const disableTransactionWidget = useDisableTransactionWidget();
 
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
   let hiddenKeys: string[] = [];
@@ -348,9 +347,12 @@ function Visualize({error, setError}: VisualizeProps) {
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
-  const fields = isChartWidget ? state.yAxis : state.fields;
+  // Determines which state field stores the visualization fields:
+  // - Time-series charts (Line, Area, Bar): use state.yAxis for aggregates
+  // - Tables, Big Numbers: use state.fields for all columns (fields + aggregates)
+  const fields = isTimeSeriesWidget ? state.yAxis : state.fields;
   const linkedDashboards = state.linkedDashboards || [];
-  const updateAction = isChartWidget
+  const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
     : BuilderStateAction.SET_FIELDS;
 
@@ -416,7 +418,8 @@ function Visualize({error, setError}: VisualizeProps) {
 
   // Default field to add to the widget query when adding a new field.
   const defaultField =
-    (isChartWidget && datasetConfig.defaultSeriesField) || datasetConfig.defaultField;
+    (isTimeSeriesWidget && datasetConfig.defaultSeriesField) ||
+    datasetConfig.defaultField;
 
   const baseAggregateOptions = useMemo(
     () =>
@@ -451,7 +454,7 @@ function Visualize({error, setError}: VisualizeProps) {
   // imposed by the aggregate filtering its possible columns
   const tableFieldOptions = useMemo(() => {
     if (
-      isChartWidget ||
+      isTimeSeriesWidget ||
       isBigNumberWidget ||
       state.dataset === WidgetType.ISSUE ||
       state.dataset === WidgetType.SPANS ||
@@ -478,10 +481,10 @@ function Visualize({error, setError}: VisualizeProps) {
           ),
       }))
       .sort(_sortFn);
-  }, [isChartWidget, isBigNumberWidget, state.dataset, fieldOptions]);
+  }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    if (isChartWidget || isBigNumberWidget) {
+    if (isTimeSeriesWidget || isBigNumberWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -512,7 +515,7 @@ function Visualize({error, setError}: VisualizeProps) {
     // Add column options to the aggregate dropdown for non-Issue and non-Spans datasets
     return {type: 'table' as const, options: [...baseOptions, ...tableFieldOptions]};
   }, [
-    isChartWidget,
+    isTimeSeriesWidget,
     isBigNumberWidget,
     state.dataset,
     baseAggregateOptions,
@@ -524,9 +527,9 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={isChartWidget ? t('Visualize') : t('Columns')}
+        title={isTimeSeriesWidget ? t('Visualize') : t('Columns')}
         tooltipText={
-          isChartWidget
+          isTimeSeriesWidget
             ? t(
                 'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
               )
@@ -534,7 +537,7 @@ function Visualize({error, setError}: VisualizeProps) {
         }
       />
       <StyledFieldGroup
-        error={isChartWidget ? aggregateErrors : fieldErrors}
+        error={isTimeSeriesWidget ? aggregateErrors : fieldErrors}
         inline={false}
         flexibleControlStateSize
       >
@@ -587,7 +590,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 // For charts, we show aggregate parameter options for the y-axis as primary options.
                 // For tables, we show all string tags and fields as primary options, as well
                 // as aggregates that don't take parameters.
-                const columnFilterMethod = isChartWidget
+                const columnFilterMethod = isTimeSeriesWidget
                   ? datasetConfig.filterYAxisAggregateParams?.(
                       field,
                       state.displayType ?? DisplayType.LINE
@@ -847,8 +850,8 @@ function Visualize({error, setError}: VisualizeProps) {
                             </Fragment>
                           )}
                         </FieldBar>
-                        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-                          {!isChartWidget && !isBigNumberWidget && (
+                        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
+                          {!isTimeSeriesWidget && !isBigNumberWidget && (
                             <LegendAliasInput
                               name="alias"
                               placeholder={t('Add Alias')}
@@ -986,7 +989,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 aggregates={aggregates}
                 fields={fields ?? []}
                 isBigNumberWidget={isBigNumberWidget}
-                isChartWidget={isChartWidget}
+                isTimeSeriesWidget={isTimeSeriesWidget}
                 stringFields={stringFields ?? []}
               />
             )}
@@ -994,7 +997,7 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      {(isChartWidget ||
+      {(isTimeSeriesWidget ||
         isTableWidget ||
         (isBigNumberWidget && datasetConfig.enableEquations)) && (
         <AddButtons>
@@ -1002,7 +1005,7 @@ function Visualize({error, setError}: VisualizeProps) {
             priority="link"
             disabled={disableTransactionWidget}
             aria-label={
-              isChartWidget
+              isTimeSeriesWidget
                 ? t('Add Series')
                 : isBigNumberWidget
                   ? t('Add Field')
@@ -1025,7 +1028,7 @@ function Visualize({error, setError}: VisualizeProps) {
               });
             }}
           >
-            {isChartWidget
+            {isTimeSeriesWidget
               ? t('+ Add Series')
               : isBigNumberWidget
                 ? t('+ Add Field')
@@ -1147,11 +1150,11 @@ export function FieldRow(props: FlexProps<'div'>) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 
-export const FieldExtras = styled('div')<{isChartWidget: boolean}>`
+export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: ${p => (p.isChartWidget ? '0' : '1')};
+  flex: ${p => (p.compact ? '0' : '1')};
   align-items: center;
 `;
 

@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
