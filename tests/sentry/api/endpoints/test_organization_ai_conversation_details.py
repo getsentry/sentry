@@ -9,6 +9,9 @@ from sentry.testutils.helpers.datetime import before_now
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
+# Tests should use timestamps within 30 days as the endpoint enforces this limit
+MAX_DAYS_AGO = 25
+
 
 class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversation-details"
@@ -45,7 +48,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_conversation_not_found(self) -> None:
         """Test endpoint returns empty list when no spans match conversation ID"""
-        now = before_now(days=10).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         other_conversation_id = uuid4().hex
 
@@ -68,7 +71,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_single_trace_conversation(self) -> None:
         """Test returns all spans for a conversation in a single trace"""
-        now = before_now(days=20).replace(microsecond=0)
+        now = before_now(days=10).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -120,7 +123,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_multi_trace_conversation(self) -> None:
         """Test returns all spans for a conversation across multiple traces"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=15).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
@@ -175,7 +178,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_conversation_attributes(self) -> None:
         """Test that the endpoint returns all AI conversation attributes"""
-        now = before_now(days=40).replace(microsecond=0)
+        now = before_now(days=20).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -230,7 +233,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
-        now = before_now(days=50).replace(microsecond=0)
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -276,7 +279,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_span_ordering(self) -> None:
         """Test spans are ordered by timestamp ascending"""
-        now = before_now(days=60).replace(microsecond=0)
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -311,7 +314,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_only_returns_matching_conversation(self) -> None:
         """Test that only spans from the requested conversation are returned"""
-        now = before_now(days=70).replace(microsecond=0)
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
         trace_id = uuid4().hex
@@ -361,7 +364,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_tool_attributes(self) -> None:
         """Test that tool spans include gen_ai.tool.name attribute"""
-        now = before_now(days=80).replace(microsecond=0)
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -389,29 +392,132 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
 
-    def test_stats_period_is_ignored(self) -> None:
-        """Test that statsPeriod parameter is ignored so old links still work"""
-        timestamp = before_now(days=90).replace(microsecond=0)
+    def test_stats_period_exceeds_30_days(self) -> None:
+        """Test that statsPeriod > 30d returns 400"""
+        conversation_id = uuid4().hex
+
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "60d",
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 400
+        assert "statsPeriod cannot exceed 30 days" in response.data["detail"]
+
+    def test_stats_period_within_30_days(self) -> None:
+        """Test that statsPeriod <= 30d is accepted"""
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
         self.store_ai_span(
             conversation_id=conversation_id,
-            timestamp=timestamp,
+            timestamp=now,
             op="gen_ai.chat",
             trace_id=trace_id,
         )
 
-        # Use explicit start/end that includes the span, but add statsPeriod=1h
-        # which would normally restrict to last hour and exclude our 90-day-old span
         query = {
             "project": [self.project.id],
-            "start": (timestamp - timedelta(hours=1)).isoformat(),
-            "end": (timestamp + timedelta(hours=1)).isoformat(),
-            "statsPeriod": "1h",  # This should be ignored
+            "statsPeriod": "30d",
         }
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_start_end_older_than_30_days(self) -> None:
+        """Test that start older than 30 days returns 400"""
+        conversation_id = uuid4().hex
+        old_start = before_now(days=45).replace(microsecond=0)
+        old_end = before_now(days=40).replace(microsecond=0)
+
+        query = {
+            "project": [self.project.id],
+            "start": old_start.isoformat(),
+            "end": old_end.isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 400
+        assert "Cannot query data older than 30 days" in response.data["detail"]
+
+    def test_start_end_range_exceeds_30_days(self) -> None:
+        """Test that date range > 30d returns 400"""
+        conversation_id = uuid4().hex
+        now = before_now(days=0).replace(microsecond=0)
+        start = now - timedelta(days=35)
+
+        query = {
+            "project": [self.project.id],
+            "start": start.isoformat(),
+            "end": now.isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 400
+        # Could be either "Cannot query data older than 30 days" or "Date range cannot exceed 30 days"
+        assert "30 days" in response.data["detail"]
+
+    def test_start_end_within_30_days(self) -> None:
+        """Test that start/end within 30 days is accepted"""
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_default_stats_period_when_none_provided(self) -> None:
+        """Test that statsPeriod defaults to 30d when no time params provided"""
+        now = before_now(days=MAX_DAYS_AGO).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        # No statsPeriod or start/end provided
+        query = {
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        # Span stored 25 days ago should be returned since default is 30d
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_invalid_stats_period(self) -> None:
+        """Test that invalid statsPeriod returns 400"""
+        conversation_id = uuid4().hex
+
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "invalid",
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 400
+        assert "Invalid statsPeriod" in response.data["detail"]

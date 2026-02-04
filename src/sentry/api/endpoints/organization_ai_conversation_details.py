@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,8 +13,12 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.utils import parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.dates import parse_stats_period
+
+MAX_ALLOWED_PERIOD = timedelta(days=30)
 
 # Base span fields always returned
 AI_CONVERSATION_ATTRIBUTES = [
@@ -56,13 +63,57 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
 
-        # Ignore statsPeriod so old links don't fail when opened later
         mutable_query = request.GET.copy()
-        mutable_query.pop("statsPeriod", None)
-        # Temporal hack: Use 29d due to EAP sampling behavior - anything with
-        # statsPeriod longer than 30d will go to tier 8
-        mutable_query["statsPeriod"] = "29d"
-        request.GET = mutable_query  # type: ignore[assignment]
+
+        start_param = request.GET.get("start")
+        end_param = request.GET.get("end")
+        stats_period = request.GET.get("statsPeriod")
+
+        now = timezone.now()
+
+        if start_param and end_param:
+            try:
+                start_dt = parse_datetime_string(start_param)
+                end_dt = parse_datetime_string(end_param)
+            except Exception:
+                return Response(
+                    {"detail": "Invalid start or end date format."},
+                    status=400,
+                )
+
+            if start_dt < now - MAX_ALLOWED_PERIOD:
+                return Response(
+                    {
+                        "detail": "Cannot query data older than 30 days. Data is sampled beyond this period."
+                    },
+                    status=400,
+                )
+
+            if end_dt - start_dt > MAX_ALLOWED_PERIOD:
+                return Response(
+                    {
+                        "detail": "Date range cannot exceed 30 days. Data is sampled beyond this period."
+                    },
+                    status=400,
+                )
+        elif stats_period:
+            parsed_period = parse_stats_period(stats_period)
+            if parsed_period is None:
+                return Response(
+                    {"detail": f"Invalid statsPeriod: {stats_period!r}"},
+                    status=400,
+                )
+            if parsed_period > MAX_ALLOWED_PERIOD:
+                return Response(
+                    {
+                        "detail": "statsPeriod cannot exceed 30 days. Data is sampled beyond this period."
+                    },
+                    status=400,
+                )
+        else:
+            # Default to 30d if no time parameters provided
+            mutable_query["statsPeriod"] = "30d"
+            request.GET = mutable_query  # type: ignore[assignment]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
