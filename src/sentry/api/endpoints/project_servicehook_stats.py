@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.servicehook import ServiceHookEndpoint
+from sentry.models.project import Project
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.tsdb.base import TSDBModel
 
@@ -17,8 +18,7 @@ class ProjectServiceHookStatsEndpoint(ServiceHookEndpoint, StatsMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, hook: ServiceHook, **kwargs) -> Response:
-        project = kwargs["project"]
+    def get(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         stat_args = self._parse_args(request)
 
         stats: dict[int, dict[str, int]] = {}
