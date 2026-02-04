@@ -301,7 +301,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
             [self.detector1.id, self.detector2.id], self.environment
         )
 
-        assert result.all_workflows() == {self.workflow1, self.workflow2}
+        assert result.all_workflows == {self.workflow1, self.workflow2}
 
 
 class TestPopulateDetectorCaches(TestCase):
