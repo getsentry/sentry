@@ -161,11 +161,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         data = serialize(
             event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
         )
-        
+
         # Handle serialization failure gracefully
         if data is None:
             return Response({"detail": "Failed to serialize event"}, status=500)
-        
+
         data["projectSlug"] = project.slug
 
         return Response(data)
