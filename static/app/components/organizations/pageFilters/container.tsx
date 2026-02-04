@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
@@ -12,6 +12,8 @@ import {
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {getStartOfPeriodAgo} from 'sentry/utils/dates';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -73,7 +75,7 @@ function PageFiltersContainer({
   const organization = useOrganization();
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  const {isReady} = usePageFilters();
+  const {isReady, selection} = usePageFilters();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -129,14 +131,32 @@ function PageFiltersContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
 
-  // If the max pickable days is decreased, we need to update the datetime state to the
-  // new max pickable days
+  // If the max pickable days is decreased and the selection exceeds the new max,
+  // update the datetime state to the new max pickable days.
   const previousMaxPickableDays = usePrevious(maxPickableDays);
+  const shouldResetDateTime = useMemo(() => {
+    const {period, start, end} = selection.datetime;
+
+    if (period) {
+      return statsPeriodToDays(period) > maxPickableDays;
+    }
+
+    if (start && end) {
+      const minDate = getStartOfPeriodAgo('days', Math.max(maxPickableDays - 1, 0));
+      return new Date(start).getTime() < minDate.getTime();
+    }
+
+    return false;
+  }, [maxPickableDays, selection.datetime]);
   useLayoutEffect(() => {
     if (
       previousMaxPickableDays !== maxPickableDays &&
       previousMaxPickableDays > maxPickableDays
     ) {
+      if (!shouldResetDateTime) {
+        return;
+      }
+
       const newDateState = getDatetimeFromState({
         period: `${maxPickableDays}d`,
         start: null,
@@ -147,7 +167,7 @@ function PageFiltersContainer({
       });
       updateDateTime(newDateState, router);
     }
-  }, [maxPickableDays, previousMaxPickableDays, router]);
+  }, [maxPickableDays, previousMaxPickableDays, router, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
