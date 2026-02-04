@@ -124,6 +124,7 @@ type Props = {
   isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
 type State = {
@@ -525,6 +526,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 ? this.transactionAlertDisabledMessage
                 : undefined
             }
+            onMetricLoadingChange={this.props.onMetricLoadingChange}
           />
           <Tooltip
             title={this.transactionAlertDisabledMessage}

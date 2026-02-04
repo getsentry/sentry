@@ -22,6 +22,7 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         self.staff_user = self.create_user(email="staff@example.com", is_staff=True)
         self.login_as(self.staff_user, staff=True)
 
+    @override_options({"staff.ga-rollout": True})
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.users.api.endpoints.user_details.capture_security_activity")
     def test_soft_delete_records_analytics_and_security(
@@ -104,6 +105,7 @@ class UserDetailsDeleteAnalyticsTest(APITestCase):
         call_args = mock_analytics.call_args[0][0]
         assert call_args.deletion_request_datetime == call_args.deletion_datetime
 
+    @override_options({"staff.ga-rollout": True})
     @mock.patch("sentry.analytics.record")
     def test_soft_delete_timestamps_differ_by_30_days(self, mock_analytics: mock.MagicMock) -> None:
         self.get_success_response(self.user.id, organizations=[], status_code=204)

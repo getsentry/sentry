@@ -6,11 +6,17 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const MIN_REQUIRED_VERSION = '2.43.0';
+
 export const agentMonitoring: OnboardingConfig = {
+  introduction: params => (
+    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+  ),
   install: () => {
     return [
       {
@@ -20,7 +26,7 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: t('Install our Python SDK:'),
           },
-          getPythonInstallCodeBlock(),
+          getPythonInstallCodeBlock({minimumVersion: MIN_REQUIRED_VERSION}),
         ],
       },
     ];

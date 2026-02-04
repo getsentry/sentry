@@ -12,6 +12,7 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -44,7 +45,10 @@ export function IntegrationReposAddRepository({
 
   const query = useQuery({
     queryKey: [
-      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/`,
+        {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+      ),
       {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
     ] as const,
     queryFn: async context => {

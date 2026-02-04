@@ -2,8 +2,7 @@ import {Fragment} from 'react';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout/container';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import ExternalLink from 'sentry/components/links/externalLink';

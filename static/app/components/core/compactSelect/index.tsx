@@ -11,6 +11,8 @@ export {
 
 export {CompositeSelect, type CompositeSelectProps} from './composite';
 
+export {ControlContext} from './control';
+
 export {
   LeadWrap,
   SectionSeparator,

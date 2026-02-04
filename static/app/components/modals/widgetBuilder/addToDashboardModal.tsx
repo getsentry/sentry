@@ -57,7 +57,7 @@ import {
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
-  isChartDisplayType,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -225,7 +225,7 @@ function AddToDashboardModal({
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(isChartDisplayType(w.displayType) && w.queries[0]!.columns.length)) {
+      if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
       const queries = w.queries.map(query => ({
