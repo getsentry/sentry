@@ -378,6 +378,7 @@ export function agentMonitoring({
     install: params =>
       getInstallStep(params, {
         packageName,
+        minVersion,
       }),
     configure: params => {
       const selected = getAgentIntegration(params);
