@@ -470,8 +470,10 @@ def taskbroker_send_tasks(
 @click.option(
     "--choices",
     type=str,
-    help="List of task length choices separated by commas (like '1,2,3,5')",
-    callback=lambda ctx, param, value: [int(x.strip()) for x in value.split(",")] if value else [],
+    help="List of task length choices separated by commas (like '1.5,2.0,3.5,5.0')",
+    callback=lambda ctx, param, value: (
+        [float(x.strip()) for x in value.split(",")] if value else []
+    ),
 )
 @click.option(
     "--bootstrap-servers",
@@ -482,7 +484,7 @@ def taskbroker_send_tasks(
 def taskbroker_send_timed_tasks(
     seed: int,
     count: int,
-    choices: list[int],
+    choices: list[float],
     bootstrap_servers: str,
 ) -> None:
     if not choices:
