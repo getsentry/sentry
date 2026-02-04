@@ -21,7 +21,7 @@ class DetectorSignalCacheInvalidationTests(TestCase):
         self.workflow = self.create_workflow()
         self.dw = self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
-    @patch("sentry.workflow_engine.models.signals.detector.invalidate_processing_workflows")
+    @patch("sentry.workflow_engine.receivers.detector.invalidate_processing_workflows")
     def test_cache_invalidate__create_detector(self, mock_invalidate: MagicMock) -> None:
         detector = Detector.objects.create(
             project=self.project, type=ErrorGroupType.slug, config={}
@@ -31,7 +31,7 @@ class DetectorSignalCacheInvalidationTests(TestCase):
         mock_invalidate.assert_not_called()
         assert detector
 
-    @patch("sentry.workflow_engine.models.signals.detector.invalidate_processing_workflows")
+    @patch("sentry.workflow_engine.receivers.detector.invalidate_processing_workflows")
     def test_cache_invalidate__modify_detector(self, mock_invalidate: MagicMock) -> None:
         self.detector.enabled = False
         self.detector.save()

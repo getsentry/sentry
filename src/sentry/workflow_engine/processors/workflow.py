@@ -1,4 +1,4 @@
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum

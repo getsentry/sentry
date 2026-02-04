@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from sentry.testutils.cases import TestCase
 
 
-class DetectorWorkflowSignalsTests(TestCase):
+class DetectorWorkflowReceiverTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.environment = self.create_environment()
@@ -11,9 +11,7 @@ class DetectorWorkflowSignalsTests(TestCase):
         self.detector = self.create_detector()
         self.dw = self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
-    @patch(
-        "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
-    )
+    @patch("sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows")
     def test_cache_invalidate__on_create(self, mock_invalidate: MagicMock) -> None:
         detector = self.create_detector()
         workflow = self.create_workflow()
@@ -25,9 +23,7 @@ class DetectorWorkflowSignalsTests(TestCase):
 
         mock_invalidate.assert_called_once_with(detector.id, None)
 
-    @patch(
-        "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
-    )
+    @patch("sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows")
     def test_cache_invalidate__on_update__detector(self, mock_invalidate: MagicMock) -> None:
         detector = self.create_detector()
         self.dw.detector = detector
@@ -37,9 +33,7 @@ class DetectorWorkflowSignalsTests(TestCase):
         mock_invalidate.assert_any_call(self.detector.id, self.environment.id)
         mock_invalidate.assert_any_call(detector.id, self.environment.id)
 
-    @patch(
-        "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
-    )
+    @patch("sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows")
     def test_cache_invalidate__on_update__workflow(self, mock_invalidate: MagicMock) -> None:
         workflow = self.create_workflow()
         self.dw.workflow = workflow
@@ -49,9 +43,7 @@ class DetectorWorkflowSignalsTests(TestCase):
         mock_invalidate.assert_any_call(self.detector.id, self.environment.id)
         mock_invalidate.assert_any_call(self.detector.id, None)
 
-    @patch(
-        "sentry.workflow_engine.models.signals.detector_workflow.invalidate_processing_workflows"
-    )
+    @patch("sentry.workflow_engine.receivers.detector_workflow.invalidate_processing_workflows")
     def test_cache_invalidate__on_delete(self, mock_invalidate: MagicMock) -> None:
         self.dw.delete()
         mock_invalidate.assert_called_once_with(self.detector.id, self.environment.id)
