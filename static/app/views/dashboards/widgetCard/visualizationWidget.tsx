@@ -17,6 +17,7 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   SeriesColorIndicator,
@@ -193,19 +194,19 @@ function VisualizationWidgetContent({
         const label = plottable?.label ?? series.seriesName;
         return (
           <Fragment key={series.seriesName}>
-            <div>
+            <Container>
               <SeriesColorIndicator
                 style={{
                   backgroundColor: colorPalette[index],
                 }}
               />
-            </div>
+            </Container>
             <Tooltip title={label} showOnlyOnOverflow>
               <SeriesNameCell>{label}</SeriesNameCell>
             </Tooltip>
-            <div>
+            <TextAlignRight>
               {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
-            </div>
+            </TextAlignRight>
           </Fragment>
         );
       })}
