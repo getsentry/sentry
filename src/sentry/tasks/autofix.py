@@ -61,6 +61,12 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     sentry_sdk.set_tag("trigger_path", trigger_path)
 
     group = Group.objects.get(id=group_id)
+    organization = group.project.organization
+    metrics.incr(
+        "sentry.tasks.autofix.generate_summary_and_run_automation",
+        tags={"organization": organization.slug, "organization_id": organization.id},
+        sample_rate=1.0,
+    )
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
 
@@ -86,9 +92,10 @@ def generate_issue_summary_only(group_id: int) -> None:
 
     group = Group.objects.get(id=group_id)
     organization = group.project.organization
-    logger.info(
-        "Task: generate_issue_summary_only",
-        extra={"org_id": organization.id, "org_slug": organization.slug},
+    metrics.incr(
+        "sentry.tasks.autofix.generate_issue_summary_only",
+        tags={"organization": organization.slug, "organization_id": organization.id},
+        sample_rate=1.0,
     )
     summary_data, status_code = get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
@@ -124,9 +131,10 @@ def run_automation_only_task(group_id: int) -> None:
 
     group = Group.objects.get(id=group_id)
     organization = group.project.organization
-    logger.info(
-        "Task: run_automation_only_task",
-        extra={"org_id": organization.id, "org_slug": organization.slug},
+    metrics.incr(
+        "sentry.tasks.autofix.run_automation_only_task",
+        tags={"organization": organization.slug, "organization_id": organization.id},
+        sample_rate=1.0,
     )
 
     event = group.get_latest_event()
