@@ -3,15 +3,16 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
+import {CopyAsButton} from 'sentry/components/copyAs';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourElement} from 'sentry/components/tours/components';
-import {IconTelescope} from 'sentry/icons';
+import {IconCopy, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -248,6 +249,18 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                       </LinkButton>
                     </Feature>
                   )}
+                  <CopyAsButton
+                    size="xs"
+                    items={[
+                      {
+                        key: 'copy-markdown',
+                        label: t('Markdown'),
+                        onAction: () => null,
+                      },
+                    ]}
+                    markdown={() => ''}
+                    text={() => ''}
+                  />
                   {issueTypeConfig.pages.openPeriods.enabled && (
                     <LinkButton
                       to={{

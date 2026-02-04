@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {StyledButton} from '@sentry/scraps/button';
-
 import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
@@ -39,6 +37,7 @@ const MergedButtonBarStyles = () => css`
     z-index: 2;
   }
 
+  & > [role='presentation'],
   & > .dropdown,
   & > button,
   & > input,
@@ -50,38 +49,29 @@ const MergedButtonBarStyles = () => css`
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
     }
 
     /* Middle buttons are square */
-    &:not(:last-child):not(:first-child) {
+    &:not(:last-child):not(:first-child),
+    &[role='presentation']:not(:last-child):not(:first-child) > button {
       border-radius: 0;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button {
         border-radius: 0;
       }
     }
 
     /* Middle buttons only need one border so we don't get a double line */
     &:first-child {
+      & + [role='presentation'] > button,
       & + .dropdown:not(:last-child),
       & + a:not(:last-child),
       & + input:not(:last-child),
       & + button:not(:last-child) {
-        margin-left: -1px;
-      }
-    }
-
-    /* Middle buttons only need one border so we don't get a double line */
-    /* stylelint-disable-next-line no-duplicate-selectors */
-    &:not(:last-child):not(:first-child) {
-      & + .dropdown,
-      & + button,
-      & + input,
-      & + a {
         margin-left: -1px;
       }
     }
@@ -92,7 +82,8 @@ const MergedButtonBarStyles = () => css`
       border-bottom-left-radius: 0;
       margin-left: -1px;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button,
+      &[role='presentation'] > button {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         margin-left: -1px;

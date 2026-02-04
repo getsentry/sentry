@@ -98,7 +98,7 @@ export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownPr
   return (
     <DropdownMenu
       size="xs"
-      triggerLabel={t('Copy')}
+      triggerLabel={t('Copy As')}
       triggerProps={{
         title: t('Copy Breadcrumbs'),
         icon: <IconCopy />,
@@ -107,12 +107,12 @@ export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownPr
       items={[
         {
           key: 'copy-text',
-          label: t('As Text'),
+          label: t('Text'),
           onAction: handleCopyAsText,
         },
         {
           key: 'copy-markdown',
-          label: t('As Markdown'),
+          label: t('Markdown'),
           onAction: handleCopyAsMarkdown,
         },
       ]}
