@@ -231,7 +231,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON value={responseObject} />
+          {renderAIResponse(responseObject)}
         </Fragment>
       )}
       {toolCalls && (
