@@ -70,8 +70,7 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>,
-    rtl.RenderOptions {
+  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>, rtl.RenderOptions {
   /**
    * @deprecated do not use this option for new tests
    *
