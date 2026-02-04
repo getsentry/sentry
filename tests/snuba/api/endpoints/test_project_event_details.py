@@ -198,7 +198,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         # Event without release (should be filtered out)
         self.store_event(
             data={
-                "event_id": "g" * 32,
+                "event_id": "1" * 32,
                 "timestamp": before_now(minutes=9).isoformat(),
                 "fingerprint": ["group-1"],
             },
