@@ -109,13 +109,17 @@ class GitHubProvider(Provider):
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        # Fetch reactions to find the ID for the given reaction type
+        # Fetch reactions to find the ID for the given reaction type, filtered by current user
         reactions = self.client.get(
             f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions"
         )
+        current_user = self.client.get("/user").get("login")
         reaction_content = REACTION_MAP[reaction].value
         for r in reactions:
-            if r["content"] == reaction_content:
+            if (
+                r.get("user", {}).get("login") == current_user
+                and r.get("content") == reaction_content
+            ):
                 self.client.delete(
                     f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{r['id']}"
                 )
@@ -135,10 +139,14 @@ class GitHubProvider(Provider):
         self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        # Fetch reactions to find the ID for the given reaction type
+        # Fetch reactions to find the ID for the given reaction type, filtered by current user
         reactions = self.client.get_issue_reactions(repository["name"], issue_id)
+        current_user = self.client.get("/user").get("login")
         reaction_content = REACTION_MAP[reaction].value
         for r in reactions:
-            if r["content"] == reaction_content:
+            if (
+                r.get("user", {}).get("login") == current_user
+                and r.get("content") == reaction_content
+            ):
                 self.client.delete_issue_reaction(repository["name"], issue_id, str(r["id"]))
                 return
