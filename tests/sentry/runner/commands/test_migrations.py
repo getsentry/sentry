@@ -33,8 +33,14 @@ class MigrationsRunTest(TransactionTestCase):
             result = self.invoke("run", "migration_test_app", "0001")
 
             assert result.exit_code == 0, result.output
-            assert "Running post-deployment migration for default" in result.output
-            assert "Running post-deployment migration for control" in result.output
+            assert (
+                "Running post-deployment migration for connection default as postgres"
+                in result.output
+            )
+            assert (
+                "Running post-deployment migration for connection control as postgres"
+                in result.output
+            )
             assert "Migration complete" in result.output
 
             connection = connections["default"]
