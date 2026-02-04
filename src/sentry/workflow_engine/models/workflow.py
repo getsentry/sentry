@@ -6,8 +6,6 @@ from typing import Any, ClassVar, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -168,8 +166,3 @@ def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
         if is_slow_condition(condition)
     ]
     return slow_conditions
-
-
-@receiver(pre_save, sender=Workflow)
-def enforce_config_schema(sender, instance: Workflow, **kwargs):
-    instance.validate_config(instance.config_schema)
