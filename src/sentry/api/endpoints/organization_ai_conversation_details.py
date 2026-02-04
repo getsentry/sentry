@@ -59,6 +59,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         # Ignore statsPeriod so old links don't fail when opened later
         mutable_query = request.GET.copy()
         mutable_query.pop("statsPeriod", None)
+        # Temporal hack: Use 29d due to EAP sampling behavior - anything with
+        # statsPeriod longer than 30d will go to tier 8
+        mutable_query["statsPeriod"] = "29d"
         request.GET = mutable_query  # type: ignore[assignment]
 
         try:
