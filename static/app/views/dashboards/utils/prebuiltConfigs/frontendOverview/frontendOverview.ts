@@ -24,7 +24,7 @@ const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addFilterValue(
   'span.op',
-  `[${[FRONTEND_OVERVIEW_PAGE_OPS, WEB_VITALS_OPS].join(',')}]`
+  `[${[...FRONTEND_OVERVIEW_PAGE_OPS, ...WEB_VITALS_OPS].join(',')}]`
 );
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
