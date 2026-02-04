@@ -9,8 +9,7 @@ import type {BaseChartProps} from './baseChart';
 import BaseChart from './baseChart';
 
 interface HeatmapSeries
-  extends Series,
-    Omit<HeatmapSeriesOption, 'data' | 'name' | 'color' | 'id'> {
+  extends Series, Omit<HeatmapSeriesOption, 'data' | 'name' | 'color' | 'id'> {
   dataArray?: HeatmapSeriesOption['data'];
 }
 

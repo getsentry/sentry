@@ -10,8 +10,7 @@ interface AiPrivacyNoticeProps {
 }
 
 interface AiPrivacyTooltipProps
-  extends Omit<TooltipProps, 'title' | 'children'>,
-    AiPrivacyNoticeProps {
+  extends Omit<TooltipProps, 'title' | 'children'>, AiPrivacyNoticeProps {
   children: ReactNode;
 }
 

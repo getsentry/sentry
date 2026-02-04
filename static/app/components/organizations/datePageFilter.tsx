@@ -7,12 +7,9 @@ import useRouter from 'sentry/utils/useRouter';
 
 import {DesyncedFilterMessage} from './pageFilters/desyncedFilter';
 
-export interface DatePageFilterProps
-  extends Partial<
-    Partial<
-      Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>
-    >
-  > {
+export interface DatePageFilterProps extends Partial<
+  Partial<Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
+> {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */

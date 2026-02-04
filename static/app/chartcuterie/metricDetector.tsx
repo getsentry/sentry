@@ -88,8 +88,10 @@ export function makeMetricDetectorCharts(
     ...slackChartSize,
   });
 
-  interface MetricDetectorSessionData
-    extends Omit<MetricDetectorChartData, 'timeseriesData'> {
+  interface MetricDetectorSessionData extends Omit<
+    MetricDetectorChartData,
+    'timeseriesData'
+  > {
     sessionResponse: SessionApiResponse;
   }
 

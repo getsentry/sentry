@@ -372,9 +372,8 @@ export function CreateProject() {
         return;
       }
 
-      const {FrameworkSuggestionModal, modalCss} = await import(
-        'sentry/components/onboarding/frameworkSuggestionModal'
-      );
+      const {FrameworkSuggestionModal, modalCss} =
+        await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
         deps => (

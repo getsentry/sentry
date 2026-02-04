@@ -41,7 +41,8 @@ import type {User} from './user';
  * the sentry frontend application.
  */
 export interface Hooks
-  extends RouteHooks,
+  extends
+    RouteHooks,
     ComponentHooks,
     CustomizationHooks,
     AnalyticsHooks,

@@ -59,18 +59,16 @@ export async function openEmailVerification({
   onClose,
   ...args
 }: EmailVerificationModalOptions = {}) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/emailVerificationModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/emailVerificationModal');
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
-interface OpenDiffModalOptions
-  extends Omit<
-    React.ComponentProps<typeof import('sentry/components/modals/diffModal').default>,
-    ModalRenderPropKeys
-  > {
+interface OpenDiffModalOptions extends Omit<
+  React.ComponentProps<typeof import('sentry/components/modals/diffModal').default>,
+  ModalRenderPropKeys
+> {
   project: Project;
 }
 
@@ -117,9 +115,8 @@ type CreateOwnershipRuleModalOptions = {
 export async function openIssueOwnershipRuleModal(
   options: CreateOwnershipRuleModalOptions
 ) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/issueOwnershipRuleModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/issueOwnershipRuleModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     modalCss: modalCss(options.theme),
@@ -135,9 +132,8 @@ export type EditOwnershipRulesModalOptions = {
 };
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/editOwnershipRulesModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/editOwnershipRulesModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
@@ -146,17 +142,15 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
 }
 
 export async function openCommandPaletteDeprecated(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/deprecatedCommandPalette'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/deprecatedCommandPalette');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/commandPalette/ui/modal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/commandPalette/ui/modal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -178,9 +172,8 @@ export type TeamAccessRequestModalOptions = {
 };
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/teamAccessRequestModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/teamAccessRequestModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
@@ -191,9 +184,8 @@ type HelpSearchModalOptions = {
 };
 
 export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/helpSearchModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/helpSearchModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -210,9 +202,8 @@ export async function openDebugFileSourceModal({
   onClose,
   ...restOptions
 }: DebugFileSourceModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/debugFileCustomRepository'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/debugFileCustomRepository');
 
   openModal(deps => <Modal {...deps} {...restOptions} />, {
     modalCss,
@@ -224,9 +215,8 @@ export async function openInviteMembersModal({
   onClose,
   ...args
 }: InviteMembersModalOptions = {}) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/inviteMembersModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/inviteMembersModal');
 
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
@@ -242,9 +232,8 @@ export async function openInviteMissingMembersModal({
   onClose,
   ...args
 }: InviteMissingMembersModalOptions) {
-  const {InviteMissingMembersModal, modalCss} = await import(
-    'sentry/components/modals/inviteMissingMembersModal'
-  );
+  const {InviteMissingMembersModal, modalCss} =
+    await import('sentry/components/modals/inviteMissingMembersModal');
 
   openModal(deps => <InviteMissingMembersModal {...deps} {...args} />, {
     modalCss,
@@ -253,9 +242,8 @@ export async function openInviteMissingMembersModal({
 }
 
 export async function openAddToDashboardModal(options: AddToDashboardModalProps) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/widgetBuilder/addToDashboardModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
@@ -264,9 +252,8 @@ export async function openAddToDashboardModal(options: AddToDashboardModalProps)
 }
 
 export async function openLinkToDashboardModal(options: LinkToDashboardModalProps) {
-  const {LinkToDashboardModal, modalCss} = await import(
-    'sentry/components/modals/widgetBuilder/linkToDashboardModal'
-  );
+  const {LinkToDashboardModal, modalCss} =
+    await import('sentry/components/modals/widgetBuilder/linkToDashboardModal');
 
   openModal(deps => <LinkToDashboardModal {...deps} {...options} />, {
     closeEvents: 'escape-key',
@@ -277,9 +264,8 @@ export async function openLinkToDashboardModal(options: LinkToDashboardModalProp
 export async function openImportDashboardFromFileModal(
   options: ImportDashboardFromFileModalProps
 ) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/importDashboardFromFileModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/importDashboardFromFileModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
@@ -291,9 +277,8 @@ export async function openReprocessEventModal({
   onClose,
   ...options
 }: ReprocessEventModalOptions & {onClose?: () => void}) {
-  const {ReprocessingEventModal} = await import(
-    'sentry/components/modals/reprocessEventModal'
-  );
+  const {ReprocessingEventModal} =
+    await import('sentry/components/modals/reprocessEventModal');
 
   openModal(deps => <ReprocessingEventModal {...deps} {...options} />, {onClose});
 }
@@ -309,9 +294,8 @@ type DemoEndModalOptions = {
 };
 
 export async function demoEndModal(options: DemoEndModalOptions) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/demoEndModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/demoEndModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -319,9 +303,8 @@ export async function demoEndModal(options: DemoEndModalOptions) {
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/dashboardWidgetQuerySelectorModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
@@ -348,9 +331,8 @@ export async function openWidgetViewerModal({
 }
 
 export async function openCreateNewIntegrationModal() {
-  const {default: Modal} = await import(
-    'sentry/components/modals/createNewIntegrationModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/createNewIntegrationModal');
 
   openModal(deps => <Modal {...deps} />);
 }
@@ -358,9 +340,8 @@ export async function openCreateNewIntegrationModal() {
 export async function openCreateReleaseIntegration(
   options: CreateReleaseIntegrationModalOptions
 ) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/createReleaseIntegrationModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/createReleaseIntegrationModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
@@ -372,17 +353,15 @@ type NavigateToExternalLinkModalOptions = {
 export async function openNavigateToExternalLinkModal(
   options: NavigateToExternalLinkModalOptions
 ) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/navigateToExternalLinkModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/navigateToExternalLinkModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function openProjectCreationModal(options: {defaultCategory: Category}) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/components/modals/projectCreationModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/projectCreationModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
@@ -392,9 +371,8 @@ export async function openConsoleModal(
     onClose?: () => void;
   }
 ) {
-  const {ConsoleModal: Modal, modalCss} = await import(
-    'sentry/components/onboarding/consoleModal'
-  );
+  const {ConsoleModal: Modal, modalCss} =
+    await import('sentry/components/onboarding/consoleModal');
   openModal(deps => <Modal {...deps} {...options} />, {
     modalCss,
     onClose: options.onClose,
@@ -402,9 +380,8 @@ export async function openConsoleModal(
 }
 
 export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
-  const {BulkEditMonitorsModal, modalCss} = await import(
-    'sentry/components/modals/bulkEditMonitorsModal'
-  );
+  const {BulkEditMonitorsModal, modalCss} =
+    await import('sentry/components/modals/bulkEditMonitorsModal');
 
   openModal(deps => <BulkEditMonitorsModal {...deps} {...options} />, {
     modalCss,
@@ -429,17 +406,15 @@ export async function openAddTempestCredentialsModal(options: {
   origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/addTempestCredentialsModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/addTempestCredentialsModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
 export async function openSaveQueryModal(options: SaveQueryModalProps) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/explore/saveQueryModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/explore/saveQueryModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
@@ -447,9 +422,8 @@ export async function openSaveQueryModal(options: SaveQueryModalProps) {
 export async function openTokenRegenerationConfirmationModal(
   options: TokenRegenerationConfirmationModalProps
 ) {
-  const {default: Modal} = await import(
-    'sentry/components/modals/tokenRegenerationConfirmationModal'
-  );
+  const {default: Modal} =
+    await import('sentry/components/modals/tokenRegenerationConfirmationModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
@@ -457,9 +431,8 @@ export async function openTokenRegenerationConfirmationModal(
 export async function openPrivateGamingSdkAccessModal(
   options: PrivateGamingSdkAccessModalProps
 ) {
-  const {PrivateGamingSdkAccessModal} = await import(
-    'sentry/components/modals/privateGamingSdkAccessModal'
-  );
+  const {PrivateGamingSdkAccessModal} =
+    await import('sentry/components/modals/privateGamingSdkAccessModal');
 
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
@@ -470,9 +443,8 @@ type InsightInfoModalOptions = {
 };
 
 export async function openInsightInfoModal(options: InsightInfoModalOptions) {
-  const {InsightInfoModal} = await import(
-    'sentry/views/preprod/buildDetails/main/insights/insightInfoModal'
-  );
+  const {InsightInfoModal} =
+    await import('sentry/views/preprod/buildDetails/main/insights/insightInfoModal');
 
   openModal(deps => <InsightInfoModal {...deps} {...options} />);
 }
@@ -480,9 +452,8 @@ export async function openInsightInfoModal(options: InsightInfoModalOptions) {
 export async function openAttributeBreakdownViewerModal(
   options: AttributeBreakdownViewerModalOptions
 ) {
-  const {default: Modal, modalCss} = await import(
-    'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal'
-  );
+  const {default: Modal, modalCss} =
+    await import('sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

@@ -61,22 +61,16 @@ export type InfiniteApiQueryKey =
       >,
     ];
 
-export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
-  extends Omit<
-    UseQueryOptions<
-      ApiResult<TApiResponse>,
-      TError,
-      ApiResult<TApiResponse>,
-      ApiQueryKey
-    >,
-    // This is an explicit option in our function
-    | 'queryKey'
-    // This will always be a useApi api Query
-    | 'queryFn'
-    // We do not include the select option as this is difficult to make interop
-    // with the way we extract data out of the ApiResult tuple
-    | 'select'
-  > {
+export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
+  UseQueryOptions<ApiResult<TApiResponse>, TError, ApiResult<TApiResponse>, ApiQueryKey>,
+  // This is an explicit option in our function
+  | 'queryKey'
+  // This will always be a useApi api Query
+  | 'queryFn'
+  // We do not include the select option as this is difficult to make interop
+  // with the way we extract data out of the ApiResult tuple
+  | 'select'
+> {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
    * Once data is marked stale, it will be refreshed on the next refetch event, which by default is when:

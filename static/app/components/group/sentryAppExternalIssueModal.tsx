@@ -15,8 +15,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-interface OpenSentryAppIssueModalProps
-  extends Omit<Props, keyof ModalRenderProps | 'disabled'> {
+interface OpenSentryAppIssueModalProps extends Omit<
+  Props,
+  keyof ModalRenderProps | 'disabled'
+> {
   organization: Organization;
 }
 

@@ -19,8 +19,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 
-interface SearchBarDatePickerProps
-  extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
+interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
+  SelectOptionWithKey<string>
+> {
   handleSelectDateTime: (value: string) => void;
   isOpen: boolean;
   dateString?: string;

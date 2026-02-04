@@ -20,22 +20,21 @@ import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export interface HybridFilterProps<Value extends SelectKey>
-  extends Omit<
-    MultipleSelectProps<Value>,
-    | 'grid'
-    | 'multiple'
-    | 'value'
-    | 'defaultValue'
-    | 'onChange'
-    | 'clearable'
-    | 'onClear'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'onKeyUp'
-    | 'onToggle'
-  > {
+export interface HybridFilterProps<Value extends SelectKey> extends Omit<
+  MultipleSelectProps<Value>,
+  | 'grid'
+  | 'multiple'
+  | 'value'
+  | 'defaultValue'
+  | 'onChange'
+  | 'clearable'
+  | 'onClear'
+  | 'onInteractOutside'
+  | 'closeOnSelect'
+  | 'onKeyDown'
+  | 'onKeyUp'
+  | 'onToggle'
+> {
   checkboxPosition: 'leading' | 'trailing';
   /**
    * Default selection value. When the user clicks "Reset", the selection value will

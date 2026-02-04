@@ -33,8 +33,10 @@ import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
 const noopTraceSearch = () => {};
 
-interface IssuesTraceWaterfallProps
-  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers' | 'meta'> {
+interface IssuesTraceWaterfallProps extends Omit<
+  TraceWaterfallProps,
+  'tree' | 'traceWaterfallScrollHandlers' | 'meta'
+> {
   event: Event;
   tree: IssuesTraceTree;
 }

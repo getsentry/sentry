@@ -10,8 +10,10 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-interface ExportProfileButtonProps
-  extends Omit<LinkButtonProps, 'title' | 'onClick' | 'children' | 'external'> {
+interface ExportProfileButtonProps extends Omit<
+  LinkButtonProps,
+  'title' | 'onClick' | 'children' | 'external'
+> {
   eventId: string | undefined;
   orgId: string;
   projectId: string | undefined;

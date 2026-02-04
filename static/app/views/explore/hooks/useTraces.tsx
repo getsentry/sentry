@@ -59,8 +59,10 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions
-  extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
+interface UseTracesOptions extends Pick<
+  UseApiQueryOptions<TraceResults>,
+  'refetchInterval'
+> {
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
   datetime?: PageFilters['datetime'];

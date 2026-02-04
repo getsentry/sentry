@@ -4,11 +4,10 @@ import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replay
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
-interface ReplayClipPreviewProps
-  extends Omit<
-    React.ComponentProps<typeof ReplayClipPreviewPlayer>,
-    'replayReaderResult'
-  > {
+interface ReplayClipPreviewProps extends Omit<
+  React.ComponentProps<typeof ReplayClipPreviewPlayer>,
+  'replayReaderResult'
+> {
   clipOffsets: {
     durationAfterMs: number;
     durationBeforeMs: number;

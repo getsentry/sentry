@@ -388,10 +388,10 @@ export default function ReleasesList() {
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
     selectedProject &&
-      // Has not set up releases
-      !selectedProject?.features.includes('releases') &&
-      // Has no releases
-      !releases?.length
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
   );
   const releasesPageLinks = getReleasesResponseHeader?.('Link');
 

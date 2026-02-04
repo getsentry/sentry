@@ -68,8 +68,9 @@ export interface AttributesFieldRender<RendererExtra extends RenderFunctionBagga
   >;
 }
 
-interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   /**
    * The attributes to show in the attribute tree. If you need to hide any attributes, filter them out before passing them here. If you need extra attribute information for rendering but you don't want to show those attributes, pass that information in the `rendererExtra` prop.
    */
@@ -81,8 +82,9 @@ interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }
 
-interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesTreeProps<RendererExtra> {
+interface AttributesTreeColumnsProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesTreeProps<RendererExtra> {
   columnCount: number;
 }
 
@@ -95,8 +97,9 @@ export interface AttributesTreeRowConfig {
   disableRichValue?: boolean;
 }
 
-interface AttributesTreeRowProps<RendererExtra extends RenderFunctionBaggage>
-  extends AttributesFieldRender<RendererExtra> {
+interface AttributesTreeRowProps<
+  RendererExtra extends RenderFunctionBaggage,
+> extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;

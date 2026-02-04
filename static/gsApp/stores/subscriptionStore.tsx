@@ -23,8 +23,7 @@ interface Internal {
 }
 
 interface SubscriptionStoreDefintion
-  extends StrictStoreDefinition<Subscriptions>,
-    Internal {
+  extends StrictStoreDefinition<Subscriptions>, Internal {
   clearStartedTrial: (orgSlug: string) => void;
   get: (orgSlug: string, callback: GetCallback) => void;
   loadData: (

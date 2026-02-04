@@ -36,8 +36,7 @@ interface IssueListCacheState {
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
-interface IssueListCacheStoreDefinition
-  extends StrictStoreDefinition<IssueListCacheState | null> {
+interface IssueListCacheStoreDefinition extends StrictStoreDefinition<IssueListCacheState | null> {
   getFromCache(params: LooseParamsType): IssueListCache | null;
   markGroupAsSeen(groupId: string): void;
   reset(): void;

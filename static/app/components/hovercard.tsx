@@ -45,11 +45,10 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
 
 type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
 
-interface HovercardContentProps
-  extends Pick<
-    HovercardProps,
-    'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
-  > {
+interface HovercardContentProps extends Pick<
+  HovercardProps,
+  'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
+> {
   hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
 }
 

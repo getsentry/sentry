@@ -22,8 +22,7 @@ import type {InputFieldProps} from './inputField';
 const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps,
-    Omit<ControlProps<OptionType>, 'onChange'> {
+  extends InputFieldProps, Omit<ControlProps<OptionType>, 'onChange'> {
   /**
    * Should the select be clearable?
    */

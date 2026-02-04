@@ -103,7 +103,8 @@ import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEve
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
-  extends GrowthEventParameters,
+  extends
+    GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
     ConversationsEventParameters,

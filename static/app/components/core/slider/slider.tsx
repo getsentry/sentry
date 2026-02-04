@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-interface BaseProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    'type' | 'value' | 'onChange' | 'defaultValue'
-  > {
+interface BaseProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'value' | 'onChange' | 'defaultValue'
+> {
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => React.ReactNode;

@@ -8,11 +8,10 @@ import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
-interface ListLinkProps
-  extends Omit<
-    React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
-    'href' | 'target' | 'as' | 'css' | 'ref'
-  > {
+interface ListLinkProps extends Omit<
+  React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
+  'href' | 'target' | 'as' | 'css' | 'ref'
+> {
   /**
    * Link target. We don't want to expose the ToLocationFunction on this component.
    */

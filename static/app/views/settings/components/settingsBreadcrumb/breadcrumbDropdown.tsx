@@ -16,8 +16,10 @@ import {Text} from '@sentry/scraps/text';
 import Divider from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'clearable'> {
+interface BreadcrumbDropdownProps extends Omit<
+  SingleSelectProps<string>,
+  'onChange' | 'clearable'
+> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;

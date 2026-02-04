@@ -72,8 +72,9 @@ const ChevronWrap = styled('div')`
   flex-shrink: 0;
 `;
 
-interface StyledButtonProps
-  extends Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> {
+interface StyledButtonProps extends Required<
+  Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
+> {
   hasPrefix?: boolean;
 }
 

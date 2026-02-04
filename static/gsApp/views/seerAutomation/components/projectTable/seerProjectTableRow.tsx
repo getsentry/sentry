@@ -49,7 +49,7 @@ export default function SeerProjectTableRow({
   // If any other value is set, we treat it as 'medium'.
   const isAutoFixEnabled = Boolean(
     autofixSettings.autofixAutomationTuning &&
-      autofixSettings.autofixAutomationTuning !== 'off'
+    autofixSettings.autofixAutomationTuning !== 'off'
   );
 
   // We used to have multiple stopping points for PR Creation.

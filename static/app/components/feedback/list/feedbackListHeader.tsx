@@ -15,16 +15,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
-interface Props
-  extends Pick<
-    ReturnType<typeof useListItemCheckboxContext>,
-    | 'countSelected'
-    | 'deselectAll'
-    | 'isAllSelected'
-    | 'isAnySelected'
-    | 'selectAll'
-    | 'selectedIds'
-  > {}
+interface Props extends Pick<
+  ReturnType<typeof useListItemCheckboxContext>,
+  | 'countSelected'
+  | 'deselectAll'
+  | 'isAllSelected'
+  | 'isAnySelected'
+  | 'selectAll'
+  | 'selectedIds'
+> {}
 
 export default function FeedbackListHeader({
   countSelected,

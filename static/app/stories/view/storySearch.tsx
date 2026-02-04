@@ -165,8 +165,10 @@ function SearchInput(
 
 type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
 
-interface SearchComboBoxProps
-  extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
+interface SearchComboBoxProps extends Omit<
+  AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>,
+  'children'
+> {
   children: CollectionChildren<SearchComboBoxItem<StoryTreeNode>>;
   defaultItems: Array<SearchComboBoxItem<StoryTreeNode>>;
   inputRef: React.RefObject<HTMLInputElement | null>;

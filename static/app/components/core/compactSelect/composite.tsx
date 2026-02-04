@@ -60,8 +60,10 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps
-  extends Omit<ControlProps, 'clearable' | 'triggerProps' | 'trigger'> {
+export interface CompositeSelectProps extends Omit<
+  ControlProps,
+  'clearable' | 'triggerProps' | 'trigger'
+> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)

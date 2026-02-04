@@ -27,7 +27,8 @@ import formatDuration from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
 interface Props
-  extends MemoryChartSeriesProps,
+  extends
+    MemoryChartSeriesProps,
     Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
   currentHoverTime: undefined | number;
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;

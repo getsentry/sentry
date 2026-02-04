@@ -13,8 +13,7 @@ import {t} from 'sentry/locale';
 import type {Comparison, Op} from 'sentry/views/alerts/rules/uptime/types';
 
 interface AnimatedOpProps
-  extends MotionProps,
-    Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
+  extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
   children: React.ReactNode;
   isDragging: boolean;
   op: Op;

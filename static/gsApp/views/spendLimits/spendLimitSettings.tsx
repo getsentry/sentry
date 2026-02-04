@@ -65,20 +65,20 @@ export interface SpendLimitSettingsProps {
   isOpen?: boolean;
 }
 
-interface BudgetModeSettingsProps
-  extends Omit<
-    SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
-  > {}
+interface BudgetModeSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
+> {}
 
-interface InnerSpendLimitSettingsProps
-  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
+interface InnerSpendLimitSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'subscription'
+> {}
 
-interface SharedSpendLimitPriceTableProps
-  extends Pick<
-    SpendLimitSettingsProps,
-    'activePlan' | 'currentReserved' | 'organization'
-  > {
+interface SharedSpendLimitPriceTableProps extends Pick<
+  SpendLimitSettingsProps,
+  'activePlan' | 'currentReserved' | 'organization'
+> {
   includedAddOns: AddOnCategory[];
 }
 interface SpendLimitInputProps extends Pick<SpendLimitSettingsProps, 'activePlan'> {

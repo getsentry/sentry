@@ -26,7 +26,7 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   );
   const hasGithubRepos = Boolean(
     preference?.repositories?.some(repo => repo.provider.includes('github')) ||
-      codeMappingRepos?.some(repo => repo.provider.includes('github'))
+    codeMappingRepos?.some(repo => repo.provider.includes('github'))
   );
 
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();

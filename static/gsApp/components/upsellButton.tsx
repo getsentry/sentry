@@ -7,7 +7,8 @@ import UpsellProvider from 'getsentry/components/upsellProvider';
 import type {Subscription} from 'getsentry/types';
 
 interface Props
-  extends Omit<ButtonProps, 'aria-label'>,
+  extends
+    Omit<ButtonProps, 'aria-label'>,
     Pick<React.ComponentProps<typeof UpsellProvider>, 'source' | 'extraAnalyticsParams'> {
   organization?: Organization;
   subscription?: Subscription;

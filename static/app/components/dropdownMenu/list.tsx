@@ -39,7 +39,8 @@ interface DropdownMenuContextValue {
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
-  extends Omit<
+  extends
+    Omit<
       AriaMenuOptions<MenuItemProps>,
       | 'selectionMode'
       | 'selectedKeys'

@@ -126,8 +126,7 @@ function ArgumentsGrid({
 }
 
 interface GridListProps
-  extends AriaGridListOptions<TokenAttribute>,
-    ArithmeticTokenFunctionProps {
+  extends AriaGridListOptions<TokenAttribute>, ArithmeticTokenFunctionProps {
   arguments: Argument[];
   children: CollectionChildren<TokenAttribute>;
   onArgumentsChange: (index: number, argument: string) => void;

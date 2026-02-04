@@ -5,13 +5,12 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
-interface Variables
-  extends Partial<
-    Pick<
-      RequestDataFragment,
-      'conditions' | 'actions' | 'actionMatch' | 'frequency' | 'name'
-    >
-  > {
+interface Variables extends Partial<
+  Pick<
+    RequestDataFragment,
+    'conditions' | 'actions' | 'actionMatch' | 'frequency' | 'name'
+  >
+> {
   projectSlug: string;
 }
 
