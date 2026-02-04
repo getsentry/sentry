@@ -11,7 +11,10 @@ import {
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {renderDropdownMenuFooter} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {
+  renderDropdownMenuFooter,
+  sortSelectedFirst,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -42,17 +45,19 @@ export function AggregateSelector({
     [traceMetric?.type]
   );
 
+  const aggregateValue = useMemo(() => {
+    return aggregateSource?.[index]?.kind === 'function'
+      ? (aggregateSource?.[index]?.function?.[0] ?? '')
+      : '';
+  }, [aggregateSource, index]);
+
   return (
     <AggregateCompactSelect
       searchable
       hasColumnParameter={false}
       disabled={disabled || aggregateOptions.length <= 1}
-      options={aggregateOptions}
-      value={
-        aggregateSource?.[index]?.kind === 'function'
-          ? (aggregateSource?.[index]?.function?.[0] ?? '')
-          : ''
-      }
+      options={sortSelectedFirst(aggregateValue, aggregateOptions)}
+      value={aggregateValue}
       position="bottom-start"
       menuFooter={
         state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
