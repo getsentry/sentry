@@ -157,10 +157,10 @@ class GameThreadGroupingTest(TestCase):
                                     },
                                 ]
                             },
-                    },
-                ]
+                        },
+                    ]
+                },
             },
-        },
             self.project,
         )
 
