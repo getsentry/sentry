@@ -58,12 +58,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
         </StyledBox>
         <RightAlignedColumn>
           {data.dateAdded ? (
-            <TimeSince
-              date={data.dateAdded}
-              unitStyle="short"
-              suffix="ago"
-              disabledAbsoluteTooltip
-            />
+            <TimeSince date={data.dateAdded} unitStyle="short" suffix="ago" />
           ) : (
             '-'
           )}
