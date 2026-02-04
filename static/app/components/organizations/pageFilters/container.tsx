@@ -1,4 +1,12 @@
-import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
@@ -17,6 +25,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
@@ -84,14 +93,14 @@ function PageFiltersContainer({
   const memberProjects = isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
-  const nonMemberProjects = isSuperuser
-    ? []
-    : specifiedProjects.filter(project => !project.isMember);
+  const nonMemberProjects = useMemo(() => {
+    return isSuperuser ? [] : specifiedProjects.filter(project => !project.isMember);
+  }, [isSuperuser, specifiedProjects]);
 
   const defaultMaxPickableDays = useDefaultMaxPickableDays();
   maxPickableDays = maxPickableDays ?? defaultMaxPickableDays;
 
-  const doInitialization = () => {
+  const doInitialization = useCallback(() => {
     initializeUrlState({
       organization,
       queryParams: location.query,
@@ -109,7 +118,23 @@ function PageFiltersContainer({
       skipInitializeUrlParams,
       storageNamespace,
     });
-  };
+  }, [
+    defaultSelection,
+    disablePersistence,
+    forceProject,
+    location.query,
+    maxPickableDays,
+    memberProjects,
+    nonMemberProjects,
+    organization,
+    router,
+    shouldForceProject,
+    showAbsolute,
+    skipInitializeUrlParams,
+    skipLoadLastUsed,
+    skipLoadLastUsedEnvironment,
+    storageNamespace,
+  ]);
 
   // Initializes GlobalSelectionHeader
   //
@@ -127,6 +152,17 @@ function PageFiltersContainer({
     doInitialization();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
+
+  // If the max pickable days is decreased, we need to re-initialize the page filters
+  const previousMaxPickableDays = usePrevious(maxPickableDays);
+  useLayoutEffect(() => {
+    if (
+      previousMaxPickableDays !== maxPickableDays &&
+      previousMaxPickableDays > maxPickableDays
+    ) {
+      doInitialization();
+    }
+  }, [doInitialization, maxPickableDays, previousMaxPickableDays]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
