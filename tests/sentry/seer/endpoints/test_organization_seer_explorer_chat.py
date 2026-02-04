@@ -110,7 +110,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
 
-        # Verify client was called correctly
+        # Verify client was called correctly. Default org option for enable_seer_coding is True.
         mock_client_class.assert_called_once_with(
             self.organization, ANY, is_interactive=True, enable_coding=True
         )
@@ -120,6 +120,32 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             conduit_channel_id=None,
             conduit_url=None,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_with_coding_option(self, mock_client_class: MagicMock):
+        for i, option_value in enumerate([False, True]):
+            self.organization.update_option("sentry:enable_seer_coding", option_value)
+            mock_client = MagicMock()
+            mock_client.start_run.return_value = 456
+            mock_client_class.return_value = mock_client
+
+            data = {"query": "What is this error about?"}
+            response = self.client.post(self.url, data, format="json")
+
+            assert response.status_code == 200
+            assert response.data == {"run_id": 456}
+
+            # Verify client was called correctly with enable_coding matching option_value.
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization, ANY, is_interactive=True, enable_coding=option_value
+            )
+            mock_client.start_run.assert_called_once_with(
+                prompt="What is this error about?",
+                on_page_context=None,
+                conduit_channel_id=None,
+                conduit_url=None,
+            )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
     def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
@@ -136,7 +162,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
 
-        # Verify client was called correctly
+        # Verify client was called correctly. Default org option for enable_seer_coding is True.
         mock_client_class.assert_called_once_with(
             self.organization, ANY, is_interactive=True, enable_coding=True
         )
@@ -148,6 +174,39 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             conduit_channel_id=None,
             conduit_url=None,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_with_coding_option(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        for i, option_value in enumerate([False, True]):
+            self.organization.update_option("sentry:enable_seer_coding", option_value)
+            mock_client = MagicMock()
+            mock_client.continue_run.return_value = 789
+            mock_client_class.return_value = mock_client
+
+            data = {
+                "query": "Follow up question",
+                "insert_index": 2,
+            }
+            response = self.client.post(f"{self.url}789/", data, format="json")
+
+            assert response.status_code == 200
+            assert response.data == {"run_id": 789}
+
+            # Verify client was called correctly with enable_coding matching option_value.
+            assert mock_client_class.call_count == i + 1
+            mock_client_class.assert_called_with(
+                self.organization, ANY, is_interactive=True, enable_coding=option_value
+            )
+            mock_client.continue_run.assert_called_once_with(
+                run_id=789,
+                prompt="Follow up question",
+                insert_index=2,
+                on_page_context=None,
+                conduit_channel_id=None,
+                conduit_url=None,
+            )
 
 
 class CollectUserOrgContextTest(APITestCase):

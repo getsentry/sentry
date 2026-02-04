@@ -43,6 +43,22 @@ class TestSeerExplorerClient(TestCase):
         assert client.user == self.user
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_raises_when_coding_option_disabled(self, mock_access):
+        """Test that client initialization raises SeerPermissionError when enable_coding is True but org option is disabled"""
+        mock_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(SeerPermissionError):
+            SeerExplorerClient(self.organization, self.user, enable_coding=True)
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_succeeds_when_coding_option_not_set(self, mock_access):
+        """Test that client initialization succeeds when enable_coding is True and org option is not set (interpreted as True by default)"""
+        mock_access.return_value = (True, None)
+        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        assert client.enable_coding is True
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.requests.post")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_basic(self, mock_collect_context, mock_post, mock_access):
@@ -670,8 +686,9 @@ class TestSeerExplorerClientPushChanges(TestCase):
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
     @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.time.sleep")
     @patch("sentry.seer.explorer.client.time.time")
-    def test_push_changes_timeout(self, mock_time, mock_post, mock_fetch, mock_access):
+    def test_push_changes_timeout(self, mock_time, mock_sleep, mock_post, mock_fetch, mock_access):
         """Test that push_changes raises TimeoutError after timeout"""
         mock_access.return_value = (True, None)
         mock_post.return_value = MagicMock()
