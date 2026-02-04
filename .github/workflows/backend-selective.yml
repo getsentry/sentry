@@ -57,13 +57,13 @@ jobs:
           fetch-depth: 0 # Need full history for git diff
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13.1'
 
       - name: Authenticate to Google Cloud
         id: gcloud-auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: sentry-dev-tooling
           workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload coverage database artifact
         if: steps.download-coverage.outputs.coverage-file != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-db-${{ github.run_id }}
           path: .coverage/
@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload selected tests artifact
         if: steps.compute-tests.outputs.has-selected-tests == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/selected-tests.txt
@@ -184,7 +184,7 @@ jobs:
 
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
@@ -228,7 +228,7 @@ jobs:
 
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
