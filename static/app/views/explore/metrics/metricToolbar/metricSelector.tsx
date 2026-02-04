@@ -5,6 +5,7 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -93,6 +94,7 @@ export function MetricSelector({
       options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
       loading={isFetching}
+      menuTitle={t('Metrics')}
       onSearch={debouncedSetSearch}
       onChange={option => {
         if ('metricType' in option) {
