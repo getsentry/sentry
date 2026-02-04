@@ -11,8 +11,8 @@ import {
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {getStartOfPeriodAgo} from 'sentry/utils/dates';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -142,8 +142,10 @@ function PageFiltersContainer({
     }
 
     if (start && end) {
-      const minDate = getStartOfPeriodAgo('days', Math.max(maxPickableDays - 1, 0));
-      return new Date(start).getTime() < minDate.getTime();
+      // Use same calculation as initialization in pageFilters.tsx
+      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      const maxStart = new Date(maxPeriod.start);
+      return new Date(start).getTime() < maxStart.getTime();
     }
 
     return false;
