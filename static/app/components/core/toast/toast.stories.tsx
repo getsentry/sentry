@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/core/toast';
+import documentation from '!!type-loader!@sentry/scraps/toast';
 
 import {Toast, type ToastProps} from '@sentry/scraps/toast';
 

@@ -8,6 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Scope} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,12 +25,16 @@ export default function EarlyFeaturesSettingsForm({access}: Props) {
 
   const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
-      [`/organizations/${organization.slug}/auth-provider/`],
+      [
+        getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
       {staleTime: 0}
     );
 
   const {data: featureFlags, isPending: featureFlagsIsLoading} =
-    useApiQuery<FeatureFlags>(['/internal/feature-flags/'], {staleTime: 0});
+    useApiQuery<FeatureFlags>([getApiUrl('/internal/feature-flags/')], {staleTime: 0});
 
   if (authProviderIsLoading || featureFlagsIsLoading) {
     return <LoadingIndicator />;

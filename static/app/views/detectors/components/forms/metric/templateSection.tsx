@@ -26,6 +26,7 @@ const DATASET_LABELS: Record<DetectorDataset, string> = {
   [DetectorDataset.LOGS]: t('Logs'),
   [DetectorDataset.RELEASES]: t('Releases'),
   [DetectorDataset.TRANSACTIONS]: t('Transactions'),
+  [DetectorDataset.METRICS]: t('Metrics'),
 };
 
 /**

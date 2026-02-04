@@ -20,30 +20,25 @@ WORKFLOW_CONFIG_HELP_TEXT = """
 WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
         ```json
             "triggers": {
-                "id": "1234567",
                 "organizationId": "1",
                 "logicType": "any-short",
                 "conditions": [
                     {
-                        "id": "123",
                         "type": "first_seen_event",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "456",
                         "type": "issue_resolved_trigger",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "789",
                         "type": "reappeared_event",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "321",
                         "type": "regression_event",
                         "comparison": true,
                         "conditionResult": true
@@ -56,12 +51,14 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
 
 ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and the action(s) to fire.
 
+        `logicType` can be one of `any-short`, `all`, or `none`.
+
         Below is a basic example. See below for all other options.
 
         ```json
             "actionFilters": [
                 {
-                    "logicType": "any-short",
+                    "logicType": "any",
                     "conditions": [
                         {
                             "type": "level",

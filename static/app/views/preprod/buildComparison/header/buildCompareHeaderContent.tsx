@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -60,7 +59,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       <Stack gap="lg" padding="0 0 lg 0">
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">

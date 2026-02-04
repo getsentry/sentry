@@ -3,6 +3,7 @@ import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
 import type {Meta} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -143,7 +144,13 @@ function traceItemDetailsQueryKey({
   };
 
   return [
-    `/projects/${urlParams.organizationSlug}/${urlParams.projectSlug}/trace-items/${urlParams.traceItemId}/`,
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/', {
+      path: {
+        organizationIdOrSlug: urlParams.organizationSlug,
+        projectIdOrSlug: urlParams.projectSlug,
+        itemId: urlParams.traceItemId,
+      },
+    }),
     {query},
   ];
 }

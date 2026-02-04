@@ -11,6 +11,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +25,11 @@ export default function DocIntegrationDetailsView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
   const {data: doc, isPending} = useApiQuery<DocIntegration>(
-    [`/doc-integrations/${integrationSlug}/`],
+    [
+      getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+        path: {docIntegrationIdOrSlug: integrationSlug},
+      }),
+    ],
     {staleTime: Infinity, retry: false}
   );
 

@@ -9,8 +9,6 @@ import {
   fetchMutation,
   useMutation,
   useQueryClient,
-  type ApiQueryKey,
-  type QueryFunctionContext,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,9 +60,7 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   useQuery<boolean, Error, boolean, QueryKey>({
     queryKey: [syncReposUrl],
     queryFn: async context => {
-      const result = await fetchDataQuery<SyncReposResponse>(
-        context as unknown as QueryFunctionContext<ApiQueryKey, unknown>
-      );
+      const result = await fetchDataQuery<SyncReposResponse>(context);
 
       return result[0].isSyncing;
     },
