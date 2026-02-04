@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
-from sentry.notifications.platform.types import NotificationProviderKey
 
 
 @region_silo_model
@@ -31,9 +30,7 @@ class NotificationRecord(Model):
     )
 
     # Provider identification
-    provider_key = models.CharField(
-        max_length=32, choices=[(k.value, k.name) for k in NotificationProviderKey]
-    )
+    provider_key = models.CharField(max_length=32)  # "slack", "discord", "msteams"
     target_id = models.CharField(max_length=255)  # channel_id, conversation_id, etc.
 
     # Message identifier (provider-specific)

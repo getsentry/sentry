@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationThreadKeyType
 
 
 @region_silo_model
@@ -29,17 +28,13 @@ class NotificationThread(Model):
     thread_key = models.CharField(max_length=64, db_index=True)
 
     # Provider identification
-    provider_key = models.CharField(
-        max_length=32, choices=[(k.value, k.name) for k in NotificationProviderKey]
-    )
+    provider_key = models.CharField(max_length=32)  # "slack", "discord", "msteams"
     target_id = models.CharField(max_length=255)  # channel_id, conversation_id, etc.
 
     thread_identifier = models.CharField(max_length=255)
 
     # Extensible key storage (for debugging/auditing, not indexed)
-    key_type = models.CharField(
-        max_length=64, choices=[(k.value, k.name) for k in NotificationThreadKeyType]
-    )
+    key_type = models.CharField(max_length=64)  # "issue_alert", "metric_alert", "noa"
     key_data = models.JSONField()
 
     provider_data = models.JSONField(default=dict)
