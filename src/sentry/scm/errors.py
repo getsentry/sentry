@@ -31,3 +31,9 @@ class SCMCodedError(SCMError):
 
 class SCMUnhandledException(SCMError):
     pass
+
+
+class SCMProviderException(SCMError):
+    """Exception raised when a provider operation fails."""
+
+    pass
