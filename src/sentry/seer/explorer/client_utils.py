@@ -15,6 +15,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -64,7 +65,9 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | AnonymousUser | None, organization: Organization
+    user: SentryUser | AnonymousUser | None,
+    organization: Organization,
+    request: Request | None = None,
 ) -> dict[str, Any]:
     """Collect user and organization context for a new Explorer run."""
     all_projects = Project.objects.filter(
@@ -75,12 +78,6 @@ def collect_user_org_context(
     if user is None or isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
-            "user_id": None,
-            "user_name": None,
-            "user_email": None,
-            "user_timezone": None,
-            "user_teams": [],
-            "user_projects": [],
             "all_org_projects": all_org_projects,
         }
 
@@ -106,9 +103,13 @@ def collect_user_org_context(
     user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
     user_timezone = get_option_from_list(user_options, key="timezone")
 
+    # Get IP address from http request, if provided
+    user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
+
     return {
         "org_slug": organization.slug,
         "user_id": user.id,
+        "user_ip": user_ip,
         "user_name": user_name,
         "user_email": user.email,
         "user_timezone": user_timezone,

@@ -16,6 +16,7 @@ from sentry.seer.explorer.client_models import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.requests import make_request
 
 
 class TestSeerExplorerClient(TestCase):
@@ -57,7 +58,26 @@ class TestSeerExplorerClient(TestCase):
         run_id = client.start_run("Test query")
 
         assert run_id == 123
-        mock_collect_context.assert_called_once_with(self.user, self.organization)
+        mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
+        assert mock_post.called
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
+        """Test starting a new run passes request object to collect_user_org_context"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 123}
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user)
+        request, _ = make_request()
+        run_id = client.start_run("Test query", request=request)
+
+        assert run_id == 123
+        mock_collect_context.assert_called_once_with(self.user, self.organization, request=request)
         assert mock_post.called
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
