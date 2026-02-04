@@ -267,13 +267,13 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
     # Determine expiry based on provider type:
     # - SAML providers: 7 days (no refresh mechanism)
     # - OAuth providers: 14 days (refresh tokens every 24h via check_auth task)
-    from sentry.models.authprovider import AuthProvider
+    from sentry.auth.services.auth import auth_service
 
-    try:
-        auth_provider = AuthProvider.objects.get(organization_id=organization_id)
+    auth_provider = auth_service.get_auth_provider(organization_id=organization_id)
+    if auth_provider is not None:
         provider = auth_provider.get_provider()
         expiry_time = SSO_EXPIRY_TIME_SAML if provider.is_saml else SSO_EXPIRY_TIME_OAUTH
-    except AuthProvider.DoesNotExist:
+    else:
         # Default to stricter SAML expiry if no provider found
         expiry_time = SSO_EXPIRY_TIME_SAML
 
