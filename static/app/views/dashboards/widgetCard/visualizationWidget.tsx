@@ -1,8 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -221,10 +220,16 @@ function VisualizationWidgetContent({
     return errorDisplay;
   }
 
+  const timeseriesContainerPadding: ContainerProps = {
+    paddingLeft: 'xl',
+    paddingRight: 'xl',
+    paddingBottom: 'lg',
+  };
+
   if (showBreakdownData) {
     return (
       <Flex direction="column" height="100%">
-        <Container overflow="hidden" flex={2}>
+        <Container overflow="hidden" flex={2} {...timeseriesContainerPadding}>
           <TimeSeriesWidgetVisualization
             plottables={plottables}
             releases={releases}
@@ -232,30 +237,22 @@ function VisualizationWidgetContent({
             showLegend="never"
           />
         </Container>
-        <FooterWrapper>
+        <Flex flex={1} direction="column" borderTop="primary">
           <Container flex={1} width="100%" overflowY="auto">
             {footerTable}
           </Container>
-        </FooterWrapper>
+        </Flex>
       </Flex>
     );
   }
 
   return (
-    <TimeSeriesWidgetVisualization
-      plottables={plottables}
-      releases={releases}
-      showReleaseAs={showReleaseAs}
-    />
+    <Container flex={1} {...timeseriesContainerPadding}>
+      <TimeSeriesWidgetVisualization
+        plottables={plottables}
+        releases={releases}
+        showReleaseAs={showReleaseAs}
+      />
+    </Container>
   );
 }
-
-const FooterWrapper = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  margin: 0 -${p => p.theme.space.xl} -${p => p.theme.space.lg} -${p => p.theme.space.xl};
-  width: calc(100% + ${p => p.theme.space.xl} * 2);
-  border-top: 1px solid ${p => p.theme.border};
-`;
