@@ -39,17 +39,6 @@ def get_detector_project_type_cache_key(project_id: int, detector_type: str) -> 
     return f"detector:by_proj_type:{project_id}:{detector_type}"
 
 
-def get_detectors_by_data_source_cache_key(source_id: str, source_type: str) -> str:
-    """Generate cache key for detector objects lookup by data source."""
-    return f"detector:detectors_by_data_source:{source_type}:{source_id}"
-
-
-def invalidate_detectors_by_data_source_cache(source_id: str, source_type: str) -> None:
-    """Invalidate the cache for detectors associated with a data source."""
-    cache_key = get_detectors_by_data_source_cache_key(source_id, source_type)
-    cache.delete(cache_key)
-
-
 class DetectorSnapshot(TypedDict):
     id: int
     type: str
@@ -256,6 +245,8 @@ def _schedule_detector_cache_invalidation(instance: Detector) -> None:
     data_sources = list(instance.data_sources.values_list("source_id", "type"))
 
     def invalidate_cache():
+        from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
+
         for source_id, source_type in data_sources:
             invalidate_detectors_by_data_source_cache(source_id, source_type)
 

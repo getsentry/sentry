@@ -5,11 +5,9 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.workflow_engine.caches.detector import get_detectors_by_data_source_cache_key
 from sentry.workflow_engine.models import DataSourceDetector, Detector
-from sentry.workflow_engine.models.detector import (
-    get_detector_project_type_cache_key,
-    get_detectors_by_data_source_cache_key,
-)
+from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
 from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -247,8 +245,8 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         data_source.detectors.set([detector1, detector2])
 
         with (
-            patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get,
-            patch("sentry.workflow_engine.processors.data_source.cache.set") as mock_cache_set,
+            patch("sentry.workflow_engine.caches.cache_access.cache.get") as mock_cache_get,
+            patch("sentry.workflow_engine.caches.cache_access.cache.set") as mock_cache_set,
         ):
             mock_cache_get.return_value = None
 
@@ -272,7 +270,7 @@ class TestGetDetectorsByDataSource(BaseWorkflowTest):
         detector2 = self.create_detector(project=self.project, name="Detector 2")
         cached_detectors = [detector1, detector2]
 
-        with patch("sentry.workflow_engine.processors.data_source.cache.get") as mock_cache_get:
+        with patch("sentry.workflow_engine.caches.cache_access.cache.get") as mock_cache_get:
             mock_cache_get.return_value = cached_detectors
 
             result = bulk_fetch_enabled_detectors("12345", "test")

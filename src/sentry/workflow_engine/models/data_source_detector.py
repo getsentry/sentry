@@ -4,7 +4,7 @@ from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
-from sentry.workflow_engine.models.detector import invalidate_detectors_by_data_source_cache
+from sentry.workflow_engine.caches.detector import invalidate_detectors_by_data_source_cache
 
 
 @region_silo_model

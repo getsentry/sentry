@@ -3,9 +3,8 @@ import logging
 import sentry_sdk
 
 from sentry.utils import metrics
-from sentry.utils.cache import cache
+from sentry.workflow_engine.caches.detector import DetectorByDataSourceCacheAccess
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.models.detector import get_detectors_by_data_source_cache_key
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
@@ -15,8 +14,8 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
     Get all of the enabled detectors for a list of detector source ids and types.
     This will also prefetch all the subsequent data models for evaluating the detector.
     """
-    cache_key = get_detectors_by_data_source_cache_key(source_id, query_type)
-    detectors = cache.get(cache_key)
+    cache_access = DetectorByDataSourceCacheAccess(source_id, query_type)
+    detectors = cache_access.get()
     if detectors is None:
         detectors = list(
             Detector.objects.filter(
@@ -29,7 +28,7 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
             .distinct()
             .order_by("id")
         )
-        cache.set(cache_key, detectors, Detector.CACHE_TTL)
+        cache_access.set(detectors, Detector.CACHE_TTL)
     return detectors
 
 
