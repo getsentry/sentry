@@ -28,7 +28,7 @@ def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure.
     """
-    return set(options.get("dynamic-sampling.sliding_window_org.span-metric-orgs") or [])
+    return set(options.get("dynamic-sampling.sliding_window_org.segment-metric-orgs") or [])
 
 
 @instrumented_task(

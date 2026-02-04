@@ -39,7 +39,7 @@ def _get_segments_org_ids() -> set[int]:
     """
     Returns the set of organization IDs that should use SEGMENTS measure (new).
     """
-    return set(options.get("dynamic-sampling.recalibrate_orgs.span-metric-orgs") or [])
+    return set(options.get("dynamic-sampling.recalibrate_orgs.segment-metric-orgs") or [])
 
 
 @instrumented_task(

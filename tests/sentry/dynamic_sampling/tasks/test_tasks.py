@@ -923,7 +923,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         self, get_blended_sample_rate: MagicMock
     ) -> None:
         """
-        Test that orgs in the span-metric-orgs option use segment metrics (SEGMENTS measure).
+        Test that orgs in the segment-metric-orgs option use segment metrics (SEGMENTS measure).
 
         Both transaction metrics and segment metrics (SpanMRI with is_segment=true) are stored,
         so the results should be the same regardless of which measure is used.
@@ -935,7 +935,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
         # Enable segment metrics for first org only
         with self.options(
-            {"dynamic-sampling.recalibrate_orgs.span-metric-orgs": [self.orgs[0].id]}
+            {"dynamic-sampling.recalibrate_orgs.segment-metric-orgs": [self.orgs[0].id]}
         ):
             with self.tasks():
                 recalibrate_orgs()
@@ -988,7 +988,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         self.set_sliding_window_org_sample_rate(segment_org.id, 0.2)
         self.set_sliding_window_org_sample_rate(transaction_org.id, 0.2)
 
-        with self.options({"dynamic-sampling.recalibrate_orgs.span-metric-orgs": [segment_org.id]}):
+        with self.options(
+            {"dynamic-sampling.recalibrate_orgs.segment-metric-orgs": [segment_org.id]}
+        ):
             with self.tasks():
                 recalibrate_orgs()
 
@@ -1069,7 +1071,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         extrapolate_monthly_volume: MagicMock,
     ) -> None:
         """
-        Test that orgs in the span-metric-orgs option use segment metrics (SEGMENTS measure).
+        Test that orgs in the segment-metric-orgs option use segment metrics (SEGMENTS measure).
 
         Both transaction metrics and segment metrics are stored with same values,
         so results should be equivalent regardless of which measure is used.
@@ -1080,7 +1082,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
 
         # Enable segment metrics for first org only
         with self.options(
-            {"dynamic-sampling.sliding_window_org.span-metric-orgs": [self.orgs[0].id]}
+            {"dynamic-sampling.sliding_window_org.segment-metric-orgs": [self.orgs[0].id]}
         ):
             with self.tasks():
                 sliding_window_org()
@@ -1102,7 +1104,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         """
         Test that orgs are correctly partitioned by measure based on the option.
 
-        When an org is in the span-metric-orgs option, it should be processed
+        When an org is in the segment-metric-orgs option, it should be processed
         with SEGMENTS measure (and skipped by TRANSACTIONS measure processing).
         """
         extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
@@ -1112,7 +1114,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         # Enable segment metrics for first two orgs
         with self.options(
             {
-                "dynamic-sampling.sliding_window_org.span-metric-orgs": [
+                "dynamic-sampling.sliding_window_org.segment-metric-orgs": [
                     self.orgs[0].id,
                     self.orgs[1].id,
                 ]

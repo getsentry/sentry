@@ -2276,17 +2276,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for recalibrate_orgs.
+# List of organization IDs that should be using segment metrics for recalibrate_orgs.
 register(
-    "dynamic-sampling.recalibrate_orgs.span-metric-orgs",
+    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for sliding_window_org.
+# List of organization IDs that should be using segment metrics for sliding_window_org.
 register(
-    "dynamic-sampling.sliding_window_org.span-metric-orgs",
+    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
