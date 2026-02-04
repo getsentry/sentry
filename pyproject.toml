@@ -123,6 +123,7 @@ dependencies = [
     "reportlab>=4.4.0",
     "stripe>=6.7.0",
     # [end] getsentry
+    "backports-zstd>=1.3.0",
 ]
 
 [tool.uv]

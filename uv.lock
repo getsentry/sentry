@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -45,6 +45,16 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/Avalara-20.9.0-py3-none-any.whl", hash = "sha256:8b5afdaf8795d5c72fbe8e07f622c5df6f83bb226c6f498198a9c4428783ef3a" },
+]
+
+[[package]]
+name = "backports-zstd"
+version = "1.3.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/backports_zstd-1.3.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:41974dcacc9824c1effe1c8d2f9d762bcf47d265ca4581a3c63321c7b06c61f0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/backports_zstd-1.3.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ddc874638abf03ea1ff3b0525b4a26a8d0adf7cb46a448c3449f08e4abc276b3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/backports_zstd-1.3.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9c4c7bcda5619a754726e7f5b391827f5efbe4bed8e62e9ec7490d42bff18aa6" },
 ]
 
 [[package]]
@@ -1948,6 +1958,7 @@ version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "avalara", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "backports-zstd", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "beautifulsoup4", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "boto3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "botocore", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2116,6 +2127,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "avalara", specifier = ">=20.9.0" },
+    { name = "backports-zstd", specifier = ">=1.3.0" },
     { name = "beautifulsoup4", specifier = ">=4.7.1" },
     { name = "boto3", specifier = ">=1.34.128" },
     { name = "botocore", specifier = ">=1.34.128" },
