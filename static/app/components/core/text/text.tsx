@@ -101,7 +101,8 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
-  extends BaseTextProps,
+  extends
+    BaseTextProps,
     Omit<
       React.DetailedHTMLProps<
         React.HTMLAttributes<HTMLElementTagNameMap[T]>,

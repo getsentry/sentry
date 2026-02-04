@@ -145,9 +145,9 @@ function ExplorerPanel() {
     const isUser = (value: unknown): value is User =>
       Boolean(
         value &&
-          typeof value === 'object' &&
-          'id' in value &&
-          typeof value.id === 'string'
+        typeof value === 'object' &&
+        'id' in value &&
+        typeof value.id === 'string'
       );
     const userId = isUser(rawUser) ? rawUser.id : undefined;
     return (

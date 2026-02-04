@@ -6,18 +6,17 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconInfo, IconQuestion} from 'sentry/icons';
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
-interface QuestionProps
-  extends Partial<
-    Pick<
-      TooltipProps,
-      | 'containerDisplayMode'
-      | 'isHoverable'
-      | 'overlayStyle'
-      | 'position'
-      | 'skipWrapper'
-      | 'delay'
-    >
-  > {
+interface QuestionProps extends Partial<
+  Pick<
+    TooltipProps,
+    | 'containerDisplayMode'
+    | 'isHoverable'
+    | 'overlayStyle'
+    | 'position'
+    | 'skipWrapper'
+    | 'delay'
+  >
+> {
   /**
    * Sets the size of the icon.
    *
