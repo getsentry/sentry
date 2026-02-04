@@ -34,6 +34,4 @@ class SCMUnhandledException(SCMError):
 
 
 class SCMProviderException(SCMError):
-    """Exception raised when a provider operation fails."""
-
     pass
