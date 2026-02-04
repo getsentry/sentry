@@ -12,7 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
-from sentry.workflow_engine.caches.workflow import get_workflows_by_detector
+from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -450,10 +450,28 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = get_workflows_by_detector(detector, environment)
+    workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))
+
+        event_id = (
+            event_data.event.event_id
+            if isinstance(event_data.event, GroupEvent)
+            else event_data.event.id
+        )
+        logger.debug(
+            "workflow_engine.process_workflows",
+            extra={
+                "payload": event_data,
+                "group_id": event_data.group.id,
+                "event_id": event_id,
+                "event_data": asdict(event_data),
+                "event_environment_id": environment.id if environment else None,
+                "workflows": [workflow.id for workflow in workflows],
+                "detector_types": [d.type for d in event_detectors.detectors],
+            },
+        )
 
     workflow_evaluation_data.workflows = workflows
 

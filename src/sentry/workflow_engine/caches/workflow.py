@@ -1,4 +1,5 @@
-from typing import Literal
+from collections.abc import Collection
+from typing import Literal, NamedTuple
 
 from django.db.models import Q
 
@@ -17,8 +18,33 @@ DEFAULT_VALUE: Literal["default"] = "default"
 WORKFLOW_CACHE_PREFIX = "workflows_by_detector_env"
 
 
+class _CacheLookupResult(NamedTuple):
+    """Result of checking cache for detector workflows."""
+
+    cached_workflows: set[Workflow]
+    missed_detector_ids: list[int]
+
+    @property
+    def all_hits(self) -> bool:
+        return len(self.missed_detector_ids) == 0
+
+
+class _WorkflowsByDetector(NamedTuple):
+    """Workflows grouped by detector ID with helper methods."""
+
+    mapping: dict[int, set[Workflow]]
+
+    def all_workflows(self) -> set[Workflow]:
+        """Return union of all workflows across detectors."""
+        result: set[Workflow] = set()
+        for workflows in self.mapping.values():
+            result |= workflows
+        return result
+
+
 class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
-    # To reduce look-ups, this uses id's instead of requiring the full model for types
+    """To reduce look-ups, this uses id's instead of requiring the full model for types"""
+
     def __init__(self, detector_id: int, env_id: int | None):
         self._key = f"{WORKFLOW_CACHE_PREFIX}:{detector_id}:{env_id}"
 
@@ -36,9 +62,6 @@ def invalidate_processing_workflows(
     If the environment_id or None is not provided, this will query to find _all_
     all environments that are configured for workflows through the DetectorWorkflow table.
 
-    TODO - We could further reduce DB load here by creating a list of envs for each
-    detector in redis, then getting that list for invalidation here and clearing it.
-
     Args:
         detector_id: Detector ID to invalidate (required)
         env_id: {int|None} - The environment the workflow is triggered on, if not set,
@@ -53,8 +76,7 @@ def invalidate_processing_workflows(
         return _WorkflowCacheAccess(detector_id, env_id).delete()
 
     # Lookup all of the environment_ids associated with the Detector,
-    # TODO - improve this so we don't need to go to the DB, we could
-    # track everything in redis instead.
+    # TODO - track keys in redis on create to remove DB look-ups
     environment_ids = (
         DetectorWorkflow.objects.filter(detector_id=detector_id)
         .select_related("workflow")
@@ -63,6 +85,7 @@ def invalidate_processing_workflows(
 
     # Build explicit cache keys from relationships
     keys = {_WorkflowCacheAccess(detector_id, env_id).key() for env_id in environment_ids}
+
     # Also add key for workflows with no environment
     keys.add(_WorkflowCacheAccess(detector_id, None).key())
 
@@ -73,34 +96,104 @@ def invalidate_processing_workflows(
     return len(keys) > 0
 
 
+def _check_caches_for_detectors(
+    detectors: Collection[Detector], env_id: int | None
+) -> _CacheLookupResult:
+    """
+    Check cache for each detector, returning cached workflows and cache-missed detector IDs.
+
+    Args:
+        detectors: Collection of Detector objects to check cache for
+        env_id: Environment ID (or None) for cache key
+
+    Returns:
+        CacheLookupResult with cached_workflows and missed_detector_ids
+    """
+    workflows: set[Workflow] = set()
+    missed_detector_ids: list[int] = []
+
+    for detector in detectors:
+        cache_access = _WorkflowCacheAccess(detector.id, env_id)
+        cached = cache_access.get()
+
+        if cached is not None:
+            workflows |= cached
+            metrics_incr(f"{METRIC_PREFIX}.hit")
+        else:
+            missed_detector_ids.append(detector.id)
+            metrics_incr(f"{METRIC_PREFIX}.miss")
+
+    return _CacheLookupResult(workflows, missed_detector_ids)
+
+
+def _query_workflows_by_detector_ids(
+    detector_ids: Collection[int], env_id: int | None
+) -> _WorkflowsByDetector:
+    """
+    Query DB for workflows and group by detector ID.
+
+    Args:
+        detector_ids: Collection of detector IDs to query for
+        env_id: Environment ID to filter by (or None for all environment)
+
+    Returns:
+        WorkflowsByDetector with mapping of detector_id to set of Workflows
+    """
+    environment_filter = (
+        (Q(workflow__environment_id=None) | Q(workflow__environment_id=env_id))
+        if env_id
+        else Q(workflow__environment_id=None)
+    )
+
+    detector_workflow_mappings = DetectorWorkflow.objects.filter(
+        environment_filter,
+        detector_id__in=detector_ids,
+        workflow__enabled=True,
+    ).select_related("workflow", "workflow__environment")
+
+    workflows_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}
+    for dw in detector_workflow_mappings:
+        workflows_by_detector[dw.detector_id].add(dw.workflow)
+
+    return _WorkflowsByDetector(workflows_by_detector)
+
+
+def _populate_detector_caches(
+    workflows_by_detector: _WorkflowsByDetector, env_id: int | None
+) -> None:
+    """
+    Populate cache entries for each detector.
+
+    Args:
+        workflows_by_detector: WorkflowsByDetector containing detector_id to Workflow mappings
+        env_id: Environment ID
+    """
+    for detector_id, detector_workflows in workflows_by_detector.mapping.items():
+        _WorkflowCacheAccess(detector_id, env_id).set(detector_workflows, CACHE_TTL)
+
+
 @scopedstats.timer()
-def get_workflows_by_detector(detector: Detector, environment: Environment | None) -> set[Workflow]:
+def get_workflows_by_detectors(
+    detectors: Collection[Detector],
+    environment: Environment | None,
+) -> set[Workflow]:
+    """
+    Get workflows for multiple detectors, using per-detector caching.
+
+    Cache misses are batched into a single DB query for efficiency then merge results.
+    """
+    if not detectors:
+        return set()
+
     env_id = environment.id if environment is not None else None
-    cache_access = _WorkflowCacheAccess(detector.id, env_id)
-    workflows = cache_access.get()
+    cache_result = _check_caches_for_detectors(detectors, env_id)
 
-    if workflows is None:
-        metrics_incr(f"{METRIC_PREFIX}.miss")
+    if cache_result.all_hits:
+        return cache_result.cached_workflows
 
-        # TODO - split the `None` environments into a separate cache to reduce data replication
-        environment_filter = (
-            (Q(environment_id=None) | Q(environment_id=environment.id))
-            if environment
-            else Q(environment_id=None)
-        )
+    uncached_workflows_by_detector = _query_workflows_by_detector_ids(
+        cache_result.missed_detector_ids, env_id
+    )
 
-        workflows = set(
-            Workflow.objects.filter(
-                environment_filter,
-                detectorworkflow__detector_id=detector.id,
-                enabled=True,
-            )
-            .select_related("environment")
-            .distinct()
-        )
-
-        cache_access.set(workflows, CACHE_TTL)
-    else:
-        metrics_incr(f"{METRIC_PREFIX}.hit")
-
-    return workflows
+    _populate_detector_caches(uncached_workflows_by_detector, env_id)
+    return cache_result.cached_workflows | uncached_workflows_by_detector.all_workflows()
