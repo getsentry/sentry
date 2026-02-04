@@ -1,5 +1,7 @@
+from typing import Any
+
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
-from sentry.scm.types import Provider, Reaction, Referrer, Repository
+from sentry.scm.types import Comment, Provider, Reaction, Referrer, Repository
 
 REACTION_MAP = {
     "+1": GitHubReaction.PLUS_ONE,
@@ -18,6 +20,19 @@ REACTION_MAP = {
 #       remain unchanged.
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
+COMMENT_FIELDS = {"id", "body", "user", "created_at", "updated_at"}
+
+
+def _transform_comment(raw: dict[str, Any]) -> Comment:
+    return Comment(
+        id=str(raw["id"]),
+        body=raw["body"],
+        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        created_at=raw["created_at"],
+        updated_at=raw["updated_at"],
+        extra={k: v for k, v in raw.items() if k not in COMMENT_FIELDS},
+    )
+
 
 class GitHubProvider(Provider):
 
@@ -35,14 +50,66 @@ class GitHubProvider(Provider):
             allocation_policy=REFERRER_ALLOCATION,
         )
 
-    # TODO: Define contract for issue reaction response (can be None)
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[None]:
+    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
-        self.client.get_issue_reactions(repository["name"], issue_id)
-        return []
+        raw_comments = self.client.get_issue_comments(repository["name"], issue_id)
+        return [_transform_comment(c) for c in raw_comments]
+
+    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.create_comment(repository["name"], issue_id, {"body": body})
+
+    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
+
+    def get_pull_request_comments(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[Comment]:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        raw_comments = self.client.get_pull_request_comments(repository["name"], pull_request_id)
+        return [_transform_comment(c) for c in raw_comments]
+
+    def create_pull_request_comment(
+        self, repository: Repository, pull_request_id: str, body: str
+    ) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.create_comment(repository["name"], pull_request_id, {"body": body})
+
+    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
+
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        return self.client.get_comment_reactions(repository["name"], comment_id)
+
+    def create_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.create_comment_reaction(repository["name"], comment_id, REACTION_MAP[reaction])
+
+    def delete_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.delete(
+            f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{REACTION_MAP[reaction]}"
+        )
+
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        return self.client.get_issue_reactions(repository["name"], issue_id)
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None:
         # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
         self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
+
+    def delete_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction: Reaction
+    ) -> None:
+        # TODO: Catch exceptions and re-raise `raise SCMProviderException from e`
+        self.client.delete_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
