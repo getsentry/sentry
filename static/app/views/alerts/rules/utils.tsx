@@ -18,7 +18,7 @@ import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams'
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
-import {getMetricsUrl, makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -206,16 +206,14 @@ export function getAlertRuleMetricsUrl({
   const interval =
     TIME_WINDOW_TO_INTERVAL[rule.timeWindow as keyof typeof TIME_WINDOW_TO_INTERVAL];
 
-  const {aggregation, traceMetric} = parseMetricAggregate(rule.aggregate);
+  const {traceMetric} = parseMetricAggregate(rule.aggregate);
 
   const metricQuery = defaultMetricQuery();
   metricQuery.metric = traceMetric;
   metricQuery.queryParams = metricQuery.queryParams.replace({
     mode: Mode.AGGREGATE,
     query: rule.query,
-    aggregateFields: [
-      new VisualizeFunction(makeMetricsAggregate({aggregate: aggregation, traceMetric})),
-    ],
+    aggregateFields: [new VisualizeFunction(rule.aggregate)],
   });
 
   return getMetricsUrl({
