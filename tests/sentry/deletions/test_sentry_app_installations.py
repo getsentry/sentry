@@ -128,6 +128,8 @@ class TestSentryAppInstallationDeletionTask(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        dcg = self.create_data_condition_group(organization=self.org)
+        self.create_data_condition_group_action(action=action, condition_group=dcg)
         other_action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
@@ -136,6 +138,8 @@ class TestSentryAppInstallationDeletionTask(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        dcg2 = self.create_data_condition_group(organization=self.org)
+        self.create_data_condition_group_action(action=action, condition_group=dcg2)
         deletions.exec_sync(self.install)
         with outbox_runner():
             pass
