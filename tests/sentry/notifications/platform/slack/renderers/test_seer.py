@@ -233,7 +233,3 @@ class SeerSlackRendererTest(TestCase):
         # Should only have link button, no next trigger button
         assert len(actions_block.elements) == 1
         assert isinstance(actions_block.elements[0], LinkButtonElement)
-        assert actions_block is not None
-        # Should only have link button, no next trigger button
-        assert len(actions_block.elements) == 1
-        assert isinstance(actions_block.elements[0], LinkButtonElement)

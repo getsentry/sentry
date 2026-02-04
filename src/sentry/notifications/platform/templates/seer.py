@@ -144,7 +144,7 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
 class SeerAutofixTrigger(NotificationData):
     """
     Note: This data is only used to render the trigger itself for an autofix run,
-    not the entire message it may be attached to. This was done for compatability with existing
+    not the entire message it may be attached to. This was done for compatibility with existing
     alert rendering, prior to being migrated to the Notification Platform.
     """
 

@@ -225,11 +225,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render_alert_autofix_element(cls, group: Group) -> InteractiveElement:
         """
-        Will either render an autofix button, or a link to the autofix panel in Sentry.
-        If the issue has automations, a run should be scheduled/in-progress.
-            - So, it'll render the link (the updates will be threaded later)
-        If the issue doesn't have automations, a run will only be triggered manually.
-            - So, we can render the autofix button for RCA.
+        Returns either an autofix button or a link to the autofix panel in Sentry.
+        When automation will run, shows a link (updates will be threaded later).
+        When automation won't run, shows an autofix button for manual RCA trigger.
         """
         from sentry.seer.autofix.issue_summary import is_group_triggering_automation
         from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
