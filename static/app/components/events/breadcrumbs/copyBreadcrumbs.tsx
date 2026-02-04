@@ -1,12 +1,5 @@
-import {useCallback} from 'react';
-
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {CopyAsDropdown} from 'sentry/components/copyAs';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
-import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
 
 function escapeMarkdownCell(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
@@ -66,56 +59,14 @@ interface CopyBreadcrumbsDropdownProps {
 }
 
 export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownProps) {
-  const {copy} = useCopyToClipboard();
-  const organization = useOrganization();
-
-  const handleCopyAsMarkdown = useCallback(() => {
-    const markdown = formatBreadcrumbsAsMarkdown(breadcrumbs);
-    copy(markdown, {
-      successMessage: t('Copied breadcrumbs to clipboard'),
-      errorMessage: t('Failed to copy breadcrumbs'),
-    });
-    trackAnalytics('breadcrumbs.drawer.action', {
-      control: 'copy',
-      value: 'markdown',
-      organization,
-    });
-  }, [copy, breadcrumbs, organization]);
-
-  const handleCopyAsText = useCallback(() => {
-    const text = formatBreadcrumbsAsText(breadcrumbs);
-    copy(text, {
-      successMessage: t('Copied breadcrumbs to clipboard'),
-      errorMessage: t('Failed to copy breadcrumbs'),
-    });
-    trackAnalytics('breadcrumbs.drawer.action', {
-      control: 'copy',
-      value: 'text',
-      organization,
-    });
-  }, [copy, breadcrumbs, organization]);
-
   return (
-    <DropdownMenu
+    <CopyAsDropdown
       size="xs"
-      triggerLabel={t('Copy As')}
-      triggerProps={{
-        title: t('Copy Breadcrumbs'),
-        icon: <IconCopy />,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'copy-text',
-          label: t('Text'),
-          onAction: handleCopyAsText,
-        },
-        {
-          key: 'copy-markdown',
-          label: t('Markdown'),
-          onAction: handleCopyAsMarkdown,
-        },
-      ]}
+      items={CopyAsDropdown.makeDefaultCopyAsOptions({
+        text: () => formatBreadcrumbsAsText(breadcrumbs),
+        markdown: () => formatBreadcrumbsAsMarkdown(breadcrumbs),
+        json: undefined,
+      })}
     />
   );
 }
