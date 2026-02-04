@@ -132,7 +132,7 @@ class TestProcessDataSources(BaseWorkflowTest):
                         # Trigger a SQL query if not prefetched, and fail the assertion
                         assert condition.id is not None
 
-    @mock.patch("sentry.workflow_engine.processors.data_source.cache")
+    @mock.patch("sentry.workflow_engine.caches.cache_access.cache")
     def test_bulk_fetch_uses_cache(self, mock_cache: mock.Mock) -> None:
         mock_cache.get.return_value = [self.detector_one]
 
@@ -142,7 +142,7 @@ class TestProcessDataSources(BaseWorkflowTest):
         assert len(detectors) == 1
         assert detectors[0].id == self.detector_one.id
 
-    @mock.patch("sentry.workflow_engine.processors.data_source.cache")
+    @mock.patch("sentry.workflow_engine.caches.cache_access.cache")
     def test_bulk_fetch_handles_empty_cache(self, mock_cache: mock.Mock) -> None:
         mock_cache.get.return_value = []
 
