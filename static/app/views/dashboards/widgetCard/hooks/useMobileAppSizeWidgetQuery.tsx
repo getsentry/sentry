@@ -17,6 +17,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type MobileAppSizeSeriesResponse = EventsStats | MultiSeriesEventsStats;
 
@@ -137,6 +138,7 @@ export function useMobileAppSizeSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });

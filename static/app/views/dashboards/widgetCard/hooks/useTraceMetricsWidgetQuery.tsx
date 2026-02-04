@@ -22,6 +22,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
 type TraceMetricsTableResponse = EventsTableData;
@@ -157,6 +158,7 @@ export function useTraceMetricsSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -333,6 +335,7 @@ export function useTraceMetricsTableQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
     })),
   });
 

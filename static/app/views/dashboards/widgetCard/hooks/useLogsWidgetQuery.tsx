@@ -28,6 +28,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type LogsSeriesResponse =
   | EventsStats
@@ -142,6 +143,7 @@ export function useLogsSeriesQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -300,6 +302,7 @@ export function useLogsTableQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
     })),
   });
 

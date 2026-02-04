@@ -21,6 +21,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
@@ -130,13 +131,25 @@ export function useIssuesSeriesQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFn(),
       staleTime: 0,
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
       placeholderData: (previousData: unknown) => previousData,
     })),
   });
@@ -285,13 +298,25 @@ export function useIssuesTableQuery(
     [queue]
   );
 
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
   const queryResults = useQueries({
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
       staleTime: 0,
       enabled,
-      retry: false,
+      retry: hasQueueFeature
+        ? false
+        : (failureCount: number, error: any) => {
+            if (error?.status === 429 && failureCount < 10) {
+              return true;
+            }
+            return false;
+          },
+      retryDelay: getRetryDelay,
     })),
   });
 
