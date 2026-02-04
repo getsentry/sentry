@@ -127,13 +127,17 @@ function LogsSearchBar({
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.LOGS}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
@@ -159,12 +163,16 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.LOGS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',

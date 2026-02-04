@@ -18,6 +18,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
@@ -25,6 +26,7 @@ interface UseVisualizeFieldsProps {
 }
 
 export function useVisualizeFields({
+  booleanTags,
   parsedFunction,
   numberTags,
   stringTags,
@@ -35,9 +37,10 @@ export function useVisualizeFields({
       functionName: parsedFunction?.name || '',
       numberTags,
       stringTags,
+      booleanTags,
       traceItemType,
     });
-  }, [parsedFunction, numberTags, stringTags, traceItemType]);
+  }, [booleanTags, numberTags, parsedFunction?.name, stringTags, traceItemType]);
 
   const unknownField = parsedFunction?.arguments[0];
 
@@ -103,9 +106,11 @@ export function useVisualizeFields({
 function getSupportedAttributes({
   functionName,
   numberTags,
+  booleanTags,
   stringTags,
   traceItemType,
 }: {
+  booleanTags: TagCollection;
   numberTags: TagCollection;
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
@@ -133,7 +138,7 @@ function getSupportedAttributes({
     }
 
     if (functionName === AggregationKey.COUNT_UNIQUE) {
-      return {...numberTags, ...stringTags};
+      return {...numberTags, ...stringTags, ...booleanTags};
     }
 
     return numberTags;

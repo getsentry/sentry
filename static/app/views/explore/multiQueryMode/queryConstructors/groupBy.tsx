@@ -22,6 +22,7 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 export function GroupBySection({query, index}: Props) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
@@ -29,6 +30,7 @@ export function GroupBySection({query, index}: Props) {
     groupBys: [],
     numberTags,
     stringTags,
+    booleanTags,
     traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });

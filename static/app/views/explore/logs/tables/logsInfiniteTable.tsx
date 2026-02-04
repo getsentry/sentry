@@ -79,6 +79,7 @@ type LogsTableProps = {
     scrollToDisabled?: boolean;
   };
   allowPagination?: boolean;
+  booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -109,6 +110,7 @@ export function LogsInfiniteTable({
   emptyRenderer,
   numberAttributes,
   stringAttributes,
+  booleanAttributes,
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
@@ -461,6 +463,7 @@ export function LogsInfiniteTable({
             isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
+            booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -566,10 +569,11 @@ export function LogsInfiniteTable({
 
 function LogsTableHeader({
   isFrozen,
+  booleanAttributes,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -592,7 +596,8 @@ function LogsTableHeader({
           const headerLabel = getTableHeaderLabel(
             field,
             stringAttributes,
-            numberAttributes
+            numberAttributes,
+            booleanAttributes
           );
 
           if (isPending) {

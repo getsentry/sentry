@@ -3,12 +3,14 @@ import {useMemo} from 'react';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
+  SENTRY_TRACEMETRIC_BOOLEAN_TAGS,
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
@@ -30,8 +32,12 @@ interface FilterProps {
 }
 
 export function Filter({traceMetric}: FilterProps) {
+  const organization = useOrganization();
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
+  const hasBooleanFilters = organization.features.includes(
+    'search-query-builder-explicit-boolean-filters'
+  );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -45,6 +51,12 @@ export function Filter({traceMetric}: FilterProps) {
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
     enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
+  });
+  const {attributes: booleanTags} = useTraceItemAttributeKeys({
+    traceItemType: TraceItemDataset.TRACEMETRICS,
+    type: 'boolean',
+    enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
     query: traceMetricFilter,
   });
 
@@ -84,12 +96,32 @@ export function Filter({traceMetric}: FilterProps) {
     };
   }, [stringTags]);
 
+  const visibleBooleanTags = useMemo(() => {
+    const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce((acc, key) => {
+      if (!HiddenTraceMetricSearchFields.includes(key)) {
+        acc[key] = {key, name: key, kind: FieldKind.BOOLEAN};
+      }
+      return acc;
+    }, {} as TagCollection);
+
+    return {
+      ...staticBooleanTags,
+      ...Object.fromEntries(
+        Object.entries(booleanTags ?? {}).filter(
+          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+        )
+      ),
+    };
+  }, [booleanTags]);
+
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
+        booleanAttributes: visibleBooleanTags ?? EMPTY_TAG_COLLECTION,
         numberAttributes: visibleNumberTags ?? EMPTY_TAG_COLLECTION,
         stringAttributes: visibleStringTags ?? EMPTY_TAG_COLLECTION,
+        booleanSecondaryAliases: EMPTY_ALIASES,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
         initialQuery: query,
@@ -97,7 +129,14 @@ export function Filter({traceMetric}: FilterProps) {
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
       };
-    }, [query, setQuery, visibleNumberTags, visibleStringTags, traceMetric.name]);
+    }, [
+      query,
+      setQuery,
+      visibleBooleanTags,
+      visibleNumberTags,
+      visibleStringTags,
+      traceMetric.name,
+    ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps

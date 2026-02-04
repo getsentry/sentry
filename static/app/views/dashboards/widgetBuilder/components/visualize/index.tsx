@@ -294,6 +294,7 @@ function Visualize({error, setError}: VisualizeProps) {
   }
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -317,7 +318,8 @@ function Visualize({error, setError}: VisualizeProps) {
           column =>
             column !== '' &&
             !stringSpanTags.hasOwnProperty(column) &&
-            !numericSpanTags.hasOwnProperty(column)
+            !numericSpanTags.hasOwnProperty(column) &&
+            !booleanSpanTags.hasOwnProperty(column)
         )
         .map(column => {
           return {
@@ -326,6 +328,13 @@ function Visualize({error, setError}: VisualizeProps) {
             trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
+      ...Object.values(booleanSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
+        };
+      }),
       ...Object.values(stringSpanTags).map(tag => {
         return {
           label: tag.name,
@@ -343,7 +352,7 @@ function Visualize({error, setError}: VisualizeProps) {
     ];
     options.sort(_sortFn);
     return options;
-  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags]);
+  }, [state.dataset, state.fields, stringSpanTags, numericSpanTags, booleanSpanTags]);
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
@@ -366,7 +375,7 @@ function Visualize({error, setError}: VisualizeProps) {
     ) {
       return datasetConfig.getTableFieldOptions(
         organization,
-        {...numericSpanTags, ...stringSpanTags},
+        {...booleanSpanTags, ...numericSpanTags, ...stringSpanTags},
         customMeasurements
       );
     }
@@ -378,14 +387,15 @@ function Visualize({error, setError}: VisualizeProps) {
       state.displayType
     );
   }, [
-    state.dataset,
-    datasetConfig,
-    organization,
-    tags,
+    booleanSpanTags,
     customMeasurements,
+    datasetConfig,
     numericSpanTags,
-    stringSpanTags,
+    organization,
+    state.dataset,
     state.displayType,
+    stringSpanTags,
+    tags,
   ]);
 
   const aggregates = useMemo(

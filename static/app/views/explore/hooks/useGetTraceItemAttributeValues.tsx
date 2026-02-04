@@ -43,7 +43,7 @@ function traceItemAttributeValuesQueryKey({
   datetime?: PageFilters['datetime'];
   projectIds?: number[];
   search?: string;
-  type?: 'string' | 'number';
+  type?: 'string' | 'number' | 'boolean';
 }): ApiQueryKey {
   const query: Record<string, string | string[] | number[]> = {
     itemType: traceItemType,
@@ -94,8 +94,8 @@ export function useGetTraceItemAttributeValues({
   // Create a function that can be used as getTagValues
   const getTraceItemAttributeValues = useCallback<GetTagValues>(
     async (tag, queryString) => {
-      if (tag.kind === FieldKind.FUNCTION || type === 'number') {
-        // We can't really auto suggest values for aggregate functions or numbers
+      if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
+        // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
       }
 

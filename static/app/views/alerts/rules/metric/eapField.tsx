@@ -86,12 +86,13 @@ function EAPField({aggregate, onChange, eventTypes}: Props) {
 
   const {attributes: storedNumberTags} = useTraceItemAttributes('number');
   const {attributes: storedStringTags} = useTraceItemAttributes('string');
+  const {attributes: storedBooleanTags} = useTraceItemAttributes('boolean');
 
   const storedTags = useMemo(() => {
     return aggregation === AggregationKey.COUNT_UNIQUE
-      ? {...storedNumberTags, ...storedStringTags}
+      ? {...storedNumberTags, ...storedStringTags, ...storedBooleanTags}
       : storedNumberTags;
-  }, [aggregation, storedNumberTags, storedStringTags]);
+  }, [aggregation, storedBooleanTags, storedNumberTags, storedStringTags]);
 
   const fieldsArray = useMemo(() => {
     return Object.values(storedTags).toSorted((a, b) => {

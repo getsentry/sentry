@@ -40,6 +40,7 @@ function WidgetBuilderGroupBySelector({
   }
   const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
   const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
+  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
 
   const groupByOptions = useMemo(() => {
     const datasetConfig = getDatasetConfig(state.dataset);
@@ -56,11 +57,19 @@ function WidgetBuilderGroupBySelector({
       return datasetConfig.getGroupByFieldOptions(organization, {
         ...numericSpanTags,
         ...stringSpanTags,
+        ...booleanSpanTags,
       });
     }
 
     return datasetConfig.getGroupByFieldOptions(organization, tags);
-  }, [numericSpanTags, organization, state.dataset, stringSpanTags, tags]);
+  }, [
+    booleanSpanTags,
+    numericSpanTags,
+    organization,
+    state.dataset,
+    stringSpanTags,
+    tags,
+  ]);
 
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});

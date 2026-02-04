@@ -872,6 +872,8 @@ function EAPSearchQueryBuilderWithContext({
     useTraceItemAttributes('number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes('string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -879,10 +881,12 @@ function EAPSearchQueryBuilderWithContext({
     onSearch,
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
     numberSecondaryAliases,
     stringSecondaryAliases,
+    booleanSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;

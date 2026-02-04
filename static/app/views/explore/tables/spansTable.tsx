@@ -63,6 +63,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -82,7 +83,8 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              const tag =
+                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
 
               const direction = sortBys.find(s => s.field === field)?.kind;
 

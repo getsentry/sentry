@@ -73,6 +73,8 @@ function ConversationsOverviewPage({
     useTraceItemTags('number');
   const {tags: stringTags = [], isLoading: stringTagsLoading} =
     useTraceItemTags('string');
+  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
+    useTraceItemTags('boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -138,9 +140,12 @@ function ConversationsOverviewPage({
                     </ToolRibbon>
                     <SchemaHintsList
                       supportedAggregates={DISABLE_AGGREGATES}
+                      booleanTags={booleanTags as TagCollection}
                       numberTags={numberTags as TagCollection}
                       stringTags={stringTags as TagCollection}
-                      isLoading={numberTagsLoading || stringTagsLoading}
+                      isLoading={
+                        numberTagsLoading || stringTagsLoading || booleanTagsLoading
+                      }
                       exploreQuery={searchQuery ?? ''}
                       source={SchemaHintsSources.CONVERSATIONS}
                     />

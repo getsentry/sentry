@@ -270,12 +270,20 @@ describe('findSuggestedColumns', () => {
       oldQuery: '',
       newQuery: 'count():>0',
     },
+    {
+      cols: [],
+      oldQuery: '',
+      newQuery: 'boolean:true',
+    },
   ])(
     'should inject $cols when changing from `$oldQuery` to `$newQuery`',
     ({cols, oldQuery, newQuery}) => {
       const oldSearch = new MutableSearch(oldQuery);
       const newSearch = new MutableSearch(newQuery);
       const suggestion = findSuggestedColumns(newSearch, oldSearch, {
+        booleanAttributes: {
+          boolean: {key: 'boolean', name: 'boolean'},
+        },
         numberAttributes: {
           num: {key: 'num', name: 'num'},
         },

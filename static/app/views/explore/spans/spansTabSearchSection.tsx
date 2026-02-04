@@ -131,6 +131,8 @@ const SpansTabCrossEventSearchBar = memo(
       useTraceItemTags('number');
     const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
       useTraceItemTags('string');
+    const {tags: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemTags('boolean');
 
     let traceItemType = TraceItemDataset.SPANS;
     if (type === 'logs') {
@@ -166,16 +168,20 @@ const SpansTabCrossEventSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        booleanAttributes,
         numberAttributes,
         stringAttributes,
         matchKeySuggestions: [
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
+        booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
       }),
       [
+        booleanAttributes,
+        booleanSecondaryAliases,
         crossEvents,
         index,
         mode,
@@ -286,8 +292,10 @@ function SpansTabCrossEventSearchBars() {
               disabled
               itemType={traceItemType}
               initialQuery={crossEvent.query}
+              booleanAttributes={{}}
               numberAttributes={{}}
               stringAttributes={{}}
+              booleanSecondaryAliases={{}}
               numberSecondaryAliases={{}}
               stringSecondaryAliases={{}}
               searchSource="explore"
@@ -376,6 +384,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
     useTraceItemTags('number');
   const {tags: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemTags('string');
+  const {tags: booleanAttributes, isLoading: booleanAttributesLoading} =
+    useTraceItemTags('boolean');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -386,6 +396,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
         const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          booleanAttributes,
           numberAttributes,
           stringAttributes,
         });
@@ -421,6 +432,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      booleanAttributes,
       caseInsensitive,
       fields,
       hasRawSearchReplacement,
@@ -476,9 +488,14 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                     supportedAggregates={
                       mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
                     }
+                    booleanTags={booleanAttributes}
                     numberTags={numberAttributes}
                     stringTags={stringAttributes}
-                    isLoading={numberAttributesLoading || stringAttributesLoading}
+                    isLoading={
+                      numberAttributesLoading ||
+                      stringAttributesLoading ||
+                      booleanAttributesLoading
+                    }
                     exploreQuery={query}
                     source={SchemaHintsSources.EXPLORE}
                   />
