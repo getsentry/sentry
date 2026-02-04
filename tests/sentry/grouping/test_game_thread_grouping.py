@@ -7,7 +7,11 @@ grouping ANR events by the game thread rather than the UI thread.
 
 import pytest
 
-from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
+from sentry.grouping.api import (
+    GroupingConfig,
+    get_grouping_variants_for_event,
+    load_grouping_config,
+)
 from sentry.grouping.strategies.base import GroupingContext
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -16,7 +20,7 @@ from sentry.testutils.cases import TestCase
 class GameThreadGroupingTest(TestCase):
     """Test game thread prioritization for ANR grouping."""
 
-    def test_game_thread_detection(self):
+    def test_game_thread_detection(self) -> None:
         """Test that game threads are correctly identified by name patterns."""
         from sentry.grouping.strategies.newstyle import _is_game_thread
 
@@ -47,7 +51,7 @@ class GameThreadGroupingTest(TestCase):
         assert not _is_game_thread({"name": "AsyncTask #1"})
         assert not _is_game_thread({"name": ""})
 
-    def test_anr_event_detection(self):
+    def test_anr_event_detection(self) -> None:
         """Test that ANR events are correctly identified."""
         from sentry.grouping.strategies.newstyle import _is_anr_event
 
@@ -62,33 +66,36 @@ class GameThreadGroupingTest(TestCase):
                 ]
             }
         }
-        event = Event(event_id="test", data=event_data)
+        event = Event(event_id="test", project_id=1, data=event_data)
         assert _is_anr_event(event)
 
         # Test ApplicationNotResponding exception type without mechanism
         event_data = {"exception": {"values": [{"type": "ApplicationNotResponding"}]}}
-        event = Event(event_id="test", data=event_data)
+        event = Event(event_id="test", project_id=1, data=event_data)
         assert _is_anr_event(event)
 
         # Test non-ANR event
         event_data = {"exception": {"values": [{"type": "RuntimeException"}]}}
-        event = Event(event_id="test", data=event_data)
+        event = Event(event_id="test", project_id=1, data=event_data)
         assert not _is_anr_event(event)
 
         # Test event with no exceptions
         event_data = {}
-        event = Event(event_id="test", data=event_data)
+        event = Event(event_id="test", project_id=1, data=event_data)
         assert not _is_anr_event(event)
 
-    def test_game_thread_grouping_disabled_by_default(self):
+    def test_game_thread_grouping_disabled_by_default(self) -> None:
         """Test that game thread grouping is disabled by default."""
-        config = load_grouping_config({"id": "newstyle:2026-01-20", "enhancements": ""})
-        context = GroupingContext(config)
+        config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
+        config = load_grouping_config(config_dict)
+        # Create a mock event for the GroupingContext
+        event = Event(event_id="test", project_id=1, data={})
+        context = GroupingContext(config, event)
 
         # Default behavior should not prioritize game thread
         assert not context.get("prioritize_game_thread_for_grouping", False)
 
-    def test_game_thread_grouping_with_anr_event(self):
+    def test_game_thread_grouping_with_anr_event(self) -> None:
         """Test that game thread is used for grouping when enabled for ANR events."""
         from pathlib import Path
 
@@ -99,10 +106,11 @@ class GameThreadGroupingTest(TestCase):
         with open(test_file) as f:
             event_data = json.load(f)
 
-        event = Event(event_id="test", data=event_data, project_id=1)
+        event = Event(event_id="test", project_id=1, data=event_data)
 
         # Test with game thread grouping disabled (default)
-        config = load_grouping_config({"id": "newstyle:2026-01-20", "enhancements": ""})
+        config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
+        config = load_grouping_config(config_dict)
         variants = get_grouping_variants_for_event(event, config)
 
         # With default config, should group by UI thread (current thread)
@@ -111,8 +119,8 @@ class GameThreadGroupingTest(TestCase):
         assert system_variant.contributes
 
         # Test with game thread grouping enabled
-        config_dict = {"id": "newstyle:2026-01-20", "enhancements": ""}
-        config = load_grouping_config(config_dict)
+        config_dict2: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
+        config = load_grouping_config(config_dict2)
         # Manually enable game thread prioritization in the context
         config.initial_context["prioritize_game_thread_for_grouping"] = True
 
@@ -131,7 +139,7 @@ class GameThreadGroupingTest(TestCase):
         # These should be different because they're grouping by different threads
         assert default_hash != game_thread_hash
 
-    def test_non_anr_event_not_affected_by_game_thread_config(self):
+    def test_non_anr_event_not_affected_by_game_thread_config(self) -> None:
         """Test that non-ANR events are not affected by game thread config."""
         event_data = {
             "exception": {
@@ -152,10 +160,10 @@ class GameThreadGroupingTest(TestCase):
                 ]
             }
         }
-        event = Event(event_id="test", data=event_data, project_id=1)
+        event = Event(event_id="test", project_id=1, data=event_data)
 
         # Load config with game thread grouping enabled
-        config_dict = {"id": "newstyle:2026-01-20", "enhancements": ""}
+        config_dict: GroupingConfig = {"id": "newstyle:2026-01-20", "enhancements": ""}
         config = load_grouping_config(config_dict)
         config.initial_context["prioritize_game_thread_for_grouping"] = True
 
