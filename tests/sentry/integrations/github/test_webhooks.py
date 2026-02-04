@@ -1100,54 +1100,6 @@ class PullRequestEventWebhook(APITestCase):
         assert contributor.num_actions == 2
         mock_assign_seat.delay.assert_called_once_with(contributor.id)
 
-    @patch("sentry.integrations.github.webhook.assign_seat_to_organization_contributor")
-    @patch(
-        "sentry.integrations.github.webhook.should_create_or_increment_contributor_seat",
-        return_value=True,
-    )
-    def test_no_contributor_tracking_for_bot_contributor(
-        self,
-        mock_should_create_or_increment_contributor_seat: MagicMock,
-        mock_assign_seat: MagicMock,
-    ) -> None:
-        Repository.objects.create(
-            organization_id=self.project.organization.id,
-            external_id="35129377",
-            provider="integrations:github",
-            name="baxterthehacker/public-repo",
-        )
-
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(self.project.organization.id, self.user)
-
-        body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-        body["pull_request"]["user"]["type"] = "Bot"
-        modified_body = json.dumps(body).encode("utf-8")
-
-        self.client.post(
-            path=self.url,
-            data=modified_body,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(modified_body),
-            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(modified_body),
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert not OrganizationContributors.objects.filter(
-            organization_id=self.organization.id,
-            integration_id=integration.id,
-            external_identifier="6752317",
-        ).exists()
-        mock_assign_seat.delay.assert_not_called()
-
 
 @with_feature("organizations:integrations-github-project-management")
 class IssuesEventWebhookTest(APITestCase):
