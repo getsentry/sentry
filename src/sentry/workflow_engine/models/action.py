@@ -7,9 +7,6 @@ from typing import ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -177,20 +174,3 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             key_parts.append(str(data))
 
         return ":".join(key_parts)
-
-
-@receiver(pre_save, sender=Action)
-def enforce_config_schema(sender, instance: Action, **kwargs):
-    handler = instance.get_handler()
-
-    config_schema = handler.config_schema
-    data_schema = handler.data_schema
-
-    if config_schema is not None:
-        instance.validate_config(config_schema)
-
-    if data_schema is not None:
-        try:
-            validate(instance.data, data_schema)
-        except ValidationError as e:
-            raise ValidationError(f"Invalid config: {e.message}")
