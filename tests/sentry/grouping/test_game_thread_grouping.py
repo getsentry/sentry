@@ -90,8 +90,9 @@ class GameThreadGroupingTest(TestCase):
 
     def test_game_thread_grouping_with_anr_event(self):
         """Test that game thread is used for grouping when enabled for ANR events."""
-        import json
         from pathlib import Path
+
+        from sentry.utils import json
 
         # Load the test ANR event with game thread
         test_file = Path(__file__).parent / "grouping_inputs" / "android-anr-game-thread.json"
