@@ -1,6 +1,4 @@
-import type {Theme} from '@emotion/react';
-
-import type {EventTag, Measurement} from 'sentry/types/event';
+import type {EventTag, Level, Measurement} from 'sentry/types/event';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**
@@ -25,7 +23,7 @@ export type TraceError = {
   event_id: string;
   issue: string;
   issue_id: number;
-  level: keyof Theme['level'];
+  level: Level;
   message: string;
   project_id: number;
   project_slug: string;

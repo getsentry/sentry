@@ -2,13 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
@@ -71,6 +70,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     switch (provider) {
       case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
         return t('Cursor Cloud Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
       default:
         return t('Coding Agent');
     }
@@ -165,7 +166,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               analyticsEventName="Autofix: Open Coding Agent"
                               analyticsEventKey="autofix.coding_agent.open"
                             >
-                              {t('Open in Cursor')}
+                              {codingAgentState.provider ===
+                              CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+                                ? t('Open in Cursor')
+                                : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
@@ -249,7 +253,7 @@ const HeaderWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
@@ -261,7 +265,7 @@ const Content = styled('div')`
 
 const AgentTitle = styled('h4')`
   margin: 0 0 ${p => p.theme.space.xs} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -269,7 +273,7 @@ const DetailRow = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -281,8 +285,8 @@ const Label = styled('span')`
 
 const Value = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ResultsSection = styled('div')`

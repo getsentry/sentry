@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
@@ -245,7 +246,9 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
           <PanelHeaderRight>
             {selectedConfigId && (
               <CompactSelect
-                triggerProps={{size: 'xs', prefix: 'DSN'}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} size="xs" prefix="DSN" />
+                )}
                 value={selectedConfigId}
                 options={Object.keys(projectConfig.configs).map(id => ({
                   value: id,
@@ -439,7 +442,7 @@ const PanelHeaderRight = styled('div')`
 const BaseSampleRateWrapper = styled(Alert)`
   padding: ${space(1)};
   margin-right: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   width: max-content;
   flex-basis: 50%;
@@ -452,7 +455,7 @@ const DSRulesTable = styled(PanelTable)`
 `;
 
 const NameColumnDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   > strong {
     margin-right: ${space(0.5)};
   }

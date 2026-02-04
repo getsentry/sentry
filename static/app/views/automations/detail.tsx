@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Text} from 'sentry/components/core/text';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Block, PanelSize} from 'sentry/views/seerExplorer/types';
@@ -16,6 +16,7 @@ interface PanelContainersProps {
   panelSize: PanelSize;
   blocks?: Block[];
   isPolling?: boolean;
+  isSeerDrawerOpen?: boolean;
   onUnminimize?: () => void;
   ref?: React.Ref<HTMLDivElement>;
 }
@@ -51,16 +52,28 @@ function PanelContainers({
   children,
   blocks,
   isPolling,
+  isSeerDrawerOpen,
   onUnminimize,
   ref,
 }: PanelContainersProps) {
   const statusText = blocks && blocks.length > 0 ? getStatusText(blocks) : t('Ready');
+  const showBackdrop = isSeerDrawerOpen && !isMinimized;
+
   return (
     <AnimatePresence>
+      {isOpen && showBackdrop && (
+        <PanelBackdrop
+          initial={{opacity: 0}}
+          animate={{opacity: 0.5}}
+          exit={{opacity: 0}}
+          transition={{duration: 0.2}}
+        />
+      )}
       {isOpen && (
         <PanelContainer
           panelSize={panelSize}
           isMinimized={isMinimized}
+          isSeerDrawerOpen={isSeerDrawerOpen}
           initial={{
             opacity: 0,
             x: 50,
@@ -122,29 +135,51 @@ function PanelContainers({
 
 export default PanelContainers;
 
+const PanelBackdrop = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: calc(50% + 8px);
+  height: 100%;
+  background: ${p => p.theme.colors.black};
+  z-index: 9999;
+  pointer-events: none;
+`;
+
 const PanelContainer = styled(motion.div)<{
   isMinimized: boolean;
   panelSize: 'max' | 'med';
+  isSeerDrawerOpen?: boolean;
 }>`
   position: fixed;
-  bottom: ${p => p.theme.space.sm};
-  right: ${p => p.theme.space.sm};
   z-index: 10000;
   pointer-events: auto;
 
-  ${p =>
-    p.panelSize === 'max'
-      ? `
-      width: 50vw;
-      height: calc(100vh - ${p.theme.space.lg});
-    `
-      : `
-      width: 50vw;
+  /* Position: shift left when drawer is open (but not when minimized) */
+  bottom: ${p => p.theme.space.sm};
+  right: ${p => {
+    const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
+    return shiftForDrawer ? '50%' : p.theme.space.sm;
+  }};
+
+  ${p => {
+    const shiftForDrawer = p.isSeerDrawerOpen && !p.isMinimized;
+    const width = shiftForDrawer ? 'calc(50vw - 8px)' : '50vw';
+    if (p.panelSize === 'max') {
+      return `
+        width: ${width};
+        height: calc(100vh - ${p.theme.space.lg});
+      `;
+    }
+    return `
+      width: ${width};
       height: 60vh;
-    `}
+    `;
+  }}
 
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const PanelContent = styled('div')`
@@ -159,9 +194,11 @@ const PanelContent = styled('div')`
   overflow: hidden;
 `;
 
-export function BlocksContainer(props: StackProps<'div'>) {
-  return <Stack flex="1" overflowY="auto" {...props} />;
-}
+export const BlocksContainer = styled(Stack)`
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+`;
 
 const MinimizedOverlay = styled(motion.div)`
   position: absolute;

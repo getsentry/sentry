@@ -1,6 +1,7 @@
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
 import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
 import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import type {Data} from 'sentry/components/forms/types';

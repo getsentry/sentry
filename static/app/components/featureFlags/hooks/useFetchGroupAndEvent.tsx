@@ -1,5 +1,6 @@
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -33,7 +34,18 @@ export function useFetchGroupAndEvent({
     isError: isEventError,
     error: eventError,
   } = useApiQuery<Event>(
-    [`/organizations/${organization.slug}/events/${projectSlug}:${eventId}/`],
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug!,
+            eventId: eventId!,
+          },
+        }
+      ),
+    ],
     {
       staleTime: Infinity,
       enabled: enabled && Boolean(eventId && projectSlug && organization.slug),

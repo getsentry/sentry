@@ -1,6 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
@@ -17,7 +18,9 @@ import {
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
-  `/organizations/${params.orgSlug}/forwarding/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/`, {
+    path: {organizationIdOrSlug: params.orgSlug},
+  }),
 ];
 
 export function useDataForwarders({
@@ -42,7 +45,9 @@ const makeDataForwarderMutationQueryKey = (params: {
   dataForwarderId: string;
   orgSlug: string;
 }): ApiQueryKey => [
-  `/organizations/${params.orgSlug}/forwarding/${params.dataForwarderId}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/forwarding/$dataForwarderId/`, {
+    path: {organizationIdOrSlug: params.orgSlug, dataForwarderId: params.dataForwarderId},
+  }),
 ];
 
 /**

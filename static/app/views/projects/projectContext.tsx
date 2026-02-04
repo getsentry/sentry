@@ -1,9 +1,11 @@
 import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -213,9 +215,26 @@ class ProjectContextProvider extends Component<Props, State> {
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
-      await this.props.api.requestPromise(
+      const project = await this.props.api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/`
       );
+
+      // Check if the returned project slug matches the requested slug.
+      // If it doesn't match, the project was likely renamed and the API
+      // followed a redirect to the new slug. In this case, redirect the
+      // user to the correct URL with the new project slug.
+      if (project?.slug && project.slug !== projectSlug) {
+        redirectToProject(project.slug);
+        return;
+      }
+
+      // Project exists but wasn't in store - this shouldn't normally happen
+      // but handle gracefully by showing not found error
+      this.setState({
+        loading: false,
+        error: true,
+        errorType: ErrorTypes.PROJECT_NOT_FOUND,
+      });
     } catch (error) {
       this.setState({
         loading: false,

@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
 from sentry.rules.history.preview import (
     FREQUENCY_CONDITION_GROUP_LIMIT,
@@ -27,6 +28,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, Test
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.utils.cache import cache
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -77,6 +79,17 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
         event.group.update(first_seen=timezone.now() - timedelta(hours=1))
         return event
+
+    def _set_up_assigned_groups(self) -> None:
+        """Create three groups, one assigned to a user, one to a team, and one unassigned"""
+        self.user = self.create_user()
+        prev_hour = timezone.now() - timedelta(hours=1)
+        self.team_group = self.create_group(project=self.project, first_seen=prev_hour)
+        self.team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.assign(self.team_group, self.team)
+        self.user_group = self.create_group(project=self.project, first_seen=prev_hour)
+        GroupAssignee.objects.assign(self.user_group, self.user)
+        self.unassigned_group = self.create_group(project=self.project, first_seen=prev_hour)
 
     def _test_preview(self, condition, expected):
         conditions = [{"id": condition}]
@@ -303,6 +316,75 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert results is not None
         assert event.group.id not in results
 
+    def test_assigned_to_team(self) -> None:
+        self._set_up_assigned_groups()
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetType": "Team",
+                "targetIdentifier": self.team.id,
+            }
+        ]
+
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert self.team_group.id in results
+        assert self.user_group.id not in results
+        assert self.unassigned_group.id not in results
+
+        other_team = self.create_team(organization=self.organization)
+        filters[0]["targetIdentifier"] = other_team.id
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert len(results) == 0
+
+    def test_assigned_to_member(self) -> None:
+        self._set_up_assigned_groups()
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            }
+        ]
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert self.user_group.id in results
+        assert self.team_group.id not in results
+        assert self.unassigned_group.id not in results
+
+        other_user = self.create_user()
+        filters[0]["targetIdentifier"] = other_user.id
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert len(results) == 0
+
+    def test_assigned_to_no_one(self) -> None:
+        self._set_up_assigned_groups()
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        filters = [
+            {
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetType": "Unassigned",
+            }
+        ]
+
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert self.team_group.id not in results
+        assert self.user_group.id not in results
+        assert self.unassigned_group.id in results
+
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.assign(self.unassigned_group, team)
+        # Clear cache to ensure we get fresh assignment data
+        cache.delete(f"group:{self.unassigned_group.id}:assignees")
+        results = preview(self.project, conditions, filters, *MATCH_ARGS)
+        assert results is not None
+        assert len(results) == 0
+
     def test_unsupported_conditions(self) -> None:
         self._set_up_first_seen()
         self._set_up_event({})
@@ -315,7 +397,6 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             assert result is None
 
         unsupported_filters = [
-            "sentry.rules.filters.assigned_to.AssignedToFilter",
             "sentry.rules.filters.latest_release.LatestReleaseFilter",
         ]
         for filter in unsupported_filters:

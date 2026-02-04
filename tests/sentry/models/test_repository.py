@@ -77,7 +77,7 @@ class RepositoryDeleteEmailTest(TestCase):
 class RepositoryCodeReviewSettingsTest(TestCase):
     """Tests for auto-enabling code review settings on repository creation."""
 
-    def test_no_settings_created_when_auto_enable_disabled(self):
+    def test_settings_created_when_no_auto_enable(self):
         org = self.create_organization()
 
         repo = Repository.objects.create(
@@ -86,7 +86,33 @@ class RepositoryCodeReviewSettingsTest(TestCase):
             provider="integrations:github",
         )
 
-        assert not RepositorySettings.objects.filter(repository=repo).exists()
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is False
+        assert settings.code_review_triggers == DEFAULT_CODE_REVIEW_TRIGGERS
+
+    def test_settings_created_when_auto_enable_disabled(self):
+        org = self.create_organization()
+
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:auto_enable_code_review",
+            value=False,
+        )
+        OrganizationOption.objects.set_value(
+            organization=org,
+            key="sentry:default_code_review_triggers",
+            value=["on_new_commit"],
+        )
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test-repo",
+            provider="integrations:github",
+        )
+
+        settings = RepositorySettings.objects.get(repository=repo)
+        assert settings.enabled_code_review is False
+        assert settings.code_review_triggers == ["on_new_commit"]
 
     def test_settings_created_when_auto_enable_enabled(self):
         org = self.create_organization()

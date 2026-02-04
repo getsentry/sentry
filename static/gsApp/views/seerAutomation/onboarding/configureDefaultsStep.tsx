@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import {
   GuidedSteps,
   useGuidedStepsContext,

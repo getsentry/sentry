@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -205,7 +205,7 @@ const ItemLayout = styled(PanelItem)`
 
 const SubText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 /**
@@ -226,5 +226,5 @@ const FormWrapper = styled('div')`
 
 const ContactDetailsWrapper = styled('div')`
   margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

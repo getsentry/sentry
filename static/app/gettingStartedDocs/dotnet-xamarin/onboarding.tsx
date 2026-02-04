@@ -1,11 +1,11 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
-import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -33,12 +33,20 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
             // Tells which project in Sentry to send events to:
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }${
+              params.isLogsSelected
+                ? `
             // Enable logs to be sent to Sentry
-            options.EnableLogs = true;
+            options.EnableLogs = true;`
+                : ''
+            }
             // If you installed Sentry.Xamarin.Forms:
             options.AddXamarinFormsIntegration();
         });`;
@@ -52,12 +60,20 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
         {
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }${
+              params.isLogsSelected
+                ? `
             // Enable logs to be sent to Sentry
-            options.EnableLogs = true;
+            options.EnableLogs = true;`
+                : ''
+            }
             options.AddXamarinFormsIntegration();
         });`;
 
@@ -70,12 +86,20 @@ sealed partial class App : Application
         {
             options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            options.Debug = true;
+            options.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            options.TracesSampleRate = 1.0;
+            options.TracesSampleRate = 1.0;`
+                : ''
+            }${
+              params.isLogsSelected
+                ? `
             // Enable logs to be sent to Sentry
-            options.EnableLogs = true;
+            options.EnableLogs = true;`
+                : ''
+            }
             options.AddXamarinFormsIntegration();
         });`;
 
@@ -242,14 +266,6 @@ export const onboarding: OnboardingConfig = {
           {
             title: t('Verify Logs'),
             content: [logsVerify(params)],
-          },
-        ]
-      : []),
-    ...(params.isMetricsSelected
-      ? [
-          {
-            title: t('Verify Metrics'),
-            content: [metricsVerify(params)],
           },
         ]
       : []),

@@ -13,12 +13,12 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   makeAutofixQueryKey,
@@ -411,7 +411,7 @@ function AutofixHighlightPopupContent({
                   <Divider />
                   <ResolveButton
                     size="zero"
-                    borderless
+                    priority="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -442,7 +442,7 @@ function AutofixHighlightPopupContent({
                 {allMessages.length > 0 && (
                   <ResolveButton
                     size="zero"
-                    borderless
+                    priority="transparent"
                     aria-label={t('Resolve thread')}
                     onClick={handleResolve}
                     icon={<IconClose size="xs" />}
@@ -508,7 +508,7 @@ function AutofixHighlightPopupContent({
               <StyledButton
                 size="zero"
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
               >
                 {'\u23CE'}
@@ -713,7 +713,7 @@ const Container = styled(motion.div, {
       transparent,
       color-mix(
         in srgb,
-        ${p => p.theme.tokens.interactive.link.accent.active} 12.5%,
+        ${p => p.theme.tokens.background.accent.vibrant} 12.5%,
         transparent
       ),
       transparent
@@ -766,7 +766,7 @@ const Header = styled('div')`
 `;
 
 const SelectedText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
   white-space: nowrap;
@@ -814,14 +814,14 @@ const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.radius.md};
   padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
 
   code {
-    font-size: ${p => p.theme.fontSize.xs};
+    font-size: ${p => p.theme.font.size.xs};
     background: transparent;
   }
 `;
@@ -857,7 +857,7 @@ const ReworkHeaderSection = styled('div')`
 `;
 
 const ReworkText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 
   ${ReworkHeaderSection}:hover & {

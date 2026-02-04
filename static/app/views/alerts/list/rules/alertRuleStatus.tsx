@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';

@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Placeholder from 'sentry/components/placeholder';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';

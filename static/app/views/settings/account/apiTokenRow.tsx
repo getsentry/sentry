@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -66,8 +65,8 @@ function ApiTokenRow({
 }
 
 const ScopeList = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
 `;
 

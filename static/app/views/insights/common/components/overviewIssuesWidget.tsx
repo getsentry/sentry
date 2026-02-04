@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {type MenuItemProps} from 'sentry/components/dropdownMenu';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';

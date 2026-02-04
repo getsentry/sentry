@@ -9,7 +9,7 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.search.events.fields import parse_function
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.store_data_workflow_engine import (
     handle_send_historical_data_to_seer,
@@ -67,7 +67,25 @@ def _get_old_query_info(snuba_query: SnubaQuery):
     return old_query_type, old_dataset, old_query, old_aggregate
 
 
+def _verify_event_types(snuba_query: SnubaQuery):
+    if (
+        snuba_query.dataset == Dataset.PerformanceMetrics.value
+        or snuba_query.dataset == Dataset.Transactions.value
+    ):
+        return True
+    if snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value:
+        return SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in snuba_query.event_types
+    return False
+
+
 def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+    if not _verify_event_types(snuba_query):
+        logger.info(
+            "Skipping roll forward for query with invalid event types",
+            extra={"snuba_query_id": snuba_query.id},
+        )
+        return
+
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
         status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
@@ -113,7 +131,11 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
 
     # handles count functions with arguments (even custom measurement arguments)
     if snapshot["aggregate"].startswith(COUNT_AGGREGATE_PREFIX):
-        aggregate, arguments, _ = parse_function(snapshot_aggregate)
+        if (match := is_function(snapshot_aggregate)) is not None:
+            aggregate, arguments_string = match.group("function"), match.group("columns")
+            arguments = parse_arguments(aggregate, arguments_string)
+        else:
+            arguments = []
         snapshot_aggregate = "count()"
         if len(arguments) > 0:
             argument = arguments[0]
@@ -155,7 +177,10 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     snuba_query.query = translated_query
     snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
 
-    function_name, _, _ = parse_function(old_aggregate)
+    if (match := is_function(old_aggregate)) is not None:
+        function_name = match.group("function")
+    else:
+        function_name = old_aggregate
     if function_name in COUNT_BASED_ALERT_AGGREAGTES:
         if snapshot["dataset"] == Dataset.PerformanceMetrics.value:
             snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value

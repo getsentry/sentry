@@ -78,7 +78,7 @@ export type IconSize = SizeRange<'xs', '2xl'>;
 /**
  * Form element size constraint.
  *
- * Unless you are implementing a new component in the `sentry/components/core`
+ * Unless you are implementing a new component in the `@sentry/scraps`
  * directory, use `ComponentProps['size']` instead.
  * @internal
  */
@@ -99,18 +99,6 @@ export type TagVariant =
  * Alert/status color scheme.
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
-
-/**
- * Error/event severity level.
- */
-export type LevelVariant =
-  | 'sample'
-  | 'info'
-  | 'warning'
-  | 'error'
-  | 'fatal'
-  | 'default'
-  | 'unknown';
 
 // -----------------------------------------------------------------------------
 // Internal types

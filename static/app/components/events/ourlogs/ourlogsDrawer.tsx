@@ -1,10 +1,10 @@
 import {useMemo, useRef} from 'react';
 import moment from 'moment-timezone';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   CrumbContainer,
   EventDrawerBody,

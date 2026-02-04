@@ -23,7 +23,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -370,21 +370,27 @@ function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_DATASET: {
-          setDataset(action.payload, options);
+          const config = getDatasetConfig(action.payload);
 
           let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
             // Issues only support table display type
-            setDisplayType(DisplayType.TABLE, options);
             nextDisplayType = DisplayType.TABLE;
+          } else if (
+            nextDisplayType &&
+            !config.supportedDisplayTypes.includes(nextDisplayType) &&
+            config.supportedDisplayTypes.length > 0
+          ) {
+            // If the current display type is not supported by the new dataset,
+            // reset to the first supported display type. This can happen when switching
+            // between datasets in the UI
+            nextDisplayType = config.supportedDisplayTypes[0];
           }
 
-          const config = getDatasetConfig(action.payload);
-          setFields(
-            config.defaultWidgetQuery.fields?.map(field => explodeField({field})),
-            options
-          );
-          if (isChartDisplayType(nextDisplayType)) {
+          setDataset(action.payload, options);
+          setDisplayType(nextDisplayType, options);
+
+          if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
@@ -528,26 +534,34 @@ function useWidgetBuilderState(): {
             const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
             );
+
             // Adding a grouping, so default the sort to the first aggregate if possible
-            const sortField =
-              dataset === WidgetType.TRACEMETRICS
-                ? (generateMetricAggregate(
+            let sortField: string | undefined;
+            if (dataset === WidgetType.TRACEMETRICS) {
+              sortField = firstYAxisNotEquation
+                ? generateMetricAggregate(
                     traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation as QueryFieldValue
-                  ) ?? '')
-                : (generateFieldAsString(firstYAxisNotEquation as QueryFieldValue) ??
-                  generateFieldAsString(
-                    firstActionPayloadNotEquation as QueryFieldValue
-                  ));
-            setSort(
-              [
-                {
-                  kind: 'desc',
-                  field: sortField,
-                },
-              ],
-              options
-            );
+                    firstYAxisNotEquation
+                  )
+                : undefined;
+            } else if (firstYAxisNotEquation) {
+              sortField = generateFieldAsString(firstYAxisNotEquation);
+            } else if (firstActionPayloadNotEquation) {
+              sortField = generateFieldAsString(firstActionPayloadNotEquation);
+            }
+
+            // Only update sort if we have a valid field to sort by
+            if (sortField) {
+              setSort(
+                [
+                  {
+                    kind: 'desc',
+                    field: sortField,
+                  },
+                ],
+                options
+              );
+            }
           }
 
           if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
@@ -662,7 +676,7 @@ function useWidgetBuilderState(): {
             // Check the validity of the aggregates against the new trace metric and
             // set fields and sorting accordingly
             let updatedAggregates: Column[] = [];
-            const aggregateSource = isChartDisplayType(displayType) ? yAxis : fields;
+            const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
             const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
 
             if (aggregateSource && validAggregateOptions.length > 0) {
@@ -691,7 +705,7 @@ function useWidgetBuilderState(): {
               });
 
               // Update the appropriate source
-              if (isChartDisplayType(displayType)) {
+              if (usesTimeSeriesData(displayType)) {
                 setYAxis(updatedAggregates, options);
               } else {
                 setFields(updatedAggregates, options);
@@ -708,8 +722,8 @@ function useWidgetBuilderState(): {
                 action.payload,
                 // Depending on the display type, the updated aggregates can be either
                 // the yAxis or the fields
-                isChartDisplayType(displayType) ? updatedAggregates : yAxis,
-                isChartDisplayType(displayType) ? fields : updatedAggregates
+                usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
+                usesTimeSeriesData(displayType) ? fields : updatedAggregates
               )
             ) {
               if (updatedAggregates.length > 0) {

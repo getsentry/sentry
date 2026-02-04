@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import Collapsible from 'sentry/components/collapsible';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -75,7 +75,7 @@ const Row = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
       p.theme.breakpoints.lg}) {

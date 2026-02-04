@@ -21,7 +21,7 @@ export function PanelPositionSelector({
         size="zero"
         aria-label={t('Table bottom')}
         icon={<IconPanel direction="down" />}
-        borderless
+        priority="transparent"
         onClick={() => setOrientation('bottom')}
         disabled={disabled || orientation === 'bottom'}
         title={t('Table bottom')}
@@ -30,7 +30,7 @@ export function PanelPositionSelector({
         size="zero"
         aria-label={t('Table right')}
         icon={<IconPanel direction="right" />}
-        borderless
+        priority="transparent"
         onClick={() => setOrientation('right')}
         disabled={disabled || orientation === 'right'}
         title={t('Table right')}

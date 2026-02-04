@@ -2,12 +2,13 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -28,6 +29,7 @@ import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -94,7 +96,9 @@ function useSourceMapUploads({
     refetch: archivesRefetch,
   } = useApiQuery<SourceMapsArchive[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/source-maps/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -112,7 +116,12 @@ function useSourceMapUploads({
     refetch: debugIdBundlesRefetch,
   } = useApiQuery<DebugIdBundle[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`,
+      getApiUrl(
+        `/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/`,
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }
+      ),
       {
         query: {query, cursor, sortBy: '-date_added'},
       },
@@ -130,7 +139,9 @@ function useSourceMapUploads({
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: [project.id],
@@ -496,7 +507,7 @@ const ItemHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   line-height: 1;
   padding: ${space(1)} ${space(2)};

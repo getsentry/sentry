@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,7 +29,7 @@ export default function AllViewsWelcomeBanner() {
           analyticsEventKey="issue_views.all_views.banner_dismissed"
           analyticsEventName="Issue Views: All Views Banner Dismissed"
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconClose size="xs" />}
           aria-label={t('Dismiss')}
           onClick={() => dismissPrompt()}
@@ -78,21 +79,21 @@ const Banner = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerSubTitle = styled('div')`
   display: flex;
   flex-direction: column;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   gap: ${space(0.5)};
 `;
 
 const BannerNoteBold = styled('div')`
   display: inline;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 const BannerStar1 = styled('img')`
   position: absolute;

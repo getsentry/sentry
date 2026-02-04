@@ -1,9 +1,11 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,8 +103,8 @@ const TagHeader = styled('h4')`
   align-items: center;
 
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TagValueGrid = styled('ul')`
@@ -126,7 +128,7 @@ const TagValueRow = styled('li')`
   font-variant-numeric: tabular-nums;
 
   &:nth-child(2n) {
-    background-color: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+    background-color: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   }
 `;
 

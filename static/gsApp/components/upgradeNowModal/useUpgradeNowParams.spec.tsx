@@ -58,6 +58,7 @@ describe('useUpgradeNowParams', () => {
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
           reservedSeerUsers: 0,
+          reservedSizeAnalyses: 100,
         },
       })
     );

@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import useApi from 'sentry/utils/useApi';
 
 import PageHeader from 'admin/components/pageHeader';

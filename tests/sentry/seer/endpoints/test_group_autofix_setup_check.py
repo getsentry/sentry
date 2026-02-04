@@ -146,7 +146,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -190,7 +190,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -224,7 +224,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -259,7 +259,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -303,7 +303,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -322,7 +322,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -336,7 +336,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -348,7 +348,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         for setting in [None] + list(AutofixAutomationTuningSettings):
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
-            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
@@ -361,7 +361,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         for setting in [None, AutofixAutomationTuningSettings.OFF]:
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
-            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
@@ -378,7 +378,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         ]:
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
-            url = f"/api/0/issues/{group.id}/autofix/setup/"
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
@@ -399,7 +399,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -440,7 +440,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -479,7 +479,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200

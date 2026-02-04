@@ -6,17 +6,16 @@ import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Input} from 'sentry/components/core/input';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

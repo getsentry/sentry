@@ -2,10 +2,10 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,

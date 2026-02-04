@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -60,5 +61,5 @@ function AllTeamsList({organization, openMembership, teamList, access}: Props) {
 export default AllTeamsList;
 
 const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

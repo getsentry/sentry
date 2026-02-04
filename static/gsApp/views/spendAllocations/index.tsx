@@ -2,15 +2,14 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -443,7 +442,9 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
             </Stack>
           </StyledButtonBar>
           <DropdownDataCategory
-            triggerProps={{prefix: t('Category')}}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+            )}
             value={selectedMetric}
             options={supportedCategories
               .filter(category => subscription.planDetails.categories.includes(category))

@@ -3,9 +3,9 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -61,7 +61,7 @@ const OnboardingTitle = styled('h3')`
 `;
 
 const SectionTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   margin-bottom: ${space(1)};

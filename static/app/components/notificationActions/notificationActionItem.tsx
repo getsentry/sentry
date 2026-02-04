@@ -1,7 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -10,10 +13,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -376,7 +375,7 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export default NotificationActionItem;

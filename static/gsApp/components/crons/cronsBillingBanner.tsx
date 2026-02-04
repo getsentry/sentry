@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -49,10 +51,16 @@ export function CronsBillingBanner({organization, subscription}: Props) {
   const {data: billingConfig} = useBillingConfig({organization, subscription});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
 
-  const queryKey = [`/organizations/${organization.slug}/monitor-count/`] as const;
-  const {data, isPending} = useApiQuery<MonitorCountResponse>(queryKey, {
-    staleTime: 0,
-  });
+  const {data, isPending} = useApiQuery<MonitorCountResponse>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/monitor-count/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (!data || isPending || !subscription.canSelfServe || !onDemandPrice || !reserved) {
     return null;

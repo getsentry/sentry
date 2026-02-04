@@ -1,9 +1,8 @@
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Link} from 'sentry/components/core/link';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
@@ -162,7 +161,13 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
   return hasVcsInfo ? (
     <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
   ) : (
-    <Container border="primary" radius="md" padding="md" width="100%">
+    <Container
+      border="primary"
+      radius="md"
+      padding="md"
+      width="100%"
+      marginBottom={{xs: 'lg', lg: '0'}}
+    >
       <Flex direction="column" gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>
         <Text variant="muted" size="sm">

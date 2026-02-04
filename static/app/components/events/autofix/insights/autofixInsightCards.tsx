@@ -129,8 +129,8 @@ export default function AutofixInsightCards(props: AutofixInsightCardsProps) {
 }
 
 const HeaderText = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

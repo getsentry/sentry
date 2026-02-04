@@ -5,9 +5,9 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -117,7 +117,6 @@ export function parseTagKey(tagKey: string) {
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
-  [SchemaHintsSources.AI_GENERATIONS]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
 };
 
@@ -500,16 +499,16 @@ export const SchemaHintsSection = styled('div')`
 `;
 
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.accent};
 `;

@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -94,7 +95,12 @@ export function useAggregateFlamegraphQuery(
   ]);
 
   return useApiQuery<Profiling.Schema>(
-    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/profiling/flamegraph/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
     {
       staleTime: 0,
       retry: false,

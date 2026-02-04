@@ -15,6 +15,7 @@ class GroupOpenPeriodActivityResponse(TypedDict):
     type: str
     value: str | None
     dateCreated: datetime
+    eventId: str | None
 
 
 class GroupOpenPeriodResponse(TypedDict):
@@ -22,6 +23,7 @@ class GroupOpenPeriodResponse(TypedDict):
     start: datetime
     end: datetime | None
     isOpen: bool
+    eventId: str | None
     activities: list[GroupOpenPeriodActivityResponse] | None
 
 
@@ -35,6 +37,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
             type=OpenPeriodActivityType(obj.type).to_str(),
             value=PriorityLevel(obj.value).to_str() if obj.value else None,
             dateCreated=obj.date_added,
+            eventId=obj.event_id,
         )
 
 
@@ -89,5 +92,6 @@ class GroupOpenPeriodSerializer(Serializer):
                 else None
             ),
             isOpen=obj.date_ended is None,
+            eventId=obj.event_id,
             activities=attrs.get("activities"),
         )

@@ -1,14 +1,13 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconCopy, IconEllipsis, IconSort} from 'sentry/icons';
@@ -501,11 +500,14 @@ export function TraceEventDataSection({
               </LinkButton>
             )}
             <CompactSelect
-              triggerProps={{
-                icon: <IconSort />,
-                size: 'xs',
-                title: sortByTooltip,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconSort />}
+                  size="xs"
+                  title={sortByTooltip}
+                />
+              )}
               disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
@@ -518,13 +520,14 @@ export function TraceEventDataSection({
               }))}
             />
             <CompactSelect
-              triggerProps={{
-                icon: <IconEllipsis />,
-                size: 'xs',
-                showChevron: false,
-                'aria-label': t('Options'),
-                children: '',
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  icon={<IconEllipsis />}
+                  size="xs"
+                  aria-label={t('Options')}
+                />
+              )}
               multiple
               position="bottom-end"
               value={displayValues}
@@ -564,7 +567,7 @@ const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;

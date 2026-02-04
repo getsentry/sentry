@@ -2,13 +2,14 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -133,27 +134,81 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'dotnet-xamarin': [
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  kotlin: [ProductSolution.PERFORMANCE_MONITORING],
+  go: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  kotlin: [ProductSolution.PERFORMANCE_MONITORING],
-  go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-fiber': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-gin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-echo': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-fasthttp': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-fiber': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-gin': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-http': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-iris': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'go-negroni': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  godot: [ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  java: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+    ProductSolution.PROFILING,
+  ],
+  'java-log4j2': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+    ProductSolution.PROFILING,
+  ],
+  'java-logback': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+    ProductSolution.PROFILING,
+  ],
+  'java-spring': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+    ProductSolution.PROFILING,
+  ],
+  'java-spring-boot': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+    ProductSolution.PROFILING,
+  ],
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -217,6 +272,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  native: [ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -307,6 +363,7 @@ export const platformProductAvailability = {
   'php-symfony': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   python: [
@@ -432,6 +489,8 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  unity: [ProductSolution.LOGS],
+  unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {

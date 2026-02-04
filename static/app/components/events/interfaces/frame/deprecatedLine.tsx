@@ -3,12 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
@@ -259,7 +259,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -324,7 +324,7 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                borderless
+                priority="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
@@ -411,11 +411,11 @@ const DefaultLine = styled('div')<{
   min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
   }
 `;
 
@@ -429,9 +429,9 @@ const ToggleContextButton = styled(Button)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {
@@ -446,5 +446,5 @@ const SourceMapDebuggerButtonText = styled('span')`
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
   padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import type {FocusableElement} from '@react-types/shared';
 
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
-import type {ContainerProps} from '@sentry/scraps/layout/container';
+import type {
+  ContainerProps,
+  ContainerPropsWithRenderFunction,
+} from '@sentry/scraps/layout';
 
 type BaseGridCellProps = FlexProps & DOMAttributes<FocusableElement>;
 
@@ -16,7 +19,7 @@ export function BaseGridCell({children, ...props}: BaseGridCellProps) {
   );
 }
 
-type FilterWrapperProps = ContainerProps & {
+type FilterWrapperProps = (ContainerPropsWithRenderFunction | ContainerProps) & {
   state: 'invalid' | 'warning' | 'valid';
 };
 

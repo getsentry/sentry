@@ -140,22 +140,14 @@ def should_create_or_increment_contributor_seat(
     Determines if we should create or increment an OrganizationContributor record
     and potentially assign a new seat.
 
-    Logic:
-    1. Require seat-based Seer to be enabled for the organization
-    2. Exclude organizations in code-review-beta cohort (they use a different flow)
-    3. Require code review OR autofix to be enabled for the repo
-    4. Check Seer quota (returns True if contributor has seat OR quota available)
+    Require repo integration, code review OR autofix enabled for the repo,
+    and seat-based Seer enabled for the organization.
     """
-    if not features.has("organizations:seat-based-seer-enabled", organization):
-        return False
-
-    if features.has("organizations:code-review-beta", organization):
-        return False
-
-    if not _has_code_review_or_autofix_enabled(organization.id, repo.id):
-        return False
-
-    if repo.integration_id is None:
+    if (
+        repo.integration_id is None
+        or not _has_code_review_or_autofix_enabled(organization.id, repo.id)
+        or not features.has("organizations:seat-based-seer-enabled", organization)
+    ):
         return False
 
     return quotas.backend.check_seer_quota(
@@ -163,3 +155,8 @@ def should_create_or_increment_contributor_seat(
         data_category=DataCategory.SEER_USER,
         seat_object=contributor,
     )
+
+
+def is_github_rate_limit_sensitive(organization: Organization) -> bool:
+    """Check if an organization is in the list of GitHub rate-limit sensitive organizations."""
+    return organization.slug in options.get("github-app.rate-limit-sensitive-orgs")

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import TimeSince from 'sentry/components/timeSince';
@@ -57,7 +58,7 @@ export default function MessageTitle({feedbackItem, eventData}: Props) {
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   align-self: center;
   white-space: nowrap;
 `;

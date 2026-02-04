@@ -129,7 +129,6 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
             timestamp=timestamp,
             duration=duration,
             organization_id=project.organization.id,
-            is_eap=True,
             **kwargs,
         )
 

@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type ContentBlock,
@@ -17,18 +18,18 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('Send test logs from your app to verify logs are arriving in Sentry.'),
+      text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
     },
     {
       type: 'code',
-      language: 'dotnet',
+      language: 'csharp',
       code: `SentrySdk.Logger.LogInfo("A simple log message");
 SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
     },
   ],
 });
 
-export const dotnetLogs = (): OnboardingConfig => ({
+export const logs: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -36,7 +37,7 @@ export const dotnetLogs = (): OnboardingConfig => ({
         {
           type: 'text',
           text: tct(
-            'Install our .NET SDK with a minimum version that supports logs ([code:6.0.0] or higher).',
+            'Logs in .NET are supported in Sentry .NET SDK version [code:5.14.0] and above.',
             {
               code: <code />,
             }
@@ -67,7 +68,7 @@ export const dotnetLogs = (): OnboardingConfig => ({
         {
           type: 'text',
           text: tct(
-            'Configure the Sentry SDK to capture logs by setting [code:EnableLogs=true] in your [code:SentrySdk.Init] call:',
+            'To enable logging, you need to initialize the SDK with the [code:EnableLogs] option set to [code:true].',
             {
               code: <code />,
             }
@@ -75,13 +76,12 @@ export const dotnetLogs = (): OnboardingConfig => ({
         },
         {
           type: 'code',
-          language: 'dotnet',
-          code: `using Sentry;
-
-SentrySdk.Init(o => {
-    o.Dsn = "${params.dsn.public}";
+          language: 'csharp',
+          code: `SentrySdk.Init(options =>
+{
+    options.Dsn = "${params.dsn.public}";
     // Enable logs to be sent to Sentry
-    o.EnableLogs = true;
+    options.EnableLogs = true;
 });`,
         },
         {
@@ -103,4 +103,4 @@ SentrySdk.Init(o => {
       content: [logsVerify(params)],
     },
   ],
-});
+};

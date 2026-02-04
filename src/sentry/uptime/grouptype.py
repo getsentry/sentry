@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import override
+from typing import Any, override
 
 from django.db.models import Q
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, CheckStatus
@@ -15,10 +15,10 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
-from sentry.uptime.models import UptimeSubscription
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
-from sentry.uptime.utils import build_fingerprint
-from sentry.utils import metrics
+from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
+from sentry.utils import json, metrics
 from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
@@ -214,9 +214,36 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         result = data_packet.packet.check_result
         uptime_subscription = data_packet.packet.subscription
 
+        evidence_data: dict[str, Any] = {}
+
+        # Find the most recent response capture for this failure sequence
+        threshold = self.detector.config["downtime_threshold"]
+        failure_times = generate_scheduled_check_times_ms(
+            base_time_ms=int(result["scheduled_check_time_ms"]),
+            interval_ms=uptime_subscription.interval_seconds * 1000,
+            count=threshold,
+            forward=False,
+        )
+        capture = (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription=uptime_subscription,
+                scheduled_check_time_ms__gte=failure_times[0],
+                scheduled_check_time_ms__lte=failure_times[-1],
+            )
+            .order_by("-scheduled_check_time_ms")
+            .first()
+        )
+        if capture:
+            evidence_data["response_capture_id"] = capture.id
+
+        assertion_failure_data = result.get("assertion_failure_data")
+        if assertion_failure_data is not None:
+            evidence_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
+
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",
             subtitle="Your monitored domain is down",
+            evidence_data=evidence_data,
             evidence_display=build_evidence_display(result),
             type=UptimeDomainCheckFailure,
             level="error",

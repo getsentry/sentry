@@ -304,6 +304,8 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'apple-ios',
   'apple-macos',
   'bun',
+  'cocoa-objc',
+  'cocoa-swift',
   'dart',
   'dotnet',
   'dotnet-aspnet',
@@ -324,6 +326,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'go-iris',
   'go-martini',
   'go-negroni',
+  'godot',
   'java',
   'java-log4j2',
   'java-logback',
@@ -345,6 +348,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+  'native',
   'node',
   'node-azurefunctions',
   'node-connect',
@@ -359,6 +363,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'node-nestjs',
   'php',
   'php-laravel',
+  'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -385,6 +390,8 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'ruby-rack',
   'ruby-rails',
   'rust',
+  'unity',
+  'unreal',
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
@@ -392,6 +399,11 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'android',
+  'flutter',
+  'apple',
+  'apple-ios',
+  'apple-macos',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -400,7 +412,19 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
-  'dotnet-xamarin',
+  'go',
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-negroni',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -460,14 +484,23 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
-export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
+export const withoutMetricsSupport: Set<PlatformKey> = new Set(['dotnet-xamarin']);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'android',
+  'apple',
+  'bun',
+  'dart',
+  'electron',
+  'go',
+  'java',
   'javascript',
   'node',
   'python',
   'php',
+  'react-native',
   'ruby',
+  'flutter',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -477,6 +510,11 @@ export const profiling: PlatformKey[] = [
   'apple-macos',
   'dotnet',
   'flutter',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -493,7 +531,6 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
-
   'node',
   'node-awslambda',
   'node-azurefunctions',
@@ -795,7 +832,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);
 
-export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+export const javascriptMetaFrameworks: readonly PlatformKey[] = [
   'javascript-astro',
   'javascript-nextjs',
   'javascript-nuxt',
@@ -804,6 +841,10 @@ export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
+] as const;
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
+  ...javascriptMetaFrameworks,
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

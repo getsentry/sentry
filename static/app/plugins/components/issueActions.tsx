@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';

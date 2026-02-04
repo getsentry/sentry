@@ -6,9 +6,15 @@ from rest_framework import serializers
 
 from sentry import audit_log, features
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    ACTION_FILTERS_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
+)
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
     BaseDataConditionGroupValidator,
@@ -31,13 +37,29 @@ ModelType = TypeVar("ModelType", bound=models.Model)
 
 
 class WorkflowValidator(CamelSnakeSerializer):
-    id = serializers.CharField(required=False)
-    name = serializers.CharField(required=True, max_length=256)
-    enabled = serializers.BooleanField(required=False, default=True)
-    config = serializers.JSONField(required=False)
-    environment_id = serializers.IntegerField(required=False)
-    triggers = BaseDataConditionGroupValidator(required=False)
-    action_filters = serializers.ListField(required=False)
+    id = serializers.CharField(required=False, help_text="The ID of the existing alert")
+    name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
+    enabled = serializers.BooleanField(
+        required=False, default=True, help_text="Whether the alert is enabled or disabled"
+    )
+    config = serializers.JSONField(
+        required=False,
+        help_text=WORKFLOW_CONFIG_HELP_TEXT,
+    )
+    environment = EnvironmentField(
+        required=False,
+        allow_null=True,
+        help_text="The name of the environment for the alert to evaluate in",
+    )
+
+    triggers = BaseDataConditionGroupValidator(
+        required=False,
+        help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
+    )
+    action_filters = serializers.ListField(
+        required=False,
+        help_text=ACTION_FILTERS_HELP_TEXT,
+    )
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
@@ -253,12 +275,14 @@ class WorkflowValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
 
+            environment = validated_value.get("environment")
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
                 organization_id=self.context["organization"].id,
-                environment_id=validated_value.get("environment_id"),
+                environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
             )

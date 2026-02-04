@@ -75,7 +75,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             )
 
     def test_simple(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -90,7 +90,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count_map"]["http.server"] == 19
 
     def test_no_team(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         self.team.delete()
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -105,7 +105,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count_map"]["http.server"] == 19
 
     def test_with_errors(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -121,7 +121,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count_map"]["http.server"] == 19
 
     def test_with_default(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         self.load_default()
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -138,7 +138,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert len(data["transaction_child_count_map"]) == 8
 
     def test_with_invalid_date(self) -> None:
-        self.load_trace(is_eap=True)
+        self.load_trace()
         self.load_default()
         with self.options({"system.event-retention-days": 10}):
             with self.feature(self.FEATURES):
@@ -164,7 +164,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
     def test_trace_meta_without_uptime_param(self) -> None:
         """Test that uptime_checks field is NOT present when include_uptime is not set"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         uptime_result = self.create_uptime_check()
         self.store_uptime_results([uptime_result])
         with self.feature(self.FEATURES):
@@ -183,7 +183,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
     def test_trace_meta_with_uptime_param(self) -> None:
         """Test that uptime_checks shows correct count when include_uptime=1"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         uptime_results = [
             self.create_uptime_check(check_status="success"),
@@ -209,7 +209,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
     def test_trace_meta_no_uptime_results(self) -> None:
         """Test that uptime_checks is 0 when there are no uptime results"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -228,7 +228,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
 
     def test_trace_meta_different_trace_id(self) -> None:
         """Test that uptime results from different traces are not counted"""
-        self.load_trace(is_eap=True)
+        self.load_trace()
         other_trace_id = uuid4().hex
         uptime_result = self.create_uptime_check(trace_id=other_trace_id)
         self.store_uptime_results([uptime_result])

@@ -1,10 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -92,11 +92,11 @@ const RepoListItemContainer = styled('div')<{
 `;
 
 const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;

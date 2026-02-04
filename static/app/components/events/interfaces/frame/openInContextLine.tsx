@@ -1,8 +1,9 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {space} from 'sentry/styles/space';
 import type {
@@ -67,7 +68,7 @@ const OpenInContainer = styled('div')`
   gap: ${space(1)};
   align-items: center;
   z-index: 1;
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;

@@ -2,14 +2,16 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import {FeatureBadge} from 'sentry/components/core/badge';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import type {
   MultipleSelectProps,
   SelectOption,
+  SelectOptionWithKey,
   SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -125,15 +127,18 @@ function OptionSelector({
       options={mappedOptions}
       isOptionDisabled={isOptionDisabled}
       position="bottom-end"
-      triggerProps={{
-        borderless: true,
-        prefix: (
-          <Fragment>
-            {title}
-            {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
-          </Fragment>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          priority="transparent"
+          prefix={
+            <Fragment>
+              {title}
+              {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
+            </Fragment>
+          }
+        />
+      )}
     />
   );
 }

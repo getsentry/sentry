@@ -1,11 +1,13 @@
+import {Button} from '@sentry/scraps/button';
+
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -54,7 +56,9 @@ const useApdex = (props: Props) => {
 
   const currentQuery = useApiQuery<TableData>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,
@@ -73,7 +77,9 @@ const useApdex = (props: Props) => {
 
   const previousQuery = useApiQuery<TableData>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...commonQuery,

@@ -1,4 +1,6 @@
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -65,7 +67,9 @@ export function SpanOpSelector({transaction, primaryRelease}: Props) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Operation'), size: 'md'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Operation')} size="md" />
+      )}
       value={value}
       options={options ?? []}
       onChange={newValue => {

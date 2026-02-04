@@ -121,7 +121,7 @@ const AutoResizeParent = styled('div')`
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 DetailsWidgetVisualization.LoadingPlaceholder = function () {

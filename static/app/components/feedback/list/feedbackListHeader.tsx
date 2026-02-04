@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';

@@ -1,5 +1,6 @@
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTransactionProps {
@@ -11,7 +12,16 @@ interface UseTransactionProps {
 export function useTransaction(props: UseTransactionProps) {
   return useApiQuery<EventTransaction>(
     [
-      `/organizations/${props.organization.slug}/events/${props.project_slug}:${props.event_id}/`,
+      getApiUrl(
+        `/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/`,
+        {
+          path: {
+            organizationIdOrSlug: props.organization.slug,
+            projectIdOrSlug: props.project_slug,
+            eventId: props.event_id,
+          },
+        }
+      ),
       {
         query: {
           referrer: 'trace-details-summary',

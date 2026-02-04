@@ -1,7 +1,8 @@
 import {useCallback, useState} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import type FormModel from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';

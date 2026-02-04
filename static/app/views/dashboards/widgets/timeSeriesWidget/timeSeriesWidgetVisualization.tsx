@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
@@ -14,15 +13,12 @@ import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {
   useChartXRangeSelection,
   type ChartXRangeSelectionProps,
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -38,15 +34,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
-import {
-  NO_PLOTTABLE_VALUES,
-  X_GUTTER,
-  Y_GUTTER,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
@@ -150,7 +143,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
 
-  const {onDataZoom, ...chartZoomProps} = useChartZoom({
+  const {
+    onDataZoom,
+    onChartReady: onChartReadyZoom,
+    ...chartZoomProps
+  } = useChartZoom({
     saveOnZoom: true,
   });
 
@@ -429,19 +426,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         plottable.handleChartRef?.(e);
       }
 
-      const echartsInstance = e.getEchartsInstance();
-      registerWithWidgetSyncContext(echartsInstance);
-
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      registerWithWidgetSyncContext,
-      props.plottables,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+  );
+
+  const handleChartReady = useCallback(
+    (instance: echarts.ECharts) => {
+      onChartReadyZoom(instance);
+      registerWithWidgetSyncContext(instance);
+    },
+    [onChartReadyZoom, registerWithWidgetSyncContext]
   );
 
   const showXAxisProp = props.showXAxis ?? 'auto';
@@ -652,6 +649,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         brush={brush}
         onBrushStart={onBrushStart}
         onBrushEnd={onBrushEnd}
+        onChartReady={handleChartReady}
         isGroupedByDate
         useMultilineDate
         start={start ? new Date(start) : undefined}
@@ -663,28 +661,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         onClick={handleClick}
       />
     </Fragment>
-  );
-}
-
-function LoadingPanel({
-  loadingMessage,
-  expectMessage,
-}: {
-  // If we expect that a message will be provided, we can render a non-visible element that will
-  // be replaced with the message to prevent layout shift.
-  expectMessage?: boolean;
-  loadingMessage?: string;
-}) {
-  return (
-    <LoadingPlaceholder>
-      <LoadingMask visible />
-      <LoadingIndicator mini />
-      {(expectMessage || loadingMessage) && (
-        <LoadingMessage visible={Boolean(loadingMessage)}>
-          {loadingMessage}
-        </LoadingMessage>
-      )}
-    </LoadingPlaceholder>
   );
 }
 
@@ -727,26 +703,4 @@ const HIDDEN_X_AXIS = {
   axisLabel: {show: false},
 };
 
-const LoadingPlaceholder = styled('div')`
-  position: absolute;
-  inset: 0;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-
-  padding: ${Y_GUTTER} ${X_GUTTER};
-`;
-
-const LoadingMessage = styled('div')<{visible: boolean}>`
-  opacity: ${p => (p.visible ? 1 : 0)};
-  height: ${p => p.theme.fontSize.sm};
-`;
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
-TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
+TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

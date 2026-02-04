@@ -2,14 +2,14 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -257,7 +257,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin: -4px;
 `;
@@ -269,7 +269,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -295,12 +295,12 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.font.size.md : '13px')};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.tokens.content.secondary};
@@ -321,7 +321,7 @@ const MetaWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding-top: ${space(0.25)};
 `;
 

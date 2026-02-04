@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
@@ -110,7 +110,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;

@@ -15,7 +15,7 @@ from sentry.users.models.lostpasswordhash import LostPasswordHash
 class RpcLostPasswordHash(RpcModel):
     id: int = -1
     user_id: int = -1
-    hash: str = ""
+    hash: str = Field(repr=False, default="")
     date_added: datetime = Field(default_factory=timezone.now)
 
     def get_absolute_url(self, mode: str = "recover") -> str:

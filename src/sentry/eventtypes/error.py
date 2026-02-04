@@ -110,7 +110,7 @@ def _get_exception(exceptions: MutableMapping[str, Any], main_exception_id: str)
             for exception in exceptions
             if get_path(exception, "mechanism", "exception_id") == main_exception_id
         )
-        if main_exception_id
+        if main_exception_id is not None
         else None
     )
 

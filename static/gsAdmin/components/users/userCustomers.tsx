@@ -1,5 +1,6 @@
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import CustomerGrid from 'admin/components/customerGrid';

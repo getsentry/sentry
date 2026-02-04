@@ -1,7 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {
   addErrorMessage,
@@ -9,8 +11,6 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -84,7 +84,7 @@ const ApplicationName = styled(Link)`
 
 const ClientId = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default Row;

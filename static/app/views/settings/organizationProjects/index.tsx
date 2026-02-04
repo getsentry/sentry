@@ -17,6 +17,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -48,7 +49,9 @@ function OrganizationProjects() {
     isError,
   } = useApiQuery<Project[]>(
     [
-      `/organizations/${organization.slug}/projects/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/projects/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...location.query,
@@ -62,7 +65,9 @@ function OrganizationProjects() {
 
   const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
     [
-      `/organizations/${organization.slug}/stats/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/stats/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           projectID: projectList?.map(p => p.id),

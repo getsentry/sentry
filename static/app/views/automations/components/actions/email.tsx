@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -104,7 +104,7 @@ function IdentifierField() {
 
   if (action.config.targetType === ActionTarget.TEAM) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <TeamSelector
           aria-label={t('Team')}
           name={`${actionId}.config.targetIdentifier`}
@@ -123,12 +123,12 @@ function IdentifierField() {
           useId
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
   if (action.config.targetType === ActionTarget.USER) {
     return (
-      <SelectWrapper>
+      <Container width="200px">
         <SelectMembers
           ariaLabel={t('User')}
           organization={organization}
@@ -147,7 +147,7 @@ function IdentifierField() {
           }}
           styles={selectControlStyles}
         />
-      </SelectWrapper>
+      </Container>
     );
   }
   return tct('and, if none found, notify [fallthrough]', {
@@ -188,7 +188,3 @@ export function validateEmailAction(action: Action): string | undefined {
   }
   return undefined;
 }
-
-const SelectWrapper = styled('div')`
-  width: 200px;
-`;

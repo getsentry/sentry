@@ -62,5 +62,5 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     except concurrent.futures.TimeoutError:
         return None
     except Exception as e:
-        logger.exception("Error generating issue summary: %s", e)
+        logger.warning("Error generating issue summary: %s", e)
         return None

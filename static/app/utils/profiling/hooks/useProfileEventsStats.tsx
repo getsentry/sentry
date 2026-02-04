@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +40,6 @@ export function useProfileEventsStats<F extends string>({
     query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
   }
 
-  const path = `/organizations/${organization.slug}/events-stats/`;
   const endpointOptions = {
     query: {
       dataset,
@@ -54,10 +54,18 @@ export function useProfileEventsStats<F extends string>({
     },
   };
 
-  const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
-    enabled,
-    staleTime: Infinity,
-  });
+  const {data, ...rest} = useApiQuery<any>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      endpointOptions,
+    ],
+    {
+      enabled,
+      staleTime: Infinity,
+    }
+  );
 
   const transformed = useMemo(
     () => data && transformStatsResponse(dataset, yAxes, data),

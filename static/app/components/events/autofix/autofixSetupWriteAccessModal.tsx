@@ -1,11 +1,10 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
@@ -148,7 +147,7 @@ const DoneWrapper = styled('div')`
   justify-content: center;
   flex-direction: column;
   padding: 40px;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const DoneIcon = styled(IconCheckmark)`

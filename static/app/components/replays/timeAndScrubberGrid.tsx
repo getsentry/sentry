@@ -2,10 +2,9 @@ import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
@@ -57,7 +56,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         title={t('Zoom out')}
         icon={<IconSubtract />}
-        borderless
+        priority="transparent"
         onClick={handleZoomOut}
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1 || isLoading}
@@ -70,7 +69,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         size="xs"
         title={t('Zoom in')}
         icon={<IconAdd />}
-        borderless
+        priority="transparent"
         onClick={handleZoomIn}
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
@@ -103,7 +102,7 @@ export default function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-tooltip-container" isCompact={isCompact}>
-      <Flex justify="center" padding="0 lg" style={{gridArea: 'currentTime'}}>
+      <Flex justify="center" padding="0 lg" area="currentTime">
         <ReplayCurrentTime />
       </Flex>
 
@@ -133,7 +132,7 @@ export default function TimeAndScrubberGrid({
         ) : null}
       </ScrubberWrapper>
 
-      <Flex justify="center" padding="0 lg" style={{gridArea: 'duration'}}>
+      <Flex justify="center" padding="0 lg" area="duration">
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
@@ -157,9 +156,9 @@ const Grid = styled('div')<{isCompact: boolean}>`
   align-items: center;
 
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   font-variant-numeric: tabular-nums;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   ${p =>
     p.isCompact
       ? css`

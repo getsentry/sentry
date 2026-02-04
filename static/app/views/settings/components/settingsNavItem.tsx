@@ -2,9 +2,9 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -57,10 +57,10 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

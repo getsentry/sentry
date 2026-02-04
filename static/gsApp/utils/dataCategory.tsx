@@ -282,6 +282,15 @@ export function isByteCategory(category: DataCategory | string) {
   return category === DataCategory.ATTACHMENTS || category === DataCategory.LOG_BYTE;
 }
 
+/**
+ * Whether the category is an emerge category (size analysis or build distribution).
+ */
+export function isEmergeCategory(category: DataCategory | string) {
+  return (
+    category === DataCategory.SIZE_ANALYSIS || category === DataCategory.INSTALLABLE_BUILD
+  );
+}
+
 export function getChunkCategoryFromDuration(category: DataCategory) {
   if (category === DataCategory.PROFILE_DURATION) {
     return DataCategory.PROFILE_CHUNKS;

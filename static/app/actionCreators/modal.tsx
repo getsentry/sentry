@@ -17,9 +17,10 @@ import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
-import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
+import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -79,17 +80,10 @@ export async function openDiffModal(options: OpenDiffModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type CreateTeamModalOptions = {
-  /**
-   * The organization to create a team for
-   */
-  organization: Organization;
-  onClose?: (team: Team) => void;
-  /**
-   * An initial project to add the team to. This may be deprecated soon as we may add a project selection inside of the modal flow
-   */
-  project?: Project;
-};
+type CreateTeamModalOptions = Omit<
+  React.ComponentProps<typeof import('sentry/components/modals/createTeamModal').default>,
+  ModalRenderPropKeys
+>;
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   const {default: Modal} = await import('sentry/components/modals/createTeamModal');
@@ -481,4 +475,14 @@ export async function openInsightInfoModal(options: InsightInfoModalOptions) {
   );
 
   openModal(deps => <InsightInfoModal {...deps} {...options} />);
+}
+
+export async function openAttributeBreakdownViewerModal(
+  options: AttributeBreakdownViewerModalOptions
+) {
+  const {default: Modal, modalCss} = await import(
+    'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal'
+  );
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

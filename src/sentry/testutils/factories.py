@@ -155,7 +155,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.services.eventstore.models import Event
@@ -559,7 +559,7 @@ class Factories:
         organization=None,
         teams=None,
         fire_project_created=False,
-        create_default_detectors=False,
+        create_default_detectors=True,
         **kwargs,
     ) -> Project:
         from sentry.receivers.project_detectors import disable_default_detector_creation
@@ -620,6 +620,8 @@ class Factories:
         action_match="all",
         filter_match="all",
         frequency=30,
+        include_legacy_rule_id=True,
+        include_workflow_id=True,
         **kwargs,
     ):
         actions = None
@@ -662,7 +664,13 @@ class Factories:
             **kwargs,
         )
         # dual write the rule to the workflow engine
-        IssueAlertMigrator(rule).run()
+        workflow = IssueAlertMigrator(rule).run()
+
+        # annotate the rule with legacy_rule_id and workflow_id
+        if include_legacy_rule_id:
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        if include_workflow_id:
+            rule.data["actions"][0]["workflow_id"] = workflow.id
 
         return rule
 
@@ -921,11 +929,18 @@ class Factories:
         enabled_code_review: bool = False,
         code_review_triggers: list[str] | None = None,
     ) -> RepositorySettings:
-        return RepositorySettings.objects.create(
+        settings, created = RepositorySettings.objects.get_or_create(
             repository=repository,
-            enabled_code_review=enabled_code_review,
-            code_review_triggers=code_review_triggers or [],
+            defaults={
+                "enabled_code_review": enabled_code_review,
+                "code_review_triggers": code_review_triggers or [],
+            },
         )
+        if not created:
+            settings.enabled_code_review = enabled_code_review
+            settings.code_review_triggers = code_review_triggers or []
+            settings.save(update_fields=["enabled_code_review", "code_review_triggers"])
+        return settings
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1570,6 +1585,15 @@ class Factories:
         return ServiceHook.objects.get(id=hook_id)
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_service_hook_project_for_installation(
+        project_id: int,
+        installation_id: int,
+    ) -> ServiceHookProject:
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        return ServiceHookProject.objects.create(service_hook_id=hook.id, project_id=project_id)
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_sentry_app_feature(feature=None, sentry_app=None, description=None):
         if not sentry_app:
@@ -2149,6 +2173,7 @@ class Factories:
         body,
         date_updated: datetime,
         trace_sampling: bool = False,
+        assertion: Any | None = None,
     ):
         if url is None:
             url = petname.generate().title()
@@ -2170,6 +2195,7 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
 
     @staticmethod
@@ -2561,14 +2587,14 @@ class Factories:
         build_configuration_name: str | None = None,
     ) -> None:
         """Write a preprod size metric to EAP/Snuba for testing."""
-        from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+        from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
         from sentry.search.eap.rpc_utils import anyvalue
         from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT, hex_to_item_id
 
         proto_timestamp = Timestamp()
         proto_timestamp.FromDatetime(timestamp)
 
-        trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(preprod_artifact_id)).hex
+        trace_id = get_preprod_trace_id(preprod_artifact_id)
         item_id_str = f"size_metric_{size_metric_id}"
         item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
@@ -2657,6 +2683,13 @@ class Factories:
         create_mobile_app_info: bool = True,
         **kwargs,
     ) -> PreprodArtifact:
+        # Extract deprecated fields that were moved to PreprodArtifactMobileAppInfo
+        # Remove them from kwargs before passing to PreprodArtifact.objects.create()
+        build_version = kwargs.pop("build_version", None)
+        build_number = kwargs.pop("build_number", None)
+        app_name = kwargs.pop("app_name", None)
+        app_icon_id = kwargs.pop("app_icon_id", None)
+
         artifact = PreprodArtifact.objects.create(
             project=project,
             state=state,
@@ -2672,10 +2705,6 @@ class Factories:
         if date_added is not None:
             artifact.update(date_added=date_added)
 
-        build_version = kwargs.get("build_version", None)
-        build_number = kwargs.get("build_number", None)
-        app_name = kwargs.get("app_name", None)
-        app_icon_id = kwargs.get("app_icon_id", None)
         if create_mobile_app_info and (build_version or build_number or app_name or app_icon_id):
             Factories.create_preprod_artifact_mobile_app_info(
                 preprod_artifact=artifact,

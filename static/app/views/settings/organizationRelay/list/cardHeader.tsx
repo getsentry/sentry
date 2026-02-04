@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
@@ -93,7 +93,7 @@ const KeyName = styled('div')`
 const DateCreated = styled('div')`
   grid-row: 2/3;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

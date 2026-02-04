@@ -18,10 +18,7 @@ from requests.exceptions import Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
-from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
@@ -91,56 +88,6 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
     return proxy_region_request(request, region, url_name)
 
 
-def proxy_sentryappinstallation_request(
-    request: HttpRequest, installation_uuid: str, url_name: str
-) -> HttpResponseBase:
-    """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
-    try:
-        installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
-    except SentryAppInstallation.DoesNotExist as e:
-        logger.info(
-            "region_resolution_error",
-            extra={"installation_uuid": installation_uuid, "error": str(e)},
-        )
-        return HttpResponse(status=404)
-
-    try:
-        organization_mapping = OrganizationMapping.objects.get(
-            organization_id=installation.organization_id
-        )
-        region = get_region_by_name(organization_mapping.region_name)
-    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info(
-            "region_resolution_error", extra={"installation_id": installation_uuid, "error": str(e)}
-        )
-        return HttpResponse(status=404)
-
-    return proxy_region_request(request, region, url_name)
-
-
-def proxy_sentryapp_request(
-    request: HttpRequest, app_id_or_slug: str, url_name: str
-) -> HttpResponseBase:
-    """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
-    try:
-        if app_id_or_slug.isdecimal():
-            sentry_app = SentryApp.objects.get(id=app_id_or_slug)
-        else:
-            sentry_app = SentryApp.objects.get(slug=app_id_or_slug)
-    except SentryApp.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
-        return HttpResponse(status=404)
-
-    try:
-        organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
-        region = get_region_by_name(organization_mapping.region_name)
-    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_id_or_slug, "error": str(e)})
-        return HttpResponse(status=404)
-
-    return proxy_region_request(request, region, url_name)
-
-
 def proxy_error_embed_request(
     request: HttpRequest, dsn: str, url_name: str
 ) -> HttpResponseBase | None:
@@ -177,6 +124,8 @@ def proxy_region_request(
 ) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
+
+    content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
@@ -193,6 +142,8 @@ def proxy_region_request(
 
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
+        if content_encoding:
+            header_dict["Content-Encoding"] = content_encoding
         data = get_raw_body(request)
     else:
         data = BodyWithLength(request)

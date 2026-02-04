@@ -16,7 +16,6 @@ import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton
 import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getLabels,
-  getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
@@ -55,9 +54,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <Flex gap="2xs" align="center">
           <InfoIcon>
             {props.appInfo.platform ? (
-              <PlatformIcon
-                platform={getPlatformIconFromPlatform(props.appInfo.platform)}
-              />
+              <PlatformIcon platform={props.appInfo.platform} />
             ) : null}
           </InfoIcon>
           <Text>

@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
@@ -66,9 +66,9 @@ const SidebarPanelItemRoot = styled('div')`
 `;
 
 const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.accent};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold}`};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.font.weight.sans.medium}`};
   &:focus-visible {
     box-shadow: none;
   }

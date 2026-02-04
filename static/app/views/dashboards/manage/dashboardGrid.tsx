@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
+
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -158,7 +159,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

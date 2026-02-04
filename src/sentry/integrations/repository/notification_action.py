@@ -125,7 +125,7 @@ class NotificationActionNotificationMessageRepository:
         except NotificationMessage.DoesNotExist:
             return None
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notification for issue rule",
                 exc_info=e,
                 extra={
@@ -153,7 +153,7 @@ class NotificationActionNotificationMessageRepository:
             )
             return NotificationActionNotificationMessage.from_model(instance=instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "failed to create new notification action notification message",
                 exc_info=e,
                 extra=data.__dict__,
@@ -187,7 +187,7 @@ class NotificationActionNotificationMessageRepository:
             for instance in query:
                 yield NotificationActionNotificationMessage.from_model(instance=instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notifications on filters",
                 exc_info=e,
                 extra=filter.__dict__,

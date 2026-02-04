@@ -1,0 +1,33 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "message": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "default",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "message",
+            "name": "message",
+            "values": [
+              "Hello there %s!"
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "message",
+      "hash": "8ec8bbc71eb6e2af7fbe5076a8534f96",
+      "hint": null,
+      "key": "message",
+      "type": "component"
+    }
+  }
+}
