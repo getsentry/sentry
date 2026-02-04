@@ -141,6 +141,5 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mcp-tools': t('Action'),
   'mcp-resources': t('Action'),
   'mcp-prompts': t('Action'),
-  'ai-generations': t('Action'),
   sessions: t('Action'),
 };
