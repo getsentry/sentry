@@ -142,6 +142,7 @@ describe('AttributeBreakdownViewerModal', () => {
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
+      expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
     });
   });
 
@@ -281,6 +282,7 @@ describe('AttributeBreakdownViewerModal', () => {
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
+      expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
     });
   });
 });
