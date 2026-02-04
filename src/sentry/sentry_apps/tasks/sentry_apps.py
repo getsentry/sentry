@@ -783,7 +783,16 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 }
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        if event not in servicehook.events:
+        
+        # Check if the event or its resource category is in servicehook events
+        # For workflow notifications (e.g. issue.unresolved), check if any issue event exists
+        event_allowed = event in servicehook.events
+        if not event_allowed:
+            # Check if the resource prefix is in the servicehook events
+            resource_prefix = event.split(".")[0]
+            event_allowed = any(e.startswith(resource_prefix + ".") for e in servicehook.events)
+        
+        if not event_allowed:
             lifecycle.add_extras(
                 {
                     "events": servicehook.events,
