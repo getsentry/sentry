@@ -34,9 +34,12 @@ def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
     """
     Generic "notification action handler" this method will lookup which registry
-    to send the notification to, based on the type of detector that created it.
+    to send the notification to, based on the group type or detector type.
 
-    This currently only supports the following detector types: 'error', 'metric_issue'
+    All metric issues are routed to the metric alert handler
+    regardless of detector type to ensure rich context is provided.
+
+    For other group types, routing is based on the detector type.
 
     If an `Activity` model for a `Group` is provided in the event data
     it will send an activity notification instead.
@@ -54,6 +57,11 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         ):
             return execute_via_metric_alert_handler(invocation)
         return invocation.event_data.event.send_notification()
+
+    # Route all metric issues to metric alert handler regardless of detector type.
+    # This ensures that metric issue notifications will always display metric alert charts.
+    if invocation.event_data.group.type == MetricIssue.type_id:
+        return execute_via_metric_alert_handler(invocation)
 
     try:
         handler = group_type_notification_registry.get(invocation.detector.type)

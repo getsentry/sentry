@@ -16,6 +16,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -106,6 +107,34 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
             detector=self.detector,
             notification_uuid=notification_uuid,
         )
+        execute_via_group_type_registry(invocation)
+        mock_execute_metric_alert_handler.assert_called_once_with(invocation)
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
+    def test_metric_issue_routes_to_metric_alert_handler_regardless_of_detector_type(
+        self, mock_execute_metric_alert_handler
+    ) -> None:
+        """
+        Test that metric issues are always routed to the metric alert handler,
+        even when triggered by a non-metric detector (e.g., issue stream detector).
+        This ensures all metric issues get rich context in notifications.
+        """
+        group, _, group_event = self.create_group_event(group_type_id=MetricIssue.type_id)
+
+        issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+
+        self.event_data = WorkflowEventData(event=group_event, group=group)
+        notification_uuid = str(uuid.uuid4())
+
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=issue_stream_detector,
+            notification_uuid=notification_uuid,
+        )
+
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
 
