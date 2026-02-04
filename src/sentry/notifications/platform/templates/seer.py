@@ -90,13 +90,13 @@ class SeerAutofixUpdate(NotificationData):
             case AutofixStoppingPoint.ROOT_CAUSE:
                 return True
             case AutofixStoppingPoint.SOLUTION | AutofixStoppingPoint.CODE_CHANGES:
-                return (
-                    organization_service.get_option(
-                        organization_id=self.organization_id,
-                        key="sentry:enable_seer_coding",
-                    )
-                    or ENABLE_SEER_CODING_DEFAULT
+                has_coding_enabled = organization_service.get_option(
+                    organization_id=self.organization_id,
+                    key="sentry:enable_seer_coding",
                 )
+                if has_coding_enabled is None:
+                    has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
+                return has_coding_enabled
             case AutofixStoppingPoint.OPEN_PR:
                 return False
 
