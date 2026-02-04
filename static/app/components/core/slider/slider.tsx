@@ -96,7 +96,7 @@ const StepsContainer = styled('div')`
     height: 12px;
     width: 2px;
     border-radius: ${p => p.theme.radius.lg};
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
   }
 `;
 
@@ -114,8 +114,8 @@ const StepMark = styled('span')<{filled?: boolean}>`
     border-radius: ${p => p.theme.radius.lg};
     background: ${p =>
       p.filled
-        ? p.theme.tokens.interactive.chonky.debossed.accent.chonk
-        : p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+        ? p.theme.tokens.interactive.chonky.debossed.accent.background
+        : p.theme.tokens.interactive.chonky.debossed.neutral.background};
   }
 `;
 
@@ -178,7 +178,7 @@ const StyledSlider = styled('input')`
     min-width: calc(${p => p.theme.radius['2xs']} * 6);
     width: var(--p, 50%);
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
     border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
     border-radius: ${p => p.theme.radius['2xs']};
   }
@@ -187,8 +187,8 @@ const StyledSlider = styled('input')`
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -196,10 +196,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 10;
@@ -209,8 +209,8 @@ const StyledSlider = styled('input')`
   &::-moz-range-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -218,10 +218,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 1;
