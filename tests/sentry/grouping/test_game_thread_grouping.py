@@ -97,14 +97,72 @@ class GameThreadGroupingTest(TestCase):
 
     def test_game_thread_grouping_with_anr_event(self) -> None:
         """Test that game thread is used for grouping when enabled for ANR events."""
-        from pathlib import Path
-
-        from sentry.utils import json
-
-        # Load the test ANR event with game thread
-        test_file = Path(__file__).parent / "grouping_inputs" / "android-anr-game-thread.json"
-        with open(test_file) as f:
-            event_data = json.load(f)
+        # Create ANR event with both UI thread and game thread
+        event_data = {
+            "platform": "java",
+            "exception": {
+                "values": [
+                    {
+                        "mechanism": {"type": "ANR"},
+                        "module": "io.sentry.android.core",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "main",
+                                    "module": "android.app.ActivityThread",
+                                    "in_app": False,
+                                },
+                                {
+                                    "function": "loop",
+                                    "module": "android.os.Looper",
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "thread_id": 1,
+                        "type": "ApplicationNotResponding",
+                        "value": "Application Not Responding for at least 5000 ms.",
+                    }
+                ]
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 1,
+                        "name": "main",
+                        "current": True,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "wait",
+                                    "module": "java.lang.Object",
+                                    "in_app": False,
+                                }
+                            ]
+                        },
+                    },
+                    {
+                        "id": 2,
+                        "name": "UnityMain",
+                        "current": False,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "nativeRender",
+                                    "module": "com.unity3d.player.UnityPlayer",
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "updateGame",
+                                    "module": "com.example.game.GameActivity",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    },
+                ]
+            },
+        }
 
         event = Event(event_id="test", project_id=1, data=event_data)
 
