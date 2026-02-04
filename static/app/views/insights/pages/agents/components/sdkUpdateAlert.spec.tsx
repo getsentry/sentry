@@ -101,17 +101,13 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using sentry-sdk below the minimum required version for agent monitoring to work."
+          'Your sentry-sdk version is below the minimum required for agent monitoring.'
         )
       )
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Update to the latest version (2.5.0) for the best experience.'
-        )
-      )
+      screen.getByText(textWithMarkupMatcher('Update to 2.5.0 or later.'))
     ).toBeInTheDocument();
   });
 
@@ -135,17 +131,13 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using @sentry/nextjs below the minimum required version for agent monitoring to work."
+          'Your @sentry/nextjs version is below the minimum required for agent monitoring.'
         )
       )
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Update to the latest version (8.5.0) for the best experience.'
-        )
-      )
+      screen.getByText(textWithMarkupMatcher('Update to 8.5.0 or later.'))
     ).toBeInTheDocument();
   });
 
@@ -168,14 +160,12 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using an SDK below the minimum required version for agent monitoring to work."
+          'Your SDK version is below the minimum required for agent monitoring.'
         )
       )
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText(/Update to the latest version for the best experience./)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Update to the latest version\./)).toBeInTheDocument();
   });
 
   it('renders alert without suggested version when suggestions are not available', async () => {
@@ -197,13 +187,11 @@ describe('SdkUpdateAlert', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          "We've detected you're using sentry-sdk below the minimum required version for agent monitoring to work."
+          'Your sentry-sdk version is below the minimum required for agent monitoring.'
         )
       )
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText(/Update to the latest version for the best experience/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Update to the latest version\./)).toBeInTheDocument();
   });
 });

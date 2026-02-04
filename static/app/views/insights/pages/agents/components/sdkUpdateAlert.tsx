@@ -50,21 +50,16 @@ export function SdkUpdateAlert({
   )?.newSdkVersion;
 
   const firstSentence = packageName
-    ? tct(
-        "We've detected you're using [sdkName] below the minimum required version for agent monitoring to work.",
-        {
-          sdkName: <code>{packageName}</code>,
-        }
-      )
-    : t(
-        "We've detected you're using an SDK below the minimum required version for agent monitoring to work."
-      );
+    ? tct('Your [sdkName] version is below the minimum required for agent monitoring.', {
+        sdkName: <code>{packageName}</code>,
+      })
+    : t('Your SDK version is below the minimum required for agent monitoring.');
 
   const secondSentence = suggestedVersion
-    ? tct('Update to the latest version ([latestVersion]) for the best experience.', {
+    ? tct('Update to [latestVersion] or later.', {
         latestVersion: <code>{suggestedVersion}</code>,
       })
-    : t('Update to the latest version for the best experience.');
+    : t('Update to the latest version.');
 
   return (
     <Alert variant="warning">
