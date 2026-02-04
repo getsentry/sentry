@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 function mockNeedsUpdate(needsUpdate: boolean) {
   jest
     .mocked(useProjectSdkNeedsUpdate)
-    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate, data: []});
 }
 
 const [
