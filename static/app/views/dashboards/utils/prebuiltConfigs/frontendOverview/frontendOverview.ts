@@ -82,29 +82,6 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
     {
-      id: 'issue-counts',
-      title: t('Issue Counts'),
-      displayType: DisplayType.BAR,
-      widgetType: WidgetType.ISSUE,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: ['count(new_issues)', 'count(resolved_issues)'],
-          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-    },
-  ],
-  0
-);
-
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
-  [
-    {
       id: 'score-breakdown-wheel',
       title: t('Performance Score'),
       displayType: DisplayType.WHEEL,
@@ -143,6 +120,29 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.ttfb)',
           ],
+          orderby: '',
+        },
+      ],
+    },
+  ],
+  0
+);
+
+const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
           orderby: '',
         },
       ],
