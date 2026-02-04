@@ -1,6 +1,7 @@
 from unittest.mock import ANY, Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import NotificationDataDto
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -466,3 +467,100 @@ class SlackEntrypointTest(TestCase):
         )
 
         mock_update_message.assert_called_once()
+
+    @patch("sentry.seer.entrypoints.integrations.slack.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.integrations.slack.organization_service.get_option")
+    def test_on_autofix_update_solution_coding_check(
+        self, mock_get_option, mock_schedule_all_thread_updates
+    ):
+        """Test that has_progressed is True when coding is enabled for solution updates."""
+        from sentry.sentry_apps.metrics import SentryAppEventType
+
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_autofix_cache_payload()
+        event_payload = {
+            "run_id": 123,
+            "group_id": self.group.id,
+            "solution": {"description": "Test", "steps": []},
+        }
+
+        # Seer has coding enabled...
+        mock_get_option.return_value = True
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
+        mock_get_option.assert_called_once_with(
+            organization_id=self.organization.id,
+            key="sentry:enable_seer_coding",
+        )
+        mock_schedule_all_thread_updates.assert_called_once()
+        data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert data.has_progressed is True
+
+        # Seer has coding disabled...
+        mock_get_option.reset_mock()
+        mock_schedule_all_thread_updates.reset_mock()
+        mock_get_option.return_value = False
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
+        mock_get_option.assert_called_once_with(
+            organization_id=self.organization.id,
+            key="sentry:enable_seer_coding",
+        )
+        mock_schedule_all_thread_updates.assert_called_once()
+        data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert data.has_progressed is False
+
+        # Seer has no coding setting...
+        mock_get_option.reset_mock()
+        mock_schedule_all_thread_updates.reset_mock()
+        mock_get_option.return_value = None
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
+        mock_get_option.assert_called_once_with(
+            organization_id=self.organization.id,
+            key="sentry:enable_seer_coding",
+        )
+        mock_schedule_all_thread_updates.assert_called_once()
+        data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert data.has_progressed is ENABLE_SEER_CODING_DEFAULT
+
+    @patch("sentry.seer.entrypoints.integrations.slack.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.integrations.slack.organization_service.get_option")
+    def test_on_autofix_update_solution_with_automation_stopping_point_skips_coding_check(
+        self, mock_get_option, mock_schedule_all_thread_updates
+    ):
+        """Test that coding check is skipped when automation_stopping_point is set."""
+        from sentry.sentry_apps.metrics import SentryAppEventType
+
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_autofix_cache_payload()
+        cache_payload["automation_stopping_point"] = AutofixStoppingPoint.SOLUTION
+        event_payload = {
+            "run_id": 123,
+            "group_id": self.group.id,
+            "solution": {"description": "Test", "steps": []},
+        }
+
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
+        mock_get_option.assert_not_called()
+        mock_schedule_all_thread_updates.assert_called_once()
+        call_kwargs = mock_schedule_all_thread_updates.call_args.kwargs
+        data = call_kwargs["data"]
+        assert data.has_progressed is False
