@@ -44,10 +44,13 @@ class DatabaseBackedActionService(ActionService):
                 Q(config__target_identifier=sentry_app_install_uuid)
                 | Q(config__target_identifier=str(sentry_app_id)),
                 type=Action.Type.SENTRY_APP,
+                dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
         else:
             actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid, type=Action.Type.SENTRY_APP
+                config__target_identifier=sentry_app_install_uuid,
+                type=Action.Type.SENTRY_APP,
+                dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
 
         actions.update(status=status)
@@ -58,6 +61,7 @@ class DatabaseBackedActionService(ActionService):
         region_name: str,
         status: int,
         sentry_app_install_uuid: str,
+        organization_id: int,
         sentry_app_id: int | None = None,
     ) -> None:
         actions = None
@@ -66,10 +70,13 @@ class DatabaseBackedActionService(ActionService):
                 Q(config__target_identifier=sentry_app_install_uuid)
                 | Q(config__target_identifier=str(sentry_app_id)),
                 type=Action.Type.SENTRY_APP,
+                dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
         else:
             actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid, type=Action.Type.SENTRY_APP
+                config__target_identifier=sentry_app_install_uuid,
+                type=Action.Type.SENTRY_APP,
+                dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
 
         if actions:
