@@ -134,13 +134,13 @@ function createBreakdownTableWidgetFromTimeSeriesWidget(widget: Widget): Widget 
       if (!isAggregateField(orderbyField) && !columns.includes(orderbyField)) {
         columns.push(orderbyField);
       }
-      queries.push({
-        ...firstQuery,
-        fields: [...columns, ...aggregates],
-        aggregates,
-        columns,
-      });
     }
+    queries.push({
+      ...firstQuery,
+      fields: [...columns, ...aggregates],
+      aggregates,
+      columns,
+    });
   }
   return {
     ...widget,
