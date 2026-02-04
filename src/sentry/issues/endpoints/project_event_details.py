@@ -174,10 +174,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
