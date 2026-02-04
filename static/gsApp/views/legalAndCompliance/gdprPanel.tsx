@@ -112,9 +112,9 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
     const hasInformation = subscription.gdprDetails
       ? Boolean(
           subscription.gdprDetails[`${prefix}Email`] ||
-            subscription.gdprDetails[`${prefix}Name`] ||
-            subscription.gdprDetails[`${prefix}Address`] ||
-            subscription.gdprDetails[`${prefix}Email`]
+          subscription.gdprDetails[`${prefix}Name`] ||
+          subscription.gdprDetails[`${prefix}Address`] ||
+          subscription.gdprDetails[`${prefix}Email`]
         )
       : false;
     const contactDetails = subscription.gdprDetails ? (

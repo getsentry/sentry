@@ -13,13 +13,12 @@ type PageFilterUrlParams =
   | 'environment';
 type OtherUrlParams = 'cursor' | 'perPage';
 
-interface UseReleaseCommitFilesParams
-  extends Partial<
-    Record<
-      PageFilterUrlParams | OtherUrlParams,
-      string | string[] | number | null | undefined
-    >
-  > {
+interface UseReleaseCommitFilesParams extends Partial<
+  Record<
+    PageFilterUrlParams | OtherUrlParams,
+    string | string[] | number | null | undefined
+  >
+> {
   release: string;
   activeRepository?: Repository;
 }
