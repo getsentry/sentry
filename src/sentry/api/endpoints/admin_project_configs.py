@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -16,7 +16,7 @@ from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class AdminRelayProjectConfigsEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {

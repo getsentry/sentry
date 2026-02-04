@@ -3,16 +3,17 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
-} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -294,7 +295,7 @@ export function HybridFilter<Value extends SelectKey>({
               {hasStagedChanges && (
                 <FooterInnerWrap>
                   <Button
-                    borderless
+                    priority="transparent"
                     size="xs"
                     onClick={() => {
                       closeOverlay();
@@ -405,7 +406,7 @@ export function HybridFilter<Value extends SelectKey>({
             closeOverlay();
           }}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Reset')}
         </ResetButton>
@@ -435,7 +436,7 @@ export function HybridFilter<Value extends SelectKey>({
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${space(0.5)};
   margin: -${space(0.5)} -${space(0.5)};
@@ -470,10 +471,10 @@ const FooterMessage = styled('p')`
   padding: ${space(0.75)} ${space(1)};
   margin: ${space(0.5)} 0;
   border-radius: ${p => p.theme.radius.md};
-  border: solid 1px ${p => p.theme.alert.warning.border};
-  background: ${p => p.theme.alert.warning.backgroundLight};
+  border: solid 1px ${p => p.theme.colors.yellow200};
+  background: ${p => p.theme.colors.yellow100};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const FooterTip = styled('p')`
@@ -483,7 +484,7 @@ const FooterTip = styled('p')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin: 0;
 
   /* Right-align content if there's non-empty content to the left */

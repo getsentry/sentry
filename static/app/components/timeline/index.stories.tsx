@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';

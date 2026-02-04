@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 import sentry_sdk
 
 from sentry.integrations.jira.integration import JiraIntegration
@@ -22,7 +23,7 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -155,7 +156,6 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert response.status_code == 400
 
 
-@with_feature("organizations:workflow-engine-single-process-workflows")
 class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
@@ -164,6 +164,15 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         super().setUp()
         self.login_as(self.user)
         self.workflow = self.create_workflow()
+
+    @pytest.fixture(autouse=True)
+    def with_feature_flags(self):
+        with override_options(
+            {
+                "workflow_engine.issue_alert.group.type_id.ga": [1],
+            }
+        ):
+            yield
 
     def setup_pd_service(self) -> PagerDutyServiceDict:
         service_info = {
@@ -226,7 +235,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_send_trigger
     ):
         """
-        Tests that label will be used as 'Test Alert' if not present. Uses PagerDuty since those
+        Tests that label will be used as 'Error Monitor' if not present. Uses PagerDuty since those
         notifications will differ based on the name of the alert.
         """
         service_info = self.setup_pd_service()
@@ -242,41 +251,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
 
         assert mock_send_trigger.call_count == 1
         pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
-        assert pagerduty_data["payload"]["summary"].startswith("[Test Alert]:")
-
-    @mock.patch.object(PagerDutyClient, "send_trigger")
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
-        return_value=IssueAlertRegistryHandler,
-    )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
-        return_value=PagerDutyIssueAlertHandler,
-    )
-    def test_name_action_with_custom_name(
-        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_send_trigger
-    ):
-        """
-        Tests that custom names can be provided to the test notification. Uses PagerDuty since those
-        notifications will differ based on the name of the alert.
-        """
-        service_info = self.setup_pd_service()
-        action_data = [
-            {
-                "account": service_info["integration_id"],
-                "service": service_info["id"],
-                "severity": "info",
-                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
-            }
-        ]
-        custom_alert_name = "Check #feed-issues"
-
-        self.get_success_response(
-            self.organization.slug, self.project.slug, actions=action_data, name=custom_alert_name
-        )
-        assert mock_send_trigger.call_count == 1
-        pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
-        assert pagerduty_data["payload"]["summary"].startswith(f"[{custom_alert_name}]:")
+        assert pagerduty_data["payload"]["summary"].startswith("[Error Monitor]:")
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -344,9 +319,6 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         assert mock_notify.call_count == 1
 
     @mock.patch(
-        "sentry.api.endpoints.project_rule_actions.should_fire_workflow_actions", return_value=True
-    )
-    @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
     )
     @mock.patch(
@@ -362,7 +334,6 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         mock_get_issue_alert_handler,
         mock_get_group_type_handler,
         mock_trigger_sentry_app_action_creators: mock.MagicMock,
-        mock_should_fire_workflow_actions: mock.MagicMock,
     ) -> None:
         self.create_detector(project=self.project)
         schema = {

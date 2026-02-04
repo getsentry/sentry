@@ -2,14 +2,15 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
+import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
@@ -35,9 +36,12 @@ import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -194,6 +198,7 @@ function CodingAgentSettings({
 
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
+  const user = useUser();
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
@@ -212,10 +217,10 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
-      const projectId = project.slug;
-
       const projectSettingsQueryKey: ApiQueryKey = [
-        `/projects/${organization.slug}/${projectId}/`,
+        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
       ];
       setApiQueryData(queryClient, projectSettingsQueryKey, resp);
       ProjectsStore.onUpdateSuccess(resp);
@@ -232,9 +237,16 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
     ) => {
       if (value === 'cursor_handoff') {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           throw new Error('Cursor integration not found');
         }
+        trackAnalytics('coding_integration.setup_handoff_clicked', {
+          organization,
+          project_slug: project.slug,
+          provider: 'cursor',
+          source: 'settings_dropdown',
+          user_id: user.id,
+        });
         updateProjectSeerPreferences({
           repositories: preference?.repositories || [],
           automated_run_stopping_point: 'root_cause',
@@ -253,7 +265,14 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         });
       }
     },
-    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
+    [
+      organization,
+      project.slug,
+      user.id,
+      updateProjectSeerPreferences,
+      preference?.repositories,
+      cursorIntegration,
+    ]
   );
 
   // Handler for Cursor's "Auto-Create PR" toggle (from PR #103730)
@@ -333,12 +352,19 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const handleCursorHandoffChange = useCallback(
     (value: boolean) => {
       if (value) {
-        if (!cursorIntegration) {
+        if (!cursorIntegration?.id) {
           addErrorMessage(
             t('Cursor integration not found. Please refresh the page and try again.')
           );
           return;
         }
+        trackAnalytics('coding_integration.setup_handoff_clicked', {
+          organization,
+          project_slug: project.slug,
+          provider: 'cursor',
+          source: 'settings_toggle',
+          user_id: user.id,
+        });
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
@@ -388,12 +414,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       }
     },
     [
+      organization,
+      project.slug,
+      user.id,
       updateProjectSeerPreferences,
       preference?.repositories,
       cursorIntegration,
       queryClient,
-      organization.slug,
-      project.slug,
     ]
   );
 
@@ -656,6 +683,7 @@ function ProjectSeer({
       />
       <ProjectSeerGeneralForm project={project} />
       <CursorIntegrationCta project={project} />
+      <GithubCopilotIntegrationCta />
       <AutofixRepositories project={project} />
       <Flex justify="center" marginTop="lg">
         <LinkButton
@@ -688,9 +716,9 @@ export default function ProjectSeerContainer() {
 }
 
 const Subheading = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;

@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Select} from 'sentry/components/core/select';
+import {Alert} from '@sentry/scraps/alert';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -70,7 +71,7 @@ export default function ActionNodeList({
 }: ActionNodeListProps) {
   const {data: availableActions = []} = useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
-  const connectedDetectors = useConnectedDetectors();
+  const {connectedDetectors} = useConnectedDetectors();
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];

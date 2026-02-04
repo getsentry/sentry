@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
@@ -102,13 +103,13 @@ export function EventMissingBanner() {
 }
 
 const MainText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const EventIdText = styled(SubText)`

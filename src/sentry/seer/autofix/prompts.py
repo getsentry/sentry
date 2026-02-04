@@ -5,7 +5,7 @@ Prompts for Explorer-based Autofix steps.
 from textwrap import dedent
 
 
-def root_cause_prompt(*, short_id: str, title: str, culprit: str) -> str:
+def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
     return dedent(
         f"""\
         Analyze issue {short_id}: "{title}" (culprit: {culprit})
@@ -19,7 +19,7 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str) -> str:
         4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
         5. Use your todo list to track multiple hypotheses for complex bugs
 
-        When you have enough information, generate the root_cause artifact with:
+        When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}:
         - one_line_description: A concise summary under 30 words
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
@@ -27,7 +27,7 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str) -> str:
     )
 
 
-def solution_prompt(*, short_id: str, title: str, culprit: str) -> str:
+def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
     return dedent(
         f"""\
         Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
@@ -41,7 +41,7 @@ def solution_prompt(*, short_id: str, title: str, culprit: str) -> str:
 
         Do NOT include testing as part of your plan.
 
-        When you have a solid plan, generate the solution artifact with:
+        When you have a solid plan, always generate the solution artifact {artifact_tool_str(artifact_key)}:
         - one_line_summary: A concise summary of the fix in under 30 words
         - steps: Ordered list of steps to implement the solution, each with:
           - title: Short name for the step
@@ -52,7 +52,9 @@ def solution_prompt(*, short_id: str, title: str, culprit: str) -> str:
     )
 
 
-def code_changes_prompt(*, short_id: str, title: str, culprit: str) -> str:
+def code_changes_prompt(
+    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+) -> str:
     return dedent(
         f"""\
         Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
@@ -69,7 +71,9 @@ def code_changes_prompt(*, short_id: str, title: str, culprit: str) -> str:
     )
 
 
-def impact_assessment_prompt(*, short_id: str, title: str, culprit: str) -> str:
+def impact_assessment_prompt(
+    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+) -> str:
     return dedent(
         f"""\
         Assess the impact of issue {short_id}: "{title}" (culprit: {culprit})
@@ -82,7 +86,7 @@ def impact_assessment_prompt(*, short_id: str, title: str, culprit: str) -> str:
         3. Check for relevant metrics, performance data, and connected issues
         4. Consider affected functionality, user-facing impact, data integrity, and system stability
 
-        When you have assessed the impact, generate the impact_assessment artifact with:
+        When you have assessed the impact, always generate the impact_assessment artifact {artifact_tool_str(artifact_key)}:
         - one_line_description: A concise summary of the overall impact in under 30 words
         - impacts: List of specific impacts, each with:
           - label: What is impacted (e.g., "User Authentication", "Payment Flow")
@@ -93,7 +97,7 @@ def impact_assessment_prompt(*, short_id: str, title: str, culprit: str) -> str:
     )
 
 
-def triage_prompt(*, short_id: str, title: str, culprit: str) -> str:
+def triage_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
     return dedent(
         f"""\
         Triage issue {short_id}: "{title}" (culprit: {culprit})
@@ -106,7 +110,7 @@ def triage_prompt(*, short_id: str, title: str, culprit: str) -> str:
         3. Identify who might have introduced the issue or at least who owns the affected code
         4. Consider code ownership patterns in the repository
 
-        When you have enough information, generate the triage artifact with:
+        When you have enough information, always generate the triage artifact {artifact_tool_str(artifact_key)}:
         - suspect_commit: If you can identify a likely culprit commit:
           - sha: The git commit SHA (7 characters)
           - repo_name: Full repository name (e.g. 'getsentry/sentry')
@@ -123,3 +127,9 @@ def triage_prompt(*, short_id: str, title: str, culprit: str) -> str:
         Either field can be omitted if you cannot determine it with reasonable confidence.
         """
     )
+
+
+def artifact_tool_str(artifact_key: str | None) -> str:
+    if not artifact_key:
+        return "with"
+    return f"by calling the `artifact_write_{artifact_key}` tool with"

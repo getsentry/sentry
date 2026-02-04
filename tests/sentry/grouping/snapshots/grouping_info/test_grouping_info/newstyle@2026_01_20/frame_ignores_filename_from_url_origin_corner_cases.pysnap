@@ -1,0 +1,304 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_stacktrace": {
+      "component": {
+        "contributes": false,
+        "hint": "ignored because system stacktrace takes precedence",
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": false,
+            "hint": "ignored because it contains no in-app frames",
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "test"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "test"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "non app frame",
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because file path is a URL and function name is missing",
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": false,
+      "description": "event-level stacktrace — in-app frames",
+      "hash": null,
+      "hint": "ignored because system stacktrace takes precedence",
+      "key": "app_stacktrace",
+      "type": "component"
+    },
+    "system_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "stacktrace",
+            "name": "stacktrace",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "test"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": [
+                      "test"
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": null,
+                "id": "frame",
+                "name": null,
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "module",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because frame points to a URL",
+                    "id": "filename",
+                    "name": null,
+                    "values": [
+                      "foo.js"
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": null,
+                    "id": "function",
+                    "name": null,
+                    "values": []
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored because file path is a URL and function name is missing",
+                    "id": "context_line",
+                    "name": null,
+                    "values": [
+                      "hello world"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "event-level stacktrace — all frames",
+      "hash": "e04dce7550635e05dbd7f656102cf304",
+      "hint": null,
+      "key": "system_stacktrace",
+      "type": "component"
+    }
+  }
+}

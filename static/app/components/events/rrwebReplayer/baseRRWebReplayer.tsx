@@ -228,7 +228,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 
   .rr-controller__btns button {
@@ -246,7 +246,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transition: background 200ms ease;
 
     > svg {
-      fill: ${p => p.theme.tokens.content.primary};
+      fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
     }
   }
 
@@ -256,7 +256,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
   .rr-controller__btns button.active {
     color: ${p => p.theme.colors.white};
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rr-controller__btns button:disabled {
@@ -319,7 +319,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .switch input[type='checkbox']:checked + label:after {
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     transform: translateX(16px);
   }
 `;

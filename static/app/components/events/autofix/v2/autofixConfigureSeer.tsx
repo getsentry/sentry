@@ -4,13 +4,11 @@ import styled from '@emotion/styled';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image} from 'sentry/components/core/image/image';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';

@@ -9,8 +9,6 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const ALL_AVAILABLE_FEATURES = ['prevent-test-analytics'];
-
 describe('PreventSecondaryNav', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -43,7 +41,7 @@ describe('PreventSecondaryNav', () => {
         <div id="main" />
       </NavContextProvider>,
       {
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        organization: OrganizationFixture({features: ['prevent-test-analytics']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/prevent/tests/',
@@ -64,7 +62,7 @@ describe('PreventSecondaryNav', () => {
         <div id="main" />
       </NavContextProvider>,
       {
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        organization: OrganizationFixture({features: ['prevent-test-analytics']}),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/prevent/tokens/',
@@ -76,29 +74,5 @@ describe('PreventSecondaryNav', () => {
     const tokensLink = screen.getByRole('link', {name: 'Tokens'});
     expect(tokensLink).toBeInTheDocument();
     expect(tokensLink).toHaveAttribute('href', '/organizations/org-slug/prevent/tokens/');
-  });
-
-  it('renders the correct prevent AI link', () => {
-    render(
-      <NavContextProvider>
-        <Nav />
-        <div id="main" />
-      </NavContextProvider>,
-      {
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/prevent/ai-code-review/new/',
-          },
-        },
-      }
-    );
-
-    const preventAILink = screen.getByRole('link', {name: 'AI Code Review'});
-    expect(preventAILink).toBeInTheDocument();
-    expect(preventAILink).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/prevent/ai-code-review/new/'
-    );
   });
 });

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pickle
+import threading
+import time
 from collections.abc import Callable, Mapping
 from functools import partial
 from typing import TYPE_CHECKING, Any
@@ -21,6 +23,7 @@ from django.conf import settings
 if TYPE_CHECKING:
     from sentry.metrics.base import MetricsBackend
 
+STUCK_DETECTOR_TIMEOUT_SECONDS = 30
 
 Tags = Mapping[str, str]
 
@@ -116,9 +119,15 @@ def _get_arroyo_subprocess_initializer(
 
 
 def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: Tags) -> None:
+    import logging
+
+    logger = logging.getLogger("sentry.utils.arroyo.subprocess")
+
     from sentry.runner import configure
 
+    logger.info("_initialize_arroyo_subprocess: calling configure()")
     configure()
+    logger.info("_initialize_arroyo_subprocess: configure() complete")
 
     if initializer:
         initializer()
@@ -126,7 +135,9 @@ def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: 
     from sentry.metrics.middleware import add_global_tags
 
     # Inherit global tags from the parent process
+    logger.info("_initialize_arroyo_subprocess: calling add_global_tags()")
     add_global_tags(all_threads=True, tags=tags)
+    logger.info("_initialize_arroyo_subprocess: add_global_tags() complete")
 
 
 def initialize_arroyo_main() -> None:
@@ -204,23 +215,71 @@ def _import_and_run(
     initializer: Callable[[], None],
     main_fn_pickle: bytes,
     args_pickle: bytes,
+    use_stuck_detector: bool,
     *additional_args: Any,
 ) -> None:
-    initializer()
+    import logging
 
-    # explicitly use pickle so that we can be sure arguments get unpickled
-    # after sentry gets initialized
-    main_fn = pickle.loads(main_fn_pickle)
-    args = pickle.loads(args_pickle)
+    logger = logging.getLogger("sentry.utils.arroyo.subprocess")
 
+    init_done: threading.Event | None = None
+
+    if use_stuck_detector:
+        init_done = threading.Event()
+
+        def stuck_detector() -> None:
+            start = time.time()
+            while not init_done.is_set():
+                elapsed = time.time() - start
+                if elapsed > STUCK_DETECTOR_TIMEOUT_SECONDS:
+                    from arroyo.processing.processor import get_all_thread_stacks
+
+                    stack_traces = get_all_thread_stacks()
+                    logger.warning(
+                        "subprocess initialization stuck for %s seconds, stacks: %s",
+                        STUCK_DETECTOR_TIMEOUT_SECONDS,
+                        stack_traces,
+                    )
+                    return
+                time.sleep(1)
+
+        detector_thread = threading.Thread(
+            target=stuck_detector, daemon=True, name="stuck-detector"
+        )
+        detector_thread.start()
+
+    try:
+        logger.info("_import_and_run: calling initializer")
+        initializer()
+
+        # explicitly use pickle so that we can be sure arguments get unpickled
+        # after sentry gets initialized
+        logger.info("_import_and_run: unpickling main_fn")
+        main_fn = pickle.loads(main_fn_pickle)
+
+        logger.info("_import_and_run: unpickling args")
+        args = pickle.loads(args_pickle)
+    finally:
+        if init_done:
+            init_done.set()
+
+    logger.info("_import_and_run: calling main_fn")
     main_fn(*args, *additional_args)
 
 
-def run_with_initialized_sentry(main_fn: Callable[..., None], *args: Any) -> Callable[..., None]:
+def run_with_initialized_sentry(
+    main_fn: Callable[..., None],
+    *args: Any,
+    use_stuck_detector: bool = False,
+) -> Callable[..., None]:
     main_fn_pickle = pickle.dumps(main_fn)
     args_pickle = pickle.dumps(args)
     return partial(
-        _import_and_run, _get_arroyo_subprocess_initializer(None), main_fn_pickle, args_pickle
+        _import_and_run,
+        _get_arroyo_subprocess_initializer(None),
+        main_fn_pickle,
+        args_pickle,
+        use_stuck_detector,
     )
 
 

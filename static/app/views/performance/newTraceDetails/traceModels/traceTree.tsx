@@ -436,6 +436,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       replayTraceSlug: options.replayTraceSlug,
     });
 
+    // Track visited event_ids to prevent cycles during tree construction.
+    // Cyclic nodes are skipped and logged to Sentry for monitoring.
+    const visitedIds = new Set<string>();
+
     function visit(
       parent: BaseNode,
       value:
@@ -445,6 +449,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
         | TraceTree.EAPError
         | TraceTree.UptimeCheck
     ) {
+      const nodeId = 'event_id' in value ? value.event_id : undefined;
+      if (nodeId && visitedIds.has(nodeId)) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-tree-cycle-detected']);
+          Sentry.captureMessage('Cycle detected in trace tree structure');
+        });
+        return;
+      }
+      if (nodeId) {
+        visitedIds.add(nodeId);
+      }
+
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });

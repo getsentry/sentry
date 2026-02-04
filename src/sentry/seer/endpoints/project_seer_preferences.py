@@ -5,6 +5,7 @@ import logging
 import orjson
 import requests
 from django.conf import settings
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +15,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference
@@ -108,12 +111,34 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         serializer = ProjectSeerPreferencesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        for repo_data in serializer.validated_data.get("repositories", []):
+            provider = repo_data.get("provider")
+            external_id = repo_data.get("external_id")
+            repo_org_id = repo_data.get("organization_id")
+            owner = repo_data.get("owner")
+            name = repo_data.get("name")
+
+            if repo_org_id is not None and repo_org_id != project.organization.id:
+                return Response({"detail": "Invalid repository"}, status=400)
+
+            repo_data["organization_id"] = project.organization.id
+
+            repo_exists = Repository.objects.filter(
+                Q(provider=provider) | Q(provider=f"integrations:{provider}"),
+                organization_id=project.organization.id,
+                external_id=external_id,
+                name=f"{owner}/{name}",
+                status=ObjectStatus.ACTIVE,
+            ).exists()
+
+            if not repo_exists:
+                return Response({"detail": "Invalid repository"}, status=400)
+
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        # TODO: this should allow passing a partial preference object, upserting the rest.
                         **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,

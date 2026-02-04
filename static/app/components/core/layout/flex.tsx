@@ -1,10 +1,14 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
-import type {DistributedOmit} from 'type-fest';
 
 import type {SpaceSize} from 'sentry/utils/theme';
 
-import {Container, type ContainerElement, type ContainerProps} from './container';
+import {
+  Container,
+  type ContainerElement,
+  type ContainerProps,
+  type ContainerPropsWithRenderFunction,
+} from './container';
 import {getSpacing, rc, type Responsive} from './styles';
 
 const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
@@ -53,17 +57,18 @@ interface FlexLayoutProps {
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 }
 
-export type FlexProps<T extends ContainerElement = 'div'> = DistributedOmit<
-  ContainerProps<T>,
-  'display'
-> &
-  FlexLayoutProps;
+export interface FlexProps<T extends ContainerElement = 'div'>
+  extends Omit<ContainerProps<T>, 'display'>,
+    FlexLayoutProps {}
+export interface FlexPropsWithRenderFunction<T extends ContainerElement = 'div'>
+  extends Omit<ContainerPropsWithRenderFunction<T>, 'display'>,
+    FlexLayoutProps {}
 
 export const Flex = styled(Container, {
   shouldForwardProp: prop => {
     return !omitFlexProps.has(prop as any);
   },
-})<FlexProps<any>>`
+})<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};
   ${p => rc('order', p.order, p.theme)};
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
@@ -108,5 +113,5 @@ export const Flex = styled(Container, {
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: FlexProps<T>
+  props: FlexProps<T> | FlexPropsWithRenderFunction<T>
 ) => React.ReactElement;

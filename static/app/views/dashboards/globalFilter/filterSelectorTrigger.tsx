@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Badge} from 'sentry/components/core/badge';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
@@ -101,5 +101,5 @@ export const FilterValueTruncated = styled('div')`
 
 const SubText = styled('span')`
   color: ${p => p.theme.colors.gray500};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

@@ -100,7 +100,6 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
         except (ApiError, ObjectDoesNotExist) as err:
             extra.update({"token": token, "error": str(err)})
             logger.info("sync-failed", extra=extra)
-            logger.exception("Invalid token.")
             return self.respond(status=400)
         else:
             return self.respond()

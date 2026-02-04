@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -119,7 +119,7 @@ export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   input {
     padding-right: ${space(1.5)};
   }

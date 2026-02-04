@@ -26,7 +26,7 @@ export default function SettingsWrapper() {
 const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: ${p => p.theme.font.lineHeight.default};
   color: ${p => p.theme.tokens.content.primary};
 

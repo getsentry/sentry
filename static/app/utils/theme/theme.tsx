@@ -18,13 +18,7 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
-import type {
-  AlertVariant,
-  FormSize,
-  LevelVariant,
-  MotionDuration,
-  MotionEasing,
-} from './types';
+import type {MotionDuration, MotionEasing} from './types';
 
 type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
 
@@ -152,19 +146,6 @@ function generateMotion() {
   };
 }
 
-type AlertColors = Record<
-  AlertVariant,
-  {
-    background: string;
-    backgroundLight: string;
-    border: string;
-    borderHover: string;
-    color: string;
-    // @TODO(jonasbadalic): Why is textLight optional and only set on error?
-    textLight?: string;
-  }
->;
-
 const generateThemeUtils = () => ({
   // https://css-tricks.com/inclusively-hidden/
   visuallyHidden: css`
@@ -178,139 +159,11 @@ const generateThemeUtils = () => ({
   `,
 });
 
-const generateAlertTheme = (colors: Colors, tokens: Tokens): AlertColors => ({
-  info: {
-    border: colors.blue200,
-    background: colors.blue400,
-    color: colors.blue500,
-    backgroundLight: colors.blue100,
-    borderHover: colors.blue400,
-  },
-  success: {
-    background: colors.green400,
-    backgroundLight: colors.green100,
-    border: colors.green200,
-    borderHover: colors.green400,
-    color: colors.green500,
-  },
-  muted: {
-    background: colors.gray200,
-    backgroundLight: tokens.background.secondary,
-    border: tokens.border.primary,
-    borderHover: tokens.border.primary,
-    color: 'inherit',
-  },
-  warning: {
-    background: colors.yellow400,
-    backgroundLight: colors.yellow100,
-    border: colors.yellow200,
-    borderHover: colors.yellow400,
-    color: colors.yellow500,
-  },
-  danger: {
-    background: colors.red400,
-    backgroundLight: colors.red100,
-    border: colors.red200,
-    borderHover: colors.red400,
-    color: colors.red500,
-    textLight: colors.red200,
-  },
-});
-
-const generateLevelTheme = (tokens: Tokens, mode: 'light' | 'dark'): LevelColors => ({
-  sample: tokens.dataviz.semantic.accent,
-  info: tokens.dataviz.semantic.accent,
-  // BAD: accessing named colors is forbidden
-  // but necessary to differente from orange
-  warning: color.categorical[mode].yellow,
-  // BAD: hardcoded legacy color! We no longer use orange in the main UI,
-  // but do have it in the chart palette. This needs to be harcoded
-  // because existing users still associate orange with the "error" level.
-  error: color.categorical[mode].orange,
-  fatal: tokens.dataviz.semantic.bad,
-  default: tokens.dataviz.semantic.neutral,
-  unknown: tokens.dataviz.semantic.other,
-});
-
 /**
  * Theme definition
  */
 
 type Colors = typeof lightColors;
-
-type LevelColors = Record<LevelVariant, string>;
-
-const legacyTypography = {
-  fontSize: typography.font.size,
-  fontWeight: {
-    normal: typography.font.weight.sans.regular,
-    bold: typography.font.weight.sans.medium,
-  },
-  text: {
-    family: typography.font.family.sans,
-    familyMono: typography.font.family.mono,
-    lineHeightHeading: typography.font.lineHeight.default,
-    lineHeightBody: typography.font.lineHeight.comfortable,
-  },
-} as const;
-
-type FormTheme = {
-  form: Record<
-    FormSize,
-    {
-      borderRadius: string;
-      fontSize: string;
-      height: string;
-      lineHeight: string;
-      minHeight: string;
-      paddingBottom: number;
-      paddingLeft: number;
-      paddingRight: number;
-      paddingTop: number;
-    }
-  >;
-};
-const formTheme: FormTheme = {
-  /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: {
-    md: {
-      height: '36px',
-      minHeight: '36px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 16,
-      paddingRight: 16,
-      paddingTop: 12,
-      paddingBottom: 12,
-      borderRadius: baseLightTheme.radius.lg,
-    },
-    sm: {
-      height: '32px',
-      minHeight: '32px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-      paddingLeft: 12,
-      paddingRight: 12,
-      paddingTop: 8,
-      paddingBottom: 8,
-      borderRadius: baseLightTheme.radius.md,
-    },
-    xs: {
-      height: '28px',
-      minHeight: '28px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 6,
-      paddingBottom: 6,
-      borderRadius: baseLightTheme.radius.sm,
-    },
-  },
-};
 
 /**
  * Values shared between light and dark theme
@@ -324,6 +177,10 @@ const commonTheme = {
     // does not need to battle others for z-index priority
     initial: 1,
     truncationFullValue: 10,
+
+    monitorCreationForms: {
+      schedulePreview: 2,
+    },
 
     // @TODO(jonasbadalic) This should exist on traceView component
     traceView: {
@@ -386,17 +243,49 @@ const commonTheme = {
     },
   },
 
-  ...legacyTypography,
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: baseLightTheme.radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: baseLightTheme.radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: baseLightTheme.radius.sm,
+    },
+  },
+
   ...typography,
-  ...formTheme,
 };
 
 export interface SentryTheme
   extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
   chart: {
-    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
-    neutral: string;
   };
   tokens: Tokens;
 }
@@ -582,11 +471,11 @@ const ccd = color.categorical.dark;
 
 const CHART_PALETTE_DARK = [
   [ccd.blurple],
-  [ccd.blurple, ccd.purple],
-  [ccd.blurple, ccd.purple, ccd.pink],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.indigo],
+  [ccd.blurple, ccd.indigo, ccd.pink],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [
     ccd.blurple,
@@ -775,10 +664,13 @@ type ValidLengthArgument = TupleOf<ColorLength>[number];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
+): <Length extends ValidLengthArgument>(length: Length | number | 'all') => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
-    length: Length | number
+    length: Length | number | 'all'
   ): T[Length] {
+    if (length === 'all') {
+      return palette.at(-1) as T[Length];
+    }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
@@ -940,47 +832,10 @@ const darkShadows = {
   dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
 };
 
-const deprecatedColorMappings = (colors: Colors) => ({
-  /** @deprecated */
-  get purple400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get purple300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get purple200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get purple100() {
-    return colors.blue100;
-  },
-
-  /** @deprecated */
-  get blue400() {
-    return colors.blue500;
-  },
-  /** @deprecated */
-  get blue300() {
-    return colors.blue400;
-  },
-  /** @deprecated */
-  get blue200() {
-    return colors.blue200;
-  },
-  /** @deprecated */
-  get blue100() {
-    return colors.blue100;
-  },
-});
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-  ...deprecatedColorMappings(lightColors),
   ...baseLightTheme,
   ...lightShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
@@ -988,14 +843,16 @@ const lightThemeDefinition = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(lightColors, baseLightTheme.tokens),
-  level: generateLevelTheme(baseLightTheme.tokens, 'light'),
+
+  /**
+   * @deprecated do not use this.
+   */
+  level: {
+    orange: ccl.orange,
+  },
 
   chart: {
-    neutral: baseLightTheme.tokens.dataviz.semantic.neutral,
-    colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
@@ -1014,8 +871,6 @@ export const darkTheme: SentryTheme = {
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
-
-  ...deprecatedColorMappings(darkColors),
   ...baseDarkTheme,
   ...darkShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
@@ -1023,14 +878,16 @@ export const darkTheme: SentryTheme = {
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
   }),
 
-  // @TODO: these colors need to be ported
   ...generateThemeUtils(),
-  alert: generateAlertTheme(darkColors, baseDarkTheme.tokens),
-  level: generateLevelTheme(baseDarkTheme.tokens, 'dark'),
+
+  /**
+   * @deprecated do not use this.
+   */
+  level: {
+    orange: ccd.orange,
+  },
 
   chart: {
-    neutral: baseDarkTheme.tokens.dataviz.semantic.neutral,
-    colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 

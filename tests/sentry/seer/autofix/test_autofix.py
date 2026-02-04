@@ -784,6 +784,31 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert staging_val["count"] == 1
         assert staging_val["percentage"] == "25%"
 
+    def test_get_all_tags_overview_respects_time_range(self) -> None:
+        """Only include tag counts for events within the provided time window (event 2 and 3)"""
+        now = before_now(minutes=0)
+        start = now - timedelta(minutes=3, seconds=30)
+        end = now - timedelta(minutes=1, seconds=30)
+
+        result = get_all_tags_overview(self.group, start=start, end=end)
+
+        assert result is not None
+        tags = {tag["key"]: tag for tag in result["tags_overview"]}
+
+        env_tag = tags["environment"]
+        assert env_tag["total_values"] == 2  # events ~2m and ~3m ago
+        env_values = {val["value"]: val for val in env_tag["top_values"]}
+        assert set(env_values.keys()) == {"production", "staging"}
+        assert env_values["production"]["count"] == 1
+        assert env_values["staging"]["count"] == 1
+
+        user_tag = tags["user_role"]
+        assert user_tag["total_values"] == 2
+        user_values = {val["value"]: val for val in user_tag["top_values"]}
+        assert set(user_values.keys()) == {"admin", "user"}
+        assert user_values["admin"]["count"] == 1
+        assert user_values["user"]["count"] == 1
+
 
 @requires_snuba
 @pytest.mark.django_db
@@ -1486,7 +1511,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to update autofix run"
@@ -1500,7 +1527,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.side_effect = Exception("Invalid JSON")
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Seer returned an invalid response"
@@ -1514,7 +1543,9 @@ class UpdateAutofixTest(TestCase):
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
         mock_post.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value

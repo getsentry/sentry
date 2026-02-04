@@ -1520,9 +1520,18 @@ describe('Dashboards > Detail', () => {
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
+        match: [
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: undefined,
+            sort: 'date',
+          }),
+        ],
       });
       // Mocked search results
-      MockApiClient.addMockResponse({
+      const searchMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
           ReleaseFixture({
@@ -1531,7 +1540,15 @@ describe('Dashboards > Detail', () => {
             version: 'search-result',
           }),
         ],
-        match: [MockApiClient.matchData({query: 's'})],
+        match: [
+          MockApiClient.matchQuery({
+            project: [],
+            per_page: 50,
+            environment: [],
+            query: 's',
+            sort: 'date',
+          }),
+        ],
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
@@ -1554,6 +1571,12 @@ describe('Dashboards > Detail', () => {
 
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
+
+      // Wait for debounce and search to complete
+      await waitFor(() => {
+        expect(searchMock).toHaveBeenCalled();
+      });
+
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears

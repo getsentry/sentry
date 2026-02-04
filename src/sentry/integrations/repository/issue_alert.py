@@ -130,7 +130,7 @@ class IssueAlertNotificationMessageRepository:
         except NotificationMessage.DoesNotExist:
             return None
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notification for issue rule",
                 exc_info=e,
                 extra={
@@ -159,7 +159,7 @@ class IssueAlertNotificationMessageRepository:
             )
             return IssueAlertNotificationMessage.from_model(instance=new_instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "failed to create new issue alert notification alert",
                 exc_info=e,
                 extra=data.__dict__,
@@ -193,7 +193,7 @@ class IssueAlertNotificationMessageRepository:
             for instance in query:
                 yield IssueAlertNotificationMessage.from_model(instance=instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.warning(
                 "Failed to get parent notifications on filters",
                 exc_info=e,
                 extra=filter.__dict__,

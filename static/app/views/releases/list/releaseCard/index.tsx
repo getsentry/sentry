@@ -1,17 +1,18 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Collapsible from 'sentry/components/collapsible';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -140,7 +141,7 @@ function ReleaseCard({
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
           <Flex justify="between" flex="1 1 auto" height="100%">
-            <PackageContainer>
+            <Container flex="1" marginRight="md" minWidth="0" overflow="hidden">
               <PackageName>
                 {versionInfo?.package && (
                   <TextOverflow ellipsisDirection="right">
@@ -154,7 +155,7 @@ function ReleaseCard({
               />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
-            </PackageContainer>
+            </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
@@ -228,7 +229,7 @@ function ReleaseCard({
           </ReleaseProjectsLayout>
         </ReleaseProjectsHeader>
 
-        <ProjectRows>
+        <Container position="relative">
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <ExpandButtonWrapper>
@@ -265,7 +266,7 @@ function ReleaseCard({
               );
             })}
           </Collapsible>
-        </ProjectRows>
+        </Container>
 
         {projectsToHide.length > 0 && (
           <HiddenProjectsMessage data-test-id="hidden-projects">
@@ -318,7 +319,7 @@ const ReleaseInfo = styled('div')`
 `;
 
 const ReleaseInfoSubheader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.colors.gray500};
   flex-grow: 1;
 `;
@@ -339,19 +340,12 @@ const FinalizeWrapper = styled('div')`
 `;
 
 const PackageName = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
   max-width: 100%;
-`;
-
-const PackageContainer = styled('div')`
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-  margin-right: ${space(1)};
 `;
 
 const ReleaseProjects = styled('div')`
@@ -365,7 +359,7 @@ const ReleaseProjects = styled('div')`
 `;
 
 const ReleaseInfoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: ${space(2)};
@@ -375,11 +369,7 @@ const ReleaseInfoHeader = styled('div')`
 const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
   padding: ${space(1.5)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const ProjectRows = styled('div')`
-  position: relative;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ExpandButtonWrapper = styled('div')`
@@ -498,7 +488,7 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
 const HiddenProjectsMessage = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${space(2)};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;

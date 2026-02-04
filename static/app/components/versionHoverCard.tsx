@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -209,7 +209,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       <Flex justify="end" align="center" gap="xs">
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={releaseVersion}
           aria-label={t('Copy release version to clipboard')}
@@ -228,15 +228,15 @@ const ConnectRepo = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledVersion = styled(Version)`
   max-width: 190px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const CountSince = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;

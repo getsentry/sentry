@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import {Container} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
 import Panel from 'sentry/components/panels/panel';
@@ -37,10 +38,10 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
   const AccountCredit =
     accountCredit > 0 ? (
-      <AccountCreditWrapper id="account-balance">
+      <Flex justify="start" padding="0 xl" gap="md" width="100%" id="account-balance">
         <ItemContainer>{t('Your account credit:')}</ItemContainer>
         <ItemContainer>{'$' + accountCredit.toString()}</ItemContainer>
-      </AccountCreditWrapper>
+      </Flex>
     ) : null;
 
   if (isDisabledByPartner(subscription)) {
@@ -101,14 +102,6 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 }
 
 export default withSubscription(RedeemPromoCode);
-
-const AccountCreditWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-  gap: ${p => p.theme.space.md};
-  padding: 0 ${p => p.theme.space.xl};
-`;
 
 const ItemContainer = styled('span')`
   margin: auto 0;

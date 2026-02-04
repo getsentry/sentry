@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
           icon={<IconChevron direction="left" />}
           aria-label={t('Back to primary navigation')}
           size="xs"
-          borderless
+          priority="transparent"
         />
         <HeaderLabel>
           {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}
@@ -63,6 +63,6 @@ const GroupHeader = styled('h2')`
 `;
 
 const HeaderLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

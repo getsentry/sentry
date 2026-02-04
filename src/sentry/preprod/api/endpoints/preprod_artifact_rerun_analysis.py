@@ -8,12 +8,11 @@ from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, quotas
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint, region_silo_endpoint
 from sentry.api.permissions import StaffPermission
-from sentry.constants import DataCategory
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunAnalysisEvent
@@ -24,6 +23,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 
 logger = logging.getLogger(__name__)
 
@@ -62,17 +62,17 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             )
         )
 
-        org_id = head_artifact.project.organization_id
-        has_size_quota = quotas.backend.has_usage_quota(org_id, DataCategory.SIZE_ANALYSIS)
-        has_installable_quota = quotas.backend.has_usage_quota(
-            org_id, DataCategory.INSTALLABLE_BUILD
-        )
+        organization = head_artifact.project.organization
 
         # Empty list is valid - triggers default processing behavior
         requested_features: list[PreprodFeature] = []
-        if has_size_quota:
+
+        run_size, _ = should_run_size(head_artifact, actor=request.user)
+        if run_size:
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-        if has_installable_quota:
+
+        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
+        if run_distribution:
             requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         if PreprodFeature.SIZE_ANALYSIS in requested_features:
@@ -82,7 +82,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         try:
             produce_preprod_artifact_to_kafka(
                 project_id=head_artifact.project.id,
-                organization_id=org_id,
+                organization_id=organization.id,
                 artifact_id=head_artifact_id,
                 requested_features=requested_features,
             )
@@ -92,7 +92,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
                 extra={
                     "artifact_id": head_artifact_id,
                     "user_id": request.user.id,
-                    "organization_id": head_artifact.project.organization_id,
+                    "organization_id": organization.id,
                     "project_id": head_artifact.project.id,
                 },
             )
@@ -108,7 +108,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             extra={
                 "artifact_id": head_artifact_id,
                 "user_id": request.user.id,
-                "organization_id": head_artifact.project.organization_id,
+                "organization_id": organization.id,
                 "project_id": head_artifact.project.id,
             },
         )
@@ -119,7 +119,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)

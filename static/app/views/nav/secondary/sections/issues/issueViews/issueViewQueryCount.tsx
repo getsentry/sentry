@@ -103,7 +103,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
 
 const QueryCountBubble = styled(motion.span)`
   line-height: 20px;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${space(0.5)};
   min-width: 20px;
   display: flex;
@@ -114,5 +114,5 @@ const QueryCountBubble = styled(motion.span)`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

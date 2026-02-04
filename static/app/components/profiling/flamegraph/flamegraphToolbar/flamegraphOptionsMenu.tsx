@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -77,7 +78,11 @@ function FlamegraphOptionsMenu({
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
-        triggerProps={{children: t('Color Coding'), icon: <IconSliders />, size: 'xs'}}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} icon={<IconSliders />} size="xs">
+            {t('Color Coding')}
+          </OverlayTrigger.Button>
+        )}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

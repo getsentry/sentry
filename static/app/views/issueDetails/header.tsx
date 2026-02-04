@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {TabList} from '@sentry/scraps/tabs';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Link} from 'sentry/components/core/link';
-import {TabList} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -211,7 +212,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   return (
     <Layout.Header>
       <div className={className}>
-        <BreadcrumbActionWrapper>
+        <Flex justify="between" align="center" gap="md">
           <Breadcrumbs
             crumbs={[
               {
@@ -231,7 +232,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
             disabled={disableActions}
             event={event}
           />
-        </BreadcrumbActionWrapper>
+        </Flex>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -298,14 +299,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
 }
 
 export default GroupHeader;
-
-const BreadcrumbActionWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  align-items: center;
-`;
 
 const HeaderRow = styled('div')`
   display: flex;

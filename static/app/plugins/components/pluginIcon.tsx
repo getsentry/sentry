@@ -51,6 +51,7 @@ const PLUGIN_ICONS = {
   bitbucket_server: bitbucketserver,
   discord,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,

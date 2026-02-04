@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useUrlParams from 'sentry/utils/url/useUrlParams';

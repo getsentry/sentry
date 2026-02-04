@@ -2,10 +2,11 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';

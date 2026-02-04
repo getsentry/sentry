@@ -1,11 +1,11 @@
 import {useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconChevron} from 'sentry/icons';
@@ -37,8 +37,9 @@ import {
   TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
 import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -139,7 +140,7 @@ export function SampleTableRow({
         aria-label={t('Toggle trace details')}
         aria-expanded={isExpanded}
         size={embedded ? 'zero' : 'sm'}
-        borderless
+        priority="transparent"
         onClick={() => setIsExpanded(!isExpanded)}
       />
     );
@@ -185,7 +186,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.colors.gray500,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -200,7 +200,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.tokens.content.accent,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -215,7 +214,6 @@ export function SampleTableRow({
       <WrappingText
         style={{
           maxWidth: MAX_TELEMETRY_WIDTH,
-          color: theme.colors.red400,
           alignItems: 'center',
           justifyContent: 'flex-end',
         }}
@@ -227,7 +225,7 @@ export function SampleTableRow({
 
   const renderTimestampCell = (field: string) => {
     return (
-      <div style={{whiteSpace: 'nowrap'}}>
+      <StyledTimestampWrapper>
         {TimestampRenderer({
           item: {
             fieldKey: field,
@@ -243,7 +241,7 @@ export function SampleTableRow({
             theme,
           },
         })}
-      </div>
+      </StyledTimestampWrapper>
     );
   };
 
@@ -278,7 +276,7 @@ export function SampleTableRow({
 
   const renderProjectCell = () => {
     return (
-      <Flex align="center" justify="center" style={{minWidth: '18px'}}>
+      <Flex align="center" justify="center" minWidth="18px">
         <ProjectBadge avatarSize={14} project={project ?? {slug: projectSlug}} hideName />
       </Flex>
     );

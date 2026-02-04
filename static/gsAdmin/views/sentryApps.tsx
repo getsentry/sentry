@@ -1,8 +1,7 @@
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
-
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';

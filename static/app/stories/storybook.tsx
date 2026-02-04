@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {Children, Fragment, useEffect} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
-import {Heading} from 'sentry/components/core/text';
 import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
 import {StoryHeading} from 'sentry/stories/view/storyHeading';
 
@@ -43,8 +43,8 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
     return (
       <Fragment>
         <Heading as="h1">{title}</Heading>
-        {stories.map(({name, render}, i) => (
-          <Story key={i} name={name} render={render} />
+        {stories.map(({name, render}, idx) => (
+          <Story key={name + idx} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
           <Storybook.APIReference key={i} componentProps={documentation} />

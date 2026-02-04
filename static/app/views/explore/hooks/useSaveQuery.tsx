@@ -31,7 +31,7 @@ export type ExploreQueryChangedReason = {
 };
 
 type ExploreSavedQueryRequest = {
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics';
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
   changedReason?: ExploreQueryChangedReason;
@@ -56,7 +56,7 @@ type ExploreSavedQueryRequest = {
   start?: DateString;
 };
 
-function useSavedQueryForDataset(dataset: 'spans' | 'logs') {
+function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const pageFilters = usePageFilters();
   const [interval] = useChartInterval();
   const queryParams = useQueryParams();
@@ -198,6 +198,10 @@ export function useLogsSaveQuery() {
   return useSavedQueryForDataset('logs');
 }
 
+export function useReplaySaveQuery() {
+  return useSavedQueryForDataset('replays');
+}
+
 function convertQueryParamsToRequest({
   dataset,
   queryParams,
@@ -206,7 +210,7 @@ function convertQueryParamsToRequest({
   title,
   caseInsensitive,
 }: {
-  dataset: 'spans' | 'logs';
+  dataset: 'spans' | 'logs' | 'replays';
   interval: string;
   pageFilters: ReturnType<typeof usePageFilters>;
   queryParams: ReadableQueryParams;

@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';

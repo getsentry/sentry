@@ -194,7 +194,7 @@ def fetch_rows_matching_pattern(
     }
 
 
-def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
+def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
     """
     Delete replay data from Seer.
 
@@ -202,6 +202,8 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
     """
     seer_request = {
         "replay_ids": replay_ids,
+        "organization_id": organization_id,
+        "project_id": project_id,
     }
 
     try:
@@ -215,7 +217,11 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
     except Exception:
         logger.exception(
             "Failed to delete replay data from Seer",
-            extra={"project_id": project_id, "replay_ids": replay_ids},
+            extra={
+                "organization_id": organization_id,
+                "project_id": project_id,
+                "replay_ids": replay_ids,
+            },
         )
         return False
 
@@ -224,6 +230,7 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
         logger.error(
             "Failed to delete replay data from Seer",
             extra={
+                "organization_id": organization_id,
                 "project_id": project_id,
                 "replay_ids": replay_ids,
                 "status_code": response.status,

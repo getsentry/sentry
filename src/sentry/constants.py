@@ -144,6 +144,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "gsnlink",
         "go",
         "guide",
+        "healthcheck",
         "help",
         "ingest",
         "ingest-beta",

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconFire, IconSpan, IconTerminal} from 'sentry/icons';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {
@@ -17,10 +17,10 @@ import {
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 
-const ICON_HEADERS = {
-  [VirtualTableSampleColumnKey.LOGS]: <IconTerminal variant="primary" />,
-  [VirtualTableSampleColumnKey.SPANS]: <IconSpan variant="accent" />,
-  [VirtualTableSampleColumnKey.ERRORS]: <IconFire variant="danger" />,
+const HEADER_LABELS: Partial<Record<VirtualTableSampleColumnKey, string>> = {
+  [VirtualTableSampleColumnKey.LOGS]: t('Logs'),
+  [VirtualTableSampleColumnKey.SPANS]: t('Spans'),
+  [VirtualTableSampleColumnKey.ERRORS]: t('Errors'),
 };
 
 interface MetricsSamplesTableHeaderProps {
@@ -49,7 +49,7 @@ export function MetricsSamplesTableHeader({
             embedded={embedded}
           >
             {columnType === 'stat'
-              ? ICON_HEADERS[field as keyof typeof ICON_HEADERS]
+              ? HEADER_LABELS[field as VirtualTableSampleColumnKey]
               : null}
             {columnType === 'metric_value' ? label : null}
             {columnType === 'value' ? label : null}
@@ -85,9 +85,7 @@ function FieldHeaderCellWrapper({
         data-column-name={field}
         embedded={embedded}
       >
-        <Tooltip title={label} skipWrapper>
-          {children}
-        </Tooltip>
+        {children}
       </NumericSimpleTableHeaderCell>
     );
   }

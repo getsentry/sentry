@@ -9,7 +9,7 @@ from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.workflow_engine.processors.detector import (
     UnableToAcquireLockApiError,
-    _ensure_metric_detector,
+    ensure_default_anomaly_detector,
     ensure_default_detectors,
 )
 
@@ -27,7 +27,7 @@ def disable_default_detector_creation():
         create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
     )
     project_created.disconnect(
-        create_metric_detector_with_owner, dispatch_uid="create_metric_detector_with_owner"
+        create_default_anomaly_detector, dispatch_uid="create_default_anomaly_detector"
     )
     try:
         yield
@@ -40,8 +40,8 @@ def disable_default_detector_creation():
             weak=False,
         )
         project_created.connect(
-            create_metric_detector_with_owner,
-            dispatch_uid="create_metric_detector_with_owner",
+            create_default_anomaly_detector,
+            dispatch_uid="create_default_anomaly_detector",
             weak=False,
         )
 
@@ -54,9 +54,9 @@ def create_project_detectors(instance, created, **kwargs):
             sentry_sdk.capture_exception(e)
 
 
-def create_metric_detector_with_owner(project: Project, user=None, user_id=None, **kwargs):
+def create_default_anomaly_detector(project: Project, user=None, user_id=None, **kwargs):
     """
-    Creates default metric detector when project is created, with the team as owner.
+    Creates default anomaly detector when project is created, with the team as owner.
     This listens to project_created signal which provides user information.
     """
 
@@ -67,7 +67,7 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
 
     if owner_team is None:
         logger.info(
-            "create_metric_detector_with_owner.no_team",
+            "create_default_anomaly_detector.no_team",
             extra={"project_id": project.id, "organization_id": project.organization_id},
         )
 
@@ -75,26 +75,32 @@ def create_metric_detector_with_owner(project: Project, user=None, user_id=None,
         enabled = features.has(
             "organizations:anomaly-detection-alerts", project.organization, actor=user
         )
-        detector = _ensure_metric_detector(
+        detector = ensure_default_anomaly_detector(
             project, owner_team_id=owner_team.id if owner_team else None, enabled=enabled
         )
         if detector:
             logger.info(
-                "create_metric_detector_with_owner.created",
+                "create_default_anomaly_detector.created",
                 extra={"project_id": project.id, "detector_id": detector.id, "enabled": enabled},
             )
     except UnableToAcquireLockApiError as e:
+        logger.warning(
+            "create_default_anomaly_detector.lock_failed",
+            extra={"project_id": project.id, "organization_id": project.organization_id},
+        )
         sentry_sdk.capture_exception(e)
     except Exception:
-        # Seer data send failed - detector was not created, already logged in _ensure_metric_detector
-        pass
+        logger.exception(
+            "create_default_anomaly_detector.failed",
+            extra={"project_id": project.id, "organization_id": project.organization_id},
+        )
 
 
 post_save.connect(
     create_project_detectors, sender=Project, dispatch_uid="create_project_detectors", weak=False
 )
 project_created.connect(
-    create_metric_detector_with_owner,
-    dispatch_uid="create_metric_detector_with_owner",
+    create_default_anomaly_detector,
+    dispatch_uid="create_default_anomaly_detector",
     weak=False,
 )

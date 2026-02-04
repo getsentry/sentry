@@ -20,6 +20,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 from .utils import parse_team_params
@@ -58,7 +59,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_alert_rule = request.GET.get("alertRule")
         query_include_snapshots = request.GET.get("includeSnapshots")
         if query_alert_rule is not None:
-            query_alert_rule_id = int(query_alert_rule)
+            query_alert_rule_id = to_valid_int_id("alertRule", query_alert_rule)
             alert_rule_ids = [query_alert_rule_id]
             if query_include_snapshots:
                 snapshot_alerts = list(

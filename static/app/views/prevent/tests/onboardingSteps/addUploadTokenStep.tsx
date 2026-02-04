@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToDomainName} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';

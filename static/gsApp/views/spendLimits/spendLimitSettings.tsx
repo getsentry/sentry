@@ -4,9 +4,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -725,6 +726,6 @@ const Currency = styled('div')`
     padding: 9px ${p => p.theme.space.lg};
     content: '$';
     color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;

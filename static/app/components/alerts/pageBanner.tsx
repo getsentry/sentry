@@ -1,9 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
@@ -106,14 +106,14 @@ const TextContainer = styled('div')`
 
 const SubText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.font.size.md};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(0.5)};
   text-transform: uppercase;
 `;

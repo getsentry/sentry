@@ -1,9 +1,10 @@
-import {useId} from 'react';
+import {useId, type ChangeEventHandler, type FocusEventHandler} from 'react';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -28,8 +29,41 @@ export function AssertionOpStatusCode({
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 
+  const handleInputChange: ChangeEventHandler<HTMLInputElement> = e => {
+    const rawValue = e.target.value;
+    // Only allow digits, up to 3 characters
+    if (!/^\d*$/.test(rawValue) || rawValue.length > 3) {
+      return;
+    }
+    let newValue = parseInt(rawValue, 10);
+    // Clamp to valid HTTP range when user has entered a complete 3-digit code
+    // This prevents the race condition where submitting before blur could send invalid values
+    if (rawValue.length === 3) {
+      newValue = Math.max(100, Math.min(599, newValue));
+    }
+    onChange({...value, value: newValue});
+  };
+
+  const handleInputBlur: FocusEventHandler<HTMLInputElement> = e => {
+    const newValue = parseInt(e.target.value, 10);
+    // Clamp status code to valid HTTP range (100-599) on blur
+    if (isNaN(newValue)) {
+      onChange({...value, value: 200});
+    } else {
+      const clampedValue = Math.max(100, Math.min(599, newValue));
+      if (clampedValue !== value.value) {
+        onChange({...value, value: clampedValue});
+      }
+    }
+  };
+
   return (
-    <OpContainer label={t('Status Code')} onRemove={onRemove} inputId={inputId}>
+    <OpContainer
+      label={t('Status Code')}
+      onRemove={onRemove}
+      inputId={inputId}
+      op={value}
+    >
       <InputGroup>
         <InputGroup.LeadingItems>
           <CompactSelect
@@ -42,28 +76,28 @@ export function AssertionOpStatusCode({
               });
             }}
             options={statusCodeOptions}
-            triggerProps={{
-              size: 'zero',
-              borderless: true,
-              showChevron: false,
-              children: <Text monospace>{selectedOption?.symbol ?? ''}</Text>,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                size="zero"
+                priority="transparent"
+                showChevron={false}
+              >
+                <Text monospace>{selectedOption?.symbol ?? ''}</Text>
+              </OverlayTrigger.Button>
+            )}
           />
         </InputGroup.LeadingItems>
         <InputGroup.Input
           id={inputId}
-          type="number"
-          value={value.value}
-          min={100}
-          max={599}
-          onChange={e => {
-            const newValue = parseInt(e.target.value, 10);
-            if (!isNaN(newValue)) {
-              // Clamp status code to valid HTTP range (100-599)
-              const clampedValue = Math.max(100, Math.min(599, newValue));
-              onChange({...value, value: clampedValue});
-            }
-          }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          // Display empty string while user is clearing the field (value is NaN during editing).
+          // The actual default (200) is applied in handleInputBlur when the field loses focus.
+          value={isNaN(value.value) ? '' : value.value}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
           placeholder="code"
           monospace
           width="100%"

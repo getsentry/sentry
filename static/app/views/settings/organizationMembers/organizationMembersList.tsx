@@ -1,13 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -25,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   setApiQueryData,
@@ -63,10 +65,17 @@ const getMembersQueryKey = ({
 }: {
   orgSlug: string;
   query: Record<string, string>;
-}): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query}];
+}): ApiQueryKey => [
+  getApiUrl(`/organizations/$organizationIdOrSlug/members/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
+  {query},
+];
 
 const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  `/organizations/${organization.slug}/invite-requests/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/invite-requests/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  }),
 ];
 
 function OrganizationMembersList() {
@@ -79,11 +88,19 @@ function OrganizationMembersList() {
     Member[]
   >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
   const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
-    [`/organizations/${organization.slug}/auth-provider/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/auth-provider/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const {data: currentMember} = useApiQuery<Member>(
-    [`/organizations/${organization.slug}/members/me/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+        path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+      }),
+    ],
     {staleTime: 30000}
   );
   const {

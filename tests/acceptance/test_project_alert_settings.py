@@ -37,9 +37,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
 
         Rule.objects.filter(project=self.project).delete()
 
-        Rule.objects.create(
-            project=self.project, data={"conditions": condition_data, "actions": action_data}
-        )
+        self.create_project_rule(condition_data=condition_data, action_data=action_data)
 
         self.login_as(self.user)
         self.path1 = f"/settings/{self.org.slug}/projects/{self.project.slug}/alerts/"

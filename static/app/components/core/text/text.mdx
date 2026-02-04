@@ -2,7 +2,7 @@
 title: Text
 description: Text components display text content with various typography options and styling controls.
 category: typography
-source: 'sentry/components/core/text'
+source: '@sentry/scraps/text'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/text.tsx
   a11y:
@@ -13,9 +13,10 @@ resources:
     WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
 ---
 
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
 import documentation from '!!type-loader!@sentry/scraps/text/text';

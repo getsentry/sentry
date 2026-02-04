@@ -2,7 +2,9 @@ import {useId} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   addErrorMessage,
@@ -10,8 +12,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -183,7 +183,7 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
 
 const ErrorMessage = styled('div')`
   color: ${p => p.theme.colors.red400};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 export function openSamplingModeSwitchModal(props: Props) {

@@ -1,7 +1,6 @@
 from rest_framework import status
 
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.actor import Actor
@@ -93,14 +92,12 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         another_project = self.create_project(teams=[team])
 
         # Associate rules with the team that also get deleted:
-        r1 = Rule.objects.create(label="test rule", project=project, owner_team=team)
-        r2 = Rule.objects.create(
-            label="another test rule", project=another_project, owner_team=team
+        r1 = self.create_project_rule(name="test rule", project=project, owner_team=team)
+        r2 = self.create_project_rule(
+            name="another test rule", project=another_project, owner_team=team
         )
-        r3 = Rule.objects.create(
-            label="another test rule",
-            project=another_project,
-            owner_team=another_team,
+        r3 = self.create_project_rule(
+            name="another test rule", project=another_project, owner_team=another_team
         )
         ar1 = self.create_alert_rule(
             name="test alert rule",

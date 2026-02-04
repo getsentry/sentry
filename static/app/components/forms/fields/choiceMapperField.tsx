@@ -1,18 +1,21 @@
 import {Component, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   type SelectOption,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
+import {Client} from 'sentry/api';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -322,13 +325,19 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         menuWidth={250}
         disabled={false}
         emptyMessage={noResultsMessage ?? t('No results found')}
-        triggerProps={{
-          ...restDropdownProps.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return restDropdownProps?.trigger ? (
+            restDropdownProps.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
         }}
       />
     ) : (
@@ -346,13 +355,19 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        triggerProps={{
-          ...addDropdown.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return addDropdown?.trigger ? (
+            addDropdown.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
         }}
       />
     );

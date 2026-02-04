@@ -1,7 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc, type Responsive} from 'sentry/components/core/layout/styles';
+import {rc, type Responsive} from '@sentry/scraps/layout';
+
 import type {ContentVariant, FontSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
@@ -101,9 +102,12 @@ export type ExclusiveTextEllipsisProps =
 
 interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
   extends BaseTextProps,
-    React.DetailedHTMLProps<
-      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
-      HTMLElementTagNameMap[T]
+    Omit<
+      React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+        HTMLElementTagNameMap[T]
+      >,
+      'style'
     > {
   /**
    * Our decision to make children required conflicts with the optional signature of the React.DetailedHTMLProps type.
@@ -128,6 +132,13 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    *
    */
   htmlFor?: T extends 'label' ? string : never;
+
+  /**
+   * Deprecated in favor of the Text component API.
+   * If you have an is an unsupported use-case, please contact design engineering for support.
+   * @deprecated
+   */
+  style?: React.CSSProperties;
 }
 
 export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &

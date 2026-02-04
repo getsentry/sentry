@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import StrEnum
@@ -27,15 +28,26 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.preprod.url_utils import get_preprod_artifact_url
-from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.preprod.vcs.status_checks.size.templates import (
+    format_no_quota_messages,
+    format_status_check_messages,
+)
+from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -43,19 +55,29 @@ logger = logging.getLogger(__name__)
 ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
+# Action identifier for the "Approve" button on GitHub check runs.
+# This is sent back in the webhook payload when the button is clicked.
+APPROVE_SIZE_ACTION_IDENTIFIER = "approve_size"
+
 preprod_artifact_search_config = SearchConfig.create_from(
     SearchConfig[Literal[True]](),
-    key_mappings={
-        "platform": ["platform"],
-        "git_head_ref": ["git_head_ref"],
-        "app_id": ["app_id"],
-        "build_configuration": ["build_configuration"],
-    },
-    allowed_keys={
-        "platform",
+    text_operator_keys={
+        "platform_name",
         "git_head_ref",
         "app_id",
-        "build_configuration",
+        "build_configuration_name",
+    },
+    key_mappings={
+        "platform_name": ["platform_name"],
+        "git_head_ref": ["git_head_ref"],
+        "app_id": ["app_id"],
+        "build_configuration_name": ["build_configuration_name"],
+    },
+    allowed_keys={
+        "platform_name",
+        "git_head_ref",
+        "app_id",
+        "build_configuration_name",
     },
 )
 
@@ -64,31 +86,35 @@ preprod_artifact_search_config = SearchConfig.create_from(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3, delay=60, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )
-def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) -> None:
+def create_preprod_status_check_task(
+    preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
+) -> None:
     try:
-        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
-            id=preprod_artifact_id
-        )
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
+            "mobile_app_info",
+            "commit_comparison",
+            "project",
+            "project__organization",
+        ).get(id=preprod_artifact_id)
     except PreprodArtifact.DoesNotExist:
         logger.exception(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
         logger.error(
             "preprod.status_checks.create.artifact_not_found",
-            extra={"artifact_id": preprod_artifact_id},
+            extra={"artifact_id": preprod_artifact_id, "caller": caller},
         )
         return
 
     logger.info(
         "preprod.status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id},
+        extra={"artifact_id": preprod_artifact.id, "caller": caller},
     )
 
     if not preprod_artifact.commit_comparison:
@@ -145,6 +171,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
         return
 
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    approvals_map: dict[int, PreprodComparisonApproval] = {}
     if all_artifacts:
         artifact_ids = [artifact.id for artifact in all_artifacts]
         size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -156,22 +183,70 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
                 size_metrics_map[metrics.preprod_artifact_id] = []
             size_metrics_map[metrics.preprod_artifact_id].append(metrics)
 
-    rules = _get_status_check_rules(preprod_artifact.project)
-    base_size_metrics_map = _fetch_base_size_metrics(all_artifacts, preprod_artifact.project)
+        approval_qs = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        for approval in approval_qs:
+            approvals_map[approval.preprod_artifact_id] = approval
 
-    status, triggered_rules = _compute_overall_status(
-        all_artifacts, size_metrics_map, rules=rules, base_size_metrics_map=base_size_metrics_map
+    # Filter out SKIPPED artifacts (user didn't request size analysis)
+    all_artifacts = [
+        a for a in all_artifacts if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
+    ]
+    if not all_artifacts:
+        logger.info(
+            "preprod.status_checks.create.all_skipped",
+            extra={"artifact_id": preprod_artifact.id},
+        )
+        return
+
+    url_artifact = (
+        preprod_artifact
+        if preprod_artifact.id in {a.id for a in all_artifacts}
+        else all_artifacts[0]
     )
-
-    title, subtitle, summary = format_status_check_messages(
-        all_artifacts, size_metrics_map, status, preprod_artifact.project, triggered_rules
-    )
-
-    target_url = get_preprod_artifact_url(preprod_artifact)
-
+    target_url = get_preprod_artifact_url(url_artifact)
     completed_at: datetime | None = None
-    if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+
+    # Check if any artifact hit quota limits - show neutral status with quota message
+    if _has_no_quota_artifact(all_artifacts, size_metrics_map):
+        title, subtitle, summary = format_no_quota_messages()
+        status = StatusCheckStatus.NEUTRAL
         completed_at = preprod_artifact.date_updated
+        triggered_rules: list[TriggeredRule] = []
+    else:
+        rules = _get_status_check_rules(preprod_artifact.project)
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+
+        status, triggered_rules = _compute_overall_status(
+            all_artifacts,
+            size_metrics_map,
+            rules=rules,
+            base_artifact_map=base_artifact_map,
+            base_metrics_by_artifact=base_size_metrics_map,
+            approvals_map=approvals_map,
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            all_artifacts,
+            size_metrics_map,
+            status,
+            preprod_artifact.project,
+            base_artifact_map,
+            base_size_metrics_map,
+            triggered_rules,
+        )
+
+        if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+            completed_at = preprod_artifact.date_updated
+
+        # When no rules are configured, always show neutral status.
+        # When rules exist, show actual status (in_progress, failure, success).
+        if not rules:
+            status = StatusCheckStatus.NEUTRAL
+            completed_at = preprod_artifact.date_updated
 
     try:
         check_id = provider.create_status_check(
@@ -186,6 +261,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int, **kwargs: Any) ->
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
+            include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -292,7 +368,10 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
         return []
 
     try:
-        rules_data = json.loads(rules_json)
+        # Handle bytes from project options (json.loads requires str, not bytes)
+        if isinstance(rules_json, bytes):
+            rules_json = rules_json.decode("utf-8")
+        rules_data = json.loads(rules_json) if isinstance(rules_json, str) else rules_json
         if not isinstance(rules_data, list):
             logger.warning(
                 "preprod.status_checks.rules.invalid_format",
@@ -336,39 +415,55 @@ def _get_status_check_rules(project: Project) -> list[StatusCheckRule]:
 
 
 def _fetch_base_size_metrics(
-    artifacts: list[PreprodArtifact], project: Project
-) -> dict[int, PreprodArtifactSizeMetrics]:
+    artifacts: list[PreprodArtifact],
+) -> tuple[dict[int, PreprodArtifact], dict[int, list[PreprodArtifactSizeMetrics]]]:
+    """Fetch base artifacts and their size metrics for head artifacts.
+
+    Returns:
+        Tuple of (base_artifact_map, base_metrics_by_artifact) where:
+        - base_artifact_map: head_artifact_id -> base_artifact
+        - base_metrics_by_artifact: base_artifact_id -> list of size metrics
     """
-    Fetch base artifact main size metrics for size comparison in absolute_diff rules.
+    if not artifacts:
+        return {}, {}
 
-    Returns a map of {head_artifact_id: base_main_size_metrics} for artifacts that have
-    base artifacts with matching build configurations. Only returns the main artifact metrics.
-    """
-    base_artifact_map: dict[int, PreprodArtifact] = {}
-
-    for artifact in artifacts:
-        base_artifact = artifact.get_base_artifact_for_commit().first()
-        if base_artifact:
-            base_artifact_map[artifact.id] = base_artifact
-
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(artifacts)
     if not base_artifact_map:
-        return {}
+        return {}, {}
 
-    base_artifact_ids = list(base_artifact_map.values())
     base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact_id__in=[ba.id for ba in base_artifact_ids],
-        preprod_artifact__project__organization_id=project.organization_id,
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    ).select_related("preprod_artifact")
+        preprod_artifact_id__in=[ba.id for ba in base_artifact_map.values()],
+    )
 
-    result: dict[int, PreprodArtifactSizeMetrics] = {}
-    for head_artifact_id, base_artifact in base_artifact_map.items():
-        for metrics in base_size_metrics_qs:
-            if metrics.preprod_artifact_id == base_artifact.id:
-                result[head_artifact_id] = metrics
-                break
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    for metrics in base_size_metrics_qs:
+        base_metrics_by_artifact.setdefault(metrics.preprod_artifact_id, []).append(metrics)
 
-    return result
+    return base_artifact_map, base_metrics_by_artifact
+
+
+def _is_artifact_size_skipped(
+    size_metrics_list: list[PreprodArtifactSizeMetrics],
+) -> bool:
+    """Check if artifact should be excluded because size analysis was skipped."""
+    if not size_metrics_list:
+        return False
+
+    return all(
+        m.error_code == PreprodArtifactSizeMetrics.ErrorCode.SKIPPED for m in size_metrics_list
+    )
+
+
+def _has_no_quota_artifact(
+    artifacts: list[PreprodArtifact],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+) -> bool:
+    """Check if any artifact has NO_QUOTA error."""
+    return any(
+        m.error_code == PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+        for artifact in artifacts
+        for m in size_metrics_map.get(artifact.id, [])
+    )
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
@@ -377,9 +472,9 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     Returns a dict with keys matching the filter key format:
     - git_head_ref: The git_head_ref name (from commit_comparison.head_ref)
-    - platform: "ios" or "android" (derived from artifact_type)
+    - platform_name: "apple" or "android" (derived from artifact_type)
     - app_id: The app ID (e.g., "com.example.app")
-    - build_configuration: The build configuration name
+    - build_configuration_name: The build configuration name
     """
     context: dict[str, str] = {}
 
@@ -388,19 +483,19 @@ def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
 
     if artifact.artifact_type is not None:
         if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            context["platform"] = "ios"
+            context["platform_name"] = "apple"
         elif artifact.artifact_type in (
             PreprodArtifact.ArtifactType.AAB,
             PreprodArtifact.ArtifactType.APK,
         ):
-            context["platform"] = "android"
+            context["platform_name"] = "android"
 
     if artifact.app_id:
         context["app_id"] = artifact.app_id
 
     if artifact.build_configuration:
         try:
-            context["build_configuration"] = artifact.build_configuration.name
+            context["build_configuration_name"] = artifact.build_configuration.name
         except Exception:
             pass
 
@@ -415,16 +510,16 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
     - Filters with the same key AND negation status are OR'd together
     - Different groups (different key or negation) are AND'd together
     - negated=True means the value should NOT match
-
-    If a rule has no filters, it matches all artifacts.
     """
     if not rule.filter_query or not str(rule.filter_query).strip():
         return True
 
     try:
-        search_filters = parse_search_query(
-            rule.filter_query, config=preprod_artifact_search_config
-        )
+        search_filters = [
+            f
+            for f in parse_search_query(rule.filter_query, config=preprod_artifact_search_config)
+            if isinstance(f, SearchFilter)
+        ]
     except InvalidSearchQuery:
         logger.warning(
             "preprod.status_checks.invalid_filter_query",
@@ -432,10 +527,11 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
         )
         return False
 
+    if not search_filters:
+        return True
+
     filters_by_group: dict[str, list[SearchFilter]] = {}
     for f in search_filters:
-        if not isinstance(f, SearchFilter):
-            continue
         group_key = f"{f.key.name}:{'negated' if f.is_negation else 'normal'}"
         if group_key not in filters_by_group:
             filters_by_group[group_key] = []
@@ -449,9 +545,20 @@ def _rule_matches_artifact(rule: StatusCheckRule, context: dict[str, str]) -> bo
 
         group_matches = False
         for f in group_filters:
-            if f.is_in_filter:
+            if f.value.is_wildcard():
+                # Wildcard operators (contains, starts_with, ends_with)
+                # Works for both single values and IN filters
+                # For IN filters with wildcards, value is a regex alternation pattern
+                try:
+                    pattern = f.value.value
+                    matches = bool(re.search(pattern, artifact_value))
+                except (re.error, TypeError):
+                    matches = False
+            elif f.is_in_filter:
+                # Non-wildcard IN filter
                 matches = artifact_value in f.value.value
             else:
+                # Exact equality match
                 matches = artifact_value == f.value.value
 
             if f.is_negation:
@@ -540,9 +647,11 @@ def _compute_overall_status(
     artifacts: list[PreprodArtifact],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     rules: list[StatusCheckRule] | None = None,
-    base_size_metrics_map: dict[int, PreprodArtifactSizeMetrics] | None = None,
-) -> tuple[StatusCheckStatus, list[StatusCheckRule]]:
-    triggered_rules: list[StatusCheckRule] = []
+    base_artifact_map: dict[int, PreprodArtifact] | None = None,
+    base_metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] | None = None,
+    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+) -> tuple[StatusCheckStatus, list[TriggeredRule]]:
+    triggered_rules: list[TriggeredRule] = []
 
     if not artifacts:
         raise ValueError("Cannot compute status for empty artifact list")
@@ -550,26 +659,29 @@ def _compute_overall_status(
     states = {artifact.state for artifact in artifacts}
 
     if PreprodArtifact.ArtifactState.FAILED in states:
-        return StatusCheckStatus.FAILURE, triggered_rules
+        return StatusCheckStatus.FAILURE, []
     elif (
         PreprodArtifact.ArtifactState.UPLOADING in states
         or PreprodArtifact.ArtifactState.UPLOADED in states
     ):
-        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+        return StatusCheckStatus.IN_PROGRESS, []
     elif all(state == PreprodArtifact.ArtifactState.PROCESSED for state in states):
         for artifact in artifacts:
             size_metrics_list = size_metrics_map.get(artifact.id, [])
             if size_metrics_list:
                 for size_metrics in size_metrics_list:
                     if size_metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-                        return StatusCheckStatus.FAILURE, triggered_rules
+                        return StatusCheckStatus.FAILURE, []
                     elif (
                         size_metrics.state != PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
                     ):
-                        return StatusCheckStatus.IN_PROGRESS, triggered_rules
+                        return StatusCheckStatus.IN_PROGRESS, []
 
         if rules:
             for artifact in artifacts:
+                if approvals_map and artifact.id in approvals_map:
+                    continue
+
                 context = _get_artifact_filter_context(artifact)
                 size_metrics_list = size_metrics_map.get(artifact.id, [])
 
@@ -581,9 +693,20 @@ def _compute_overall_status(
                 ]
                 main_metric = main_metrics_list[0] if main_metrics_list else None
 
-                base_main_metric = (
-                    base_size_metrics_map.get(artifact.id) if base_size_metrics_map else None
-                )
+                # Rules only evaluate MAIN_ARTIFACT metrics
+                base_main_metric = None
+                if base_artifact_map and base_metrics_by_artifact:
+                    base_artifact = base_artifact_map.get(artifact.id)
+                    if base_artifact:
+                        base_main_metric = next(
+                            (
+                                m
+                                for m in base_metrics_by_artifact.get(base_artifact.id, [])
+                                if m.metrics_artifact_type
+                                == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+                            ),
+                            None,
+                        )
 
                 for rule in rules:
                     if _rule_matches_artifact(rule, context):
@@ -598,7 +721,14 @@ def _compute_overall_status(
                                     "threshold": rule.value,
                                 },
                             )
-                            triggered_rules.append(rule)
+                            triggered_rules.append(
+                                TriggeredRule(
+                                    rule=rule,
+                                    artifact_id=artifact.id,
+                                    app_id=artifact.app_id,
+                                    platform=artifact.get_platform_label(),
+                                )
+                            )
 
         if triggered_rules:
             return StatusCheckStatus.FAILURE, triggered_rules
@@ -731,6 +861,7 @@ class _StatusCheckProvider(ABC):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -750,6 +881,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         started_at: datetime,
         completed_at: datetime | None = None,
         target_url: str | None = None,
+        include_approve_action: bool = False,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
@@ -819,37 +951,60 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         extra={"target_url": target_url},
                     )
 
+            # GitHub rejects completed_at=null when status is "completed" with a 422
+            if mapped_status == GitHubCheckStatus.COMPLETED and completed_at is None:
+                raise ValueError(
+                    "GitHub API rejects completed_at=null when status is 'completed'. "
+                    "Omit completed_at entirely instead of setting it to None."
+                )
+
+            if include_approve_action:
+                check_data["actions"] = [
+                    {
+                        "label": "Approve",
+                        "description": "Approve size changes for this PR",
+                        "identifier": APPROVE_SIZE_ACTION_IDENTIFIER,
+                    }
+                ]
+
             try:
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
+            except ApiForbiddenError as e:
+                lifecycle.record_halt(e)
+                error_message = str(e).lower()
+                if "rate limit exceeded" in error_message:
+                    raise ApiRateLimitedError("GitHub rate limit exceeded") from e
+                if (
+                    "resource not accessible" in error_message
+                    or "insufficient" in error_message
+                    or "permission" in error_message
+                ):
+                    logger.warning(
+                        "preprod.status_checks.create.insufficient_permissions",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                            "error_message": str(e),
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        "GitHub App lacks permissions to create check runs. "
+                        "Please ensure the app has the required permissions and that "
+                        "the organization has accepted any updated permissions."
+                    ) from e
+                raise
+            except ApiRateLimitedError as e:
+                lifecycle.record_halt(e)
+                raise
             except ApiError as e:
-                lifecycle.record_failure(e)
-                # Only convert specific permission 403s as IntegrationConfigurationError
-                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
-                if e.code == 403:
-                    error_message = str(e).lower()
-                    if (
-                        "resource not accessible" in error_message
-                        or "insufficient" in error_message
-                        or "permission" in error_message
-                    ):
-                        logger.exception(
-                            "preprod.status_checks.create.insufficient_permissions",
-                            extra={
-                                "organization_id": self.organization_id,
-                                "integration_id": self.integration_id,
-                                "repo": repo,
-                                "error_message": str(e),
-                            },
-                        )
-                        raise IntegrationConfigurationError(
-                            "GitHub App lacks permissions to create check runs. "
-                            "Please ensure the app has the required permissions and that "
-                            "the organization has accepted any updated permissions."
-                        ) from e
-                elif e.code and 400 <= e.code < 500 and e.code != 429:
-                    logger.exception(
+                lifecycle.record_halt(e)
+                # 403s are handled by ApiForbiddenError above
+                # 4xx errors are typically user/config issues, not bugs
+                if e.code and 400 <= e.code < 500 and e.code not in (403, 429):
+                    logger.warning(
                         "preprod.status_checks.create.client_error",
                         extra={
                             "organization_id": self.organization_id,
@@ -861,8 +1016,6 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     raise IntegrationConfigurationError(
                         f"GitHub API returned {e.code} client error when creating check run"
                     ) from e
-
-                # For non-permission 403s, 429s, 5xx, and other error
                 raise
 
 

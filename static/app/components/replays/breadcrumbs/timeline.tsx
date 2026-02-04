@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
 /**
  * Use grid to create columns that we can place child nodes into.
  * Leveraging grid for alignment means we don't need to calculate percent offset
@@ -27,4 +29,6 @@ export const Columns = styled('ul')<{remainder: number; totalColumns: number}>`
 `;
 
 // Export an empty component which so that callsites can correctly nest nodes:
-export const Col = styled('li')``;
+export function Col(props: ContainerProps<'li'>) {
+  return <Container as="li" {...props} />;
+}

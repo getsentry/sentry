@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   parseSearch,
   Token,
@@ -125,7 +126,7 @@ const ItemContent = styled('div')`
 `;
 
 const BoldText = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 function splitMultiValue(valueText: string): string[] {

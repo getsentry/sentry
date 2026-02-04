@@ -14,8 +14,29 @@ import {
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {ImageStatus} from 'sentry/types/debugImage';
 
+jest.mock('@tanstack/react-virtual', () => {
+  return {
+    useVirtualizer: jest.fn(({count}: {count: number}) => {
+      const virtualItems = Array.from({length: count}, (_, index) => ({
+        key: index,
+        index,
+        start: index * 60,
+        size: 60,
+      }));
+
+      return {
+        getVirtualItems: jest.fn(() => virtualItems),
+        getTotalSize: jest.fn(() => count * 60),
+        measureElement: jest.fn(),
+        measure: jest.fn(),
+      };
+    }),
+  };
+});
+
 describe('DebugMeta', () => {
   const {organization, project} = initializeOrg();
+  const groupId = undefined;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -39,6 +60,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -89,6 +111,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -114,6 +137,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -156,6 +180,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );
@@ -188,6 +213,7 @@ describe('DebugMeta', () => {
         projectSlug={project.slug}
         event={event}
         data={eventEntryDebugMeta.data}
+        groupId={groupId}
       />,
       {organization}
     );

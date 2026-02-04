@@ -1,14 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -44,7 +46,7 @@ function Login() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<AuthConfigResponse>(['/auth/config/'], {
+  } = useApiQuery<AuthConfigResponse>([getApiUrl('/auth/config/')], {
     staleTime: 0,
   });
 

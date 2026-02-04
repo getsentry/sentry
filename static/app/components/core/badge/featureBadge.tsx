@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 
 import {Badge, type BadgeProps} from './badge';

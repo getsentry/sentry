@@ -3,8 +3,8 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {mcp} from './mcp';
@@ -25,7 +25,7 @@ const docs: Docs = {
     docsPlatform: 'node',
     packageName: '@sentry/node',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring(),
   mcpOnboarding: mcp,
 };
 

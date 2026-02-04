@@ -2,7 +2,8 @@ import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 import type {Location} from 'history';
 
-import {Switch} from 'sentry/components/core/switch';
+import {Switch} from '@sentry/scraps/switch';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

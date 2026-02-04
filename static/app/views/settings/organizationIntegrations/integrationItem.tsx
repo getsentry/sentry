@@ -40,9 +40,9 @@ const Labels = styled('div')<{compact: boolean}>`
 `;
 
 const IntegrationName = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  line-height: ${p => p.theme.text.lineHeightHeading};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: ${p => p.theme.font.lineHeight.default};
 `;
 
 // Not using the overflowEllipsis style import here
@@ -52,8 +52,8 @@ const DomainName = styled('div')<{compact: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: ${p => p.theme.text.lineHeightBody};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;

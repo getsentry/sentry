@@ -2,13 +2,13 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -21,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -121,12 +122,26 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const cursor = decodeScalar(location.query.cursor);
 
   // endpoints
-  const artifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/releases/${encodeURIComponent(bundleId)}/files/`;
-  const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/artifact-bundles/${encodeURIComponent(bundleId)}/files/`;
+  const artifactsEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        version: bundleId,
+      },
+    }
+  );
+  const debugIdBundlesArtifactsEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        bundleId,
+      },
+    }
+  );
 
   const isDebugIdBundle = isUUID(bundleId);
 
@@ -172,7 +187,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: [project.id],
@@ -416,7 +433,7 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;

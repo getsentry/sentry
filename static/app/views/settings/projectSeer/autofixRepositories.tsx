@@ -1,17 +1,21 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {RepoSettings} from 'sentry/components/events/autofix/types';
+import type {
+  ProjectSeerPreferences,
+  RepoSettings,
+} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -46,19 +50,16 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
 
-  const getDefaultStoppingPoint = useCallback(():
-    | 'root_cause'
-    | 'solution'
-    | 'code_changes'
-    | 'open_pr' => {
-    if (organization.features.includes('seat-based-seer-enabled')) {
-      return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
-    }
-    return 'root_cause';
-  }, [organization.features, organization.autoOpenPrs]);
+  const getDefaultStoppingPoint =
+    useCallback((): ProjectSeerPreferences['automated_run_stopping_point'] => {
+      if (organization.features.includes('seat-based-seer-enabled')) {
+        return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
+      }
+      return 'root_cause';
+    }, [organization.features, organization.autoOpenPrs]);
 
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'background_agent'
+    ProjectSeerPreferences['automated_run_stopping_point']
   >(getDefaultStoppingPoint());
 
   useEffect(() => {
@@ -374,7 +375,7 @@ const EmptyMessage = styled('div')`
   padding: ${space(2)};
   color: ${p => p.theme.tokens.content.danger};
   text-align: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -383,5 +384,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const LoadingMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;

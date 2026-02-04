@@ -14,6 +14,7 @@ import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
+import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -25,6 +26,9 @@ export type TraceItemSearchQueryBuilderProps = {
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
   disabled?: boolean;
+  disallowFreeText?: boolean;
+  disallowHas?: boolean;
+  disallowLogicalOperators?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -46,11 +50,18 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {} as TagCollection);
 };
 
-const typeMap: Record<TraceItemDataset, 'span' | 'log' | 'uptime' | 'tracemetric'> = {
+const typeMap: Partial<
+  Record<
+    TraceItemDataset,
+    'span' | 'log' | 'uptime' | 'tracemetric' | 'replay' | 'preprod'
+  >
+> = {
   [TraceItemDataset.SPANS]: 'span',
   [TraceItemDataset.LOGS]: 'log',
   [TraceItemDataset.UPTIME_RESULTS]: 'uptime',
   [TraceItemDataset.TRACEMETRICS]: 'tracemetric',
+  [TraceItemDataset.REPLAYS]: 'replay',
+  [TraceItemDataset.PREPROD]: 'preprod',
 };
 
 function getTraceItemFieldDefinitionFunction(
@@ -82,11 +93,19 @@ export function useTraceItemSearchQueryBuilderProps({
   matchKeySuggestions,
   caseInsensitive,
   onCaseInsensitiveClick,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+  const filterTags = useFilterTags(
+    numberAttributes,
+    stringAttributes,
+    functionTags,
+    disallowHas ?? false
+  );
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
@@ -114,6 +133,8 @@ export function useTraceItemSearchQueryBuilderProps({
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
       disallowUnsupportedFilters: true,
+      disallowFreeText,
+      disallowLogicalOperators,
       recentSearches: itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
@@ -126,6 +147,8 @@ export function useTraceItemSearchQueryBuilderProps({
     }),
     [
       caseInsensitive,
+      disallowFreeText,
+      disallowLogicalOperators,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -172,6 +195,9 @@ export function TraceItemSearchQueryBuilder({
   onCaseInsensitiveClick,
   matchKeySuggestions,
   replaceRawSearchKeys,
+  disallowHas,
+  disallowFreeText,
+  disallowLogicalOperators,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -193,6 +219,9 @@ export function TraceItemSearchQueryBuilder({
     onCaseInsensitiveClick,
     matchKeySuggestions,
     replaceRawSearchKeys,
+    disallowHas,
+    disallowFreeText,
+    disallowLogicalOperators,
   });
 
   return (
@@ -219,7 +248,8 @@ function useFunctionTags(
 function useFilterTags(
   numberAttributes: TagCollection,
   stringAttributes: TagCollection,
-  functionTags: TagCollection
+  functionTags: TagCollection,
+  disallowHas: boolean
 ) {
   return useMemo(() => {
     const tags: TagCollection = {
@@ -227,12 +257,15 @@ function useFilterTags(
       ...numberAttributes,
       ...stringAttributes,
     };
-    tags.has = getHasTag({
-      ...numberAttributes,
-      ...stringAttributes,
-    });
+
+    if (!disallowHas) {
+      tags.has = getHasTag({
+        ...numberAttributes,
+        ...stringAttributes,
+      });
+    }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags]);
+  }, [numberAttributes, stringAttributes, functionTags, disallowHas]);
 }
 
 function useFilterKeySections(
@@ -266,6 +299,9 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return SavedSearchType.TRACEMETRIC;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SavedSearchType.PREPROD_APP_SIZE;
+  }
   return SavedSearchType.LOG;
 }
 
@@ -274,6 +310,9 @@ function itemTypeToFilterKeySections(itemType: TraceItemDataset) {
     return SPANS_FILTER_KEY_SECTIONS;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return TRACEMETRICS_FILTER_KEY_SECTIONS;
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
     return [];
   }
   return LOGS_FILTER_KEY_SECTIONS;
@@ -285,6 +324,9 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
     return t('Search for metrics, users, tags, and more');
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return t('Search for builds, versions, and more');
   }
   return t('Search for logs, users, tags, and more');
 }

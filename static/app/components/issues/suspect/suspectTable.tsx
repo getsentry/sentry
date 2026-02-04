@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import SuspectFlags from 'sentry/components/issues/suspect/suspectFlags';
 import useSuspectFlags from 'sentry/components/issues/suspect/useSuspectFlags';
 import {space} from 'sentry/styles/space';

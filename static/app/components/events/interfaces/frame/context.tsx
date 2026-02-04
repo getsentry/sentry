@@ -238,7 +238,7 @@ const CodeWrapper = styled('div')`
 
   && pre,
   && code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;
@@ -254,7 +254,7 @@ const EmptyContext = styled('div')`
   gap: ${space(1)};
   padding: 20px;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`

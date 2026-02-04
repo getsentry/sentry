@@ -30,6 +30,8 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -171,23 +173,28 @@ def _trigger_autofix_task(
             user = AnonymousUser()
 
         # Route to explorer-based autofix if both feature flags are enabled
+        run_id: int | None = None
         if features.has("organizations:seer-explorer", group.organization) and features.has(
             "organizations:autofix-on-explorer", group.organization
         ):
-            trigger_autofix_explorer(
+            run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
                 run_id=None,
                 stopping_point=stopping_point,
             )
         else:
-            trigger_autofix(
+            response = trigger_autofix(
                 group=group,
                 event_id=event_id,
                 user=user,
                 auto_run_source=auto_run_source,
                 stopping_point=stopping_point,
             )
+            run_id = response.data.get("run_id")
+
+        if run_id and SeerOperator.has_access(organization=group.project.organization):
+            SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 
 def _get_event(

@@ -19,6 +19,7 @@ import type {DataPoint} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
@@ -382,7 +383,9 @@ export const CustomerStats = memo(
       refetch,
     } = useApiQuery<Stats>(
       [
-        `/organizations/${orgSlug}/stats_v2/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         {
           query: {
             start: dataDatetime.start,

@@ -164,7 +164,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             if not host:
                 raise MissingRequiredHeaderError()
         except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-enterprise-host")
+            logger.warning("github_enterprise.webhook.missing-enterprise-host")
             sentry_sdk.capture_exception(e)
             return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
@@ -187,9 +187,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 raise MissingRequiredHeaderError()
 
             handler = self.get_handler(github_event)
-        except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-event", extra=extra)
-            sentry_sdk.capture_exception(e)
+        except MissingRequiredHeaderError:
+            logger.warning("github_enterprise.webhook.missing-event", extra=extra)
             return HttpResponse(MISSING_GITHUB_EVENT_HEADER_ERROR, status=400)
 
         if not handler:
@@ -205,7 +204,6 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 extra=extra,
                 exc_info=True,
             )
-            logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         secret = self.get_secret(event, host)
@@ -252,7 +250,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         except UnsupportedSignatureAlgorithmError as e:
             # we should never end up here with the regex checks above on the signature format,
             # but just in case
-            logger.exception(
+            logger.warning(
                 "github-enterprise-app.webhook.unsupported-signature-algorithm",
                 extra=extra,
             )
@@ -290,12 +288,22 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
         event_handler = handler()
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, host=host, github_event=github_event)
+
+        # Create a new transaction for each webhook event to ensure separate traces
+        transaction_name = f"github_enterprise.webhook.{github_event}"
+        with sentry_sdk.start_transaction(
+            op="webhook",
+            name=transaction_name,
+            source="component",
+        ) as transaction:
+            transaction.set_tag("github_event", github_event)
+
+            with IntegrationWebhookEvent(
+                interaction_type=event_handler.event_type,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=event_handler.provider,
+            ).capture():
+                event_handler(event, host=host, github_event=github_event)
 
         return HttpResponse(status=204)
 

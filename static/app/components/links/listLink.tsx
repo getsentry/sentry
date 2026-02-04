@@ -40,7 +40,7 @@ function ListLink({
   const active =
     isActive?.(target, index) ??
     // XXX(epurkhiser): This is carry over from the react-router 3 days.
-    // There's probably a a better way to detect active
+    // There's probably a better way to detect active
     location.pathname === (typeof target === 'string' ? target : target.pathname);
 
   return (

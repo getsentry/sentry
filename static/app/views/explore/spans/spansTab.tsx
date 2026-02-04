@@ -2,11 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -62,7 +62,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
@@ -175,7 +175,13 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
+        {tourProps => (
+          <div {...tourProps}>
+            {controlSectionExpanded && (
+              <ExploreToolbar width={300} extras={toolbarExtras} />
+            )}
+          </div>
+        )}
       </TourElement>
     </ExploreControlSection>
   );
@@ -290,7 +296,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ExploreContentSection expanded={controlSectionExpanded}>
+    <ExploreContentSection>
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -337,30 +343,34 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-          setTab={setTab}
-          rawSpanCounts={rawSpanCounts}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        {props => (
+          <div {...props}>
+            <ExploreCharts
+              confidences={confidences}
+              query={query}
+              extrapolate={extrapolate}
+              timeseriesResult={timeseriesResult}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
+              samplingMode={timeseriesSamplingMode}
+              setTab={setTab}
+              rawSpanCounts={rawSpanCounts}
+            />
+            <ExploreTables
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+              tracesTableResult={tracesTableResult}
+              confidences={confidences}
+              tab={tab}
+              setTab={(newTab: Mode | Tab) => {
+                if (newTab === Mode.AGGREGATE) {
+                  setControlSectionExpanded(true);
+                }
+                setTab(newTab);
+              }}
+            />
+          </div>
+        )}
       </TourElement>
     </ExploreContentSection>
   );

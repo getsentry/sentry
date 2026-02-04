@@ -2,13 +2,14 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -57,7 +58,9 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: name, size: 'xs'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={name} size="xs" />
+      )}
       value={value}
       onChange={opt => onFilter(opt.value)}
       options={allOptions}
@@ -90,7 +93,13 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
 
   return (
     <CompactSelect
-      triggerProps={{icon: <IconList size="xs" />, prefix: 'Sort By'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconList size="xs" />}
+          prefix="Sort By"
+        />
+      )}
       value={value}
       onChange={opt => onSort(opt.value, resolvedPath, query ?? {})}
       options={options.map(item => ({value: item[0], label: item[1]}))}
@@ -483,7 +492,9 @@ class ResultGrid extends Component<ResultGridProps, State> {
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
             <CompactSelect
-              triggerProps={{prefix: 'Region'}}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+              )}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({
                 label: r.name,
@@ -590,7 +601,7 @@ const FilterList = styled('div')`
 `;
 
 export const SearchInput = styled(Input)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(0.5)} ${space(1)};
   height: 100%;
 

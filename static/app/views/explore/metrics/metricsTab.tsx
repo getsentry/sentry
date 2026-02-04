@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,7 +13,6 @@ import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
-  ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -114,9 +114,8 @@ function MetricsTabBodySection() {
 
   return (
     <ExploreBodyContent>
-      <ExploreControlSection expanded={false} />
-      <ExploreContentSection expanded={false}>
-        <Flex direction="column" gap="lg">
+      <ExploreContentSection>
+        <Stack>
           <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
             {metricQueries.map((metricQuery, index) => {
               return (
@@ -133,14 +132,14 @@ function MetricsTabBodySection() {
               );
             })}
           </WidgetSyncContextProvider>
-        </Flex>
+        </Stack>
       </ExploreContentSection>
     </ExploreBodyContent>
   );
 }
 
 const MetricsQueryBuilderContainer = styled(Container)`
-  padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
+  padding: ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.primary};
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};

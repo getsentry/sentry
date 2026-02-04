@@ -44,7 +44,7 @@ const Content = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;
