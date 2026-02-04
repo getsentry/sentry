@@ -13,6 +13,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
 class GameThreadGroupingTest(TestCase):
@@ -54,8 +55,8 @@ class GameThreadGroupingTest(TestCase):
         from sentry.grouping.strategies.newstyle import _is_anr_event
 
         # Test ANR mechanism type
-        event = self.store_event(
-            data={
+        event = save_new_event(
+            {
                 "exception": {
                     "values": [
                         {
@@ -65,21 +66,21 @@ class GameThreadGroupingTest(TestCase):
                     ]
                 }
             },
-            project_id=self.project.id,
+            self.project,
         )
         assert _is_anr_event(event)
 
         # Test ApplicationNotResponding exception type without mechanism
-        event = self.store_event(
-            data={"exception": {"values": [{"type": "ApplicationNotResponding"}]}},
-            project_id=self.project.id,
+        event = save_new_event(
+            {"exception": {"values": [{"type": "ApplicationNotResponding"}]}},
+            self.project,
         )
         assert _is_anr_event(event)
 
         # Test non-ANR event
-        event = self.store_event(
-            data={"exception": {"values": [{"type": "RuntimeException"}]}},
-            project_id=self.project.id,
+        event = save_new_event(
+            {"exception": {"values": [{"type": "RuntimeException"}]}},
+            self.project,
         )
         assert not _is_anr_event(event)
 
@@ -94,8 +95,8 @@ class GameThreadGroupingTest(TestCase):
     def test_game_thread_grouping_with_anr_event(self) -> None:
         """Test that game thread is used for grouping when enabled for ANR events."""
         # Create ANR event with both UI thread and game thread
-        event = self.store_event(
-            data={
+        event = save_new_event(
+            {
                 "platform": "java",
                 "exception": {
                     "values": [
@@ -156,11 +157,11 @@ class GameThreadGroupingTest(TestCase):
                                     },
                                 ]
                             },
-                        },
-                    ]
-                },
+                    },
+                ]
             },
-            project_id=self.project.id,
+        },
+            self.project,
         )
 
         # Test with game thread grouping disabled (default)
@@ -196,8 +197,8 @@ class GameThreadGroupingTest(TestCase):
 
     def test_non_anr_event_not_affected_by_game_thread_config(self) -> None:
         """Test that non-ANR events are not affected by game thread config."""
-        event = self.store_event(
-            data={
+        event = save_new_event(
+            {
                 "exception": {
                     "values": [
                         {
@@ -216,7 +217,7 @@ class GameThreadGroupingTest(TestCase):
                     ]
                 }
             },
-            project_id=self.project.id,
+            self.project,
         )
 
         # Load config with game thread grouping enabled
