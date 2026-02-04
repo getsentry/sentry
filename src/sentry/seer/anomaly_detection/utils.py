@@ -11,6 +11,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import TimeSeriesPoint
@@ -21,6 +22,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
 
@@ -180,7 +182,10 @@ def format_historical_data(
         return format_crash_free_data(data)
 
     return format_snuba_ts_data(
-        data, query_columns, organization, transform_alias_to_input_format=dataset == Spans
+        data,
+        query_columns,
+        organization,
+        transform_alias_to_input_format=dataset in (Spans, TraceMetrics),
     )
 
 
@@ -203,6 +208,8 @@ def get_dataset_name_from_label_and_event_types(
     elif dataset_label == "events_analytics_platform":
         if event_types and SnubaQueryEventType.EventType.TRACE_ITEM_LOG in event_types:
             dataset_label = "logs"
+        elif event_types and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            dataset_label = "tracemetrics"
         else:
             dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
@@ -284,6 +291,24 @@ def fetch_historical_data(
                 else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
             ),
             config=SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=False,
+            ),
+            sampling_mode="NORMAL",
+        )
+        return results
+    elif dataset == TraceMetrics:
+        results = TraceMetrics.run_timeseries_query(
+            params=snuba_params,
+            query_string=snuba_query.query,
+            y_axes=query_columns,
+            referrer=(
+                Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
+                if is_store_data_request
+                else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
+            ),
+            config=TraceMetricsSearchResolverConfig(
+                metric=None,
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
