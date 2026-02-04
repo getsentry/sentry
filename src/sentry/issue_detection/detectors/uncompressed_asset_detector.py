@@ -35,7 +35,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -50,7 +50,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         if not op:
             return
 
-        allowed_span_ops = self.settings.get("allowed_span_ops")
+        allowed_span_ops = self.settings["allowed_span_ops"]
         if op not in allowed_span_ops:
             return
 
@@ -82,7 +82,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets that aren't big enough to worry about.
-        size_threshold_bytes = self.settings.get("size_threshold_bytes")
+        size_threshold_bytes = self.settings["size_threshold_bytes"]
         if encoded_body_size < size_threshold_bytes:
             return
 
@@ -93,9 +93,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets under a certain duration threshold
-        if get_span_duration(span).total_seconds() * 1000 <= self.settings.get(
-            "duration_threshold"
-        ):
+        if get_span_duration(span).total_seconds() * 1000 <= self.settings["duration_threshold"]:
             return
 
         fingerprint = self._fingerprint(span)

@@ -131,38 +131,6 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
     {
-      id: 'fcp-p75-meter',
-      title: t('P75 First Contentful Paint'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.fcp)'],
-          aggregates: ['p75(measurements.fcp)'],
-          columns: [],
-          orderby: '',
-          slideOutId: SlideoutId.FCP_SUMMARY,
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 900,
-          max2: 1600,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
-    },
-    {
       id: 'inp-p75-meter',
       title: t('P75 Interaction to Next Paint'),
       displayType: DisplayType.BIG_NUMBER,
@@ -190,7 +158,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         y: 2,
         w: 1,
         h: 1,
-        x: 2,
+        x: 1,
         minH: 1,
       },
     },
@@ -219,10 +187,10 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         unit: null,
       },
       layout: {
-        y: 2,
+        y: 3,
         w: 1,
         h: 1,
-        x: 3,
+        x: 0,
         minH: 1,
       },
     },
@@ -251,70 +219,6 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         unit: 'millisecond',
       },
       layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 4,
-        minH: 1,
-      },
-    },
-    {
-      id: 'lcp-score-meter',
-      title: t('Largest Contentful Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.lcp)'],
-          aggregates: ['avg(measurements.score.ratio.lcp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
-    },
-    {
-      id: 'fcp-score-meter',
-      title: t('First Contentful Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.fcp)'],
-          aggregates: ['avg(measurements.score.ratio.fcp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
         y: 3,
         w: 1,
         h: 1,
@@ -322,103 +226,6 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         minH: 1,
       },
     },
-    {
-      id: 'inp-score-meter',
-      title: t('Interaction to Next Paint Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.inp)'],
-          aggregates: ['avg(measurements.score.ratio.inp)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 2,
-        minH: 1,
-      },
-    },
-    {
-      id: 'cls-score-meter',
-      title: t('Cumulative Layout Shift Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.cls)'],
-          aggregates: ['avg(measurements.score.ratio.cls)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 3,
-        minH: 1,
-      },
-    },
-    {
-      id: 'ttfb-score-meter',
-      title: t('Time To First Byte Score'),
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.SPANS,
-      interval: '5m',
-      queries: [
-        {
-          name: '',
-          conditions: DEFAULT_QUERY_FILTER,
-          fields: ['avg(measurements.score.ratio.ttfb)'],
-          aggregates: ['avg(measurements.score.ratio.ttfb)'],
-          columns: [],
-          orderby: '',
-        },
-      ],
-      thresholds: {
-        max_values: {
-          max1: 0.5,
-          max2: 0.9,
-        },
-        unit: null,
-        preferredPolarity: '+',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 4,
-        minH: 1,
-      },
-    },
-
     {
       id: 'issues-table',
       title: t('Web Vital Issues'),
@@ -437,10 +244,10 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
       ],
       layout: {
-        y: 4,
-        w: 5,
+        y: 2,
+        w: 3,
         h: 2,
-        x: 0,
+        x: 2,
         minH: 2,
       },
     },
@@ -450,6 +257,7 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      tableWidths: [-1, 200, -1, -1, -1, -1, -1],
       queries: [
         {
           name: '',

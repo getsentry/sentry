@@ -478,9 +478,6 @@ const TreeColumn = styled('div')`
   display: grid;
   grid-template-columns: minmax(min-content, max-content) auto;
   grid-column-gap: ${space(3)};
-  &:first-child {
-    margin-left: -${space(1)};
-  }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${space(2)};

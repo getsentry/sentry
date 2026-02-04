@@ -144,8 +144,9 @@ describe('EventAttachments', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/`,
       body: 'file contents',
+      match: [MockApiClient.matchQuery({download: true})],
     });
 
     render(<EventAttachments {...props} />, {

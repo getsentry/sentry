@@ -28,7 +28,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -46,12 +46,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         fcp_value = fcp_hash.get("value")
         if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_value)
-            fcp_minimum_threshold = timedelta(
-                milliseconds=self.settings.get("fcp_minimum_threshold")
-            )
-            fcp_maximum_threshold = timedelta(
-                milliseconds=self.settings.get("fcp_maximum_threshold")
-            )
+            fcp_minimum_threshold = timedelta(milliseconds=self.settings["fcp_minimum_threshold"])
+            fcp_maximum_threshold = timedelta(milliseconds=self.settings["fcp_maximum_threshold"])
             if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
                 self.fcp = fcp
                 self.fcp_value = fcp_value
@@ -152,7 +148,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             return False
 
         span_duration = get_span_duration(span)
-        fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
+        fcp_ratio_threshold = self.settings["fcp_ratio_threshold"]
         return span_duration / self.fcp > fcp_ratio_threshold
 
     def _fingerprint(self, span: Span) -> str:

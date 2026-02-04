@@ -46,8 +46,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
-    # Enables the AI generations page
-    manager.add("organizations:ai-insights-generations-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables flag for org specific runs on alerts comparison script for spans migration
@@ -94,6 +92,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-basic", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enable categorical bar charts for dashboards
     manager.add("organizations:dashboards-categorical-bar-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable chart legend breakdown for dashboards
+    manager.add("organizations:dashboards-chart-legend-breakdown", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables custom editable dashboards
     manager.add("organizations:dashboards-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Enables global filters for dashboards

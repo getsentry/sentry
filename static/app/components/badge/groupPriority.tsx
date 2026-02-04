@@ -23,6 +23,7 @@ import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -54,7 +55,11 @@ function useLastEditedBy({
 }: Pick<GroupPriorityDropdownProps, 'groupId' | 'lastEditedBy'>) {
   const organization = useOrganization();
   const {data} = useApiQuery<{activity: Activity[]}>(
-    [`/organizations/${organization.slug}/issues/${groupId}/activities/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+      }),
+    ],
     {
       enabled: !defined(incomingLastEditedBy),
       staleTime: 0,

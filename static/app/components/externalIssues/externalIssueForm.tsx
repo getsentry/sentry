@@ -35,6 +35,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {
   setApiQueryData,
@@ -99,7 +100,16 @@ function makeIntegrationIssueConfigQueryKey({
   action?: ExternalIssueAction;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/integrations/${integrationId}/`,
+    getApiUrl(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          issueId: groupId,
+          integrationId,
+        },
+      }
+    ),
     {query: {action}},
   ];
 }

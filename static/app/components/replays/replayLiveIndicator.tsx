@@ -44,7 +44,7 @@ const pulse = keyframes`
 `;
 
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.tokens.content.success};
+  background: ${p => p.theme.tokens.background.success.vibrant};
   height: 8px;
   width: 8px;
   position: relative;
@@ -59,7 +59,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.tokens.content.success};
+    border: 6px solid ${p => p.theme.tokens.border.success};
     position: absolute;
     border-radius: 50%;
     height: 20px;

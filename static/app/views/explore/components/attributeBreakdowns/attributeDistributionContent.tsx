@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,6 +9,7 @@ import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -77,7 +78,9 @@ export function AttributeDistribution() {
     refetch: refetchCohortCount,
   } = useApiQuery<{data: Array<{'count()': number}>}>(
     [
-      `/organizations/${organization.slug}/events/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),

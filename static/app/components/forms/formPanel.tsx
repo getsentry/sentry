@@ -2,8 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';

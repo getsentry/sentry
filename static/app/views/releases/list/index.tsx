@@ -473,7 +473,7 @@ export default function ReleasesList() {
                   >
                     <Flex align="center" gap="sm">
                       {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
+                      <FeatureBadge type="new" />
                     </Flex>
                   </TabList.Item>
                 </TabList>
@@ -541,18 +541,22 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

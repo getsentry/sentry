@@ -96,8 +96,12 @@ class GroupingInput:
 
         # Technically handling custom titles happens during grouping, not before it, but we're not
         # running grouping until later, and the title needs to be set before we get metadata below.
+        # (The fact that this is happening out of order is why we need to create the dummy `Event`
+        # object to wrap the data, since that's what `expand_title_template` expects.)
         if custom_title_template:
-            resolved_title = expand_title_template(custom_title_template, data)
+            resolved_title = expand_title_template(
+                custom_title_template, Event(project_id=1, event_id="11211231", data=data)
+            )
             data["title"] = resolved_title
 
         event_type = get_event_type(data)
@@ -332,8 +336,14 @@ class FingerprintInput:
         fingerprint_info = data.get("_fingerprint_info", {})
         custom_title_template = get_path(fingerprint_info, "matched_rule", "attributes", "title")
 
+        # Technically handling custom titles happens during grouping, not before it, but we're not
+        # running grouping until later, and the title needs to be set before we get metadata below.
+        # (The fact that this is happening out of order is why we need to create the dummy `Event`
+        # object to wrap the data, since that's what `expand_title_template` expects.)
         if custom_title_template:
-            resolved_title = expand_title_template(custom_title_template, data)
+            resolved_title = expand_title_template(
+                custom_title_template, Event(project_id=1, event_id="11211231", data=data)
+            )
             data["title"] = resolved_title
 
         event_type = get_event_type(data)

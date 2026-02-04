@@ -9,6 +9,7 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -50,7 +51,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       setConversationDrawerQueryState({
         spanId: node.id,
       });
-      trackAnalytics('agent-monitoring.conversation-drawer.span-select', {
+      trackAnalytics('conversations.drawer.span-select', {
         organization,
       });
     },
@@ -116,9 +117,18 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions, initialSpanId?: string) => {
-      trackAnalytics('agent-monitoring.conversation-drawer.open', {
+    ({
+      conversation,
+      initialSpanId,
+      source,
+    }: {
+      conversation: UseConversationsOptions;
+      source: ConversationDrawerOpenSource;
+      initialSpanId?: string;
+    }) => {
+      trackAnalytics('conversations.drawer.open', {
         organization,
+        source,
       });
 
       return openDrawer(() => <ConversationDrawerContent conversation={conversation} />, {
@@ -138,7 +148,11 @@ export function useConversationViewDrawer({
   useEffect(() => {
     const {conversationId, spanId} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId}, spanId ?? undefined);
+      openConversationViewDrawer({
+        conversation: {conversationId},
+        initialSpanId: spanId ?? undefined,
+        source: 'direct_link',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -167,6 +181,20 @@ function ConversationView({
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
+  const handleTabChange = useCallback(
+    (newTab: ConversationTab) => {
+      if (activeTab !== newTab) {
+        trackAnalytics('conversations.drawer.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: newTab,
+        });
+      }
+      setActiveTab(newTab);
+    },
+    [organization, activeTab]
+  );
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" flex="1" height="100%">
@@ -188,7 +216,7 @@ function ConversationView({
       <LeftPanel>
         <StyledTabs
           value={activeTab}
-          onChange={key => setActiveTab(key as ConversationTab)}
+          onChange={key => handleTabChange(key as ConversationTab)}
         >
           <Container padding="xs lg">
             <TabList>

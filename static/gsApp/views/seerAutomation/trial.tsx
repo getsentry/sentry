@@ -6,16 +6,12 @@ import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg'
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer/interactionStateLayer';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Grid} from '@sentry/scraps/layout/grid';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
