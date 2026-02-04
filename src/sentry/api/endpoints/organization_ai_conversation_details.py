@@ -71,7 +71,24 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         now = timezone.now()
 
-        if start_param and end_param:
+        # Validate in the same order as get_date_range_from_stats_period to ensure
+        # we validate the parameter that will actually be used for the query.
+        # The precedence is: statsPeriod > start/end > default
+        if stats_period:
+            parsed_period = parse_stats_period(stats_period)
+            if parsed_period is None:
+                return Response(
+                    {"detail": f"Invalid statsPeriod: {stats_period!r}"},
+                    status=400,
+                )
+            if parsed_period > MAX_ALLOWED_PERIOD:
+                return Response(
+                    {
+                        "detail": "statsPeriod cannot exceed 30 days. Data is sampled beyond this period."
+                    },
+                    status=400,
+                )
+        elif start_param and end_param:
             try:
                 start_dt = parse_datetime_string(start_param)
                 end_dt = parse_datetime_string(end_param)
@@ -93,20 +110,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 return Response(
                     {
                         "detail": "Date range cannot exceed 30 days. Data is sampled beyond this period."
-                    },
-                    status=400,
-                )
-        elif stats_period:
-            parsed_period = parse_stats_period(stats_period)
-            if parsed_period is None:
-                return Response(
-                    {"detail": f"Invalid statsPeriod: {stats_period!r}"},
-                    status=400,
-                )
-            if parsed_period > MAX_ALLOWED_PERIOD:
-                return Response(
-                    {
-                        "detail": "statsPeriod cannot exceed 30 days. Data is sampled beyond this period."
                     },
                     status=400,
                 )

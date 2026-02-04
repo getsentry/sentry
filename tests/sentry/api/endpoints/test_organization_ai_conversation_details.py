@@ -521,3 +521,24 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 400
         assert "Invalid statsPeriod" in response.data["detail"]
+
+    def test_stats_period_takes_precedence_over_start_end(self) -> None:
+        """Test that statsPeriod is validated even when start/end are also provided.
+
+        This ensures we match the precedence of get_date_range_from_stats_period
+        which uses statsPeriod over start/end when both are provided.
+        """
+        conversation_id = uuid4().hex
+        now = before_now(days=0).replace(microsecond=0)
+
+        # Valid start/end within 30 days, but invalid statsPeriod > 30d
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(days=5)).isoformat(),
+            "end": now.isoformat(),
+            "statsPeriod": "60d",  # This should be rejected
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 400
+        assert "statsPeriod cannot exceed 30 days" in response.data["detail"]
