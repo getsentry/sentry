@@ -137,6 +137,7 @@ class SeerCodeReviewRequestForPrReview(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
+    experiment_enabled: bool = False
 
 
 class SeerCodeReviewRequestForPrClosed(BaseModel):
