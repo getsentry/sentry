@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
-    GithubCopilotTaskCreateResponse,
+    GithubCopilotTask,
     GithubCopilotTaskRequest,
-    GithubCopilotTaskStatusResponse,
+    GithubCopilotTaskResponse,
     GithubPRFromGraphQL,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
@@ -30,8 +31,8 @@ class GithubCopilotAgentClient(CodingAgentClient):
         }
 
     @staticmethod
-    def encode_agent_id(owner: str, repo: str, job_id: str) -> str:
-        return f"{owner}:{repo}:{job_id}"
+    def encode_agent_id(owner: str, repo: str, task_id: str) -> str:
+        return f"{owner}:{repo}:{task_id}"
 
     @staticmethod
     def decode_agent_id(agent_id: str) -> tuple[str, str, str] | None:
@@ -97,21 +98,30 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        task_response = GithubCopilotTaskCreateResponse.validate(api_response.json)
-        agent_id = self.encode_agent_id(owner, repo, task_response.task.id)
+        task_response = GithubCopilotTaskResponse.validate(api_response.json)
+        task = task_response.task
+
+        agent_id = self.encode_agent_id(owner, repo, task.id)
+
+        # Get created_at from the response
+        started_at = None
+        created_at_str = task.created_at
+        if created_at_str:
+            try:
+                started_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+            except ValueError:
+                pass
 
         return CodingAgentState(
             id=agent_id,
             status=CodingAgentStatus.RUNNING,
             provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
             name=f"{owner}/{repo}: GitHub Copilot",
-            started_at=task_response.task.created_at,
+            started_at=started_at,
             agent_url=None,
         )
 
-    def get_task_status(
-        self, owner: str, repo: str, task_id: str
-    ) -> GithubCopilotTaskStatusResponse:
+    def get_task_status(self, owner: str, repo: str, task_id: str) -> GithubCopilotTask:
         api_response = self.get(
             f"/agents/repos/{owner}/{repo}/tasks/{task_id}",
             headers=self._get_auth_headers(),
@@ -128,7 +138,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        return GithubCopilotTaskStatusResponse.validate(api_response.json)
+        return GithubCopilotTaskResponse.validate(api_response.json).task
 
     def get_pr_from_graphql(self, global_id: str) -> GithubPRFromGraphQL | None:
         query = """
