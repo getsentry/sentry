@@ -8,13 +8,13 @@ This expanded analysis examines all approaches developers use to make buttons fi
 
 ### Key Findings
 
-| Pattern Category | Files Analyzed | Description |
-|-----------------|----------------|-------------|
-| **Direct Width Rules** | 14 | Buttons with explicit `width: 100%`, `flex: 1`, `flex-grow: 1`, or `align-self: stretch` |
-| **Display Block** | 31 | Buttons styled with `display: block` (makes them fill container width) |
-| **Container Components** | 219 | Files using `ButtonBar`, `ButtonGroup`, or similar layout components |
-| **Wrapper Patterns** | 167 | Custom styled wrappers that control button sizing through container properties |
-| **Grid Positioning** | 4+ | Buttons positioned/sized using CSS Grid properties |
+| Pattern Category         | Files Analyzed | Description                                                                              |
+| ------------------------ | -------------- | ---------------------------------------------------------------------------------------- |
+| **Direct Width Rules**   | 14             | Buttons with explicit `width: 100%`, `flex: 1`, `flex-grow: 1`, or `align-self: stretch` |
+| **Display Block**        | 31             | Buttons styled with `display: block` (makes them fill container width)                   |
+| **Container Components** | 219            | Files using `ButtonBar`, `ButtonGroup`, or similar layout components                     |
+| **Wrapper Patterns**     | 167            | Custom styled wrappers that control button sizing through container properties           |
+| **Grid Positioning**     | 4+             | Buttons positioned/sized using CSS Grid properties                                       |
 
 ---
 
@@ -27,8 +27,9 @@ These are buttons with explicit CSS properties that cause width expansion. **Cov
 **Total instances:** 14
 
 **Common patterns:**
+
 - `width: 100%` (9 instances)
-- `flex-grow: 1` (3 instances)  
+- `flex-grow: 1` (3 instances)
 - `flex: 1` (2 instances)
 - `align-self: stretch` (1 instance)
 
@@ -176,7 +177,7 @@ const ButtonWrapper = styled('div')`
 <ButtonWrapper>
   <Button>Action 1</Button>
   <Button>Action 2</Button>
-</ButtonWrapper>
+</ButtonWrapper>;
 ```
 
 ### Example 2: Grid Container Sets Width
@@ -191,7 +192,7 @@ const GridContainer = styled('div')`
 <GridContainer>
   <Button>Left</Button>
   <Button>Right</Button>
-</GridContainer>
+</GridContainer>;
 ```
 
 ### Why This Pattern?
@@ -274,6 +275,7 @@ const StyledButton = styled(Button)`
 ### 1. **Prefer Container-Based Approaches**
 
 ✅ **Recommended:**
+
 ```tsx
 <ButtonBar gap="md">
   <Button>Action 1</Button>
@@ -282,11 +284,12 @@ const StyledButton = styled(Button)`
 ```
 
 ❌ **Less ideal:**
+
 ```tsx
 <div>
   <StyledButton>Action 1</StyledButton>
   <StyledButton>Action 2</StyledButton>
-</div>
+</div>;
 
 const StyledButton = styled(Button)`
   width: 100%;
@@ -299,6 +302,7 @@ const StyledButton = styled(Button)`
 ### 2. **Use ButtonBar for Multiple Buttons**
 
 The `ButtonBar` component is specifically designed for button groups and handles:
+
 - Spacing/gaps
 - Alignment
 - Merged borders (when needed)
@@ -332,13 +336,13 @@ const FormGrid = styled('div')`
 
 ## Summary Statistics
 
-| Approach | Files | When to Use |
-|----------|-------|-------------|
-| **Direct width rules** | 14 | Explicit control, single button scenarios |
-| **Display block** | 31 | Single full-width buttons, vertical stacking |
-| **ButtonBar component** | 219 | Multiple buttons, standard layouts |
-| **Wrapper patterns** | 167 | Custom layouts, complex UIs |
-| **Grid positioning** | 4+ | Multi-element grids, precise positioning |
+| Approach                | Files | When to Use                                  |
+| ----------------------- | ----- | -------------------------------------------- |
+| **Direct width rules**  | 14    | Explicit control, single button scenarios    |
+| **Display block**       | 31    | Single full-width buttons, vertical stacking |
+| **ButtonBar component** | 219   | Multiple buttons, standard layouts           |
+| **Wrapper patterns**    | 167   | Custom layouts, complex UIs                  |
+| **Grid positioning**    | 4+    | Multi-element grids, precise positioning     |
 
 ---
 
