@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
-    GithubCopilotTaskStatusResponse,
+    GithubCopilotTask,
 )
 from sentry.seer.autofix.coding_agent import _launch_agents_for_repos, poll_github_copilot_agents
 from sentry.seer.autofix.utils import (
@@ -474,7 +474,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_client = MagicMock()
-        mock_client.get_task_status.return_value = GithubCopilotTaskStatusResponse(
+        mock_client.get_task_status.return_value = GithubCopilotTask(
             id="task-123",
             status="completed",
             artifacts=[
@@ -533,7 +533,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
-            return_value=GithubCopilotTaskStatusResponse(
+            return_value=GithubCopilotTask(
                 id="task-123",
                 status="failed",
             )
@@ -570,7 +570,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
-            return_value=GithubCopilotTaskStatusResponse(
+            return_value=GithubCopilotTask(
                 id="task-123",
                 status="running",
                 artifacts=[
