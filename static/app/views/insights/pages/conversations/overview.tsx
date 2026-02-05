@@ -36,6 +36,8 @@ import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableC
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
+import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
@@ -51,6 +53,12 @@ function ConversationsOverviewPage({
   const organization = useOrganization();
   useDefaultToAllProjects();
   const {openConversationViewDrawer} = useConversationViewDrawer();
+
+  const [urlState] = useConversationDrawerQueryState();
+  // Start fetching data and open drawer without
+  // waiting for table to finish loading
+  useConversation({conversationId: urlState.conversationId ?? ''});
+  useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
