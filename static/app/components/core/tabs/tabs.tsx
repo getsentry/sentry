@@ -9,7 +9,8 @@ import type {TabProps} from './tab';
 import {tabsShouldForwardProp} from './utils';
 
 export interface TabsProps<T>
-  extends Omit<
+  extends
+    Omit<
       AriaTabListOptions<any>,
       'selectedKey' | 'defaultSelectedKey' | 'onSelectionChange' | 'isDisabled'
     >,

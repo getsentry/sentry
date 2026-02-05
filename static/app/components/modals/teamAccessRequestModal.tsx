@@ -14,8 +14,7 @@ import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
 export interface CreateTeamAccessRequestModalProps
-  extends ModalRenderProps,
-    TeamAccessRequestModalOptions {
+  extends ModalRenderProps, TeamAccessRequestModalOptions {
   api: Client;
   memberId: string;
   orgId: string;

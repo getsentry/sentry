@@ -16,7 +16,8 @@ import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface CreateIssueViewModalProps
-  extends ModalRenderProps,
+  extends
+    ModalRenderProps,
     Partial<
       Pick<
         GroupSearchView,

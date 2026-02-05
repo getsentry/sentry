@@ -102,14 +102,14 @@ function SeerProjectDetails() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl">
-          <SeerSettingsContainer
-            canWrite={canWrite}
-            preference={preference ?? DEFAULT_PREFERENCE}
-            project={project}
-          />
           <AutofixRepositories
             canWrite={canWrite}
             codeMappingRepos={codeMappingRepos}
+            preference={preference ?? DEFAULT_PREFERENCE}
+            project={project}
+          />
+          <SeerSettingsContainer
+            canWrite={canWrite}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />

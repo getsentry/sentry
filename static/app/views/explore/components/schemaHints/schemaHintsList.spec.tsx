@@ -21,6 +21,10 @@ const mockCustomTags: TagCollection = {
   customTag: {key: 'customTag', kind: FieldKind.TAG, name: 'customTag'},
 };
 
+const mockBooleanTags: TagCollection = {
+  booleanTag1: {key: 'booleanTag1', kind: FieldKind.BOOLEAN, name: 'booleanTag1'},
+};
+
 const mockDispatch = jest.fn();
 
 // Add mock for useSearchQueryBuilder
@@ -91,6 +95,7 @@ describe('SchemaHintsList', () => {
     render(
       <Subject
         stringTags={mockStringTags}
+        booleanTags={mockBooleanTags}
         numberTags={mockNumberTags}
         supportedAggregates={[AggregationKey.COUNT]}
       />
@@ -100,13 +105,14 @@ describe('SchemaHintsList', () => {
     const withinContainer = within(container);
     expect(withinContainer.getByText('stringTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('stringTag2')).toBeInTheDocument();
-    expect(withinContainer.getAllByText('is')).toHaveLength(2);
+    expect(withinContainer.getAllByText('is')).toHaveLength(3);
     expect(withinContainer.getByText('numberTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('numberTag2')).toBeInTheDocument();
     expect(withinContainer.getByText('count(...)')).toBeInTheDocument();
     expect(withinContainer.getAllByText('>')).toHaveLength(3);
-    expect(withinContainer.getAllByText('...')).toHaveLength(5);
+    expect(withinContainer.getAllByText('...')).toHaveLength(6);
     expect(withinContainer.getByText('See full list')).toBeInTheDocument();
+    expect(withinContainer.getByText('booleanTag1')).toBeInTheDocument();
   });
 
   it('should call dispatch with correct parameters when hint is clicked', async () => {
@@ -114,6 +120,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[]}
       />
     );
@@ -144,6 +151,7 @@ describe('SchemaHintsList', () => {
     render(
       <Subject
         stringTags={mockStringTags}
+        booleanTags={mockBooleanTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />
@@ -161,12 +169,16 @@ describe('SchemaHintsList', () => {
     Object.values(mockNumberTags).forEach(tag => {
       expect(withinDrawer.getByText(tag.key)).toBeInTheDocument();
     });
+    Object.values(mockBooleanTags).forEach(tag => {
+      expect(withinDrawer.getByText(tag.key)).toBeInTheDocument();
+    });
   });
 
-  it('should add hint to query when clicked on drawer', async () => {
+  it('should add string hint to query when clicked on drawer', async () => {
     render(
       <Subject
         stringTags={mockStringTags}
+        booleanTags={mockBooleanTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />
@@ -181,9 +193,39 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    expect(mockDispatch).toHaveBeenCalledWith({
+    expect(mockDispatch).toHaveBeenNthCalledWith(1, {
       type: 'UPDATE_QUERY',
       query: 'stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+      shouldCommitQuery: false,
+    });
+  });
+
+  it('should add boolean hint to query when clicked on drawer', async () => {
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        booleanTags={mockBooleanTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+
+    const booleanTag1Checkbox = withinDrawer.getByText('booleanTag1');
+    await userEvent.click(booleanTag1Checkbox);
+
+    expect(mockDispatch).toHaveBeenNthCalledWith(1, {
+      type: 'UPDATE_QUERY',
+      query: 'booleanTag1:True',
       focusOverride: {
         itemKey: 'filter:0',
         part: 'value',
@@ -197,6 +239,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[AggregationKey.COUNT_UNIQUE]}
       />
     );
@@ -248,6 +291,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[]}
       />
     );
@@ -289,6 +333,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[AggregationKey.COUNT_UNIQUE]}
       />
     );
@@ -318,6 +363,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[]}
       />,
       {
@@ -350,6 +396,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[]}
       />
     );
@@ -384,6 +431,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
+        booleanTags={mockBooleanTags}
         supportedAggregates={[]}
       />
     );
@@ -416,6 +464,7 @@ describe('SchemaHintsList', () => {
         stringTags={logsStringTags}
         numberTags={{}}
         supportedAggregates={[]}
+        booleanTags={mockBooleanTags}
         source={SchemaHintsSources.LOGS}
       />
     );

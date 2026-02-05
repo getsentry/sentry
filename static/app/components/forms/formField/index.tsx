@@ -173,7 +173,8 @@ interface BaseProps {
 }
 
 export interface FormFieldProps
-  extends BaseProps,
+  extends
+    BaseProps,
     ObservableProps,
     Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 

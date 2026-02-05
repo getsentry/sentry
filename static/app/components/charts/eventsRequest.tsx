@@ -229,15 +229,13 @@ type EventsRequestPartialProps = {
 };
 
 interface EventsRequestPropsWithTimeAggregation
-  extends DefaultProps,
-    EventsRequestPartialProps {
+  extends DefaultProps, EventsRequestPartialProps {
   includeTimeAggregation: true;
   timeAggregationSeriesName: string;
 }
 
 interface EventsRequestPropsWithoutTimeAggregation
-  extends DefaultProps,
-    EventsRequestPartialProps {
+  extends DefaultProps, EventsRequestPartialProps {
   includeTimeAggregation?: false;
   timeAggregationSeriesName?: undefined;
 }

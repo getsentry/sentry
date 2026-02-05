@@ -178,6 +178,11 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
   } = useTraceItemAttributes('number', HiddenLogSearchFields);
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useTraceItemAttributes('boolean', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -196,8 +201,10 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
     });
@@ -244,6 +251,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           onColumnsChange={onColumnsChange}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
+          booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
@@ -253,7 +261,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, onColumnsChange, stringAttributes, numberAttributes]);
+  }, [booleanAttributes, fields, numberAttributes, onColumnsChange, stringAttributes]);
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
@@ -345,9 +353,14 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={supportedAggregates}
+              booleanTags={booleanAttributes}
               numberTags={numberAttributes}
               stringTags={stringAttributes}
-              isLoading={numberAttributesLoading || stringAttributesLoading}
+              isLoading={
+                numberAttributesLoading ||
+                stringAttributesLoading ||
+                booleanAttributesLoading
+              }
               exploreQuery={logsSearch.formatString()}
               source={SchemaHintsSources.LOGS}
               searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
