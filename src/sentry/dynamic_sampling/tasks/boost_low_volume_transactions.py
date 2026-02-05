@@ -1,24 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
-from snuba_sdk import (
-    AliasedExpression,
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    LimitBy,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import Direction, Granularity
 
 from sentry import options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
@@ -26,10 +12,9 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-    CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
 )
@@ -40,21 +25,23 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.query_builder import (
+    BaseItemFetcher,
+    QueryResult,
+    query_project_volumes,
+    query_transaction_volumes,
+)
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
-from sentry.sentry_metrics import indexer
 from sentry.silo.base import SiloMode
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import raw_snql_query
 
 
 class ProjectIdentity(TypedDict, total=True):
@@ -123,7 +110,10 @@ def boost_low_volume_transactions() -> None:
             )
             if segment_orgs:
                 _process_orgs_for_boost_low_volume_transactions(
-                    segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
+                    segment_orgs,
+                    num_big_trans,
+                    num_small_trans,
+                    measure=SamplingMeasure.SEGMENTS,
                 )
 
     # Process orgs using transaction metrics (default)
@@ -191,7 +181,9 @@ def _process_orgs_for_boost_low_volume_transactions(
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
-def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
+def boost_low_volume_transactions_of_project(
+    project_transactions: ProjectTransactions,
+) -> None:
     org_id = project_transactions["org_id"]
     project_id = project_transactions["project_id"]
     total_num_transactions = project_transactions.get("total_num_transactions")
@@ -294,133 +286,60 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
     )
 
 
-class FetchProjectTransactionTotals:
+class FetchProjectTransactionTotals(BaseItemFetcher[ProjectTransactionsTotals]):
     """
     Fetches the total number of transactions and the number of distinct transaction types for each
     project in the given organizations
     """
 
     def __init__(
-        self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS
+        self,
+        orgs: Sequence[int],
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ):
-        transaction_string_id = indexer.resolve_shared_org("transaction")
-        self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-        self.measure = measure
-
+        super().__init__()
         self.org_ids = list(orgs)
-        self.offset = 0
-        self.has_more_results = True
-        self.cache: list[dict[str, int | float]] = []
+        self.measure = measure
         self.last_org_id: int | None = None
+        self._initialize_query()
 
-    def __iter__(self) -> FetchProjectTransactionTotals:
-        return self
+    def _create_query_iterator(self) -> Iterator[list[QueryResult]]:
+        return query_project_volumes(
+            measure=self.measure,
+            org_ids=self.org_ids,
+            time_interval=BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+            include_keep_count=False,
+            include_drop_count=False,
+            include_class_count=True,
+            granularity=Granularity(60),
+        )
 
-    def __next__(self) -> ProjectTransactionsTotals:
-        if not self._cache_empty():
-            return self._get_from_cache()
+    def _process_batch(self, batch: list[QueryResult]) -> None:
+        metric_type = self.measure.value
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_transactions.query",
+            tags={"query_type": "totals", "metric_type": metric_type},
+            sample_rate=1,
+        )
 
-        granularity = Granularity(60)
-
-        if self.has_more_results:
-            where_conditions = [
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                Condition(Column("org_id"), Op.IN, self.org_ids),
-            ]
-            # Add tag filters from config
-            for tag_name, tag_value in self.tag_filters.items():
-                tag_string_id = indexer.resolve_shared_org(tag_name)
-                tag_column = f"tags_raw[{tag_string_id}]"
-                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("sum", [Column("value")], "num_transactions"),
-                        Function("uniq", [Column(self.transaction_tag)], "num_classes"),
-                        Column("org_id"),
-                        Column("project_id"),
-                    ],
-                    groupby=[
-                        Column("org_id"),
-                        Column("project_id"),
-                    ],
-                    where=where_conditions,
-                    granularity=granularity,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                        OrderBy(Column("project_id"), Direction.ASC),
-                    ],
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(self.offset)
+        for result in batch:
+            self._cache.append(
+                {
+                    "project_id": result.project_id or 0,
+                    "org_id": result.org_id,
+                    "total_num_transactions": result.total,
+                    "total_num_classes": result.class_count or 0,
+                }
             )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
-            )["data"]
-
-            metric_type = self.measure.value
-            metrics.incr(
-                "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={"query_type": "totals", "metric_type": metric_type},
-                sample_rate=1,
-            )
-
-            count = len(data)
-            self.has_more_results = count > CHUNK_SIZE
-            self.offset += CHUNK_SIZE
-
-            if self.has_more_results:
-                data = data[:-1]
-            self.cache.extend(data)
-
-        return self._get_from_cache()
 
     def _get_from_cache(self) -> ProjectTransactionsTotals:
-
-        if self._cache_empty():
-            raise StopIteration()
-
-        row = self.cache.pop(0)
-        proj_id = int(row["project_id"])
-        org_id = int(row["org_id"])
-        num_transactions = row["num_transactions"]
-        num_classes = int(row["num_classes"])
-
-        if self.last_org_id != org_id:
-            self.last_org_id = org_id
-
-        return {
-            "project_id": proj_id,
-            "org_id": org_id,
-            "total_num_transactions": num_transactions,
-            "total_num_classes": num_classes,
-        }
-
-    def _cache_empty(self) -> bool:
-        return not self.cache
+        row = super()._get_from_cache()
+        if self.last_org_id != row["org_id"]:
+            self.last_org_id = row["org_id"]
+        return row
 
 
-class FetchProjectTransactionVolumes:
+class FetchProjectTransactionVolumes(BaseItemFetcher[ProjectTransactions]):
     """
     Fetch transactions for all orgs and all projects with pagination orgs and projects with count per root project
 
@@ -441,142 +360,65 @@ class FetchProjectTransactionVolumes:
         max_transactions: int,
         measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ):
+        super().__init__()
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
         self.org_ids = orgs
-        self.offset = 0
-        transaction_string_id = indexer.resolve_shared_org("transaction")
-        self.transaction_tag = f"tags_raw[{transaction_string_id}]"
-
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
         self.measure = measure
 
-        self.has_more_results = True
-        self.cache: list[ProjectTransactions] = []
-
-        if self.large_transactions:
-            self.transaction_ordering = Direction.DESC
-        else:
-            self.transaction_ordering = Direction.ASC
-
-    def __iter__(self) -> FetchProjectTransactionVolumes:
-        return self
-
-    def __next__(self) -> ProjectTransactions:
         if self.max_transactions == 0:
-            # the user is not interested in transactions of this type, return nothing.
-            raise StopIteration()
+            self._exhausted = True
+        else:
+            self._initialize_query()
 
-        if not self._cache_empty():
-            # data in cache no need to go to the db
-            return self._get_from_cache()
+    def _create_query_iterator(self) -> Iterator[list[QueryResult]] | None:
+        if self.max_transactions == 0:
+            return None
+        transaction_order = Direction.DESC if self.large_transactions else Direction.ASC
+        return query_transaction_volumes(
+            measure=self.measure,
+            org_ids=self.org_ids,
+            time_interval=BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+            limit_per_project=self.max_transactions,
+            order=transaction_order,
+            granularity=Granularity(60),
+        )
 
-        granularity = Granularity(60)
+    def _process_batch(self, batch: list[QueryResult]) -> None:
+        metric_type = self.measure.value
+        volume_type = "large" if self.large_transactions else "small"
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_transactions.query",
+            tags={
+                "query_type": "volumes",
+                "metric_type": metric_type,
+                "volume_type": volume_type,
+            },
+            sample_rate=1,
+        )
 
-        if self.has_more_results:
-            # still data in the db, load cache
-            where_conditions = [
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-                ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                Condition(Column("org_id"), Op.IN, self.org_ids),
-            ]
-            # Add tag filters from config
-            for tag_name, tag_value in self.tag_filters.items():
-                tag_string_id = indexer.resolve_shared_org(tag_name)
-                tag_column = f"tags_raw[{tag_string_id}]"
-                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
+        # Group results by project
+        self._group_results_by_project(batch)
 
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("sum", [Column("value")], "num_transactions"),
-                        Column("org_id"),
-                        Column("project_id"),
-                        AliasedExpression(Column(self.transaction_tag), "transaction_name"),
-                    ],
-                    groupby=[
-                        Column("org_id"),
-                        Column("project_id"),
-                        AliasedExpression(Column(self.transaction_tag), "transaction_name"),
-                    ],
-                    where=where_conditions,
-                    granularity=granularity,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                        OrderBy(Column("project_id"), Direction.ASC),
-                        OrderBy(Column("num_transactions"), self.transaction_ordering),
-                    ],
-                )
-                .set_limitby(
-                    LimitBy(
-                        columns=[Column("org_id"), Column("project_id")],
-                        count=self.max_transactions,
-                    )
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(self.offset)
-            )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={"use_case_id": self.use_case_id.value, "cross_org_query": 1},
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
-            )["data"]
-
-            metric_type = self.measure.value
-            volume_type = "large" if self.large_transactions else "small"
-            metrics.incr(
-                "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={
-                    "query_type": "volumes",
-                    "metric_type": metric_type,
-                    "volume_type": volume_type,
-                },
-                sample_rate=1,
-            )
-
-            count = len(data)
-            self.has_more_results = count > CHUNK_SIZE
-            self.offset += CHUNK_SIZE
-
-            if self.has_more_results:
-                data = data[:-1]
-
-            self._add_results_to_cache(data)
-
-        # return from cache if empty stops iteration
-        return self._get_from_cache()
-
-    def _add_results_to_cache(self, data: list[dict[str, int | float | str]]) -> None:
+    def _group_results_by_project(self, results: list[QueryResult]) -> None:
+        """Group query results by project and add to cache."""
         transaction_counts: list[tuple[str, float]] = []
         current_org_id: int | None = None
         current_proj_id: int | None = None
 
-        for row in data:
-            proj_id = int(row["project_id"])
-            org_id = int(row["org_id"])
-            transaction_name = str(row["transaction_name"])
-            num_transactions = float(row["num_transactions"])
+        for result in results:
+            proj_id = result.project_id
+            org_id = result.org_id
+            transaction_name = result.transaction_name or ""
+            num_transactions = result.total
+
             if current_proj_id != proj_id or current_org_id != org_id:
                 if (
                     transaction_counts
                     and current_proj_id is not None
                     and current_org_id is not None
                 ):
-                    self.cache.append(
+                    self._cache.append(
                         {
                             "project_id": current_proj_id,
                             "org_id": current_org_id,
@@ -589,14 +431,12 @@ class FetchProjectTransactionVolumes:
                 transaction_counts = []
                 current_org_id = org_id
                 current_proj_id = proj_id
+
             transaction_counts.append((transaction_name, num_transactions))
 
-        # collect the last project data
-        if transaction_counts:
-            # since we accumulated some transactions we must have set the org and proj
-            assert current_proj_id is not None
-            assert current_org_id is not None
-            self.cache.append(
+        # Collect the last project data
+        if transaction_counts and current_proj_id is not None and current_org_id is not None:
+            self._cache.append(
                 {
                     "project_id": current_proj_id,
                     "org_id": current_org_id,
@@ -605,15 +445,6 @@ class FetchProjectTransactionVolumes:
                     "total_num_classes": None,
                 }
             )
-
-    def _cache_empty(self) -> bool:
-        return not self.cache
-
-    def _get_from_cache(self) -> ProjectTransactions:
-        if self._cache_empty():
-            raise StopIteration()
-
-        return self.cache.pop(0)
 
 
 def merge_transactions(

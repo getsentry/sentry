@@ -1,34 +1,40 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import TypedDict
+from datetime import timedelta
 
 import sentry_sdk
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import Granularity
 
 from sentry import quotas
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
+from sentry.dynamic_sampling.tasks.constants import MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
+from sentry.dynamic_sampling.tasks.query_builder import (
+    MEASURE_CONFIGS,
+    BaseBatchFetcher,
+    DynamicSamplingMetricsQuery,
+    GroupBy,
+    MeasureConfig,
+    QueryResult,
+)
 from sentry.dynamic_sampling.types import SamplingMeasure
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import raw_snql_query
+
+# Re-export for backwards compatibility
+__all__ = [
+    "MEASURE_CONFIGS",
+    "MeasureConfig",
+    "GetActiveOrgs",
+    "GetActiveOrgsVolumes",
+    "OrganizationDataVolume",
+    "get_organization_volume",
+    "sample_rate_to_float",
+    "are_equal_with_epsilon",
+    "compute_guarded_sliding_window_sample_rate",
+    "compute_sliding_window_sample_rate",
+]
 
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
 ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
@@ -37,38 +43,7 @@ ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
-class MeasureConfig(TypedDict):
-    """Configuration for a sampling measure query."""
-
-    mri: str
-    use_case_id: UseCaseID
-    tags: dict[str, str]
-
-
-# Configuration for each sampling measure type
-MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
-    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
-    SamplingMeasure.SEGMENTS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {"is_segment": "true"},
-    },
-    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
-    SamplingMeasure.SPANS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {},
-    },
-    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
-    SamplingMeasure.TRANSACTIONS: {
-        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.TRANSACTIONS,
-        "tags": {},
-    },
-}
-
-
-class GetActiveOrgs:
+class GetActiveOrgs(BaseBatchFetcher[tuple[int, int], list[int]]):
     """
     Fetch organizations in batches.
     A batch will return at max max_orgs elements
@@ -85,129 +60,60 @@ class GetActiveOrgs:
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
         measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-
-        self.offset = 0
-        self.last_result: list[tuple[int, int]] = []
-        self.has_more_results = True
+        super().__init__()
         self.max_orgs = max_orgs
         self.max_projects = max_projects
-        self.time_interval = time_interval
-        self.granularity = granularity
+        self._time_interval = time_interval
+        self._granularity = granularity
+        self._measure = measure
+        self._initialize_query()
 
-    def __iter__(self) -> GetActiveOrgs:
-        return self
+    def _create_query_iterator(self) -> Iterator[list[QueryResult]]:
+        query = DynamicSamplingMetricsQuery(
+            measure=self._measure,
+            time_interval=self._time_interval,
+            granularity=self._granularity,
+            group_by=GroupBy.ORG,
+            include_project_count=True,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION,
+        )
+        return query.execute()
 
-    def __next__(self) -> list[int]:
-        if self._enough_results_cached():
-            # we have enough in the cache to satisfy the current iteration
-            return self._get_from_cache()
-
-        if self.has_more_results:
-            # not enough for the current iteration and data still in the db top it up from db
-            where_conditions = [
-                Condition(
-                    Column("timestamp"),
-                    Op.GTE,
-                    datetime.utcnow() - self.time_interval,
-                ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                Condition(Column("metric_id"), Op.EQ, self.metric_id),
-            ]
-            for tag_name, tag_value in self.tag_filters.items():
-                tag_string_id = indexer.resolve_shared_org(tag_name)
-                tag_column = f"tags_raw[{tag_string_id}]"
-                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("uniq", [Column("project_id")], "num_projects"),
-                        Column("org_id"),
-                    ],
-                    groupby=[
-                        Column("org_id"),
-                    ],
-                    where=where_conditions,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                    ],
-                    granularity=self.granularity,
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(self.offset)
-            )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={
-                    "use_case_id": self.use_case_id.value,
-                    "cross_org_query": 1,
-                },
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
-            )["data"]
-            count = len(data)
-
-            self.has_more_results = count > CHUNK_SIZE
-            self.offset += CHUNK_SIZE
-            if self.has_more_results:
-                data = data[:-1]
-            for row in data:
-                self.last_result.append((row["org_id"], row["num_projects"]))
-
-        if len(self.last_result) > 0:
-            # we have some data left return up to the max amount
-            return self._get_from_cache()  # we still have something left in cache
-        else:
-            # nothing left in the DB or cache
-            raise StopIteration()
+    def _transform_result(self, result: QueryResult) -> tuple[int, int]:
+        return (result.org_id, result.project_count or 0)
 
     def _enough_results_cached(self) -> bool:
         """
-        Return true if we have enough data to return a full batch in the cache (i.e. last_result)
+        Return true if we have enough data to return a full batch in the cache
         """
-        if len(self.last_result) >= self.max_orgs:
+        if len(self._cache) >= self.max_orgs:
             return True
 
         if self.max_projects is not None:
             total_projects = 0
-            for _, num_projects in self.last_result:
+            for _, num_projects in self._cache:
                 total_projects += num_projects
-                if num_projects >= self.max_projects:
+                if total_projects >= self.max_projects:
                     return True
         return False
 
-    def _get_orgs(self, orgs_and_counts: list[tuple[int, int]]) -> list[int]:
-        """
-        Extracts the orgs from last_result
-        """
-        return [org for org, _ in orgs_and_counts]
-
-    def _get_from_cache(self) -> list[int]:
+    def _extract_batch(self) -> list[int]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
         count_projects = 0
-        for idx, (org_id, num_projects) in enumerate(self.last_result):
+        for idx, (_, num_projects) in enumerate(self._cache):
             count_projects += num_projects
             if idx >= (self.max_orgs - 1) or (
                 self.max_projects is not None and count_projects >= self.max_projects
             ):
-                # we got to the number of elements desired
-                ret_val = self._get_orgs(self.last_result[: idx + 1])
-                self.last_result = self.last_result[idx + 1 :]
+                ret_val = [org for org, _ in self._cache[: idx + 1]]
+                self._cache = self._cache[idx + 1 :]
                 return ret_val
-        # if we are here we haven't reached our max limit, return everything
-        ret_val = self._get_orgs(self.last_result)
-        self.last_result = []
+
+        # Return everything if we haven't reached our max limit
+        ret_val = [org for org, _ in self._cache]
+        self._cache = []
         return ret_val
 
 
@@ -218,18 +124,15 @@ class OrganizationDataVolume:
     (in a particular interval of time).
     """
 
-    # organization id
     org_id: int
-    # total number of transactions
     total: int
-    # number of transactions indexed (i.e. stored)
     indexed: int | None
 
     def is_valid_for_recalibration(self) -> bool:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 
-class GetActiveOrgsVolumes:
+class GetActiveOrgsVolumes(BaseBatchFetcher[OrganizationDataVolume, list[OrganizationDataVolume]]):
     """
     Fetch organizations volumes in batches.
     A batch will return at max max_orgs elements
@@ -244,137 +147,50 @@ class GetActiveOrgsVolumes:
         orgs: list[int] | None = None,
         measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ) -> None:
-        self.include_keep = include_keep
-        self.orgs = orgs
-
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-
-        if self.include_keep:
-            decision_string_id = indexer.resolve_shared_org("decision")
-            decision_tag = f"tags_raw[{decision_string_id}]"
-
-            self.keep_count_column = Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function(
-                        "equals",
-                        [Column(decision_tag), "keep"],
-                    ),
-                ],
-                alias="keep_count",
-            )
-        else:
-            self.keep_count_column = None
-
-        self.offset = 0
-        self.last_result: list[OrganizationDataVolume] = []
-        self.has_more_results = True
+        super().__init__()
         self.max_orgs = max_orgs
-        self.granularity = granularity
-        self.time_interval = time_interval
+        self.include_keep = include_keep
+        self._time_interval = time_interval
+        self._granularity = granularity
+        self._orgs = orgs
+        self._measure = measure
+        self._initialize_query()
 
-    def __iter__(self) -> GetActiveOrgsVolumes:
-        return self
+    def _create_query_iterator(self) -> Iterator[list[QueryResult]]:
+        query = DynamicSamplingMetricsQuery(
+            measure=self._measure,
+            time_interval=self._time_interval,
+            granularity=self._granularity,
+            group_by=GroupBy.ORG,
+            org_ids=self._orgs,
+            include_keep_count=self.include_keep,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES,
+        )
+        return query.execute()
 
-    def __next__(self) -> list[OrganizationDataVolume]:
-        if self._enough_results_cached():
-            # we have enough in the cache to satisfy the current iteration
-            return self._get_from_cache()
-
-        select = [
-            Function("sum", [Column("value")], "total_count"),
-            Column("org_id"),
-        ]
-
-        where = [
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-            Condition(Column("metric_id"), Op.EQ, self.metric_id),
-        ]
-
-        for tag_name, tag_value in self.tag_filters.items():
-            tag_string_id = indexer.resolve_shared_org(tag_name)
-            tag_column = f"tags_raw[{tag_string_id}]"
-            where.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-        if self.orgs:
-            where.append(Condition(Column("org_id"), Op.IN, self.orgs))
-
-        if self.include_keep:
-            select.append(self.keep_count_column)
-
-        if self.has_more_results:
-            # not enough for the current iteration and data still in the db top it up from db
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=select,
-                    groupby=[
-                        Column("org_id"),
-                    ],
-                    where=where,
-                    granularity=self.granularity,
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(self.offset)
-            )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={
-                    "use_case_id": self.use_case_id.value,
-                    "cross_org_query": 1,
-                },
-            )
-
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
-            )["data"]
-            count = len(data)
-
-            self.has_more_results = count > CHUNK_SIZE
-            self.offset += CHUNK_SIZE
-            if self.has_more_results:
-                data = data[:-1]
-            for row in data:
-                keep_count = row["keep_count"] if self.include_keep else None
-                self.last_result.append(
-                    OrganizationDataVolume(
-                        org_id=row["org_id"],
-                        total=row["total_count"],
-                        indexed=keep_count,
-                    )
-                )
-
-        if len(self.last_result) > 0:
-            # we have some data left return up to the max amount
-            return self._get_from_cache()  # we still have something left in cache
-        else:
-            # nothing left in the DB or cache
-            raise StopIteration()
+    def _transform_result(self, result: QueryResult) -> OrganizationDataVolume:
+        return OrganizationDataVolume(
+            org_id=result.org_id,
+            total=int(result.total),
+            indexed=int(result.keep_count) if result.keep_count is not None else None,
+        )
 
     def _enough_results_cached(self) -> bool:
         """
-        Return true if we have enough data to return a full batch in the cache (i.e. last_result)
+        Return true if we have enough data to return a full batch in the cache
         """
-        return len(self.last_result) >= self.max_orgs
+        return len(self._cache) >= self.max_orgs
 
-    def _get_from_cache(self) -> list[OrganizationDataVolume]:
+    def _extract_batch(self) -> list[OrganizationDataVolume]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
-        if len(self.last_result) >= self.max_orgs:
-            ret_val = self.last_result[: self.max_orgs]
-            self.last_result = self.last_result[self.max_orgs :]
+        if len(self._cache) >= self.max_orgs:
+            ret_val = self._cache[: self.max_orgs]
+            self._cache = self._cache[self.max_orgs :]
         else:
-            ret_val = self.last_result
-            self.last_result = []
+            ret_val = self._cache
+            self._cache = []
         return ret_val
 
 
@@ -434,8 +250,6 @@ def compute_guarded_sliding_window_sample_rate(
     any problem would arise.
     """
     try:
-        # We want to compute the sliding window sample rate by considering a window of time.
-        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
         return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
     except Exception as e:
         sentry_sdk.capture_exception(
@@ -459,9 +273,6 @@ def compute_sliding_window_sample_rate(
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
     window that was used for computing the root count.
-
-    The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
-    enabled in the first place for that project.
     """
     extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
     if extrapolated_volume is None:

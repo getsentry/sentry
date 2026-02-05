@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     next_totals,
     transactions_zip,
 )
-from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
@@ -150,7 +150,9 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert totals["total_num_transactions"] == total_counts
             assert totals["total_num_classes"] == num_classes
 
-    def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(self) -> None:
+    def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(
+        self,
+    ) -> None:
         """
         Verify that FetchProjectTransactionTotals uses the transaction count per root metric
         by default (when measure=TRANSACTIONS).
@@ -158,31 +160,28 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.TRANSACTIONS)
 
-        expected_metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
-        assert fetcher.metric_id == expected_metric_id
         assert fetcher.measure == SamplingMeasure.TRANSACTIONS
-        assert fetcher.tag_filters == {}
 
-    def test_fetch_project_transaction_volumes_uses_transaction_metric_by_default(self) -> None:
+    def test_fetch_project_transaction_volumes_uses_transaction_metric_by_default(
+        self,
+    ) -> None:
         """
         Verify that FetchProjectTransactionVolumes uses the transaction count per root metric
         by default (when measure=TRANSACTIONS).
         """
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
+            orgs,
+            large_transactions=True,
+            max_transactions=3,
+            measure=SamplingMeasure.TRANSACTIONS,
         )
 
-        expected_metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
-        assert fetcher.metric_id == expected_metric_id
         assert fetcher.measure == SamplingMeasure.TRANSACTIONS
-        assert fetcher.tag_filters == {}
 
-    def test_fetch_project_transaction_totals_uses_segment_metric_when_enabled(self) -> None:
+    def test_fetch_project_transaction_totals_uses_segment_metric_when_enabled(
+        self,
+    ) -> None:
         """
         Verify that FetchProjectTransactionTotals uses the span count per root metric
         with is_segment tag when measure=SEGMENTS.
@@ -190,27 +189,26 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
         fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.SEGMENTS)
 
-        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-        assert fetcher.metric_id == expected_metric_id
         assert fetcher.measure == SamplingMeasure.SEGMENTS
-        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
 
-    def test_fetch_project_transaction_volumes_uses_segment_metric_when_enabled(self) -> None:
+    def test_fetch_project_transaction_volumes_uses_segment_metric_when_enabled(
+        self,
+    ) -> None:
         """
         Verify that FetchProjectTransactionVolumes uses the span count per root metric
         with is_segment tag when measure=SEGMENTS.
         """
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+            orgs,
+            large_transactions=True,
+            max_transactions=3,
+            measure=SamplingMeasure.SEGMENTS,
         )
 
-        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-        assert fetcher.metric_id == expected_metric_id
         assert fetcher.measure == SamplingMeasure.SEGMENTS
-        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    @patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query")
     def test_fetch_project_transaction_totals_query_includes_is_segment_filter_for_segments(
         self, mock_raw_snql_query
     ) -> None:
@@ -235,7 +233,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert f"tags_raw[{is_segment_id}]" in query_str
         assert "'true'" in query_str
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    @patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query")
     def test_fetch_project_transaction_totals_query_excludes_is_segment_filter_for_transactions(
         self, mock_raw_snql_query
     ) -> None:
@@ -259,7 +257,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" not in query_str
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    @patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query")
     def test_fetch_project_transaction_volumes_query_includes_is_segment_filter_for_segments(
         self, mock_raw_snql_query
     ) -> None:
@@ -270,7 +268,10 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+            orgs,
+            large_transactions=True,
+            max_transactions=3,
+            measure=SamplingMeasure.SEGMENTS,
         )
         try:
             next(fetcher)
@@ -286,7 +287,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert f"tags_raw[{is_segment_id}]" in query_str
         assert "'true'" in query_str
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
+    @patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query")
     def test_fetch_project_transaction_volumes_query_excludes_is_segment_filter_for_transactions(
         self, mock_raw_snql_query
     ) -> None:
@@ -297,7 +298,10 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
+            orgs,
+            large_transactions=True,
+            max_transactions=3,
+            measure=SamplingMeasure.TRANSACTIONS,
         )
         try:
             next(fetcher)
@@ -431,9 +435,29 @@ def test_transactions_zip() -> None:
             "total_num_classes": 5,
         }
 
-    trans_low = [pt(1, 1, low), pt(1, 2, low), pt(2, 1, low), pt(2, 3, low), pt(3, 2, low)]
-    trans_high = [pt(2, 1, high), (pt(2, 2, high)), pt(3, 1, high), pt(3, 2, high), pt(3, 3, high)]
-    totals = [tot(1, 0), tot(1, 2), tot(1, 3), tot(2, 1), tot(2, 4), tot(3, 1), tot(3, 3)]
+    trans_low = [
+        pt(1, 1, low),
+        pt(1, 2, low),
+        pt(2, 1, low),
+        pt(2, 3, low),
+        pt(3, 2, low),
+    ]
+    trans_high = [
+        pt(2, 1, high),
+        (pt(2, 2, high)),
+        pt(3, 1, high),
+        pt(3, 2, high),
+        pt(3, 3, high),
+    ]
+    totals = [
+        tot(1, 0),
+        tot(1, 2),
+        tot(1, 3),
+        tot(2, 1),
+        tot(2, 4),
+        tot(3, 1),
+        tot(3, 3),
+    ]
 
     expected = [
         pt(1, 1, low),

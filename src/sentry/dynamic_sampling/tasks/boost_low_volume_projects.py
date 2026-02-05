@@ -3,23 +3,10 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import sentry_sdk
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Limit,
-    LimitBy,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import Granularity
 
 from sentry import options, quotas
 from sentry.constants import ObjectStatus
@@ -36,38 +23,32 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
-    MEASURE_CONFIGS,
     GetActiveOrgs,
     are_equal_with_epsilon,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
-    CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.query_builder import query_project_volumes
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics import indexer
 from sentry.silo.base import SiloMode
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import raw_snql_query
 
 # This set contains all the projects for which we want to start extracting the sample rate over time. This is done
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
@@ -95,13 +76,19 @@ def boost_low_volume_projects() -> None:
     """
     logger.info(
         "boost_low_volume_projects",
-        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+        extra={
+            "traceparent": sentry_sdk.get_traceparent(),
+            "baggage": sentry_sdk.get_baggage(),
+        },
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
     for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60)):
         for measure, orgs in partition_by_measure(orgs).items():
-            for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
+            for (
+                org_id,
+                projects,
+            ) in fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
             ).items():
                 boost_low_volume_projects_of_org.apply_async(
@@ -138,7 +125,8 @@ def partition_by_measure(
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
         metrics.incr(
-            "dynamic_sampling.partition_by_measure.transactions", amount=len(filtered_org_ids)
+            "dynamic_sampling.partition_by_measure.transactions",
+            amount=len(filtered_org_ids),
         )
         return {SamplingMeasure.TRANSACTIONS: sorted(filtered_org_ids)}
 
@@ -153,7 +141,8 @@ def partition_by_measure(
 
     metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(span_org_ids))
     metrics.incr(
-        "dynamic_sampling.partition_by_measure.transactions", amount=len(transactions_org_ids)
+        "dynamic_sampling.partition_by_measure.transactions",
+        amount=len(transactions_org_ids),
     )
     return {
         SamplingMeasure.SPANS: sorted(span_org_ids),
@@ -176,7 +165,10 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     """
     logger.info(
         "boost_low_volume_projects_of_org_with_query",
-        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+        extra={
+            "traceparent": sentry_sdk.get_traceparent(),
+            "baggage": sentry_sdk.get_baggage(),
+        },
     )
 
     org = Organization.objects.get_from_cache(id=org_id)
@@ -276,7 +268,9 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 @dynamic_sampling_task
 def query_project_counts_by_org(
-    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
+    org_ids: list[int],
+    measure: SamplingMeasure,
+    query_interval: timedelta | None = None,
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -300,108 +294,32 @@ def query_project_counts_by_org(
         tags={"measure": str(measure.value)},
     )
 
-    org_ids = list(org_ids)
+    # Get active project IDs for filtering
     project_ids = list(
         Project.objects.filter(organization_id__in=org_ids, status=ObjectStatus.ACTIVE).values_list(
             "id", flat=True
         )
     )
-    decision_string_id = indexer.resolve_shared_org("decision")
-    decision_tag = f"tags_raw[{decision_string_id}]"
 
-    config = MEASURE_CONFIGS.get(measure)
-    if config is None:
-        raise ValueError(f"Unsupported measure: {measure}")
-
-    metric_id = indexer.resolve_shared_org(str(config["mri"]))
-    use_case_id = config["use_case_id"]
-
-    where_conditions = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.IN, org_ids),
-        Condition(Column("project_id"), Op.IN, project_ids),
-    ]
-
-    # Add tag filters from config
-    for tag_name, tag_value in config["tags"].items():
-        tag_string_id = indexer.resolve_shared_org(tag_name)
-        tag_column = f"tags_raw[{tag_string_id}]"
-        where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-    query = Query(
-        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-        select=[
-            Function("sum", [Column("value")], "root_count_value"),
-            Column("org_id"),
-            Column("project_id"),
-            Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function("equals", [Column(decision_tag), "keep"]),
-                ],
-                alias="keep_count",
-            ),
-            Function(
-                "sumIf",
-                [
-                    Column("value"),
-                    Function("equals", [Column(decision_tag), "drop"]),
-                ],
-                alias="drop_count",
-            ),
-        ],
-        groupby=[Column("org_id"), Column("project_id")],
-        where=where_conditions,
+    # Use the centralized query builder
+    for batch in query_project_volumes(
+        measure=measure,
+        org_ids=org_ids,
+        time_interval=query_interval,
+        project_ids=project_ids,
+        include_keep_count=True,
+        include_drop_count=True,
         granularity=granularity,
-        orderby=[
-            OrderBy(Column("org_id"), Direction.ASC),
-            OrderBy(Column("project_id"), Direction.ASC),
-        ],
-        limitby=LimitBy(
-            columns=[Column("org_id"), Column("project_id")],
-            count=MAX_TRANSACTIONS_PER_PROJECT,
-        ),
-        # we are fetching one more than the chunk size to determine if there are more results
-        limit=Limit(CHUNK_SIZE + 1),
-    )
-
-    offset = 0
-    more_results: bool = True
-    while more_results:
-        with metrics.timer(
-            "dynamic_sampling.query_project_counts_by_org.query_time",
-            tags={"measure": str(measure.value)},
-        ):
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query.set_offset(offset),
-                tenant_ids={"use_case_id": use_case_id.value, "cross_org_query": 1},
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-            )["data"]
-
-        more_results = len(data) > CHUNK_SIZE
-        offset += CHUNK_SIZE
-
-        # re-adjust, for the extra row we fetched
-        if more_results:
-            data = data[:-1]
-
+    ):
         yield [
             (
-                row["org_id"],
-                row["project_id"],
-                row["root_count_value"],
-                row["keep_count"],
-                row["drop_count"],
+                result.org_id,
+                result.project_id,
+                result.total,
+                result.keep_count or 0,
+                result.drop_count or 0,
             )
-            for row in data
+            for result in batch
         ]
 
 

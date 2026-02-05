@@ -379,9 +379,7 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
         Confirms that query_project_counts_by_org does NOT make a Snuba query
         when called with an empty org_ids list.
         """
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-        ) as mock_query:
+        with patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query") as mock_query:
             mock_query.return_value = {"data": []}
 
             list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
@@ -406,9 +404,7 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
             org_id=org.id,
         )
 
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-        ) as mock_query:
+        with patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query") as mock_query:
             mock_query.return_value = {"data": []}
 
             with self.options(
@@ -439,9 +435,7 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
         self.create_project(organization=org1)
         self.create_project(organization=org2)
 
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-        ) as mock_query:
+        with patch("sentry.dynamic_sampling.tasks.query_builder.raw_snql_query") as mock_query:
             mock_query.return_value = {"data": []}
 
             with self.options(
