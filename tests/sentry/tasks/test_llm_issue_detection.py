@@ -121,6 +121,8 @@ class LLMIssueDetectionTest(TestCase):
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
+        assert occurrence.evidence_data["category"] == "Database"
+        assert occurrence.evidence_data["subcategory"] == "Connection Pool Exhaustion"
         assert (
             occurrence.evidence_data["explanation"]
             == "Your application is running out of database connections"

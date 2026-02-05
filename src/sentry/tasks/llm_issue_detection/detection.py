@@ -135,8 +135,10 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = detected_issue.transaction_name
-    title = detected_issue.title.lower().replace(" ", "-")
-    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
+    # title = detected_issue.title.lower().replace(" ", "-")
+    category = detected_issue.category.lower().replace(" ", "-").replace("/", "-")
+    subcategory = detected_issue.subcategory.lower().replace(" ", "-").replace("/", "-")
+    fingerprint = [f"llm-detected-{category}-{subcategory}-{transaction_name}"]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -146,6 +148,8 @@ def create_issue_occurrence_from_detection(
         "evidence": detected_issue.evidence,
         "missing_telemetry": detected_issue.missing_telemetry,
         "offender_span_ids": detected_issue.offender_span_ids,
+        "category": detected_issue.category,
+        "subcategory": detected_issue.subcategory,
     }
 
     evidence_display = [
@@ -183,7 +187,16 @@ def create_issue_occurrence_from_detection(
             "trace": {
                 "trace_id": trace_id,
                 "type": "trace",
-            }
+            },
+            "category": {
+                "category": category,
+                "subcategory": subcategory,
+            },
+            "message": {
+                "explanation": detected_issue.explanation,
+                "impact": detected_issue.impact,
+                "evidence": detected_issue.evidence,
+            },
         },
     }
 
