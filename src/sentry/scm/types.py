@@ -16,8 +16,6 @@ class Comment(TypedDict):
     id: str
     body: str
     author: Author
-    created_at: str
-    updated_at: str
     provider: ProviderName
     raw: dict[str, Any]
 

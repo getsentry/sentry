@@ -28,8 +28,6 @@ def _transform_comment(raw: dict[str, Any]) -> Comment:
         id=str(raw["id"]),
         body=raw["body"],
         author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
-        created_at=raw["created_at"],
-        updated_at=raw["updated_at"],
         provider="github",
         raw=raw,
     )

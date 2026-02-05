@@ -94,8 +94,6 @@ class BaseTestProvider(Provider):
                 id="101",
                 body="Test comment",
                 author={"id": "1", "username": "testuser"},
-                created_at="2024-01-01T00:00:00Z",
-                updated_at="2024-01-01T00:00:00Z",
                 provider="test",
                 raw={},
             )
@@ -117,8 +115,6 @@ class BaseTestProvider(Provider):
                 id="201",
                 body="PR review comment",
                 author={"id": "2", "username": "reviewer"},
-                created_at="2024-01-02T00:00:00Z",
-                updated_at="2024-01-02T00:00:00Z",
                 provider="test",
                 raw={},
             )
