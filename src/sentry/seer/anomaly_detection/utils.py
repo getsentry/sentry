@@ -47,6 +47,21 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
+def get_aggregate_type(aggregate: str | None) -> str | None:
+    """
+    Determine aggregate type for static threshold application.
+
+    Returns "count" for count-based aggregates (count(), count_unique(), etc.)
+    and "other" for all other aggregate types. Returns None if no aggregate provided.
+    """
+    if not aggregate:
+        return None
+    aggregate_lower = aggregate.lower()
+    if aggregate_lower.startswith("count"):
+        return "count"
+    return "other"
+
+
 def get_event_types(
     snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
 ) -> list[SnubaQueryEventType.EventType]:
