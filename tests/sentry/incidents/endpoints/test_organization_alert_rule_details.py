@@ -52,6 +52,7 @@ from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_conn
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -1460,6 +1461,58 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.snuba_query.refresh_from_db()
         assert alert_rule.snuba_query.query_snapshot is not None
         assert alert_rule.snuba_query.query_snapshot.get("user_updated") is True
+
+    def test_does_not_update_with_deprecation_flag_and_dataset_is_transactions(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.save()
+
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "transactions"
+
+        with (
+            self.feature(
+                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+            ),
+            outbox_runner(),
+        ):
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.dataset != Dataset.Transactions.value
+        assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+
+    def test_does_not_update_with_deprecation_flag_and_dataset_is_generic_metrics(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.save()
+
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "generic_metrics"
+
+        with (
+            self.feature(
+                ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
+            ),
+            outbox_runner(),
+        ):
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.dataset != Dataset.PerformanceMetrics.value
+        assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
 
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):

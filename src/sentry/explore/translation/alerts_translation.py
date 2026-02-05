@@ -118,7 +118,10 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         logger.info("No snapshot created for snuba query %s", snuba_query.id)
         return
 
-    if snapshot.get("user_updated"):
+    if (
+        snapshot.get("user_updated")
+        and snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+    ):
         logger.info(
             "Skipping roll forward for user-updated query", extra={"snuba_query_id": snuba_query.id}
         )
