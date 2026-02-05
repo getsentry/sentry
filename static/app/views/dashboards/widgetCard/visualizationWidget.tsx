@@ -220,7 +220,7 @@ function VisualizationWidgetContent({
               groupBy => groupBy.key === firstColumn
             )?.value;
             if (groupByValue && firstColumn) {
-              // for a limit of 20, this is only 20 x 20 lookups, which is negligible and worth it for code readability
+              // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
               value = tableDataRows.find(row => row[firstColumn] === groupByValue)?.[
                 yAxis
               ] as number;
