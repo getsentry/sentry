@@ -199,7 +199,7 @@ class SeerOperatorTest(TestCase):
             event_payload={"run_id": MOCK_RUN_ID, "group_id": -1},
             organization_id=self.organization.id,
         )
-        mock_logger.error.assert_called_once_with(
+        mock_logger.exception.assert_called_once_with(
             "seer.operator.process_updates.group_not_found", extra=ANY
         )
 
