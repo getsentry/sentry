@@ -13,6 +13,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   createPlottableFromTimeSeries,
+  SERIES_NAME_PART_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -154,7 +155,7 @@ function VisualizationWidgetContent({
 
   const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
     .map(series => {
-      const splitSeriesName = series.seriesName.split(' : ');
+      const splitSeriesName = series.seriesName.split(SERIES_NAME_PART_DELIMITER);
 
       const yAxis =
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
@@ -176,11 +177,16 @@ function VisualizationWidgetContent({
       if (!timeSeries) {
         return null;
       }
-      // Use the original series name as the unique identifier for ECharts
+
+      const labelParts = [alias, formatTimeSeriesLabel(timeSeries)];
+      // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
+      if (aggregates.length > 1 && columns.length > 1) {
+        labelParts.push(timeSeries.yAxis);
+      }
       const plottable = createPlottableFromTimeSeries(
         timeSeries,
         widget,
-        alias ? `${alias} : ${formatTimeSeriesLabel(timeSeries)}` : undefined,
+        labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
         series.seriesName
       );
       if (!plottable) {

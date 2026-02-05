@@ -16,6 +16,12 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+/**
+ * Delimiter used by the backend to separate parts of a series name.
+ * Format: "alias : yAxis : groupValue1,groupValue2"
+ */
+export const SERIES_NAME_PART_DELIMITER = ' : ';
+
 export function transformLegacySeriesToTimeSeries(
   timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
@@ -39,14 +45,14 @@ export function transformLegacySeriesToTimeSeries(
   const valueUnit =
     timeseriesResultsUnits?.[timeseriesResult.seriesName] ?? mapped.valueUnit;
 
-  const isOther =
-    timeseriesResult.seriesName === 'Other' ||
-    timeseriesResult.seriesName?.endsWith(' : Other');
+  const splitSeriesName = timeseriesResult.seriesName.split(SERIES_NAME_PART_DELIMITER);
+
+  const isOther = splitSeriesName.includes('Other');
 
   // Extract group values by filtering out alias and yAxis from the series name
-  // Series name format: "alias : yAxis : groupValue1,groupValue2" or "yAxis : groupValue1,groupValue2"
+  // Series name format: "alias : groupValue1,groupValue2 : yAxis" or "groupValue1,groupValue2" or "groupValue1,groupValue2 : yAxis"
   const groupValuesPart = timeseriesResult.seriesName
-    .split(' : ')
+    .split(SERIES_NAME_PART_DELIMITER)
     .find(name => name !== alias && name !== yAxis);
 
   const groupBy =
