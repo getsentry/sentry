@@ -25,7 +25,7 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
     },
     {
       type: 'code',
-      language: 'dotnet',
+      language: 'csharp',
       code: `using Sentry;
 
 SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
@@ -40,7 +40,7 @@ SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration
       type: 'text',
       text: tct('For more detailed information, see the [link:metrics documentation].', {
         link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/metrics/" />
+          <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
         ),
       }),
     },

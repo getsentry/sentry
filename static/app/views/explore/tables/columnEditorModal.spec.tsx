@@ -37,6 +37,19 @@ const numberTags: TagCollection = {
   },
 };
 
+const booleanTags: TagCollection = {
+  'span.is_segment': {
+    key: 'span.is_segment',
+    name: 'span.is_segment',
+    kind: FieldKind.BOOLEAN,
+  },
+  exclusive_time_lost: {
+    key: 'exclusive_time_lost',
+    name: 'exclusive_time_lost',
+    kind: FieldKind.BOOLEAN,
+  },
+};
+
 describe('ColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -52,6 +65,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose}
@@ -77,6 +91,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}
@@ -116,6 +131,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}
@@ -176,6 +192,7 @@ describe('ColumnEditorModal', () => {
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
+            booleanTags={{}}
           />
         ),
         {onClose: jest.fn()}
@@ -213,5 +230,107 @@ describe('ColumnEditorModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onColumnsChange).toHaveBeenCalledWith(['id', 'span.op']);
+  });
+
+  it('displays boolean tags in column options with correct type', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const column = screen.getByTestId('editor-column');
+    await userEvent.click(within(column).getByRole('button', {name: 'Column id string'}));
+
+    const columnOptions = await screen.findAllByRole('option');
+
+    const booleanOptions = columnOptions.filter(option =>
+      option.textContent?.includes('boolean')
+    );
+    expect(booleanOptions).toHaveLength(2);
+    expect(booleanOptions[0]).toHaveTextContent('exclusive_time_lost');
+    expect(booleanOptions[0]).toHaveTextContent('boolean');
+    expect(booleanOptions[1]).toHaveTextContent('span.is_segment');
+    expect(booleanOptions[1]).toHaveTextContent('boolean');
+  });
+
+  it('allows selecting a boolean tag as a column', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const column = screen.getByTestId('editor-column');
+    await userEvent.click(within(column).getByRole('button', {name: 'Column id string'}));
+
+    const columnOptions = await screen.findAllByRole('option');
+    const booleanOption = columnOptions.find(
+      option =>
+        option.textContent?.includes('span.is_segment') &&
+        option.textContent?.includes('boolean')
+    );
+    expect(booleanOption).toBeDefined();
+    await userEvent.click(booleanOption!);
+
+    expect(screen.getByTestId('editor-column')).toHaveTextContent('span.is_segment');
+    expect(screen.getByTestId('editor-column')).toHaveTextContent('boolean');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith(['span.is_segment']);
+  });
+
+  it('renders existing boolean column with correct type badge', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['span.is_segment', 'id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('span.is_segment');
+    expect(columns[0]).toHaveTextContent('boolean');
+    expect(columns[1]).toHaveTextContent('id');
+    expect(columns[1]).toHaveTextContent('string');
   });
 });

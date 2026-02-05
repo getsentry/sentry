@@ -72,8 +72,7 @@ type MenuItemProps = {
 };
 
 interface Props
-  extends MenuItemProps,
-    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
+  extends MenuItemProps, Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 function MenuItem({
   header,

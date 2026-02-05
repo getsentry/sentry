@@ -10,8 +10,10 @@ import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inpu
 import FormField from 'sentry/components/forms/formField';
 import {space} from 'sentry/styles/space';
 
-interface SegmentedRadioFieldProps<Choices extends string = string>
-  extends Omit<InputFieldProps, 'type'> {
+interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
+  InputFieldProps,
+  'type'
+> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
 
