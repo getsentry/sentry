@@ -414,6 +414,9 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             if size_skip_reason == "quota":
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
                 error_message = "Size analysis quota exceeded"
+            elif size_skip_reason == "disabled":
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+                error_message = "Size analysis disabled for this project"
             else:
                 error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
                 error_message = "Size analysis filtered out by project settings"
