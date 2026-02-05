@@ -324,7 +324,7 @@ export const CheckWrap = styled('div')<{
           ${p.isSelected &&
           css`
             background: ${p.theme.tokens.background.accent.vibrant};
-            border-color: ${p.theme.tokens.background.accent.vibrant};
+            border-color: ${p.theme.tokens.border.accent};
           `}
         `
       : css`

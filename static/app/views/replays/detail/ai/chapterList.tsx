@@ -287,13 +287,11 @@ const ChapterWrapper = styled('details')`
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   [data-is-feedback='true'] {
