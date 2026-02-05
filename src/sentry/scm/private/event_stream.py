@@ -4,7 +4,6 @@ from collections.abc import Callable
 from types import UnionType
 from typing import DefaultDict, Union, get_args, get_origin, get_type_hints
 
-from sentry.scm.private.webhooks.github import PullRequestEvent
 from sentry.scm.types import PullRequest
 
 EventType = PullRequest
@@ -43,9 +42,6 @@ class SourceCodeManagerEventStream:
             self.__listeners[event_type].append(fn)
 
         return fn
-
-
-def emit_pull_request_event(event: PullRequestEvent): ...
 
 
 scm_event_stream = SourceCodeManagerEventStream()
