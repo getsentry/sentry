@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
@@ -141,9 +142,6 @@ def _has_wildcard(version: str) -> bool:
 
 def _wildcard_to_regex(pattern: str) -> str:
     """Convert a wildcard pattern to a regex pattern for database queries."""
-    # Escape special regex characters except *
-    import re
-
     escaped = re.escape(pattern)
     # Replace escaped \* with .* for regex matching
     regex_pattern = escaped.replace(r"\*", ".*")
