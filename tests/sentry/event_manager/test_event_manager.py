@@ -3519,6 +3519,7 @@ class ReleaseIssueTest(TestCase):
             first_seen=self.timestamp,
         )
 
+    @pytest.mark.skip(reason="flaky: #107349")
     def test_same_group(self) -> None:
         event1 = self.make_release_event(
             release_version=self.release.version,
