@@ -32,6 +32,7 @@ class PullRequest(TypedDict):
     description: str | None
     head: PullRequestBranch
     base: PullRequestBranch
+    is_private_repo: bool
     author: Author
     raw: dict[str, Any]
 
@@ -81,7 +82,7 @@ class Provider(Protocol):
     ) -> None: ...
 
     def delete_comment_reaction(
-        self, repository: Repository, comment_id: str, reaction_id: str
+        self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None: ...
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]: ...
@@ -91,7 +92,7 @@ class Provider(Protocol):
     ) -> None: ...
 
     def delete_issue_reaction(
-        self, repository: Repository, issue_id: str, reaction_id: str
+        self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None: ...
 
 
@@ -177,57 +178,23 @@ type PullRequestAction = Literal[
     "review_requested",
 ]
 
-PULL_REQUEST_ACTIONS: set[PullRequestAction] = {
-    "assigned",
-    "closed",
-    "edited",
-    "labeled",
-    "opened",
-    "ready_for_review",
-    "reopened",
-    "review_request_removed",
-    "review_requested",
-}
 
+class PullRequestEvent(TypedDict):
+    """"""
 
-class PullRequestSubscriptionEvent(TypedDict):
     action: PullRequestAction
-    """"""
+    """The action that triggered the webhook. One of a limited set of possible values."""
 
-    body: str | None
-    """"""
-
-    draft: bool
-    """"""
-
-    merge_commit_sha: str | None
-    """"""
-
-    merged: bool | None
-    """"""
-
-    private: bool | None
-    """"""
-
-    pull_request_id: str
-    """"""
+    pull_request: PullRequest
+    """The pull-request that was acted upon."""
 
     subscription_event: SubscriptionEvent
-    """"""
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and pull_request fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
 
-    title: str
-    """"""
-
-    user: "User"
-    """"""
-
-
-class User(TypedDict):
-    id: str
-    """"""
-
-    username: str
-    """"""
-
-    type: str | None
-    """"""
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """
