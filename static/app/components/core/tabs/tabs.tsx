@@ -7,7 +7,6 @@ import type {Orientation} from '@react-types/shared';
 
 import type {TabProps} from './tab';
 import {tabsShouldForwardProp} from './utils';
-
 export interface TabsProps<T>
   extends
     Omit<
