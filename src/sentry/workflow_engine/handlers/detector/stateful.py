@@ -233,7 +233,10 @@ class DetectorStateManager:
                         state=priority,
                     )
                 )
-            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
+            elif (
+                is_triggered != detector_state.is_triggered
+                or priority != detector_state.priority_level
+            ):
                 detector_state.is_triggered = is_triggered
                 detector_state.state = priority
                 updated_detector_states.append(detector_state)
