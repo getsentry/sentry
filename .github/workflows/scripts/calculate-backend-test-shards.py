@@ -7,7 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-TESTS_PER_SHARD = 1200
+# Allow override via environment variable
+TESTS_PER_SHARD = int(os.environ.get("TESTS_PER_SHARD", 1200))
 MIN_SHARDS = 1
 MAX_SHARDS = 22
 DEFAULT_SHARDS = 22
@@ -45,12 +46,20 @@ def collect_test_count() -> int | None:
         "--ignore=tests/tools",
     ]
 
+    # Pass TEST_TIER to pytest subprocess if set
+    env = os.environ.copy()
+    test_tier = os.environ.get("TEST_TIER")
+    if test_tier:
+        print(f"Filtering tests for tier: {test_tier}", file=sys.stderr)
+        env["TEST_TIER"] = test_tier
+
     try:
         result = subprocess.run(
             pytest_args,
             capture_output=True,
             text=True,
             check=False,
+            env=env,
         )
 
         # Parse output for test count

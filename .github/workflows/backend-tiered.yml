@@ -1,0 +1,245 @@
+name: backend-tiered
+
+on:
+  push:
+    branches:
+      - mchen/intelligent-sharding-poc
+  pull_request:
+    branches:
+      - mchen/intelligent-sharding-poc
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: 'Test tier to run (tier1, tier2, tier3, all)'
+        required: false
+        default: 'all'
+
+# Cancel in progress workflows on pull_requests.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      backend: ${{ steps.changes.outputs.backend_all }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for backend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  # Calculate shards for each tier separately
+  calculate-tier1-shards:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: calculate tier1 shards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci-tier1
+          skip-devservices: true
+
+      - name: Calculate tier1 test shards
+        id: calculate-shards
+        env:
+          TEST_TIER: tier1
+          # Override tests per shard for tier1 (faster tests, can pack more)
+          TESTS_PER_SHARD: 1500
+        run: |
+          python3 .github/workflows/scripts/calculate-backend-test-shards.py
+
+  calculate-tier2-shards:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: calculate tier2 shards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci-tier2
+          skip-devservices: true
+
+      - name: Calculate tier2 test shards
+        id: calculate-shards
+        env:
+          TEST_TIER: tier2
+          # Fewer tests per shard for tier2 (slower tests due to Snuba)
+          TESTS_PER_SHARD: 1000
+        run: |
+          python3 .github/workflows/scripts/calculate-backend-test-shards.py
+
+  # Tier 1 tests - DB only (postgres, redis)
+  backend-test-tier1:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, calculate-tier1-shards]
+    name: backend test tier1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.calculate-tier1-shards.outputs.shard-indices) }}
+
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-tier1-shards.outputs.shard-count }}
+      TEST_GROUP_STRATEGY: roundrobin
+      TEST_TIER: tier1
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci-tier1
+
+      - name: Run tier1 backend test (${{ matrix.instance }} of ${{ needs.calculate-tier1-shards.outputs.shard-count }})
+        env:
+          TEST_GROUP: ${{ matrix.instance }}
+          TOTAL_TEST_GROUPS: ${{ needs.calculate-tier1-shards.outputs.shard-count }}
+        run: |
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # Tier 2 tests - Snuba required (postgres, redis, kafka, clickhouse, snuba)
+  backend-test-tier2:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, calculate-tier2-shards]
+    name: backend test tier2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.calculate-tier2-shards.outputs.shard-indices) }}
+
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-tier2-shards.outputs.shard-count }}
+      TEST_GROUP_STRATEGY: roundrobin
+      TEST_TIER: tier2
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci-tier2
+
+      - name: Run tier2 backend test (${{ matrix.instance }} of ${{ needs.calculate-tier2-shards.outputs.shard-count }})
+        env:
+          TEST_GROUP: ${{ matrix.instance }}
+          TOTAL_TEST_GROUPS: ${{ needs.calculate-tier2-shards.outputs.shard-count }}
+        run: |
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # Tier 3 tests - Full stack including Symbolicator (very few tests)
+  backend-test-tier3:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: backend test tier3
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+
+    env:
+      TEST_TIER: tier3
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci-tier3
+
+      - name: Run tier3 backend tests
+        run: |
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # Summary job to report overall status
+  backend-tiered-status:
+    if: always() && needs.files-changed.outputs.backend == 'true'
+    needs: [files-changed, backend-test-tier1, backend-test-tier2, backend-test-tier3]
+    name: backend tiered tests status
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check tier1 status
+        if: needs.backend-test-tier1.result == 'failure'
+        run: exit 1
+
+      - name: Check tier2 status
+        if: needs.backend-test-tier2.result == 'failure'
+        run: exit 1
+
+      - name: Check tier3 status
+        if: needs.backend-test-tier3.result == 'failure'
+        run: exit 1
+
+      - name: All tiers passed
+        run: echo "All tiered backend tests passed!"

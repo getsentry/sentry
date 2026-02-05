@@ -176,6 +176,14 @@ x-sentry-service-config:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
+    # Tiered CI modes for intelligent sharding - tests classified by service requirements
+    # Tier 1: ~83% of tests - no Snuba/Kafka needed
+    backend-ci-tier1: [postgres, redis, bigtable, redis-cluster]
+    # Tier 2: ~17% of tests - needs Snuba (includes Kafka, Clickhouse)
+    backend-ci-tier2: [snuba, postgres, redis, bigtable, redis-cluster]
+    # Tier 3: <1% of tests - needs full stack including Symbolicator
+    backend-ci-tier3:
+      [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:

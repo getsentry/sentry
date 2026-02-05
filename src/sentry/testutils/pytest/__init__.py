@@ -11,4 +11,5 @@ pytest_plugins = [
     "sentry.testutils.pytest.json_report_reruns",
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.thread_leaks.pytest",
+    "sentry.testutils.pytest.tiered_testing",
 ]
