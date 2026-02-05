@@ -1,21 +1,27 @@
 name: Warden
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-# contents: write required for resolving review threads via GraphQL
-# See: https://github.com/orgs/community/discussions/44650
-permissions:
-  contents: write
-  pull-requests: write
-  checks: write
-
 jobs:
   review:
     runs-on: ubuntu-latest
+    env:
+      WARDEN_ANTHROPIC_API_KEY: ${{ secrets.WARDEN_ANTHROPIC_API_KEY }}
+      WARDEN_MODEL: ${{ secrets.WARDEN_MODEL }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.WARDEN_APP_ID }}
+          private-key: ${{ secrets.WARDEN_PRIVATE_KEY }}
+
       - uses: getsentry/warden@v0
         with:
-          anthropic-api-key: ${{ secrets.WARDEN_ANTHROPIC_API_KEY }}
+          github-token: ${{ steps.app-token.outputs.token }}
