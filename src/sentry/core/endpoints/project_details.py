@@ -111,6 +111,9 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizeEnabled = serializers.BooleanField(required=False, allow_null=True)
+
+    preprodDistributionEnabled = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -153,6 +156,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSizeStatusChecksRules",
         "preprodSizeEnabledQuery",
         "preprodDistributionEnabledQuery",
+        "preprodSizeEnabled",
+        "preprodDistributionEnabled",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -789,6 +794,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
                 ]
+
+        if result.get("preprodSizeEnabled") is not None:
+            if project.update_option("sentry:preprod_size_enabled", result["preprodSizeEnabled"]):
+                changed_proj_settings["sentry:preprod_size_enabled"] = result["preprodSizeEnabled"]
         if "preprodSizeEnabledQuery" in result:
             if project.update_option(
                 "sentry:preprod_size_enabled_query",
@@ -796,6 +805,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_size_enabled_query"] = result[
                     "preprodSizeEnabledQuery"
+                ]
+        if result.get("preprodDistributionEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_distribution_enabled", result["preprodDistributionEnabled"]
+            ):
+                changed_proj_settings["sentry:preprod_distribution_enabled"] = result[
+                    "preprodDistributionEnabled"
                 ]
         if "preprodDistributionEnabledQuery" in result:
             if project.update_option(

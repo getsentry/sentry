@@ -1179,6 +1179,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_distribution_enabled_query": options.get(
                 "sentry:preprod_distribution_enabled_query"
             ),
+            "sentry:preprod_size_enabled": self.get_value_with_default(
+                attrs, "sentry:preprod_size_enabled"
+            ),
+            "sentry:preprod_distribution_enabled": self.get_value_with_default(
+                attrs, "sentry:preprod_distribution_enabled"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):
