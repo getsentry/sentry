@@ -138,19 +138,15 @@ function StepButton({
   if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
     return (
       <Tooltip
-        disabled={enableSeerCoding}
-        title={
-          enableSeerCoding
-            ? undefined
-            : tct(
-                '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-                {
-                  settings: (
-                    <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                  ),
-                }
-              )
-        }
+        disabled={!enableSeerCoding}
+        title={tct(
+          '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+          {
+            settings: (
+              <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+            ),
+          }
+        )}
       >
         <Button
           onClick={onStepClick}
@@ -193,19 +189,13 @@ function StepButton({
 
   return (
     <Tooltip
-      disabled={enableSeerCoding}
-      title={
-        enableSeerCoding
-          ? undefined
-          : tct(
-              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-              {
-                settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                ),
-              }
-            )
-      }
+      disabled={!enableSeerCoding}
+      title={tct(
+        '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+        {
+          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+        }
+      )}
     >
       <ButtonBar merged gap="0">
         <Button

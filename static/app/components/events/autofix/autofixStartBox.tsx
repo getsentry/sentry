@@ -23,6 +23,7 @@ interface AutofixStartBoxProps {
 }
 
 function getStoppingPointOptions(organization: Organization) {
+  const enableSeerCoding = organization.enableSeerCoding !== false;
   return [
     {
       key: AutofixStoppingPoint.ROOT_CAUSE,
@@ -42,35 +43,33 @@ function getStoppingPointOptions(organization: Organization) {
       key: AutofixStoppingPoint.CODE_CHANGES,
       label: t('Write Code Changes'),
       value: AutofixStoppingPoint.CODE_CHANGES,
-      disabled: organization.enableSeerCoding === false,
-      tooltip:
-        organization.enableSeerCoding === false
-          ? tct(
-              '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
-              {
-                settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                ),
-              }
-            )
-          : undefined,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
     },
     {
       key: AutofixStoppingPoint.OPEN_PR,
       label: t('Draft a Pull Request'),
       value: AutofixStoppingPoint.OPEN_PR,
-      disabled: organization.enableSeerCoding === false,
-      tooltip:
-        organization.enableSeerCoding === false
-          ? tct(
-              '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
-              {
-                settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                ),
-              }
-            )
-          : undefined,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
     },
   ] as const;
 }
