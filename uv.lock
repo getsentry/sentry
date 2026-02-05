@@ -1559,16 +1559,15 @@ wheels = [
 
 [[package]]
 name = "pydantic"
-version = "1.10.23"
+version = "1.10.26"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a6aa6881a18657fe66b9249e0572a9690ebc6f0b37c32872beb06bc51bff738f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c57bfade74111335062c8ac830d5a14004742ff5b037c52c410d9e9011258bf5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:723cb7f6aca0b471bac9d7dceb42d151d26aabdca655bd4190be3a7de008a054" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-py3-none-any.whl", hash = "sha256:6294bb84565c294a3a6408c52b26a42803f258d5ebfdb3ae896cd7cccfa07211" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8154c13f58d4de5d3a856bb6c909c7370f41fb876a5952a503af6b975265f4ba" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f8af0507bf6118b054a9765fb2e402f18a8b70c964f420d95b525eb711122d62" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-py3-none-any.whl", hash = "sha256:c43ad70dc3ce7787543d563792426a16fd7895e14be4b194b5665e36459dd917" },
 ]
 
 [[package]]
@@ -2224,7 +2223,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=5.9.7" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pycountry", specifier = ">=17.5.14" },
-    { name = "pydantic", specifier = ">=1.10.23,<2" },
+    { name = "pydantic", specifier = ">=1.10.26,<2" },
     { name = "pyjwt", specifier = ">=2.4.0" },
     { name = "pymemcache", specifier = ">=4.0.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
