@@ -26,6 +26,8 @@ class NotificationRecord(Model):
     thread = FlexibleForeignKey(
         "notifications.NotificationThread",
         related_name="records",
+        null=True,
+        on_delete=models.CASCADE,
     )
 
     # Provider identification
