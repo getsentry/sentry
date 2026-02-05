@@ -44,6 +44,7 @@ class SeerCodeReviewRequestType(StrEnum):
 
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
+    github_rate_limit_sensitive: bool | None = False
     trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
