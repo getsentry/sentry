@@ -7,6 +7,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
@@ -76,6 +77,7 @@ function getStoppingPointOptions(organization: Organization) {
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const organization = useOrganization();
+  organization.enableSeerCoding = false;
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
@@ -167,24 +169,30 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               size="sm"
             />
             <ButtonBar merged gap="0">
-              <StyledButton
-                type="submit"
-                priority="primary"
-                disabled={primaryOption.disabled}
-                analyticsEventKey={
-                  message
-                    ? 'autofix.give_instructions_clicked'
-                    : 'autofix.start_fix_clicked'
-                }
-                analyticsEventName={
-                  message
-                    ? 'Autofix: Give Instructions Clicked'
-                    : 'Autofix: Start Fix Clicked'
-                }
-                analyticsParams={{group_id: groupId}}
+              <Tooltip
+                title={primaryOption.tooltip}
+                skipWrapper
+                disabled={!primaryOption.disabled}
               >
-                {primaryOption.label}
-              </StyledButton>
+                <StyledButton
+                  type="submit"
+                  priority="primary"
+                  disabled={primaryOption.disabled}
+                  analyticsEventKey={
+                    message
+                      ? 'autofix.give_instructions_clicked'
+                      : 'autofix.start_fix_clicked'
+                  }
+                  analyticsEventName={
+                    message
+                      ? 'Autofix: Give Instructions Clicked'
+                      : 'Autofix: Start Fix Clicked'
+                  }
+                  analyticsParams={{group_id: groupId}}
+                >
+                  {primaryOption.label}
+                </StyledButton>
+              </Tooltip>
               <DropdownMenu
                 items={dropdownOptions}
                 trigger={(triggerProps, isOpen) => (
