@@ -17,7 +17,6 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import {CodecovStatusCode} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
@@ -28,22 +27,6 @@ import useProjects from 'sentry/utils/useProjects';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
-
-// Keep this list in sync with PLATFORMS_CONFIG in auto_source_code_config/constants.py
-const supportedStacktracePlatforms: PlatformKey[] = [
-  'clojure',
-  'csharp',
-  'elixir', // Elixir is not listed on the main list
-  'go',
-  'groovy',
-  'java',
-  'javascript',
-  'node',
-  'php',
-  'python',
-  'ruby',
-  'scala',
-];
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];
 
@@ -231,11 +214,8 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
     event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
-  const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
-    event.platform as PlatformKey
-  );
 
-  const hideErrors = isMinifiedJsError || isUnsupportedPlatform || disableSetup;
+  const hideErrors = isMinifiedJsError || disableSetup;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
     frame.sourceLink &&

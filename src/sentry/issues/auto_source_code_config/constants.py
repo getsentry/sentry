@@ -10,7 +10,6 @@ DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
 STACK_ROOT_MAX_LEVEL = 4
 
-# Any new languages should also require updating the stacktraceLink.tsx
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
 PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
     # C#, F#, VB, PowerShell, C# Script, F# Script
