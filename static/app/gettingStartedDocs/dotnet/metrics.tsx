@@ -100,7 +100,7 @@ export const metrics: OnboardingConfig = {
 
 SentrySdk.Init(options =>
 {
-    options.Dsn = ${params.dsn.public};
+    options.Dsn = "${params.dsn.public}";
 });
 
 SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
