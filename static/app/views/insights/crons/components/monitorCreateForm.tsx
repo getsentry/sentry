@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
@@ -56,6 +56,33 @@ export default function MonitorCreateForm() {
     })
   );
 
+  // Track whether initialization is complete to avoid validating during setup
+  const isInitialized = useRef(false);
+  // Track whether we've done an initial full validation
+  const hasValidatedOnce = useRef(false);
+
+  useEffect(() => {
+    // Mark initialization complete after first render cycle
+    isInitialized.current = true;
+  }, []);
+
+  // Validate entire form when any field loses focus (via event bubbling)
+  const handleFormBlur = useCallback(() => {
+    if (!isInitialized.current) {
+      return;
+    }
+    form.current.validateForm();
+  }, []);
+
+  // On first meaningful field change, validate entire form to surface sibling errors
+  const handleFieldChange = useCallback(() => {
+    if (!isInitialized.current || hasValidatedOnce.current) {
+      return;
+    }
+    hasValidatedOnce.current = true;
+    form.current.validateForm();
+  }, []);
+
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId + '')
@@ -85,154 +112,159 @@ export default function MonitorCreateForm() {
   }
 
   return (
-    <Form
-      allowUndo
-      requireChanges
-      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-      apiMethod="POST"
-      model={form.current}
-      initialData={{
-        project: selectedProject ? selectedProject.slug : null,
-        type: DEFAULT_MONITOR_TYPE,
-        'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
-      }}
-      onSubmitSuccess={onCreateMonitor}
-      submitLabel={t('Create')}
-      mapFormErrors={mapMonitorFormErrors}
-    >
-      <FieldContainer>
-        <ProjectOwnerNameInputs>
-          <SentryProjectSelectorField
-            name="project"
-            projects={filteredProjects}
-            placeholder={t('Choose Project')}
-            disabledReason={t('Existing monitors cannot be moved between projects')}
-            valueIsSlug
-            required
-            stacked
-            inline={false}
-          />
-          <SentryMemberTeamSelectorField
-            name="owner"
-            placeholder={t('Assign Ownership')}
-            stacked
-            inline={false}
-          />
-          <TextField
-            name="name"
-            placeholder={t('My Cron Job')}
-            required
-            stacked
-            inline={false}
-          />
-        </ProjectOwnerNameInputs>
-        <SubHeading>{t('Schedule')}</SubHeading>
-        <ScheduleOptions>
+    <div onBlur={handleFormBlur}>
+      <Form
+        allowUndo
+        requireChanges
+        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+        apiMethod="POST"
+        model={form.current}
+        onFieldChange={handleFieldChange}
+        initialData={{
+          project: selectedProject ? selectedProject.slug : null,
+          type: DEFAULT_MONITOR_TYPE,
+          'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
+        }}
+        onSubmitSuccess={onCreateMonitor}
+        submitLabel={t('Create')}
+        mapFormErrors={mapMonitorFormErrors}
+      >
+        <FieldContainer>
+          <ProjectOwnerNameInputs>
+            <SentryProjectSelectorField
+              name="project"
+              projects={filteredProjects}
+              placeholder={t('Choose Project')}
+              disabledReason={t('Existing monitors cannot be moved between projects')}
+              valueIsSlug
+              required
+              stacked
+              inline={false}
+            />
+            <SentryMemberTeamSelectorField
+              name="owner"
+              placeholder={t('Assign Ownership')}
+              stacked
+              inline={false}
+            />
+            <TextField
+              name="name"
+              placeholder={t('My Cron Job')}
+              required
+              stacked
+              inline={false}
+            />
+          </ProjectOwnerNameInputs>
+          <SubHeading>{t('Schedule')}</SubHeading>
+          <ScheduleOptions>
+            <Observer>
+              {() => {
+                const currScheduleType = form.current.getValue('config.scheduleType');
+                const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
+                const parsedSchedule = form.current.getError('config.schedule')
+                  ? null
+                  : crontabAsText(
+                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
+                    );
+
+                return (
+                  <Fragment>
+                    <SchedulePanel
+                      highlighted={selectedCrontab}
+                      onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
+                    >
+                      <PanelBody withPadding>
+                        <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
+                        <CrontabInputs>
+                          <TextField
+                            name="config.schedule"
+                            placeholder="* * * * *"
+                            defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
+                            css={css`
+                              input {
+                                font-family: ${theme.font.family.mono};
+                              }
+                            `}
+                            required={selectedCrontab}
+                            stacked
+                            inline={false}
+                            hideControlState={!selectedCrontab}
+                          />
+                          <SelectField
+                            name="config.timezone"
+                            defaultValue="UTC"
+                            options={timezoneOptions}
+                            required={selectedCrontab}
+                            stacked
+                            inline={false}
+                          />
+                          <CronstrueText>
+                            {parsedSchedule ?? t('(invalid schedule)')}
+                          </CronstrueText>
+                        </CrontabInputs>
+                      </PanelBody>
+                    </SchedulePanel>
+                    <SchedulePanel
+                      highlighted={!selectedCrontab}
+                      onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
+                    >
+                      <PanelBody withPadding>
+                        <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
+                        <IntervalInputs>
+                          <Label>{t('Every')}</Label>
+                          <NumberField
+                            name="config.schedule.frequency"
+                            placeholder="e.g. 1"
+                            defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
+                            required={!selectedCrontab}
+                            stacked
+                            inline={false}
+                            hideControlState={selectedCrontab}
+                          />
+                          <SelectField
+                            name="config.schedule.interval"
+                            options={getScheduleIntervals(
+                              Number(
+                                form.current.getValue('config.schedule.frequency') ?? 1
+                              )
+                            )}
+                            defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalUnit}
+                            required={!selectedCrontab}
+                            stacked
+                            inline={false}
+                          />
+                        </IntervalInputs>
+                      </PanelBody>
+                    </SchedulePanel>
+                  </Fragment>
+                );
+              }}
+            </Observer>
+          </ScheduleOptions>
           <Observer>
             {() => {
-              const currScheduleType = form.current.getValue('config.scheduleType');
-              const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
-              const parsedSchedule = form.current.getError('config.schedule')
-                ? null
-                : crontabAsText(
-                    form.current.getValue<string>('config.schedule')?.toString() ?? ''
-                  );
-
-              return (
-                <Fragment>
-                  <SchedulePanel
-                    highlighted={selectedCrontab}
-                    onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
-                  >
-                    <PanelBody withPadding>
-                      <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
-                      <CrontabInputs>
-                        <TextField
-                          name="config.schedule"
-                          placeholder="* * * * *"
-                          defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
-                          css={css`
-                            input {
-                              font-family: ${theme.font.family.mono};
-                            }
-                          `}
-                          required={selectedCrontab}
-                          stacked
-                          inline={false}
-                          hideControlState={!selectedCrontab}
-                        />
-                        <SelectField
-                          name="config.timezone"
-                          defaultValue="UTC"
-                          options={timezoneOptions}
-                          required={selectedCrontab}
-                          stacked
-                          inline={false}
-                        />
-                        <CronstrueText>
-                          {parsedSchedule ?? t('(invalid schedule)')}
-                        </CronstrueText>
-                      </CrontabInputs>
-                    </PanelBody>
-                  </SchedulePanel>
-                  <SchedulePanel
-                    highlighted={!selectedCrontab}
-                    onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
-                  >
-                    <PanelBody withPadding>
-                      <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
-                      <IntervalInputs>
-                        <Label>{t('Every')}</Label>
-                        <NumberField
-                          name="config.schedule.frequency"
-                          placeholder="e.g. 1"
-                          defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
-                          required={!selectedCrontab}
-                          stacked
-                          inline={false}
-                          hideControlState={selectedCrontab}
-                        />
-                        <SelectField
-                          name="config.schedule.interval"
-                          options={getScheduleIntervals(
-                            Number(
-                              form.current.getValue('config.schedule.frequency') ?? 1
-                            )
-                          )}
-                          defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalUnit}
-                          required={!selectedCrontab}
-                          stacked
-                          inline={false}
-                        />
-                      </IntervalInputs>
-                    </PanelBody>
-                  </SchedulePanel>
-                </Fragment>
+              const scheduleType = form.current.getValue('config.scheduleType');
+              const cronSchedule = form.current.getValue('config.schedule');
+              const timezone = form.current.getValue('config.timezone');
+              const intervalFrequency = form.current.getValue(
+                'config.schedule.frequency'
               );
+              const intervalUnit = form.current.getValue('config.schedule.interval');
+
+              const schedule = {
+                scheduleType,
+                cronSchedule,
+                intervalFrequency,
+                intervalUnit,
+                timezone: typeof timezone === 'string' ? timezone : undefined,
+              };
+
+              return <MockTimelineVisualization schedule={schedule} />;
             }}
           </Observer>
-        </ScheduleOptions>
-        <Observer>
-          {() => {
-            const scheduleType = form.current.getValue('config.scheduleType');
-            const cronSchedule = form.current.getValue('config.schedule');
-            const timezone = form.current.getValue('config.timezone');
-            const intervalFrequency = form.current.getValue('config.schedule.frequency');
-            const intervalUnit = form.current.getValue('config.schedule.interval');
-
-            const schedule = {
-              scheduleType,
-              cronSchedule,
-              intervalFrequency,
-              intervalUnit,
-              timezone: typeof timezone === 'string' ? timezone : undefined,
-            };
-
-            return <MockTimelineVisualization schedule={schedule} />;
-          }}
-        </Observer>
-      </FieldContainer>
-    </Form>
+        </FieldContainer>
+      </Form>
+    </div>
   );
 }
 
