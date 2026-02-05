@@ -87,7 +87,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(as: HeadingProps['as']): FontSize {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): HeadingSize {
   switch (as) {
     case 'h1':
       return '2xl';
