@@ -508,8 +508,8 @@ class ScheduleTaskTest(TestCase):
             "data": {
                 "repo": {
                     "provider": "github",
-                    "owner": "owner",
-                    "name": "repo",
+                    "owner": "test-owner",
+                    "name": "test-repo",
                     "external_id": self.repo.external_id,
                     "base_commit_sha": "abc123",
                     "organization_id": self.organization.id,
@@ -565,8 +565,8 @@ class ScheduleTaskTest(TestCase):
             "data": {
                 "repo": {
                     "provider": "github",
-                    "owner": "owner",
-                    "name": "repo",
+                    "owner": "test-owner",
+                    "name": "test-repo",
                     "external_id": self.repo.external_id,
                     "base_commit_sha": "abc123",
                     # organization_id intentionally omitted
@@ -610,8 +610,8 @@ class ScheduleTaskTest(TestCase):
             "data": {
                 "repo": {
                     "provider": "github",
-                    "owner": "owner",
-                    "name": "repo",
+                    "owner": "test-owner",
+                    "name": "test-repo",
                     "external_id": self.repo.external_id,
                     "base_commit_sha": "abc123",
                     "integration_id": "99999",
@@ -659,8 +659,8 @@ class ScheduleTaskTest(TestCase):
             "data": {
                 "repo": {
                     "provider": "github",
-                    "owner": "owner",
-                    "name": "repo",
+                    "owner": "test-owner",
+                    "name": "test-repo",
                     "external_id": self.repo.external_id,
                     "base_commit_sha": "abc123",
                     "organization_id": self.organization.id,
@@ -708,8 +708,8 @@ class ScheduleTaskTest(TestCase):
             "data": {
                 "repo": {
                     "provider": "github",
-                    "owner": "owner",
-                    "name": "repo",
+                    "owner": "test-owner",
+                    "name": "test-repo",
                     "external_id": self.repo.external_id,
                     "base_commit_sha": "abc123",
                     "organization_id": self.organization.id,
