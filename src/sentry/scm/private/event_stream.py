@@ -21,7 +21,9 @@ def is_event_type(tp: type):
 class SourceCodeManagerEventStream:
 
     def __init__(self):
-        self.__listeners: DefaultDict[EventType, list[Callable[[object], None]]] = defaultdict(list)
+        self.__listeners: DefaultDict[type[EventType], list[Callable[[EventType], None]]] = (
+            defaultdict(list)
+        )
 
     def listen(self, fn: Callable[[EventType], None]) -> Callable[[EventType], None]:
         """
