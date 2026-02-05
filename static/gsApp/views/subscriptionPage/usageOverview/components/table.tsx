@@ -9,6 +9,7 @@ import {
   checkIsAddOnChildCategory,
   getBilledCategory,
   getReservedBudgetCategoryForAddOn,
+  productIsEnabled,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {sortCategories} from 'getsentry/utils/dataCategory';
@@ -29,14 +30,28 @@ function UsageOverviewTable({
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 
+  // Partition regular categories into enabled and disabled (locked) groups
   const filteredCategories = sortedCategories.filter(
     categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
   );
+  const enabledCategories = filteredCategories.filter(categoryInfo =>
+    productIsEnabled(subscription, categoryInfo.category)
+  );
+  const disabledCategories = filteredCategories.filter(
+    categoryInfo => !productIsEnabled(subscription, categoryInfo.category)
+  );
 
+  // Partition add-on categories into enabled and disabled (locked) groups
   const availableAddOns = Object.values(subscription.planDetails.addOnCategories).filter(
     // show add-ons regardless of whether they're enabled
     // as long as they're available
     addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
+  );
+  const enabledAddOns = availableAddOns.filter(addOnInfo =>
+    productIsEnabled(subscription, addOnInfo.apiName)
+  );
+  const disabledAddOns = availableAddOns.filter(
+    addOnInfo => !productIsEnabled(subscription, addOnInfo.apiName)
   );
 
   const renderCategoryRow = (categoryInfo: (typeof sortedCategories)[number]) => {
@@ -134,8 +149,11 @@ function UsageOverviewTable({
         </TableHeaderRow>
       </thead>
       <tbody>
-        {filteredCategories.map(renderCategoryRow)}
-        {availableAddOns.map(renderAddOnRows)}
+        {/* Render enabled products first, then disabled (locked) products at the bottom */}
+        {enabledCategories.map(renderCategoryRow)}
+        {enabledAddOns.map(renderAddOnRows)}
+        {disabledCategories.map(renderCategoryRow)}
+        {disabledAddOns.map(renderAddOnRows)}
       </tbody>
     </Table>
   );
