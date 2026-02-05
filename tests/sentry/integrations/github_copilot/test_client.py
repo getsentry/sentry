@@ -72,6 +72,7 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.status == "completed"
         assert result.artifacts is not None
         assert len(result.artifacts) == 1
+        assert result.artifacts[0].data is not None
         assert result.artifacts[0].data.type == "pull"
         assert result.artifacts[0].data.global_id == "PR_abc123"
 
