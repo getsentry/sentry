@@ -2516,6 +2516,19 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["elf_code", "elf_debug"]},
         "is_public": True,
     },
+    # === Gaming / Proton ===
+    # Valve's Proton compatibility layer for running Windows games on Linux.
+    # This symbol server provides debug symbols for Wine/Proton components.
+    # See: https://github.com/ValveSoftware/Proton/blob/proton_10.0/docs/DEBUGGING-WINDOWS.md
+    "proton": {
+        "type": "http",
+        "id": "sentry:proton",
+        "name": "SteamOS / Proton",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://proton-archive.steamos.cloud/",
+        "is_public": True,
+    },
 }
 
 # Relay
