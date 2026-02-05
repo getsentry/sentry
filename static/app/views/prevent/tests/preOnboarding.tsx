@@ -133,7 +133,10 @@ export default function TestsPreOnboardingPage() {
                       />
                     )}
                   </Access>
-                  <LinkButton priority="default" href="/settings/integrations/github">
+                  <LinkButton
+                    priority="default"
+                    href={`/settings/${organization.slug}/integrations/github`}
+                  >
                     Learn more
                   </LinkButton>
                 </Flex>
@@ -147,7 +150,10 @@ export default function TestsPreOnboardingPage() {
                 >
                   {INSTRUCTIONS_TEXT.mainCTA}
                 </LinkButton>
-                <LinkButton priority="default" href="/settings/integrations/github">
+                <LinkButton
+                  priority="default"
+                  href={`/settings/${organization.slug}/integrations/github`}
+                >
                   Learn more
                 </LinkButton>
               </Flex>

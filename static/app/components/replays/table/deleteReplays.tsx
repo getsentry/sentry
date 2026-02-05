@@ -29,6 +29,7 @@ import useDeleteReplays, {
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -44,6 +45,7 @@ interface Props {
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
+  const organization = useOrganization();
   const {project: selectedProjectIds} = useLocationQuery({
     fields: {
       project: decodeList,
@@ -71,7 +73,7 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   });
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
-  const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const settingsPath = `/settings/${organization.slug}/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
   const queryKey = useReplayBulkDeleteAuditLogQueryKey({
     projectSlug: project?.slug ?? '',
@@ -245,7 +247,8 @@ function ReplayPreviewTable({
 }
 
 function Title({children, project}: {children: React.ReactNode; project: Project}) {
-  const settingsPath = `/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const organization = useOrganization();
+  const settingsPath = `/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
   return (
     <Fragment>
       <p>

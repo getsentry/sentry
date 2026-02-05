@@ -97,7 +97,10 @@ describe('CursorIntegrationCta', () => {
       const installLink = await screen.findByRole('button', {
         name: 'Install Cursor Integration',
       });
-      expect(installLink).toHaveAttribute('href', '/settings/integrations/cursor/');
+      expect(installLink).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/integrations/cursor/`
+      );
     });
 
     it('includes documentation link', async () => {
@@ -198,7 +201,7 @@ describe('CursorIntegrationCta', () => {
       });
       expect(settingsLink).toHaveAttribute(
         'href',
-        `/settings/projects/${project.slug}/seer/`
+        `/settings/${organization.slug}/projects/${project.slug}/seer/`
       );
     });
 

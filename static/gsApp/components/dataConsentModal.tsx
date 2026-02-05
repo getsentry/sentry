@@ -130,7 +130,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         <LinkButton
           analyticsEventKey="data_consent_modal.settings"
           analyticsEventName="Data Consent Modal: Settings"
-          href="/settings/legal/#aggregatedDataConsent"
+          href={`/settings/${organization.slug}/legal/#aggregatedDataConsent`}
           busy={isPending}
         >
           {t('View Settings')}
