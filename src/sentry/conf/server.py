@@ -835,7 +835,9 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks",
+    "sentry.autopilot.tasks.missing_sdk_integration",
+    "sentry.autopilot.tasks.sdk_update",
+    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -1094,6 +1096,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
         "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+    },
+    "autopilot-run-trace-instrumentation-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
