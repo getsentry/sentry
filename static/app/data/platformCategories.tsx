@@ -405,6 +405,7 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'apple',
   'apple-ios',
   'apple-macos',
+  'react-native',
   'go',
   'go-echo',
   'go-fasthttp',
