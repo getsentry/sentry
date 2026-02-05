@@ -414,10 +414,23 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
 
         trace_metric = extract_trace_metric_aggregate_arguments(resolved_arguments)
 
+        # The search type for the first argument is always going to be 'number', but
+        # the real unit for the metric is stored in the metric_unit field of the trace metric
+        resolved_search_type = search_type
+        if (
+            trace_metric
+            and trace_metric.metric_unit
+            and (
+                trace_metric.metric_unit in constants.DURATION_TYPE
+                or trace_metric.metric_unit in constants.SIZE_TYPE
+            )
+        ):
+            resolved_search_type = cast(constants.SearchType, trace_metric.metric_unit)
+
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
-            search_type=search_type,
+            search_type=resolved_search_type,
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation_mode=resolve_extrapolation_mode(

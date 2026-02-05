@@ -539,3 +539,65 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
+
+    def test_aggregate_with_unit_returns_unit_in_meta(self):
+        """Test that when a unit is specified in the aggregate, it appears in meta["units"]."""
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric(
+                "request_duration", 200.0, "distribution", metric_unit="second"
+            ),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["avg(value,request_duration,distribution,millisecond)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0]["avg(value,request_duration,distribution,millisecond)"] == 100.0
+
+        # The field type should be "duration"
+        assert meta["fields"]["avg(value,request_duration,distribution,millisecond)"] == "duration"
+
+        # The unit should be returned in meta["units"]
+        assert "units" in meta, "meta should contain 'units' key"
+        assert (
+            meta["units"]["avg(value,request_duration,distribution,millisecond)"] == "millisecond"
+        )
+
+    def test_aggregate_without_unit_returns_null_unit_in_meta(self):
+        """Test that when no unit is specified (using '-'), meta["units"] is null for that field."""
+        trace_metrics = [
+            self.create_trace_metric("request_count", 5.0, "counter"),
+            self.create_trace_metric("request_count", 3.0, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["sum(value,request_count,counter,-)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+
+        # The field type should be "number"
+        assert meta["fields"]["sum(value,request_count,counter,-)"] == "number"
+
+        # When unit is "-", the units value should be null
+        assert "units" in meta, "meta should contain 'units' key"
+        assert meta["units"]["sum(value,request_count,counter,-)"] is None

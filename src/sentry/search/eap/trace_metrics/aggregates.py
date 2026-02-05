@@ -11,6 +11,13 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.validator import literal_validator
 
+VALID_METRIC_UNITS = [
+    "",
+    "-",
+    *constants.DURATION_TYPE,
+    *constants.SIZE_TYPE,
+]
+
 TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.metric_name", type=AttributeKey.Type.TYPE_STRING),
     AttributeKey(name="sentry.metric_type", type=AttributeKey.Type.TYPE_STRING),
@@ -44,7 +51,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
         attribute_resolver=count_argument_resolver_optimized(
             TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES
@@ -81,7 +92,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "sum": TraceMetricAggregateDefinition(
@@ -111,7 +126,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "avg": TraceMetricAggregateDefinition(
@@ -142,7 +161,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "p50": TraceMetricAggregateDefinition(
@@ -173,7 +196,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "p75": TraceMetricAggregateDefinition(
@@ -204,7 +231,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "p90": TraceMetricAggregateDefinition(
@@ -235,7 +266,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "p95": TraceMetricAggregateDefinition(
@@ -266,7 +301,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "p99": TraceMetricAggregateDefinition(
@@ -297,7 +336,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "max": TraceMetricAggregateDefinition(
@@ -328,7 +371,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
     "min": TraceMetricAggregateDefinition(
@@ -359,7 +406,11 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(VALID_METRIC_UNITS),
+                default_arg="",
+            ),
         ],
     ),
 }
