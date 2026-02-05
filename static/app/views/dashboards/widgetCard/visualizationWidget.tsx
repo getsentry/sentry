@@ -148,20 +148,21 @@ function VisualizationWidgetContent({
   const organization = useOrganization();
   const location = useLocation();
 
-  const widgetQuery = widget.queries[0];
-  const aggregates = widgetQuery?.aggregates ?? [];
-  const columns = widgetQuery?.columns ?? [];
+  const firstWidgetQuery = widget.queries[0];
+  const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
+  const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
 
   const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
-    .map((series, index) => {
-      let yAxis = aggregates[0];
-      const alias = widget?.queries[index]?.name || undefined;
-      if (aggregates.length > 1) {
-        const splitSeriesName = series.seriesName.split(' : ');
-        yAxis =
-          aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
-          aggregates[0];
-      }
+    .map(series => {
+      const splitSeriesName = series.seriesName.split(' : ');
+
+      const yAxis =
+        aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
+        aggregates[0];
+
+      const alias =
+        widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
+        undefined;
 
       const timeSeries = transformLegacySeriesToTimeSeries(
         series,
@@ -211,7 +212,7 @@ function VisualizationWidgetContent({
 
   // We only support one column for legend breakdown right now
   const firstColumn = columns[0];
-  const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
+  const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
 
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
