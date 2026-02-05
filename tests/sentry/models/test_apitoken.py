@@ -371,25 +371,46 @@ class ApiTokenTest(TestCase):
         assert token.application is None
         assert token.get_allowed_origins() == []
 
-    def test_get_allowed_origins_public_client_allows_all(self) -> None:
-        """Public OAuth clients (SPAs, CLIs) should allow all origins.
+    def test_get_allowed_origins_public_client_with_homepage_url(self) -> None:
+        """Public OAuth clients should only allow CORS from their homepage_url.
 
-        For public clients, the token itself is the security credential.
-        Origin validation exists to prevent CSRF on cookie-based sessions,
-        but with bearer tokens an attacker would need the token itself.
+        RFC 8252 §8.6: Public clients should be bound to a registered website.
+        This prevents client impersonation attacks where an attacker uses your
+        public client_id on a phishing domain like sentry.gg.
         """
         user = self.create_user()
-        # Create a public OAuth application (client_secret=None)
+        # Create a public OAuth application with homepage_url
         app = ApiApplication.objects.create(
             owner=user,
-            allowed_origins="https://specific-origin.com",
+            allowed_origins="https://ignored.com",  # Ignored for public clients
             client_secret=None,  # Public client
+            homepage_url="https://cli.sentry.io",
         )
         token = ApiToken.objects.create(user_id=user.id, application=app)
 
-        # Public clients should allow all origins regardless of app config
+        # Public clients should only allow their homepage_url
         assert app.is_public
-        assert token.get_allowed_origins() == ["*"]
+        assert token.get_allowed_origins() == ["https://cli.sentry.io"]
+
+    def test_get_allowed_origins_public_client_no_homepage_url(self) -> None:
+        """Public OAuth clients without homepage_url should return empty list.
+
+        If no homepage_url is set, the public client is assumed to be a native
+        app using device flow only, where no browser CORS is needed.
+        """
+        user = self.create_user()
+        # Create a public OAuth application without homepage_url
+        app = ApiApplication.objects.create(
+            owner=user,
+            allowed_origins="https://ignored.com",
+            client_secret=None,  # Public client
+            homepage_url=None,  # No homepage URL
+        )
+        token = ApiToken.objects.create(user_id=user.id, application=app)
+
+        # No homepage_url = no CORS (device flow only)
+        assert app.is_public
+        assert token.get_allowed_origins() == []
 
     def test_get_allowed_origins_confidential_client_uses_app_config(self) -> None:
         """Confidential clients should use their configured allowed origins."""

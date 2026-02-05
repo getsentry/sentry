@@ -465,13 +465,16 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def get_allowed_origins(self) -> list[str]:
         if self.application:
-            # Public OAuth clients (SPAs, CLIs, native apps) use token-based auth
-            # where the token itself is the security credential. Origin validation
-            # exists to prevent CSRF on cookie-based sessions, but with bearer tokens
-            # an attacker would need the token itself (which CSRF can't steal).
-            # Allow all origins for public clients to enable legitimate browser usage.
             if self.application.is_public:
-                return ["*"]
+                # RFC 8252 §8.6: Public clients should be bound to a registered website.
+                # Only allow CORS from the homepage_url to prevent client impersonation
+                # attacks where an attacker uses your public client_id on a phishing domain.
+                #
+                # If no homepage_url is set, return empty list (device flow only from
+                # native apps - no browser CORS needed).
+                if self.application.homepage_url:
+                    return [self.application.homepage_url]
+                return []
             return self.application.get_allowed_origins()
         return []
 
