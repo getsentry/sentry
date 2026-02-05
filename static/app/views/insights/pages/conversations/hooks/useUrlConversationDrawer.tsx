@@ -32,6 +32,7 @@ export function useUrlConversationDrawer() {
       options?: Parameters<typeof baseOpenDrawer>[1] & {
         conversationId?: string;
         endTimestamp?: number;
+        focusedTool?: string;
         startTimestamp?: number;
       }
     ) => {
@@ -39,6 +40,7 @@ export function useUrlConversationDrawer() {
         conversationId: optionsConversationId,
         startTimestamp: optionsStartTimestamp,
         endTimestamp: optionsEndTimestamp,
+        focusedTool: optionsFocusedTool,
         onClose,
         ariaLabel,
         ...rest
@@ -48,6 +50,7 @@ export function useUrlConversationDrawer() {
         conversationId: optionsConversationId,
         startTimestamp: optionsStartTimestamp,
         endTimestamp: optionsEndTimestamp,
+        focusedTool: optionsFocusedTool,
       });
 
       return baseOpenDrawer(renderer, {

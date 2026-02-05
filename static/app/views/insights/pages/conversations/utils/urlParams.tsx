@@ -9,6 +9,7 @@ export enum ConversationDrawerUrlParams {
   SELECTED_SPAN = 'conversationSpan',
   START_TIMESTAMP = 'conversationStart',
   END_TIMESTAMP = 'conversationEnd',
+  FOCUSED_TOOL = 'conversationTool',
 }
 
 export function useConversationDrawerQueryState() {
@@ -18,6 +19,7 @@ export function useConversationDrawerQueryState() {
       spanId: parseAsString,
       startTimestamp: parseAsInteger,
       endTimestamp: parseAsInteger,
+      focusedTool: parseAsString,
     },
     {
       history: 'replace',
@@ -26,6 +28,7 @@ export function useConversationDrawerQueryState() {
         spanId: ConversationDrawerUrlParams.SELECTED_SPAN,
         startTimestamp: ConversationDrawerUrlParams.START_TIMESTAMP,
         endTimestamp: ConversationDrawerUrlParams.END_TIMESTAMP,
+        focusedTool: ConversationDrawerUrlParams.FOCUSED_TOOL,
       },
     }
   );

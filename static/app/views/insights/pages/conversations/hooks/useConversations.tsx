@@ -25,6 +25,8 @@ export interface Conversation {
   llmCalls: number;
   startTimestamp: number;
   toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
   totalCost: number | null;
   totalTokens: number;
   traceCount: number;

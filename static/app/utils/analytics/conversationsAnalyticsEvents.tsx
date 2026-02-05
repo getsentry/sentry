@@ -2,7 +2,8 @@ export type ConversationDrawerOpenSource =
   | 'direct_link'
   | 'table_conversation_id'
   | 'table_input'
-  | 'table_output';
+  | 'table_output'
+  | 'table_tool_tag';
 
 export type ConversationsEventParameters = {
   'conversations.drawer.open': {
