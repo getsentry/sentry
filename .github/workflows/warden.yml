@@ -1,0 +1,21 @@
+name: Warden
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# contents: write required for resolving review threads via GraphQL
+# See: https://github.com/orgs/community/discussions/44650
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: getsentry/warden@v0
+        with:
+          anthropic-api-key: ${{ secrets.WARDEN_ANTHROPIC_API_KEY }}
