@@ -86,7 +86,8 @@ const MergedButtonBarStyles = () => css`
 
       &[role='presentation'] > button,
       &[role='presentation'] > a,
-      & > .dropdown-actor > button & > .dropdown-actor > a {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         margin-left: -1px;
