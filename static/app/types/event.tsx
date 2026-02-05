@@ -178,8 +178,10 @@ export type Frame = {
   lineNo: number | null;
   module: string | null;
   package: string | null;
+  parentIndex: number | null;
   platform: PlatformKey | null;
   rawFunction: string | null;
+  sampleCount: number | null;
   symbol: string | null;
   symbolAddr: string | null;
   trust: any | null;

@@ -412,7 +412,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
   const frames: Frame[] = [];
 
   while (node && !node.isRoot) {
-    const frame = {
+    const frame: Frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
       context: [],
@@ -423,8 +423,10 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
       lineNo: node.frame.line ?? null,
       module: node.frame.module ?? null,
       package: node.frame.package ?? null,
+      parentIndex: null,
       platform,
       rawFunction: null,
+      sampleCount: null,
       symbol: node.frame.symbol ?? null,
       symbolAddr: node.frame.symbolAddr ?? null,
       symbolicatorStatus: node.frame.symbolicatorStatus,

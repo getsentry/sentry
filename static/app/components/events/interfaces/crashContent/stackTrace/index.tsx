@@ -9,6 +9,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import Content from './content';
+import {StacktraceFlamegraph} from './flamegraph';
 import {NativeContent} from './nativeContent';
 import rawStacktraceContent from './rawContent';
 
@@ -40,6 +41,15 @@ export function StackTraceContent({
   lockAddress,
 }: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (stackView === StackView.FLAMEGRAPH && stacktrace.frames) {
+    return (
+      <ErrorBoundary mini>
+        <StacktraceFlamegraph frames={stacktrace.frames} />
+      </ErrorBoundary>
+    );
+  }
+
   if (stackView === StackView.RAW) {
     return (
       <ErrorBoundary mini>
