@@ -70,46 +70,98 @@ These errors may be transient (server issues) rather than configuration problems
 
 ### Issue Types
 
-Depending on the fingerprinting strategy chosen (see below), we'll create either:
-- **One GroupType** for all sourcemap configuration issues (Option C - recommended)
-- **Multiple GroupTypes** for different error categories (Options A/B)
+We'll create one GroupType (`sourcemap_configuration`) for all sourcemap configuration issues. See Fingerprinting Strategy below for rationale.
 
 ### Fingerprinting Strategy
 
-**Option A: Separate issue types by error category**
+Fingerprinting determines how sourcemap issues are grouped. There are two orthogonal decisions:
 
-| Issue Type | Fingerprint | Rationale |
-|------------|-------------|-----------|
-| `sourcemap_missing_sourcemap` | `{project_id}:sourcemap:missing:{url_host}` | Group by domain |
-| `sourcemap_missing_source` | `{project_id}:sourcemap:no_source:{url_host}` | Group by domain (covers `missing_source` and `missing_source_content`) |
-| `sourcemap_scraping_disabled` | `{project_id}:sourcemap:scraping_disabled` | Project-wide issue |
+#### Decision 1: Error Granularity
 
-**Option B: Single issue type for missing sourcemap/source errors**
+Should we create separate issues for different error types, or group all sourcemap problems together?
 
-| Issue Type | Fingerprint | Rationale |
-|------------|-------------|-----------|
-| `sourcemap_configuration` | `{project_id}:sourcemap:{url_host}` | All sourcemap errors for a domain go to one issue |
-| `sourcemap_scraping_disabled` | `{project_id}:sourcemap:scraping_disabled` | Keep separate (different resolution) |
+**Option: Separate issues by error type**
+- `sourcemap_missing_sourcemap` - can't find the .map file
+- `sourcemap_missing_source` - sourcemap missing source content
+- `sourcemap_scraping_disabled` - scraping is off
+- etc.
 
-Option B rationale: `missing_sourcemap`, `missing_source`, and `missing_source_content` all funnel users through the same "set up source maps" workflow. Separating them may create noise without actionable distinction.
+**Option: Single issue for all sourcemap problems (Recommended)**
+- One `sourcemap_configuration` issue type regardless of specific error
+- Rationale: Users don't care *why* sourcemaps aren't working—they just want them fixed. The existing wizard covers all resolution paths (Debug IDs, Releases, Hosting Publicly) in one UI. Separating by error type creates noise without actionable distinction.
 
-**Option C: Single issue type for ALL sourcemap problems**
+#### Decision 2: Scope Granularity
 
-| Issue Type | Fingerprint | Rationale |
-|------------|-------------|-----------|
-| `sourcemap_configuration` | `{project_id}:sourcemap:{url_host}` | All sourcemap errors including scraping go to one issue |
+Should we create one issue per project or one issue per domain?
 
-Option C rationale: The existing wizard covers all three resolution paths (Debug IDs, Releases, Hosting Publicly/scraping) in one UI. Users end up in the same troubleshooting flow regardless of error type. One issue per domain keeps things simple.
+**Option: Per-project (Recommended)**
+- Fingerprint: `{project_id}:sourcemap`
+- One issue covers ALL sourcemap problems across all domains
+- Simpler: fewer issues to track, one place to see "sourcemaps are broken"
+- Aligns with how users think about the problem—"my project's sourcemaps aren't working"
+- Auto-resolves when ALL sourcemaps in the project work
 
-Example: `123:sourcemap:app.example.com` groups ALL sourcemap configuration errors for `https://app.example.com/*`.
+**Option: Per-domain**
+- Fingerprint: `{project_id}:sourcemap:{url_host}`
+- Separate issue for each domain (e.g., `app.example.com`, `cdn.example.com`)
+- More granular tracking—each domain's issue resolves independently
+- Could create noise if project has many domains with issues
+- Example: `123:sourcemap:app.example.com` groups all sourcemap errors for `https://app.example.com/*`
 
-**Recommendation: Option C.** Users don't care *why* their sourcemaps aren't working - they just aren't. Funnel them to one place and show them how to fix it. Simpler for users, simpler for us.
+**Note:** This choice impacts issue lifecycle—see Issue Lifecycle Management below.
+
+---
+
+### Issue Lifecycle Management
+
+Configuration issues differ from runtime errors in how their lifecycle should be managed. There are two main patterns in Sentry:
+
+**Error/Event Style** (e.g., N+1 queries)
+- Each detected problem sends an occurrence to the issue platform
+- Issues accumulate occurrences over time
+- Users control the lifecycle: manually mark resolved when they believe it's fixed
+- If the problem recurs after resolution, the issue is unresolved (regression)
+- Works well for: problems that may be fixed in code but could regress
+
+**Metric/Uptime/Crons Style** (e.g., uptime monitors, metric alerts)
+- Detector monitors for a condition (e.g., "site is down", "error rate > threshold")
+- When condition is met → issue is created/unresolved
+- When condition clears → issue is auto-resolved
+- Users have less control over lifecycle; the system reflects current state
+- Works well for: problems with clear "fixed" vs "broken" states
+
+**Recommendation: Metric/Uptime/Crons Style**
+
+Sourcemap issues are closer to metric/uptime/crons style because:
+- They represent a configuration state ("sourcemaps are broken") not individual events
+- There's a clear "fixed" signal: successful sourcemap processing
+- Users shouldn't need to manually resolve; when they fix the config, the issue should auto-resolve
+- Unlike N+1 queries, there's no "regression" concern—either sourcemaps work or they don't
+
+**Auto-resolution trigger options:**
+
+| Trigger | Pros | Cons |
+|---------|------|------|
+| X successful events processed | Clear positive signal | May take time if low traffic |
+| 0 failures in time window | Catches edge cases | Could resolve prematurely during low traffic |
+| Both: X successes AND 0 failures | Most robust | More complex |
+
+**Error type transitions**
+
+If a project goes from `missing_sourcemap` to `invalid_sourcemap` (user uploaded broken sourcemaps), the issue should stay open without additional notifications. The issue represents "sourcemaps aren't working" regardless of the specific failure mode. Only resolve when we see successful processing.
+
+**Lifecycle granularity**
+
+With the recommended per-project fingerprint, the single project issue only resolves when ALL sourcemaps work. This is appropriate because:
+- It gives users one clear signal: "your sourcemaps are fixed" vs "still broken"
+- Partial fixes (one domain working) don't close the issue prematurely
+- Alternative (per-domain): Each domain's issue would resolve independently, but this creates more noise
 
 ---
 
 ## Implementation Notes
 
-- Create new GroupType(s) for sourcemap configuration issues
+- Create new GroupType (`sourcemap_configuration`) for sourcemap configuration issues
 - Add detection logic in `post_process_group` pipeline, triggered for ERROR category events
 - Filter out `chrome-extension:` URLs (users can't control browser extension sourcemaps)
 - Store event_id in evidence data so the issue detail UI can link to the existing wizard
@@ -122,7 +174,7 @@ The detection function should be generic and extensible - sourcemap issues are t
 
 ## Rollout Strategy
 
-Create "test" versions of the GroupTypes first:
+Create a "test" version of the GroupType first:
 - Issues are created but notifications are disabled
 - Issues don't appear in the default issue stream
 - Enable visibility for our team only via feature flag
@@ -188,5 +240,4 @@ These issues are fundamentally different from error issues - they're configurati
 1. **Heuristic detection:** Detect minified code without sourcemap reference
 2. **CDN filtering:** Domain-based filtering for known CDN/analytics providers
 3. **Root cause diagnosis:** Integrate `source_map_debug()` to provide MISSING_RELEASE, DIST_MISMATCH, etc.
-4. **Auto-resolution:** Detect when issue is fixed and auto-resolve
-5. **Seer integration:** LLM-powered fix suggestions
+4. **Seer integration:** LLM-powered fix suggestions
