@@ -451,6 +451,57 @@ def extract_github_info(
     return result
 
 
+def extract_webhook_context(
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    github_event: str | None = None,
+) -> dict[str, str | int | None]:
+    """
+    Extract comprehensive context from a webhook event for Sentry SDK tags and logging.
+
+    This function combines GitHub event information with Sentry-specific context,
+    following the pattern used in the seer repository's extract_context() function.
+    The returned dictionary is suitable for setting as Sentry SDK tags, which will
+    automatically propagate to all logs, errors, and spans within the execution scope.
+
+    Args:
+        event: The GitHub webhook event payload
+        organization: The Sentry organization
+        repo: The repository
+        integration: The GitHub integration (optional)
+        github_event: The GitHub event type (e.g., "pull_request", "check_run", "issue_comment")
+
+    Returns:
+        Dictionary containing GitHub and Sentry context:
+            - github_owner: Repository owner/organization name
+            - github_repo_name: Repository name
+            - github_repo_full_name: Full repository name (owner/repo)
+            - github_event_url: URL to the specific event
+            - github_event: The GitHub event type
+            - github_event_action: The event action
+            - github_actor_login: GitHub username who triggered the action
+            - github_actor_id: GitHub user ID (as string)
+            - sentry_organization_id: Sentry organization ID
+            - sentry_organization_slug: Sentry organization slug
+            - sentry_integration_id: Sentry integration ID (if available)
+            - sentry_repo_id: Sentry repository ID
+            - provider: SCM provider (e.g., "github", "github_enterprise")
+    """
+    # Extract GitHub-specific information
+    context = extract_github_info(event, github_event=github_event)
+
+    # Add Sentry-specific context
+    context["sentry_organization_id"] = organization.id
+    context["sentry_organization_slug"] = organization.slug
+    context["sentry_integration_id"] = integration.id if integration else None
+    context["sentry_repo_id"] = repo.id
+    context["provider"] = repo.provider
+
+    return context
+
+
 def delete_existing_reactions_and_add_reaction(
     github_event: GithubWebhookType,
     github_event_action: str,
