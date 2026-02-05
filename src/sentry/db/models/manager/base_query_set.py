@@ -6,6 +6,7 @@ from django.core import exceptions
 from django.core.exceptions import EmptyResultSet
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
+from django.db.models.expressions import Combinable
 
 from sentry.db.models.manager.types import M, R
 from sentry.signals import post_update
@@ -45,16 +46,16 @@ class BaseQuerySet(QuerySet[M, R]):
         query.add_update_values(kwargs)  # type: ignore[attr-defined]
 
         # Inline annotations in order_by(), if possible.
-        new_order_by = []
+        new_order_by: list[str | Combinable] = []
         for col in query.order_by:
-            if annotation := query.annotations.get(col):  # type: ignore[arg-type]
+            if isinstance(col, str) and (annotation := query.annotations.get(col)):
                 if getattr(annotation, "contains_aggregate", False):
                     raise exceptions.FieldError(
                         f"Cannot update when ordering by an aggregate: {annotation}"
                     )
                 new_order_by.append(annotation)
             else:
-                new_order_by.append(col)  # type: ignore[arg-type]
+                new_order_by.append(col)
         query.order_by = tuple(new_order_by)
 
         # Clear any annotations so that they won't be present in subqueries.

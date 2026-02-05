@@ -595,9 +595,7 @@ def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
                 UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
                 UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
             ),
-        )
-        .select_related("data_sources")  # type: ignore[misc]
-        .values_list("data_sources__source_id", flat=True)
+        ).values_list("data_sources__source_id", flat=True)
     )
 
     return UptimeSubscription.objects.filter(

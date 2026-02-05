@@ -296,16 +296,9 @@ def build_group_to_groupevent(
     group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
-        event_id = instance_data.get("event_id")
+        event_id = instance_data["event_id"]
         occurrence_id = instance_data.get("occurrence_id")
         start_timestamp = instance_data.get("start_timestamp")
-
-        if event_id is None:
-            logger.info(  # type: ignore[unreachable]
-                "delayed_processing.missing_event_id",
-                extra={"rule": rule_group[0], "project_id": project_id},
-            )
-            continue
 
         event = bulk_event_id_to_events.get(event_id)
         group = group_id_to_group.get(int(rule_group[1]))
