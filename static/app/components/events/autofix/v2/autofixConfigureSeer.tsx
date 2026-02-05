@@ -30,14 +30,14 @@ interface AutofixConfigureSeerProps {
 
 export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
-  const seerOnboardingCheck = useSeerOnboardingCheck();
+  const {data: setupCheck} = useSeerOnboardingCheck();
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
   const orgNeedsToConfigureSeer =
     // needs to enable autofix
-    !seerOnboardingCheck.data?.isAutofixEnabled ||
+    !setupCheck?.isAutofixEnabled ||
     // catch all, ensure seer is configured
-    !seerOnboardingCheck.data?.isSeerConfigured;
+    !setupCheck?.isSeerConfigured;
 
   return (
     <Fragment>
