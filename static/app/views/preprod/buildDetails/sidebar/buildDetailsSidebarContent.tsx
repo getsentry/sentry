@@ -35,6 +35,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
         appInfo={buildDetailsData.app_info}
         projectId={projectId}
         artifactId={artifactId}
+        isInstallable={buildDetailsData.distribution_info.is_installable}
       />
 
       {/* Status check info */}

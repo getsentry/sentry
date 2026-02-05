@@ -12,6 +12,7 @@ interface InstallAppButtonProps {
   artifactId: string;
   projectId: string;
   source: 'build_details_sidebar' | 'builds_table';
+  disabled?: boolean;
   platform?: string | null;
   variant?: 'text' | 'icon';
 }
@@ -21,6 +22,7 @@ export function InstallAppButton({
   projectId,
   platform,
   source,
+  disabled = false,
   variant = 'text',
 }: InstallAppButtonProps) {
   const organization = useOrganization();
@@ -42,6 +44,7 @@ export function InstallAppButton({
     return (
       <Button
         aria-label={t('Install')}
+        disabled={disabled}
         icon={<IconDownload size="sm" />}
         onClick={handleClick}
         priority="transparent"
@@ -53,6 +56,7 @@ export function InstallAppButton({
 
   return (
     <Button
+      disabled={disabled}
       onClick={handleClick}
       priority="link"
       size="sm"
