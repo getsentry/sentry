@@ -223,27 +223,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         ]
 
     @classmethod
-    def render_alert_autofix_element(cls, group: Group) -> InteractiveElement:
+    def render_autofix_button(cls, group: Group) -> InteractiveElement:
         """
-        Returns either an autofix button or a link to the autofix panel in Sentry.
-        When automation will run, shows a link (updates will be threaded later).
-        When automation won't run, shows an autofix button for manual RCA trigger.
+        Returns an autofix button for manual RCA trigger.
         """
-        from sentry.seer.autofix.issue_summary import is_group_triggering_automation
-        from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
-
-        try:
-            is_triggering = is_group_triggering_automation(group)
-        except Exception:
-            is_triggering = False
-
-        if is_triggering:
-            return cls._render_link_button(
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
-                group_link=SlackEntrypoint.get_group_link(group),
-                text="Watch Seer Work :sparkles:",
-            )
 
         return cls._render_autofix_button(
             data=SeerAutofixTrigger(
@@ -253,3 +236,14 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
         )
+
+    @classmethod
+    def render_status_text(cls, group: Group) -> str:
+        """
+        Returns mrkdwn text for the Seer running context block.
+        The entire text is a link to the issue page.
+        """
+        from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
+
+        group_link = SlackEntrypoint.get_group_link(group)
+        return f"_<{group_link}|:hourglass: Seer is running a root cause analysis...>_"

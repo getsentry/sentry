@@ -93,24 +93,19 @@ class SeerSlackRendererTest(TestCase):
         blocks = SeerSlackRenderer.render_footer_blocks(data=data, stage_completed=True)
         assert len(blocks) == 0
 
-    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=False)
-    def test_render_alert_autofix_element_without_automation(
-        self, _mock_is_triggering: Mock
-    ) -> None:
-        element = SeerSlackRenderer.render_alert_autofix_element(group=self.group)
+    def test_render_autofix_button(self) -> None:
+        element = SeerSlackRenderer.render_autofix_button(group=self.group)
         assert isinstance(element, ButtonElement)
         assert element.text is not None
         assert element.text.text == "Fix with Seer"
         assert element.value == AutofixStoppingPoint.ROOT_CAUSE.value
 
-    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
-    def test_render_alert_autofix_element_with_automation(self, _mock_is_triggering: Mock) -> None:
-        element = SeerSlackRenderer.render_alert_autofix_element(group=self.group)
-        assert isinstance(element, LinkButtonElement)
-        assert element.text is not None
-        assert element.text.text == "Watch Seer Work :sparkles:"
-        assert element.url is not None
-        assert "seerDrawer=true" in element.url
+    def test_render_status_text(self) -> None:
+        text = SeerSlackRenderer.render_status_text(group=self.group)
+        assert ":hourglass: Seer is running a root cause analysis..." in text
+        assert "seerDrawer=true" in text
+        assert text.startswith("_<")
+        assert text.endswith(">_")
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",
