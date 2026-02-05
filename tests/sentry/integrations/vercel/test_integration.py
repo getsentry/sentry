@@ -496,6 +496,28 @@ class VercelIntegrationTest(IntegrationTestCase):
             model_name="OrganizationIntegration", object_id=org_integration.id
         ).exists()
 
+    @responses.activate
+    def test_post_install_missing_user_id(self) -> None:
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        # Delete existing installation so post_install takes the creation path
+        SentryAppInstallationForProvider.objects.filter(
+            organization_id=self.organization.id, provider="vercel"
+        ).delete()
+
+        from sentry.organizations.services.organization.serial import serialize_rpc_organization
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = serialize_rpc_organization(self.organization)
+
+        with pytest.raises(ValueError, match="user_id is required"):
+            VercelIntegrationProvider().post_install(
+                integration=integration, organization=org, extra={"user_id": None}
+            )
+
 
 class VercelIntegrationMetadataTest(TestCase):
 
