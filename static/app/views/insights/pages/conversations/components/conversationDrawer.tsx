@@ -66,13 +66,10 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
   const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
 
   const selectedNode = useMemo(() => {
-    if (selectedNodeKey) {
-      const found = nodes.find(node => node.id === selectedNodeKey);
-      if (found) {
-        return found;
-      }
-    }
-    return nodes.find(node => node.id === defaultNodeId);
+    return (
+      nodes.find(node => node.id === selectedNodeKey) ??
+      nodes.find(node => node.id === defaultNodeId)
+    );
   }, [nodes, selectedNodeKey, defaultNodeId]);
 
   // Handle focusedTool param - find first tool span with matching name

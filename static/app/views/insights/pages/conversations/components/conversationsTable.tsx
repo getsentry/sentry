@@ -210,7 +210,7 @@ const BodyCell = memo(function BodyCell({
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
       );
-    case 'user':
+    case 'user': {
       if (!dataRow.user) {
         return (
           <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
@@ -218,23 +218,25 @@ const BodyCell = memo(function BodyCell({
           </Tooltip>
         );
       }
+      const displayName = getUserDisplayName(dataRow.user);
       return (
         <Flex align="center" gap="sm">
           <UserAvatar
             user={{
               id: dataRow.user.id ?? '',
-              name: getUserDisplayName(dataRow.user),
+              name: displayName,
               email: dataRow.user.email ?? '',
               username: dataRow.user.username ?? '',
               ip_address: dataRow.user.ip_address ?? '',
             }}
             size={20}
           />
-          <Tooltip title={getUserDisplayName(dataRow.user)} showOnlyOnOverflow>
-            <Text ellipsis>{getUserDisplayName(dataRow.user)}</Text>
+          <Tooltip title={displayName} showOnlyOnOverflow>
+            <Text ellipsis>{displayName}</Text>
           </Tooltip>
         </Flex>
       );
+    }
     case 'inputOutput': {
       return (
         <Stack width="100%">

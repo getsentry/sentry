@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -30,29 +30,10 @@ export function ToolTags({
   const containerRef = useRef<HTMLDivElement>(null);
   const tagRefs = useRef<Map<number, HTMLElement>>(new Map());
 
-  const handleToolClick = useCallback(
-    (toolName: string) => {
-      openConversationViewDrawer({
-        conversation,
-        source: 'table_tool_tag',
-        focusedTool: toolName,
-      });
-    },
-    [conversation, openConversationViewDrawer]
-  );
-
-  const handleToggleExpand = useCallback(() => {
-    setExpanded(prev => !prev);
-  }, []);
-
   // Calculate how many tags are hidden (overflow beyond 2 rows)
   useEffect(() => {
-    if (expanded) {
-      return undefined;
-    }
-
     const container = containerRef.current;
-    if (!container) {
+    if (expanded || !container) {
       return undefined;
     }
 
@@ -67,10 +48,7 @@ export function ToolTags({
     };
 
     const rafId = requestAnimationFrame(calculateHidden);
-
-    const observer = new ResizeObserver(() => {
-      requestAnimationFrame(calculateHidden);
-    });
+    const observer = new ResizeObserver(() => requestAnimationFrame(calculateHidden));
     observer.observe(container);
 
     return () => {
@@ -92,20 +70,34 @@ export function ToolTags({
             }
           }}
           variant="info"
-          onClick={() => handleToolClick(toolName)}
+          onClick={() =>
+            openConversationViewDrawer({
+              conversation,
+              source: 'table_tool_tag',
+              focusedTool: toolName,
+            })
+          }
         >
           {toolName}
         </ClickableTag>
       ))}
       {hiddenCount > 0 && !expanded && (
         <ToggleButtonWrapper>
-          <ToggleButton priority="link" size="xs" onClick={handleToggleExpand}>
+          <ToggleButton
+            priority="link"
+            size="xs"
+            onClick={() => setExpanded(prev => !prev)}
+          >
             {t('+%s more', hiddenCount)}
           </ToggleButton>
         </ToggleButtonWrapper>
       )}
       {expanded && (
-        <ToggleButton priority="link" size="xs" onClick={handleToggleExpand}>
+        <ToggleButton
+          priority="link"
+          size="xs"
+          onClick={() => setExpanded(prev => !prev)}
+        >
           {t('Show less')}
         </ToggleButton>
       )}

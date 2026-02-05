@@ -37,20 +37,20 @@ export function useUrlConversationDrawer() {
       }
     ) => {
       const {
-        conversationId: optionsConversationId,
-        startTimestamp: optionsStartTimestamp,
-        endTimestamp: optionsEndTimestamp,
-        focusedTool: optionsFocusedTool,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool,
         onClose,
         ariaLabel,
         ...rest
       } = options || {};
 
       setConversationDrawerQueryState({
-        conversationId: optionsConversationId,
-        startTimestamp: optionsStartTimestamp,
-        endTimestamp: optionsEndTimestamp,
-        focusedTool: optionsFocusedTool,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool,
       });
 
       return baseOpenDrawer(renderer, {
