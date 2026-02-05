@@ -36,7 +36,7 @@ ListInputData = list[InputData]
 ModelType = TypeVar("ModelType", bound=models.Model)
 
 
-class WorkflowValidator(CamelSnakeSerializer):
+class WorkflowValidator(CamelSnakeSerializer[Any]):
     id = serializers.CharField(required=False, help_text="The ID of the existing alert")
     name = serializers.CharField(required=True, max_length=256, help_text="The name of the alert")
     enabled = serializers.BooleanField(
@@ -71,7 +71,7 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return actions, action_filter
 
-    def validate_config(self, value) -> bool:
+    def validate_config(self, value: Any) -> bool:
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
@@ -96,7 +96,7 @@ class WorkflowValidator(CamelSnakeSerializer):
     def _update_or_create(
         self,
         input_data: dict[str, Any],
-        validator: serializers.Serializer,
+        validator: serializers.Serializer[Any],
         Model: type[ModelType],
     ) -> ModelType:
         input_id = input_data.get("id")

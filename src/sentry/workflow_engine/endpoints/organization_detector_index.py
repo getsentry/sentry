@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from functools import partial
-from typing import assert_never
+from typing import Any, assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
@@ -121,7 +121,7 @@ DETECTOR_TYPE_ALIASES = {
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    request: Request, project: Project, detector_type_slug: str, instance: Any = None
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -156,7 +156,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
-    def filter_detectors(self, request: Request, organization) -> QuerySet[Detector]:
+    def filter_detectors(self, request: Request, organization: Any) -> QuerySet[Detector]:
         """
         Filter detectors based on the request parameters.
         """

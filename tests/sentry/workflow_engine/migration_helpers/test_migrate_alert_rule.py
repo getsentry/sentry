@@ -517,7 +517,8 @@ class DualWriteAlertRuleTest(APITestCase):
         self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
         detector_state = aci_objects[4]
-        assert detector_state.state == DetectorPriorityLevel.HIGH
+        detector_state.refresh_from_db()
+        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
 
     def test_rule_snooze_updates_detector(self) -> None:
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)

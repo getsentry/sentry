@@ -16,7 +16,7 @@ def toggle_detector(detector: Detector, enabled: bool) -> None:
     detector.update(enabled=enabled)
 
 
-def validate_json_schema(value, schema):
+def validate_json_schema(value: Any, schema: Any) -> Any:
     try:
         validate(value, schema)
     except JsonValidationError as e:
@@ -25,7 +25,7 @@ def validate_json_schema(value, schema):
     return value
 
 
-def validate_json_primitive(value):
+def validate_json_primitive(value: Any) -> Any:
     if isinstance(value, (dict, list)):
         raise ValidationError(
             f"Invalid json primitive value: {value}. Must be a string, number, or boolean."

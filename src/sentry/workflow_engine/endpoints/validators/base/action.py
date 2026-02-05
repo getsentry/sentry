@@ -16,9 +16,9 @@ ActionData = dict[str, Any]
 ActionConfig = dict[str, Any]
 
 
-class BaseActionValidator(CamelSnakeSerializer):
-    data: Any = serializers.JSONField()
-    config: Any = serializers.JSONField()
+class BaseActionValidator(CamelSnakeSerializer[Any]):
+    data = serializers.JSONField()  # type: ignore[assignment]
+    config = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
     integration_id = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.CharField(required=False)
@@ -27,18 +27,18 @@ class BaseActionValidator(CamelSnakeSerializer):
         action_type = self.initial_data.get("type")
         return action_handler_registry.get(action_type)
 
-    def validate_data(self, value) -> ActionData:
+    def validate_data(self, value: Any) -> ActionData:
         data_schema = self._get_action_handler().data_schema
         return validate_json_schema(value, data_schema)
 
-    def validate_status(self, value) -> int:
+    def validate_status(self, value: Any) -> int:
         if value is None:
             return ObjectStatus.ACTIVE
         if isinstance(value, str):
             return ObjectStatus.from_str(value)
         return value
 
-    def validate_config(self, value) -> ActionConfig:
+    def validate_config(self, value: Any) -> ActionConfig:
         action_handler = self._get_action_handler()
         config_transformer = action_handler.get_config_transformer()
 
@@ -49,7 +49,7 @@ class BaseActionValidator(CamelSnakeSerializer):
             # No transformer, validate directly against config schema
             return validate_json_schema(value, action_handler.config_schema)
 
-    def validate_type(self, value) -> Any:
+    def validate_type(self, value: Any) -> str:
         try:
             action_type = Action.Type(value)
         except ValueError:

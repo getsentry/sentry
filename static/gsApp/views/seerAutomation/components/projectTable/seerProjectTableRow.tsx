@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -19,6 +20,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -155,8 +157,17 @@ export default function SeerProjectTableRow({
       <SimpleTable.RowCell justify="end">
         {isFetchingSettings ? (
           <Placeholder height="20px" width="36px" />
+        ) : autofixSettings.reposCount === 0 ? (
+          <Tooltip
+            title={t('Seer works best on projects with at least one connected repo.')}
+          >
+            <Flex align="center" gap="sm">
+              <IconWarning variant="warning" />
+              <Text tabular>{0}</Text>
+            </Flex>
+          </Tooltip>
         ) : (
-          <Text tabular>{autofixSettings.reposCount || 0}</Text>
+          <Text tabular>{autofixSettings.reposCount}</Text>
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>
