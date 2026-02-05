@@ -111,6 +111,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -153,6 +155,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSizeStatusChecksRules",
         "preprodSizeEnabledQuery",
         "preprodDistributionEnabledQuery",
+        "preprodSizeEnabledByCustomer",
+        "preprodDistributionEnabledByCustomer",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -569,7 +573,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
-        `preprodSizeEnabledQuery`, and `preprodDistributionEnabledQuery`.
+        `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
+        `preprodSizeEnabledByCustomer`, and `preprodDistributionEnabledByCustomer`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -789,6 +794,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
                 ]
+
+        if "preprodSizeEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_size_enabled_by_customer", result["preprodSizeEnabledByCustomer"]
+            ):
+                changed_proj_settings["sentry:preprod_size_enabled_by_customer"] = result[
+                    "preprodSizeEnabledByCustomer"
+                ]
         if "preprodSizeEnabledQuery" in result:
             if project.update_option(
                 "sentry:preprod_size_enabled_query",
@@ -796,6 +809,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_size_enabled_query"] = result[
                     "preprodSizeEnabledQuery"
+                ]
+        if "preprodDistributionEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_enabled_by_customer",
+                result["preprodDistributionEnabledByCustomer"],
+            ):
+                changed_proj_settings["sentry:preprod_distribution_enabled_by_customer"] = result[
+                    "preprodDistributionEnabledByCustomer"
                 ]
         if "preprodDistributionEnabledQuery" in result:
             if project.update_option(
