@@ -1,6 +1,8 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import requests
+
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixStatus
@@ -1049,7 +1051,6 @@ class GroupAutofixEndpointHTTPErrorTest(APITestCase, SnubaTestCase):
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
         """Test that GET endpoint handles 403 Forbidden errors gracefully (e.g., GitHub IP allowlist)."""
-        import requests
 
         group = self.create_group()
 
@@ -1081,7 +1082,6 @@ class GroupAutofixEndpointHTTPErrorTest(APITestCase, SnubaTestCase):
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
         """Test that GET endpoint handles 500 Internal Server Error gracefully."""
-        import requests
 
         group = self.create_group()
 
@@ -1113,7 +1113,6 @@ class GroupAutofixEndpointHTTPErrorTest(APITestCase, SnubaTestCase):
         self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
     ):
         """Test that GET endpoint handles HTTPError even when response is None."""
-        import requests
 
         group = self.create_group()
 
@@ -1154,7 +1153,6 @@ class GroupAutofixEndpointExplorerHTTPErrorTest(APITestCase, SnubaTestCase):
         self, mock_get_explorer_state, mock_get_seer_org_acknowledgement
     ):
         """Test that GET endpoint in explorer mode handles HTTP errors gracefully."""
-        import requests
 
         group = self.create_group()
 
