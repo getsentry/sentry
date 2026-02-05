@@ -165,8 +165,6 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
     @pytest.fixture(autouse=True)
     def with_feature_flags(self):
-        # post-process tests in this file specifically test using these issue type ids
-        # error, 2 perf issue types, generic, feedback
         with override_options(
             {
                 "workflow_engine.issue_alert.group.type_id.ga": [
@@ -175,7 +173,7 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
                     2001,
                     1018,
                     6001,
-                ]
+                ],  # for postprocess tests -- error, 2 perf issue types, generic, feedback
             }
         ):
             yield
