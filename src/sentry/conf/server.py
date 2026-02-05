@@ -835,7 +835,9 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks",
+    "sentry.autopilot.tasks.missing_sdk_integration",
+    "sentry.autopilot.tasks.sdk_update",
+    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
