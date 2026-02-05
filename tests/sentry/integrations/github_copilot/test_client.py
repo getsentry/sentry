@@ -46,19 +46,17 @@ class GithubCopilotAgentClientTest(TestCase):
         """Test that get_task_status correctly fetches and parses task status"""
         mock_response = Mock()
         mock_response.json = {
-            "task": {
-                "id": "task-123",
-                "status": "completed",
-                "created_at": "2024-01-01T00:00:00Z",
-                "last_updated_at": "2024-01-01T01:00:00Z",
-                "artifacts": [
-                    {
-                        "provider": "github",
-                        "type": "pull_request",
-                        "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
-                    }
-                ],
-            }
+            "id": "task-123",
+            "status": "completed",
+            "created_at": "2024-01-01T00:00:00Z",
+            "last_updated_at": "2024-01-01T01:00:00Z",
+            "artifacts": [
+                {
+                    "provider": "github",
+                    "type": "pull_request",
+                    "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
+                }
+            ],
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response
@@ -87,10 +85,8 @@ class GithubCopilotAgentClientTest(TestCase):
         """Test that get_task_status handles responses without artifacts"""
         mock_response = Mock()
         mock_response.json = {
-            "task": {
-                "id": "task-123",
-                "status": "running",
-            }
+            "id": "task-123",
+            "status": "running",
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response

@@ -138,7 +138,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        return GithubCopilotTaskResponse.validate(api_response.json).task
+        return GithubCopilotTask.validate(api_response.json)
 
     def get_pr_from_graphql(self, global_id: str) -> GithubPRFromGraphQL | None:
         query = """
