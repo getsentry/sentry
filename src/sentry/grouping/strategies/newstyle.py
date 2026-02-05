@@ -974,7 +974,6 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
             exception.module == "io.reactivex.rxjava3.exceptions"
             and exception.type in JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES
             and exception.mechanism
-            and exception.mechanism.type == "UncaughtExceptionHandler"
         ):
             rxjava_exception_id = exception.mechanism.exception_id
             break
