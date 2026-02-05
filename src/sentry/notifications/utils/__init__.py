@@ -46,6 +46,7 @@ from sentry.utils.committers import (
     get_serialized_committers,
     get_serialized_event_file_committers,
 )
+from sentry.utils.safe import get_path
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -369,14 +370,14 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 
 
 def get_replay_id(event: Event | GroupEvent) -> str | None:
-    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    replay_id = get_path(event.data, "contexts", "replay", "replay_id")
     if (
         isinstance(event, GroupEvent)
         and event.occurrence is not None
         and event.occurrence.evidence_data
     ):
-        evidence_replay_id = (
-            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
+        evidence_replay_id = get_path(
+            event.occurrence.evidence_data, "contexts", "replay", "replay_id"
         )
 
         if evidence_replay_id:
@@ -618,7 +619,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
 
     @property
     def fcp(self) -> float:
-        if not self.event:
+        if not self.event or not self.event.data:
             return 0
 
-        return float(self.event.data.get("measurements", {}).get("fcp", {}).get("value", 0) or 0)
+        return float(get_path(self.event.data, "measurements", "fcp", "value", default=0) or 0)
