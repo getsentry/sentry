@@ -105,79 +105,72 @@ def make_scm():
     )
 
 
-def test_get_issue_comments():
-    scm = make_scm()
-    result = scm.get_issue_comments(issue_id="1")
+def _check_issue_comments(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["id"] == "101"
     assert result[0]["body"] == "Test comment"
     assert result[0]["author"]["username"] == "testuser"
 
 
-def test_create_issue_comment():
-    scm = make_scm()
-    scm.create_issue_comment(issue_id="1", body="test")
-
-
-def test_delete_issue_comment():
-    scm = make_scm()
-    scm.delete_issue_comment(comment_id="1")
-
-
-def test_get_pull_request():
-    scm = make_scm()
-    result = scm.get_pull_request(pull_request_id="1")
+def _check_pull_request(result: Any) -> None:
     assert result["id"] == "1"
     assert result["head"]["sha"] == "abc123"
     assert result["base"]["sha"] == "def456"
 
 
-def test_get_pull_request_comments():
-    scm = make_scm()
-    result = scm.get_pull_request_comments(pull_request_id="1")
+def _check_pull_request_comments(result: Any) -> None:
     assert len(result) == 1
     assert result[0]["id"] == "201"
     assert result[0]["body"] == "PR review comment"
     assert result[0]["author"]["username"] == "reviewer"
 
 
-def test_create_pull_request_comment():
-    scm = make_scm()
-    scm.create_pull_request_comment(pull_request_id="1", body="test")
-
-
-def test_delete_pull_request_comment():
-    scm = make_scm()
-    scm.delete_pull_request_comment(comment_id="1")
-
-
-def test_get_comment_reactions():
-    scm = make_scm()
-    result = scm.get_comment_reactions(comment_id="1")
+def _check_comment_reactions(result: Any) -> None:
     assert result == ["+1", "eyes"]
 
 
-def test_create_comment_reaction():
-    scm = make_scm()
-    scm.create_comment_reaction(comment_id="1", reaction="eyes")
-
-
-def test_delete_comment_reaction():
-    scm = make_scm()
-    scm.delete_comment_reaction(comment_id="1", reaction_id="123")
-
-
-def test_get_issue_reactions():
-    scm = make_scm()
-    result = scm.get_issue_reactions(issue_id="1")
+def _check_issue_reactions(result: Any) -> None:
     assert result == ["+1", "heart"]
 
 
-def test_create_issue_reaction():
-    scm = make_scm()
-    scm.create_issue_reaction(issue_id="1", reaction="eyes")
+def _check_none(result: Any) -> None:
+    assert result is None
 
 
-def test_delete_issue_reaction():
-    scm = make_scm()
-    scm.delete_issue_reaction(issue_id="1", reaction_id="456")
+ACTION_TESTS = (
+    (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
+    (SourceCodeManager.create_issue_comment, {"issue_id": "1", "body": "test"}, _check_none),
+    (SourceCodeManager.delete_issue_comment, {"comment_id": "1"}, _check_none),
+    (SourceCodeManager.get_pull_request, {"pull_request_id": "1"}, _check_pull_request),
+    (
+        SourceCodeManager.get_pull_request_comments,
+        {"pull_request_id": "1"},
+        _check_pull_request_comments,
+    ),
+    (
+        SourceCodeManager.create_pull_request_comment,
+        {"pull_request_id": "1", "body": "test"},
+        _check_none,
+    ),
+    (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
+    (SourceCodeManager.get_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
+    (
+        SourceCodeManager.create_comment_reaction,
+        {"comment_id": "1", "reaction": "eyes"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.delete_comment_reaction,
+        {"comment_id": "1", "reaction_id": "123"},
+        _check_none,
+    ),
+    (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
+    (SourceCodeManager.create_issue_reaction, {"issue_id": "1", "reaction": "eyes"}, _check_none),
+    (SourceCodeManager.delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
+)
+
+
+@pytest.mark.parametrize(("method", "kwargs", "check"), ACTION_TESTS)
+def test_action_success(method, kwargs: dict[str, Any], check):
+    result = method(make_scm(), **kwargs)
+    check(result)
