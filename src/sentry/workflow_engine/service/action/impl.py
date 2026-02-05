@@ -36,7 +36,7 @@ class DatabaseBackedActionService(ActionService):
         sentry_app_install_uuid: str,
         sentry_app_id: int | None = None,
     ) -> None:
-        sentry_app_id_actions = None
+        sentry_app_id_actions = Action.objects.none()
 
         if sentry_app_id:
             sentry_app_id_actions = Action.objects.filter(
@@ -64,7 +64,7 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int | None = None,
         sentry_app_id: int | None = None,
     ) -> None:
-        sentry_app_id_actions = None
+        sentry_app_id_actions = Action.objects.none()
 
         if sentry_app_id and organization_id:
             sentry_app_id_actions = Action.objects.filter(
