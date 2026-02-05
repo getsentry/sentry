@@ -614,8 +614,10 @@ module.exports = withSentryConfig(
     // Your Next.js config
   },
   {
-    automaticVercelMonitors: true, // Enable Vercel Cron Jobs monitoring
     // ... other Sentry options
+    webpack: {
+      automaticVercelMonitors: true, // Enable Vercel Cron Jobs monitoring
+    },
   }
 );`;
 
@@ -633,16 +635,16 @@ module.exports = withSentryConfig(
     <Fragment>
       <div>
         {tct(
-          'Use the [additionalDocs:Next.js SDK] with [automaticVercelMonitors:automaticVercelMonitors] to automatically create monitors for your Vercel Cron Jobs.',
+          'Use the [additionalDocs:Next.js SDK] with [automaticVercelMonitors:webpack.automaticVercelMonitors] to automatically create monitors for your Vercel Cron Jobs.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/#webpack.automaticVercelMonitors" />
             ),
             automaticVercelMonitors: <code />,
           }
         )}
       </div>
-      <div>{t('Enable automaticVercelMonitors in your next.config.js:')}</div>
+      <div>{t('Enable webpack.automaticVercelMonitors in your next.config.js:')}</div>
       <CodeBlock language="javascript">{configCode}</CodeBlock>
       <div>{t('Configure your Vercel Cron Jobs in vercel.json:')}</div>
       <CodeBlock language="json">{cronCode}</CodeBlock>
