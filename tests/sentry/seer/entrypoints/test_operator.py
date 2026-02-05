@@ -181,7 +181,9 @@ class SeerOperatorTest(TestCase):
             event_payload={},
             organization_id=self.organization.id,
         )
-        mock_logger.warning.assert_called_once_with("operator.missing_identifiers", extra=ANY)
+        mock_logger.error.assert_called_once_with(
+            "seer.operator.process_updates.missing_identifiers", extra=ANY
+        )
 
         mock_logger.reset_mock()
         process_autofix_updates(
@@ -189,7 +191,7 @@ class SeerOperatorTest(TestCase):
             event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
             organization_id=self.organization.id,
         )
-        mock_logger.info.assert_called_once_with("operator.skipping_update", extra=ANY)
+        mock_logger.info.assert_called_once_with("seer.operator.process_updates.skipped", extra=ANY)
 
         mock_logger.reset_mock()
         process_autofix_updates(
@@ -197,7 +199,9 @@ class SeerOperatorTest(TestCase):
             event_payload={"run_id": MOCK_RUN_ID, "group_id": -1},
             organization_id=self.organization.id,
         )
-        mock_logger.warning.assert_called_once_with("operator.group_not_found", extra=ANY)
+        mock_logger.error.assert_called_once_with(
+            "seer.operator.process_updates.group_not_found", extra=ANY
+        )
 
         mock_logger.reset_mock()
         process_autofix_updates(
@@ -205,7 +209,7 @@ class SeerOperatorTest(TestCase):
             event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
             organization_id=self.organization.id,
         )
-        mock_logger.info.assert_called_with("operator.no_cache_payload", extra=ANY)
+        mock_logger.info.assert_called_with("seer.operator.process_updates.cache_miss", extra=ANY)
 
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
     def test_process_autofix_updates(self, mock_autofix_cache_get):
