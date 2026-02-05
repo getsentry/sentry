@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
@@ -48,6 +49,8 @@ class SeerCodeReviewConfig(BaseModel):
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
+    trigger_at: datetime | None = None  # When the trigger event occurred on GitHub
+    sentry_received_trigger_at: datetime | None = None  # When Sentry received the webhook
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
@@ -133,6 +136,7 @@ class SeerCodeReviewRequestForPrReview(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
+    experiment_enabled: bool = False
 
 
 class SeerCodeReviewRequestForPrClosed(BaseModel):

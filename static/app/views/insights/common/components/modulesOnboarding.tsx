@@ -46,7 +46,6 @@ type ModulesWithOnboarding = Exclude<
   | ModuleName.MCP_TOOLS
   | ModuleName.MCP_RESOURCES
   | ModuleName.MCP_PROMPTS
-  | ModuleName.AI_GENERATIONS
   | ModuleName.MOBILE_UI
   | ModuleName.OTHER
 >;

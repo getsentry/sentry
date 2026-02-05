@@ -7,7 +7,8 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import type FormModel from 'sentry/components/forms/model';
 
 export interface InputFieldProps
-  extends Omit<FormFieldProps, 'children'>,
+  extends
+    Omit<FormFieldProps, 'children'>,
     Omit<
       InputProps,
       | 'value'

@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
+from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -164,6 +165,8 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
     @pytest.fixture(autouse=True)
     def with_feature_flags(self):
+        # post-process tests in this file specifically test using these issue type ids
+        # error, 2 perf issue types, generic, feedback
         with override_options(
             {
                 "workflow_engine.issue_alert.group.type_id.ga": [
@@ -172,7 +175,7 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
                     2001,
                     1018,
                     6001,
-                ],  # for postprocess tests -- error, 2 perf issue types, generic, feedback
+                ]
             }
         ):
             yield
@@ -3399,6 +3402,51 @@ class TriageSignalsV0TestMixin(BasePostProcessGroupMixin):
         # Should not call automation since seer_fixability_score is below MEDIUM threshold
         mock_run_automation.assert_not_called()
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement_for_scanner",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.generate_summary_and_run_automation.delay")
+    @patch("sentry.tasks.autofix.run_automation_only_task.delay")
+    @with_feature(
+        {"organizations:gen-ai-features": True, "organizations:triage-signals-v0-org": True}
+    )
+    def test_triage_signals_skips_automation_for_old_issues(
+        self,
+        mock_run_automation,
+        mock_generate_summary_and_run_automation,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Test that automation is skipped for issues older than 14 days."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Old issue with >= 10 events
+        group = event.group
+        group.first_seen = timezone.now() - timedelta(days=20)
+        group.times_seen = 1
+        group.save()
+
+        from sentry import buffer
+
+        def mock_buffer_get(model, columns, filters):
+            return {"times_seen": 9}
+
+        with patch.object(buffer.backend, "get", side_effect=mock_buffer_get):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+
+        # Automation should be skipped for old issues
+        mock_generate_summary_and_run_automation.assert_not_called()
+        mock_run_automation.assert_not_called()
+
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
     """Unit tests for is_issue_eligible_for_seer_automation."""
@@ -4373,3 +4421,85 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         # should not be called when feature flag is disabled
         assert mock_forward.call_count == 0
+
+
+class PostProcessGroupInstrumentationIssueTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+):
+    """Tests that instrumentation issues do not trigger alerts."""
+
+    def create_event(
+        self,
+        data,
+        project_id,
+        assert_no_errors=True,
+    ):
+        data["type"] = "generic"
+
+        event = self.store_event(
+            data=data, project_id=project_id, assert_no_errors=assert_no_errors
+        )
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=project_id,
+            id=uuid.uuid4().hex,
+            fingerprint=["instrumentation-" + uuid.uuid4().hex],
+            issue_title="Missing Instrumentation",
+            subtitle="Database query not instrumented",
+            culprit="api/endpoint",
+            resource_id="1234",
+            evidence_data={"test": "data"},
+            evidence_display=[
+                {"name": "issue", "value": "missing span", "important": True},
+            ],
+            type=InstrumentationIssueExperimentalGroupType.type_id,
+            detection_time=datetime.now().timestamp(),
+            level="info",
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        return group_event
+
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        with self.feature(
+            InstrumentationIssueExperimentalGroupType.build_post_process_group_feature_name()
+        ):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+    @patch("sentry.tasks.post_process.process_rules")
+    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    def test_instrumentation_issues_do_not_trigger_alerts(
+        self,
+        mock_process_workflow_engine_issue_alerts,
+        mock_process_rules,
+    ):
+        """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_process_rules.assert_not_called()
+        mock_process_workflow_engine_issue_alerts.assert_not_called()

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';

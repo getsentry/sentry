@@ -61,6 +61,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
       checkoutTooltip: null,
       tallyType: 'usage',
       hasPerCategory: false,
+      adminOnlyProductTrialFeature: null,
     };
   }
 );
@@ -220,12 +221,14 @@ export const BILLED_DATA_CATEGORY_INFO = {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SIZE_ANALYSIS],
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
-    shortenedUnitName: t('upload'),
+    shortenedUnitName: t('build'),
+    adminOnlyProductTrialFeature: 'expose-category-size-analysis',
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
-    shortenedUnitName: t('distribution'),
+    shortenedUnitName: t('install'),
+    adminOnlyProductTrialFeature: 'expose-category-installable-build',
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

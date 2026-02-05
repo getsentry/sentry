@@ -15,6 +15,7 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -40,7 +41,9 @@ export default function ProjectOwnership() {
   const {project} = useProjectSettingsOutlet();
 
   const ownershipQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${project.slug}/ownership/`,
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }),
   ];
   const {
     data: ownership,
@@ -49,7 +52,9 @@ export default function ProjectOwnership() {
   } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
   const codeownersQueryKey: ApiQueryKey = [
-    `/projects/${organization.slug}/${project.slug}/codeowners/`,
+    getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/`, {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }),
     {query: {expand: ['codeMapping', 'ownershipSyntax']}},
   ];
   const {

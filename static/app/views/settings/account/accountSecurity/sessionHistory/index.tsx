@@ -10,6 +10,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {InternetProtocol} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,10 +27,13 @@ export default function SessionHistory() {
     data: ipList = [],
     isLoading,
     isError,
-  } = useApiQuery<IpListType>(['/users/me/ips/'], {
-    staleTime: 0,
-    enabled: !isDemoModeActive(),
-  });
+  } = useApiQuery<IpListType>(
+    [getApiUrl('/users/$userId/ips/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+      enabled: !isDemoModeActive(),
+    }
+  );
 
   if (isError) {
     return <LoadingError />;

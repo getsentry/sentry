@@ -96,6 +96,7 @@ class IssueDetectionRequest(BaseModel):
     traces: list[TraceMetadata]
     organization_id: int
     project_id: int
+    org_slug: str
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -222,7 +223,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 120,
+            countdown=index * 90,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -244,6 +245,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
     organization_id = organization.id
+    organization_slug = organization.slug
 
     has_access = features.has("organizations:gen-ai-features", organization) and not bool(
         organization.get_option("sentry:hide_ai_features")
@@ -285,6 +287,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         traces=traces_to_send,
         organization_id=organization_id,
         project_id=project_id,
+        org_slug=organization_slug,
     )
 
     response = make_signed_seer_api_request(

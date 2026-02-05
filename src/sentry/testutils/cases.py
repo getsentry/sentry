@@ -1284,6 +1284,7 @@ class BaseSpansTestCase(SnubaTestCase):
         parent_span_id: str | None = None,
         profile_id: str | None = None,
         transaction: str | None = None,
+        name: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
         tags: dict[str, str] | None = None,
@@ -1311,6 +1312,8 @@ class BaseSpansTestCase(SnubaTestCase):
             sentry_tags["status"] = status
         if environment is not None:
             sentry_tags["environment"] = environment
+        if name is not None:
+            sentry_tags["name"] = name
 
         payload = {
             "project_id": project_id,

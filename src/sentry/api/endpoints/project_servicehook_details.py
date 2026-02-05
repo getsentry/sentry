@@ -7,17 +7,17 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.servicehook import ServiceHookEndpoint
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
 from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
 @region_silo_endpoint
-class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
+class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -25,7 +25,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, hook_id) -> Response:
+    def get(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Retrieve a Service Hook
         ```````````````````````
@@ -39,13 +39,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         :pparam string hook_id: the guid of the service hook.
         :auth: required
         """
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def put(self, request: Request, project, hook_id) -> Response:
+    def put(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Update a Service Hook
         `````````````````````
@@ -61,11 +57,6 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
-
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
 
         validator = ServiceHookValidator(data=request.data, partial=True)
         if not validator.is_valid():
@@ -98,7 +89,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
-    def delete(self, request: Request, project, hook_id) -> Response:
+    def delete(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
         Remove a Service Hook
         `````````````````````
@@ -112,11 +103,6 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
-
-        try:
-            hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
-        except ServiceHook.DoesNotExist:
-            raise ResourceDoesNotExist
 
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.delete()

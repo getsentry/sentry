@@ -18,6 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   getApiQueryData,
@@ -48,7 +49,11 @@ type UpdateTokenQueryVariables = {
 };
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
-  [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
+  [
+    getApiUrl(`/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/`, {
+      path: {organizationIdOrSlug: orgSlug, tokenId},
+    }),
+  ] as const;
 
 function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   const organization = useOrganization();
