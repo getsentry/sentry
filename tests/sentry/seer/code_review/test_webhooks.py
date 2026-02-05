@@ -19,8 +19,284 @@ from sentry.seer.code_review.webhooks.task import (
     MAX_RETRIES,
     PREFIX,
     process_github_webhook_event,
+    schedule_task,
 )
 from sentry.testutils.cases import TestCase
+
+
+class ScheduleTaskTest(TestCase):
+    """Unit tests for schedule_task validation logic (mocks transform_webhook_to_codegen_request)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="12345",
+            name="owner/repo",
+        )
+
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
+    @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
+    def test_validation_converts_enum_keys_to_strings(
+        self, mock_transform: MagicMock, mock_task_delay: MagicMock
+    ) -> None:
+        """Test that validation converts enum keys to strings for JSON serialization.
+
+        This test verifies the fix for the Pydantic v1 enum key serialization bug:
+        - Pydantic v1 converts string keys to enum members during parsing
+        - JSON serialization requires string keys, not enum objects
+        - The convert_enum_keys_to_strings function handles this conversion
+        """
+        # Mock transform to return payload with features dict
+        mock_transform.return_value = {
+            "request_type": "pr-review",
+            "external_owner_id": self.repo.external_id,
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "owner",
+                    "name": "repo",
+                    "external_id": self.repo.external_id,
+                    "base_commit_sha": "abc123",
+                    "organization_id": self.organization.id,
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": self.organization.id,
+                    "organization_slug": self.organization.slug,
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "github_rate_limit_sensitive": True,
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                },
+            },
+        }
+
+        schedule_task(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action="opened",
+            event={},
+            organization=self.organization,
+            repo=self.repo,
+            target_commit_sha="abc123",
+        )
+
+        # Verify task was called
+        mock_task_delay.assert_called_once()
+        call_kwargs = mock_task_delay.call_args[1]
+        sent_payload = call_kwargs["event_payload"]
+
+        # Verify enum keys are converted to strings
+        features = sent_payload["data"]["config"]["features"]
+        assert "bug_prediction" in features
+        for key in features.keys():
+            assert isinstance(key, str), f"Expected string key, got {type(key)}"
+
+        # Verify github_rate_limit_sensitive is preserved
+        assert sent_payload["data"]["config"]["github_rate_limit_sensitive"] is True
+
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
+    @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
+    def test_pr_review_validation_passes_without_organization_id(
+        self, mock_transform: MagicMock, mock_task_delay: MagicMock
+    ) -> None:
+        """Test that PR review validation passes without organization_id (it's optional)."""
+        # Mock transform to return payload without organization_id in repo
+        mock_transform.return_value = {
+            "request_type": "pr-review",
+            "external_owner_id": self.repo.external_id,
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "owner",
+                    "name": "repo",
+                    "external_id": self.repo.external_id,
+                    "base_commit_sha": "abc123",
+                    # organization_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": self.organization.id,
+                    "organization_slug": self.organization.slug,
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "github_rate_limit_sensitive": False,
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should not raise validation error
+        schedule_task(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action="opened",
+            event={},
+            organization=self.organization,
+            repo=self.repo,
+            target_commit_sha="abc123",
+        )
+
+        mock_task_delay.assert_called_once()
+
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
+    @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
+    def test_pr_closed_validation_fails_without_organization_id(
+        self, mock_transform: MagicMock, mock_task_delay: MagicMock
+    ) -> None:
+        """Test that PR closed validation fails without organization_id (it's required)."""
+        from pydantic import ValidationError
+
+        # Mock transform to return payload without organization_id
+        mock_transform.return_value = {
+            "request_type": "pr-closed",
+            "external_owner_id": self.repo.external_id,
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "owner",
+                    "name": "repo",
+                    "external_id": self.repo.external_id,
+                    "base_commit_sha": "abc123",
+                    "integration_id": "99999",
+                    # organization_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": self.organization.id,
+                    "organization_slug": self.organization.slug,
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "github_rate_limit_sensitive": False,
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should raise validation error
+        with pytest.raises(ValidationError) as exc_info:
+            schedule_task(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                github_event_action="closed",
+                event={},
+                organization=self.organization,
+                repo=self.repo,
+                target_commit_sha="abc123",
+            )
+
+        # Verify the error is about organization_id
+        errors = exc_info.value.errors()
+        assert any("organization_id" in str(error) for error in errors)
+
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
+    @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
+    def test_pr_closed_validation_fails_without_integration_id(
+        self, mock_transform: MagicMock, mock_task_delay: MagicMock
+    ) -> None:
+        """Test that PR closed validation fails without integration_id (it's required)."""
+        from pydantic import ValidationError
+
+        # Mock transform to return payload without integration_id
+        mock_transform.return_value = {
+            "request_type": "pr-closed",
+            "external_owner_id": self.repo.external_id,
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "owner",
+                    "name": "repo",
+                    "external_id": self.repo.external_id,
+                    "base_commit_sha": "abc123",
+                    "organization_id": self.organization.id,
+                    # integration_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": self.organization.id,
+                    "organization_slug": self.organization.slug,
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "github_rate_limit_sensitive": False,
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should raise validation error
+        with pytest.raises(ValidationError) as exc_info:
+            schedule_task(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                github_event_action="closed",
+                event={},
+                organization=self.organization,
+                repo=self.repo,
+                target_commit_sha="abc123",
+            )
+
+        # Verify the error is about integration_id
+        errors = exc_info.value.errors()
+        assert any("integration_id" in str(error) for error in errors)
+
+    @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
+    @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
+    def test_pr_closed_validation_passes_with_required_fields(
+        self, mock_transform: MagicMock, mock_task_delay: MagicMock
+    ) -> None:
+        """Test that PR closed validation passes with all required fields."""
+        # Mock transform to return complete payload with all required fields
+        mock_transform.return_value = {
+            "request_type": "pr-closed",
+            "external_owner_id": self.repo.external_id,
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "owner",
+                    "name": "repo",
+                    "external_id": self.repo.external_id,
+                    "base_commit_sha": "abc123",
+                    "organization_id": self.organization.id,
+                    "integration_id": "99999",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": self.organization.id,
+                    "organization_slug": self.organization.slug,
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "github_rate_limit_sensitive": True,
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should not raise validation error
+        schedule_task(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action="closed",
+            event={},
+            organization=self.organization,
+            repo=self.repo,
+            target_commit_sha="abc123",
+        )
+
+        mock_task_delay.assert_called_once()
 
 
 class ProcessGitHubWebhookEventTest(TestCase):
@@ -473,252 +749,6 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
         assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
-        """Test that validation converts enum keys to strings for JSON serialization.
-
-        This test verifies the fix for the Pydantic v1 enum key serialization bug:
-        - Pydantic v1 converts string keys to enum members during parsing
-        - JSON serialization requires string keys, not enum objects
-        - The convert_enum_keys_to_strings function handles this conversion
-        """
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-review",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-                "config": {
-                    "features": {
-                        "bug_prediction": True,
-                    },
-                    "trigger": "on_new_commit",
-                    "trigger_comment_id": None,
-                    "trigger_comment_type": None,
-                    "trigger_user": None,
-                    # Note: trigger_at and sentry_received_trigger_at intentionally
-                    # omitted to test backward compatibility with old payloads
-                },
-            },
-        }
-
-        process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            event_payload=event_payload,
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        # Verify the request was made
-        assert mock_request.call_count == 1
-
-        # Get the actual payload that was sent
-        import orjson
-
-        sent_body = mock_request.call_args[1]["body"]
-        sent_payload = orjson.loads(sent_body)
-
-        # Verify that features keys are strings, not enum objects
-        features = sent_payload["data"]["config"]["features"]
-        assert "bug_prediction" in features
-        assert features["bug_prediction"] is True
-
-        # Verify all keys in features dict are strings
-        for key in features.keys():
-            assert isinstance(key, str), f"Expected string key, got {type(key)}"
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_pr_review_validation_passes_without_organization_id(
-        self, mock_request: MagicMock
-    ) -> None:
-        """Test that PR review validation passes without organization_id (it's optional)."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-review",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                    # organization_id intentionally omitted
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-                "config": {
-                    "features": {"bug_prediction": True},
-                    "trigger": "on_new_commit",
-                    "trigger_at": "2024-01-15T10:30:00Z",
-                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
-                },
-            },
-        }
-
-        # Should not raise validation error
-        process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            event_payload=event_payload,
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        assert mock_request.call_count == 1
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_pr_closed_validation_fails_without_organization_id(
-        self, mock_request: MagicMock
-    ) -> None:
-        """Test that PR closed validation fails without organization_id (it's required)."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-closed",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                    "integration_id": "99999",
-                    # organization_id intentionally omitted
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-                "config": {
-                    "features": {"bug_prediction": True},
-                    "trigger": "on_new_commit",
-                    "trigger_at": "2024-01-15T10:30:00Z",
-                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
-                },
-            },
-        }
-
-        # Should raise validation error
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError) as exc_info:
-            process_github_webhook_event._func(
-                github_event=GithubWebhookType.PULL_REQUEST,
-                event_payload=event_payload,
-                enqueued_at_str=self.enqueued_at_str,
-            )
-
-        # Verify the error is about organization_id
-        errors = exc_info.value.errors()
-        assert any("organization_id" in str(error) for error in errors)
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_pr_closed_validation_fails_without_integration_id(
-        self, mock_request: MagicMock
-    ) -> None:
-        """Test that PR closed validation fails without integration_id (it's required)."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-closed",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                    "organization_id": 789,
-                    # integration_id intentionally omitted
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-                "config": {
-                    "features": {"bug_prediction": True},
-                    "trigger": "on_new_commit",
-                    "trigger_at": "2024-01-15T10:30:00Z",
-                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
-                },
-            },
-        }
-
-        # Should raise validation error
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError) as exc_info:
-            process_github_webhook_event._func(
-                github_event=GithubWebhookType.PULL_REQUEST,
-                event_payload=event_payload,
-                enqueued_at_str=self.enqueued_at_str,
-            )
-
-        # Verify the error is about integration_id
-        errors = exc_info.value.errors()
-        assert any("integration_id" in str(error) for error in errors)
-
-    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    def test_pr_closed_validation_passes_with_required_fields(
-        self, mock_request: MagicMock
-    ) -> None:
-        """Test that PR closed validation passes with all required fields."""
-        mock_request.return_value = self._mock_response(200, b"{}")
-
-        event_payload = {
-            "request_type": "pr-closed",
-            "external_owner_id": "456",
-            "data": {
-                "repo": {
-                    "provider": "github",
-                    "owner": "test-owner",
-                    "name": "test-repo",
-                    "external_id": "123456",
-                    "base_commit_sha": "abc123",
-                    "organization_id": 789,
-                    "integration_id": "99999",
-                },
-                "pr_id": 123,
-                "bug_prediction_specific_information": {
-                    "organization_id": 789,
-                    "organization_slug": "test-org",
-                },
-                "config": {
-                    "features": {"bug_prediction": True},
-                    "trigger": "on_new_commit",
-                    "trigger_at": "2024-01-15T10:30:00Z",
-                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
-                },
-            },
-        }
-
-        # Should not raise validation error
-        process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            event_payload=event_payload,
-            enqueued_at_str=self.enqueued_at_str,
-        )
-
-        assert mock_request.call_count == 1
 
 
 class TestIsPrReviewCommand:
