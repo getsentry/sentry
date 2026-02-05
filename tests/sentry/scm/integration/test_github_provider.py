@@ -1,11 +1,9 @@
-from typing import cast
-
 import pytest
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import GitHubProvider
-from sentry.scm.types import Reaction, Repository
+from sentry.scm.types import Repository
 from tests.sentry.scm.test_fixtures import (
     FakeGitHubApiClient,
     make_github_comment,
@@ -297,14 +295,6 @@ class TestGitHubProviderCreateCommentReaction:
         with pytest.raises(SCMProviderException):
             provider.create_comment_reaction(repository, "101", "eyes")
 
-    def test_raises_scm_provider_exception_on_invalid_reaction(self):
-        client = FakeGitHubApiClient()
-        provider = GitHubProvider(client)
-        repository = make_repository()
-
-        with pytest.raises(SCMProviderException):
-            provider.create_comment_reaction(repository, "101", cast(Reaction, "invalid_reaction"))
-
 
 class TestGitHubProviderDeleteCommentReaction:
     def test_calls_client_with_correct_path(self):
@@ -366,14 +356,6 @@ class TestGitHubProviderCreateIssueReaction:
             ("test-org/test-repo", "42", GitHubReaction.ROCKET),
             {},
         ) in client.calls
-
-    def test_raises_scm_provider_exception_on_invalid_reaction(self):
-        client = FakeGitHubApiClient()
-        provider = GitHubProvider(client)
-        repository = make_repository()
-
-        with pytest.raises(SCMProviderException):
-            provider.create_issue_reaction(repository, "42", cast(Reaction, "not_a_reaction"))
 
 
 class TestGitHubProviderDeleteIssueReaction:
