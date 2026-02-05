@@ -106,7 +106,7 @@ For reversible actions, provide an `undo` callback in the options. This displays
         message: 'Item deleted',
         id: 'undo-success',
         options: {
-          undo: () => alert('Undone!'),
+          undo: () => {},
         },
       }}
       onDismiss={() => {}}
@@ -117,7 +117,7 @@ For reversible actions, provide an `undo` callback in the options. This displays
         message: 'Changes reverted',
         id: 'undo-undo',
         options: {
-          undo: () => alert('Re-applied!'),
+          undo: () => {},
         },
       }}
       onDismiss={() => {}}
