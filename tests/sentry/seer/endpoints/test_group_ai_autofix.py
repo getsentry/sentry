@@ -2,8 +2,9 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
+from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState, CodebaseState
+from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -919,6 +920,29 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
+    def test_stopping_point(self, mock_trigger_explorer, mock_get_seer_org_acknowledgement):
+        """POST routes to explorer and stopping point forces the step to be root_caues"""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id, mode="explorer"),
+            data={"step": "coding_agent_handoff", "stopping_point": "code_changes"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once_with(
+            group=group,
+            step=AutofixStep.ROOT_CAUSE,
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            run_id=None,
+            intelligence_level="low",
+        )
 
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
