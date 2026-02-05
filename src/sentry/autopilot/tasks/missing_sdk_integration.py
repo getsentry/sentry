@@ -48,7 +48,7 @@ def run_missing_sdk_integration_detector() -> None:
     if not organization_allowlist:
         return
 
-    organizations = Organization.objects.filter(slug__in=organization_allowlist).all()
+    organizations = Organization.objects.filter(slug__in=organization_allowlist)
 
     for organization in organizations:
         run_missing_sdk_integration_detector_for_organization(organization)
@@ -130,7 +130,7 @@ def run_missing_sdk_integration_detector_for_project_task(
 
     # Get docs URL from platform data
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
-    docs_url = platform_data.get("link", None)
+    docs_url = platform_data.get("link")
     if project.platform and project.platform.startswith(SupportedPlatformPrefix.PYTHON):
         integration_docs_url = "https://docs.sentry.io/platforms/python/integrations/"
     elif docs_url:

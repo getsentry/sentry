@@ -35,16 +35,16 @@ def run_sdk_update_detector() -> None:
     if not organization_allowlist:
         return
 
-    organizations = Organization.objects.filter(slug__in=organization_allowlist).all()
+    organizations = Organization.objects.filter(slug__in=organization_allowlist)
 
     for organization in organizations:
         run_sdk_update_detector_for_organization(organization)
 
 
 def run_sdk_update_detector_for_organization(organization: Organization):
-    projects = Project.objects.filter(organization=organization).all()
+    projects = list(Project.objects.filter(organization=organization))
 
-    if len(projects) == 0:
+    if not projects:
         return
 
     metrics.incr("autopilot.sdk_update_detector.projects_found", len(projects))
@@ -64,7 +64,7 @@ def run_sdk_update_detector_for_organization(organization: Organization):
                 start=timezone.now() - timedelta(hours=1),
                 end=timezone.now(),
                 organization=organization,
-                projects=list(projects),
+                projects=projects,
             ),
             referrer="autopilot.sdk-update-detector",
         )
