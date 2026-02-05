@@ -390,6 +390,10 @@ def run_automation(
     if not is_group_triggering_automation(group):
         return
 
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
+
     stopping_point = None
     if is_seer_seat_based_tier_enabled(group.organization):
         stopping_point = get_automation_stopping_point(group)
@@ -405,9 +409,8 @@ def run_automation(
 
 def is_group_triggering_automation(group: Group) -> bool:
     """
-    Checks if a group is eligible for automation.
+    Checks if a group is going to be picked up for automation. Does not check for existing run.
     Checks project options (fixability tuning, preferences), billing quota, and rate limiting.
-    Note: If an autofix run is currently in progress, returns False.
     """
     fixability_score = get_and_update_group_fixability_score(group)
 
@@ -423,10 +426,6 @@ def is_group_triggering_automation(group: Group) -> bool:
     )
     if not has_budget:
         return False
-
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
-    if autofix_state:
-        return False  # already have an autofix on this issue
 
     is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
     if is_rate_limited:
