@@ -301,9 +301,7 @@ class TestProcessWorkflowActivity(TestCase):
         )
 
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(
-        self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
-    ) -> None:
+    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -346,7 +344,6 @@ class TestProcessWorkflowActivity(TestCase):
     def test__e2e__issue_plat_to_processed_activity_data_is_set(
         self,
         mock_incr: mock.MagicMock,
-        mock_update_igop: mock.MagicMock,
         mock_get_group_from_fingerprint: mock.MagicMock,
     ) -> None:
         mock_get_group_from_fingerprint.return_value = self.group
