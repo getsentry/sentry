@@ -235,12 +235,7 @@ export function UncontrolledDemo() {
     <Storybook.SideBySide>
       <Stack gap="sm">
         Controlled
-        <NumberDragInput
-          value={25}
-          onChange={e => console.log(e.target.value)}
-          min={0}
-          max={100}
-        />
+        <NumberDragInput value={25} onChange={() => {}} min={0} max={100} />
       </Stack>
       <Stack gap="sm">
         Uncontrolled
