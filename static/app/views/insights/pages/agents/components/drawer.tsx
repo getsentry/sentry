@@ -133,24 +133,8 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
     [openDrawer, onClose, closeDrawer, organization]
   );
 
-  return {
-    openTraceViewDrawer,
-    isTraceViewDrawerOpen: isDrawerOpen,
-    drawerUrlState,
-  };
-}
-
-/**
- * Hook to handle opening the trace view drawer from URL parameters.
- * This should only be used ONCE at the top level of the agents page
- * to avoid duplicate analytics events.
- */
-export function useOpenTraceViewDrawerFromUrl() {
-  const {openTraceViewDrawer, drawerUrlState, isTraceViewDrawerOpen} =
-    useTraceViewDrawer();
-
   useEffect(() => {
-    if (drawerUrlState.traceId && !isTraceViewDrawerOpen) {
+    if (drawerUrlState.traceId && !isDrawerOpen) {
       openTraceViewDrawer(
         drawerUrlState.traceId,
         drawerUrlState.spanId ?? undefined,
@@ -159,6 +143,11 @@ export function useOpenTraceViewDrawerFromUrl() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
+
+  return {
+    openTraceViewDrawer,
+    isTraceViewDrawerOpen: isDrawerOpen,
+  };
 }
 
 function AITraceView({
