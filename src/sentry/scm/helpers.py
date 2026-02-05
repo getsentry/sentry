@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from sentry import ratelimits
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -54,8 +55,11 @@ def is_rate_limited_with_allocation_policy(
 def map_integration_to_provider(
     organization_id: int,
     integration: Integration | RpcIntegration,
+    get_installation: Callable[
+        [Integration | RpcIntegration, int], IntegrationInstallation
+    ] = lambda i, oid: i.get_installation(organization_id=oid),
 ) -> Provider:
-    client = integration.get_installation(organization_id=organization_id).get_client()
+    client = get_installation(integration, organization_id).get_client()
 
     if integration.provider == "github":
         return GitHubProvider(client)
@@ -72,7 +76,13 @@ def map_repository_model_to_repository(repository: RepositoryModel) -> Repositor
     }
 
 
-def fetch_service_provider(organization_id: int, integration_id: int) -> Provider:
+def fetch_service_provider(
+    organization_id: int,
+    integration_id: int,
+    map_to_provider: Callable[
+        [Integration | RpcIntegration, int], Provider
+    ] = map_integration_to_provider,
+) -> Provider:
     integration = integration_service.get_integration(
         integration_id=integration_id,
         organization_id=organization_id,
@@ -80,7 +90,7 @@ def fetch_service_provider(organization_id: int, integration_id: int) -> Provide
     if not integration:
         raise SCMCodedError(code="integration_not_found")
 
-    return map_integration_to_provider(organization_id, integration)
+    return map_to_provider(integration, organization_id)
 
 
 def fetch_repository(
