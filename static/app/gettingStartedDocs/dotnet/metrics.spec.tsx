@@ -19,7 +19,7 @@ describe('metrics', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render metrics configuration when metrics is not enabled', async () => {
+  it('does not render metrics configuration when metrics is not enabled', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
