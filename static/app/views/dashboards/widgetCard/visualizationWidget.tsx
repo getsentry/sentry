@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
@@ -24,8 +24,12 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TabularColumn,
+  TimeSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -143,27 +147,35 @@ function VisualizationWidgetContent({
   const organization = useOrganization();
   const location = useLocation();
 
-  const timeSeriesArray = timeseriesResults
-    .map(series =>
-      transformLegacySeriesToTimeSeries(
+  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+    .map(series => {
+      const timeSeries = transformLegacySeriesToTimeSeries(
         series,
         timeseriesResultsTypes,
         timeseriesResultsUnits
-      )
-    )
-    .filter(defined);
-
-  const plottables = timeSeriesArray
-    .map(timeSeries => createPlottableFromTimeSeries(timeSeries, widget))
+      );
+      if (!timeSeries) {
+        return null;
+      }
+      const plottable = createPlottableFromTimeSeries(timeSeries, widget);
+      if (!plottable) {
+        return null;
+      }
+      return [timeSeries, plottable] satisfies [TimeSeries, Plottable];
+    })
     .filter(defined);
 
   const errorDisplay =
     renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
 
-  const colorPalette = useMemo(() => {
-    const paletteSize = plottables.filter(plottable => plottable.needsColor).length;
-    return paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
-  }, [plottables, theme.chart]);
+  const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
+    ([_, plottable]) => plottable.needsColor
+  ).length;
+
+  const colorPalette =
+    plottableWithNeedsColor > 0
+      ? theme.chart.getColorPalette(plottableWithNeedsColor - 1)
+      : [];
 
   const showBreakdownData =
     widget.legendType === 'breakdown' &&
@@ -182,11 +194,10 @@ function VisualizationWidgetContent({
 
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {timeSeriesArray.map((timeSeries, index) => {
+      {timeSeriesWithPlottable.map(([timeSeries, plottable], index) => {
         if (timeSeries.meta.isOther) {
           return null;
         }
-        const plottable = plottables[index];
 
         let value: number | null = null;
         if (tableDataRows) {
@@ -265,6 +276,8 @@ function VisualizationWidgetContent({
     paddingRight: 'xl',
     paddingBottom: 'lg',
   };
+
+  const plottables = timeSeriesWithPlottable.map(([, plottable]) => plottable);
 
   if (showBreakdownData) {
     return (
