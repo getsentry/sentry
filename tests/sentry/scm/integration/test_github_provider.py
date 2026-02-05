@@ -2,7 +2,7 @@ from typing import cast
 
 import pytest
 
-from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.client import GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import Reaction, Repository
@@ -23,10 +23,6 @@ def make_repository() -> Repository:
     }
 
 
-def make_provider(client: FakeGitHubApiClient) -> GitHubProvider:
-    return GitHubProvider(cast(GitHubApiClient, client))
-
-
 class TestGitHubProviderGetIssueComments:
     def test_returns_transformed_comments(self):
         client = FakeGitHubApiClient()
@@ -34,7 +30,7 @@ class TestGitHubProviderGetIssueComments:
             make_github_comment(comment_id=101, body="First comment", user_id=1, username="user1"),
             make_github_comment(comment_id=102, body="Second comment", user_id=2, username="user2"),
         ]
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         comments = provider.get_issue_comments(repository, "42")
@@ -48,7 +44,7 @@ class TestGitHubProviderGetIssueComments:
 
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.get_issue_comments(repository, "42")
@@ -58,7 +54,7 @@ class TestGitHubProviderGetIssueComments:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -68,7 +64,7 @@ class TestGitHubProviderGetIssueComments:
         client = FakeGitHubApiClient()
         # Issue comment without the user field
         client.issue_comments = [{"id": 1, "body": "test", "created_at": "x", "updated_at": "x"}]
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -78,7 +74,7 @@ class TestGitHubProviderGetIssueComments:
 class TestGitHubProviderCreateIssueComment:
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.create_issue_comment(repository, "42", "Test body")
@@ -92,7 +88,7 @@ class TestGitHubProviderCreateIssueComment:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -102,7 +98,7 @@ class TestGitHubProviderCreateIssueComment:
 class TestGitHubProviderDeleteIssueComment:
     def test_calls_client_with_correct_path(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.delete_issue_comment(repository, "101")
@@ -116,7 +112,7 @@ class TestGitHubProviderDeleteIssueComment:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -137,7 +133,7 @@ class TestGitHubProviderGetPullRequest:
             user_id=99,
             username="developer",
         )
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         pr = provider.get_pull_request(repository, "42")
@@ -155,7 +151,7 @@ class TestGitHubProviderGetPullRequest:
     def test_handles_null_body(self):
         client = FakeGitHubApiClient()
         client.pull_request_data = make_github_pull_request(body=None)
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         pr = provider.get_pull_request(repository, "42")
@@ -165,7 +161,7 @@ class TestGitHubProviderGetPullRequest:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -174,7 +170,7 @@ class TestGitHubProviderGetPullRequest:
     def test_raises_scm_provider_exception_on_malformed_response(self):
         client = FakeGitHubApiClient()
         client.pull_request_data = {"id": 1, "title": "test"}
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -187,7 +183,7 @@ class TestGitHubProviderGetPullRequestComments:
         client.pull_request_comments = [
             make_github_comment(comment_id=201, body="PR comment"),
         ]
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         comments = provider.get_pull_request_comments(repository, "42")
@@ -199,7 +195,7 @@ class TestGitHubProviderGetPullRequestComments:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -209,7 +205,7 @@ class TestGitHubProviderGetPullRequestComments:
 class TestGitHubProviderCreatePullRequestComment:
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.create_pull_request_comment(repository, "42", "PR comment body")
@@ -223,7 +219,7 @@ class TestGitHubProviderCreatePullRequestComment:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -233,7 +229,7 @@ class TestGitHubProviderCreatePullRequestComment:
 class TestGitHubProviderDeletePullRequestComment:
     def test_calls_client_with_correct_path(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.delete_pull_request_comment(repository, "201")
@@ -247,7 +243,7 @@ class TestGitHubProviderDeletePullRequestComment:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -261,7 +257,7 @@ class TestGitHubProviderGetCommentReactions:
             make_github_reaction(reaction_id=1, content="+1"),
             make_github_reaction(reaction_id=2, content="eyes"),
         ]
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         reactions = provider.get_comment_reactions(repository, "101")
@@ -271,7 +267,7 @@ class TestGitHubProviderGetCommentReactions:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -281,7 +277,7 @@ class TestGitHubProviderGetCommentReactions:
 class TestGitHubProviderCreateCommentReaction:
     def test_calls_client_with_mapped_reaction(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.create_comment_reaction(repository, "101", "+1")
@@ -295,7 +291,7 @@ class TestGitHubProviderCreateCommentReaction:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -303,7 +299,7 @@ class TestGitHubProviderCreateCommentReaction:
 
     def test_raises_scm_provider_exception_on_invalid_reaction(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -313,7 +309,7 @@ class TestGitHubProviderCreateCommentReaction:
 class TestGitHubProviderDeleteCommentReaction:
     def test_calls_client_with_correct_path(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.delete_comment_reaction(repository, "101", "999")
@@ -327,7 +323,7 @@ class TestGitHubProviderDeleteCommentReaction:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -340,7 +336,7 @@ class TestGitHubProviderGetIssueReactions:
         client.issue_reactions = [
             make_github_reaction(reaction_id=1, content="heart"),
         ]
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         reactions = provider.get_issue_reactions(repository, "42")
@@ -350,7 +346,7 @@ class TestGitHubProviderGetIssueReactions:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -360,7 +356,7 @@ class TestGitHubProviderGetIssueReactions:
 class TestGitHubProviderCreateIssueReaction:
     def test_calls_client_with_mapped_reaction(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.create_issue_reaction(repository, "42", "rocket")
@@ -373,7 +369,7 @@ class TestGitHubProviderCreateIssueReaction:
 
     def test_raises_scm_provider_exception_on_invalid_reaction(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):
@@ -383,7 +379,7 @@ class TestGitHubProviderCreateIssueReaction:
 class TestGitHubProviderDeleteIssueReaction:
     def test_calls_client_delete_issue_reaction(self):
         client = FakeGitHubApiClient()
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         provider.delete_issue_reaction(repository, "42", "999")
@@ -397,7 +393,7 @@ class TestGitHubProviderDeleteIssueReaction:
     def test_raises_scm_provider_exception_on_api_error(self):
         client = FakeGitHubApiClient()
         client.raise_api_error = True
-        provider = make_provider(client)
+        provider = GitHubProvider(client)
         repository = make_repository()
 
         with pytest.raises(SCMProviderException):

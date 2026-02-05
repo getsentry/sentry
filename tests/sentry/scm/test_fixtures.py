@@ -1,6 +1,8 @@
 from typing import Any
+from unittest.mock import MagicMock
 
-from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.models import Integration
 from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -158,7 +160,7 @@ class BaseTestProvider(Provider):
         return None
 
 
-class FakeGitHubApiClient:
+class FakeGitHubApiClient(GitHubApiClient):
     """
     A fake GitHubApiClient for testing GitHubProvider without HTTP mocking.
 
@@ -167,6 +169,7 @@ class FakeGitHubApiClient:
     """
 
     def __init__(self) -> None:
+        super().__init__(integration=MagicMock(spec=Integration))
         self.issue_comments: list[dict[str, Any]] = []
         self.pull_request_comments: list[dict[str, Any]] = []
         self.pull_request_data: dict[str, Any] | None = None
