@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -52,8 +52,41 @@ class OAuthDeviceAuthorizationView(View):
 
     @csrf_exempt
     @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    def dispatch(self, request, *args, **kwargs) -> HttpResponseBase:
+        # Handle CORS preflight for browser-based public clients
+        if request.method == "OPTIONS":
+            response: HttpResponseBase = HttpResponse(status=200)
+            response["Access-Control-Max-Age"] = "3600"
+        else:
+            response = super().dispatch(request, *args, **kwargs)
+
+        return self._add_cors_headers(request, response)
+
+    def _add_cors_headers(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
+        """Add CORS headers for browser-based public OAuth clients.
+
+        The device authorization endpoint is used by public clients (SPAs, CLIs running
+        in browsers) that need CORS support. We allow all origins since:
+        1. This endpoint only issues device codes, not tokens
+        2. The security is in the user manually approving the device code
+        3. No credentials (cookies) are involved - public clients use PKCE
+
+        Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
+        any cookie-based auth from being used with this endpoint.
+        """
+        origin = request.META.get("HTTP_ORIGIN")
+
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+
+        if origin:
+            response["Access-Control-Allow-Origin"] = origin
+        else:
+            response["Access-Control-Allow-Origin"] = "*"
+
+        return response
 
     def error(
         self,
@@ -162,7 +195,9 @@ class OAuthDeviceAuthorizationView(View):
 
         # Build the verification URIs
         verification_uri = absolute_uri("/oauth/device/")
-        verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
+        verification_uri_complete = (
+            f"{verification_uri}?user_code={device_code.user_code}"
+        )
 
         # Calculate expires_in from the expiration time
         expires_in = int(DEFAULT_EXPIRATION.total_seconds())
