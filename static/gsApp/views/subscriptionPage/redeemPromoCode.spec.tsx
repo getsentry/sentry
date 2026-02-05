@@ -25,9 +25,9 @@ describe('Redeem promo code', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/settings/subscription/redeem-code/`,
+          pathname: `/settings/${organization.slug}/subscription/redeem-code/`,
         },
-        route: '/organizations/:orgId/settings/subscription/redeem-code/',
+        route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
     expect(screen.queryAllByText('Redeem Promotional Code')).toHaveLength(2);
@@ -54,9 +54,9 @@ describe('Redeem promo code', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/settings/subscription/redeem-code/`,
+          pathname: `/settings/${organization.slug}/subscription/redeem-code/`,
         },
-        route: '/organizations/:orgId/settings/subscription/redeem-code/',
+        route: '/settings/:orgId/subscription/redeem-code/',
       },
     });
     expect(await screen.findByTestId('partnership-note')).toBeInTheDocument();

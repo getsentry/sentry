@@ -196,7 +196,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Flex justify="end">
               <LinkButton
                 to={{
-                  pathname: `/organizations/${organization.slug}/settings/seer/`,
+                  pathname: `/settings/${organization.slug}/seer/`,
                   query: {
                     tab: hasSeatBasedSeer
                       ? undefined

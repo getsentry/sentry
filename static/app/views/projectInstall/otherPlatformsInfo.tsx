@@ -67,7 +67,7 @@ export function OtherPlatformsInfo({
             {
               link: (
                 <Link
-                  to={`/organizations/${organization.slug}/settings/projects/${projectSlug}/keys/`}
+                  to={`/settings/${organization.slug}/projects/${projectSlug}/keys/`}
                 />
               ),
             }
