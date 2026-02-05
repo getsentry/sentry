@@ -10,12 +10,12 @@ This report identifies all instances of `styled(Button)` and `styled(LinkButton)
 
 ## Pattern Distribution
 
-| Pattern | Count | Description |
-|---------|-------|-------------|
-| `width_100_percent` | 9 | Sets button width to 100% of parent |
-| `flex_grow_1` | 3 | Allows button to grow (flex-grow: 1) |
-| `flex_1` | 2 | Makes button grow to fill available space (flex: 1) |
-| `align_self_stretch` | 1 | Stretches button in cross-axis of flex/grid container |
+| Pattern              | Count | Description                                           |
+| -------------------- | ----- | ----------------------------------------------------- |
+| `width_100_percent`  | 9     | Sets button width to 100% of parent                   |
+| `flex_grow_1`        | 3     | Allows button to grow (flex-grow: 1)                  |
+| `flex_1`             | 2     | Makes button grow to fill available space (flex: 1)   |
+| `align_self_stretch` | 1     | Stretches button in cross-axis of flex/grid container |
 
 ## All Locations
 
@@ -91,9 +91,9 @@ margin-top: ${p => p.theme.space.md};
 
 ```css
 width: 100%;
-  > span {
-    display: block;
-  }
+> span {
+  display: block;
+}
 ```
 
 ---
@@ -267,8 +267,8 @@ margin-top: ${space(1)};
 
 ```css
 width: 100%;
-  position: relative;
-  z-index: 1;
+position: relative;
+z-index: 1;
 ```
 
 ---
@@ -287,13 +287,13 @@ width: 100%;
 
 ```css
 height: auto;
-  min-height: auto;
-  align-self: stretch;
+min-height: auto;
+align-self: stretch;
 
-  /* Override ButtonLabel overflow to allow close button to extend beyond */
-  > span:last-child {
-    overflow: visible;
-  }
+/* Override ButtonLabel overflow to allow close button to extend beyond */
+> span:last-child {
+  overflow: visible;
+}
 ```
 
 ---
@@ -312,9 +312,9 @@ height: auto;
 
 ```css
 display: flex;
-  flex-grow: 1;
-  align-items: center;
-  justify-content: center;
+flex-grow: 1;
+align-items: center;
+justify-content: center;
 ```
 
 ---
@@ -340,4 +340,3 @@ padding: ${p => p.theme.space.lg};
 ```
 
 ---
-
