@@ -240,16 +240,17 @@ export default function CreateAlertButton({
     </LinkButton>
   );
 
-  const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+  const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
+  const showGuide =
+    !organization.alertsMemberWrite && !!showPermissionGuide && hasOrgWrite;
   const canCreateAlert =
     isDemoModeActive() ||
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
-  const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
 
   return showGuide ? (
     <GuideAnchor
-      target={hasOrgWrite ? 'alerts_write_owner' : 'alerts_write_member'}
+      target="alerts_write_owner"
       onFinish={hasOrgWrite ? enableAlertsMemberWrite : undefined}
     >
       {renderButton(canCreateAlert)}

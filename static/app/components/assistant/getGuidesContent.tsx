@@ -98,6 +98,7 @@ export default function getGuidesContent(
       requiredTargets: ['alerts_write_owner'],
       steps: [
         {
+          title: t('Allow members to create alerts'),
           target: 'alerts_write_owner',
           description: tct(
             `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
@@ -110,7 +111,6 @@ export default function getGuidesContent(
             }
           ),
           nextText: t('Allow'),
-          hasNextGuide: true,
         },
       ],
     },
