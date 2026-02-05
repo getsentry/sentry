@@ -135,7 +135,6 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = detected_issue.transaction_name
-    # title = detected_issue.title.lower().replace(" ", "-")
     category = detected_issue.category.lower().replace(" ", "-").replace("/", "-")
     subcategory = detected_issue.subcategory.lower().replace(" ", "-").replace("/", "-")
     fingerprint = [f"llm-detected-{category}-{subcategory}-{transaction_name}"]
