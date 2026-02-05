@@ -8,9 +8,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
-import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
+import {
+  createPlottableFromTimeSeries,
+  transformLegacySeriesToTimeSeries,
+} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -22,7 +26,6 @@ import {
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
-import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -140,12 +143,19 @@ function VisualizationWidgetContent({
   const organization = useOrganization();
   const location = useLocation();
 
-  const plottables = transformLegacySeriesToPlottables(
-    timeseriesResults,
-    timeseriesResultsTypes,
-    timeseriesResultsUnits,
-    widget
-  );
+  const timeSeriesArray = timeseriesResults
+    .map(series =>
+      transformLegacySeriesToTimeSeries(
+        series,
+        timeseriesResultsTypes,
+        timeseriesResultsUnits
+      )
+    )
+    .filter(defined);
+
+  const plottables = timeSeriesArray
+    .map(timeSeries => createPlottableFromTimeSeries(timeSeries, widget))
+    .filter(defined);
 
   const errorDisplay =
     renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
@@ -170,33 +180,27 @@ function VisualizationWidgetContent({
   const firstColumn = columns[0];
   const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
 
-  // Filter out "Other" series for the legend breakdown
-  const filteredSeriesWithIndex = showBreakdownData
-    ? timeseriesResults
-        .map((series, index) => ({series, index}))
-        .filter(({series}) => {
-          return series.seriesName !== 'Other';
-        })
-    : [];
-
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {filteredSeriesWithIndex.map(({series, index}, filteredIndex) => {
+      {timeSeriesArray.map((timeSeries, index) => {
+        if (timeSeries.meta.isOther) {
+          return null;
+        }
         const plottable = plottables[index];
 
         let value: number | null = null;
         if (tableDataRows) {
-          // If the there is one groupby and one aggregate, the table results will an array with multiple elemtents
-          // [{groupBy: 'value', aggregate: 123}, {groupBy: 'value', aggregate: 123}]
+          // If the there is one column and one aggregate, the table results will an array with multiple elemtents
+          // [{column: 'value', aggregate: 123}, {column: 'value', aggregate: 123}]
           if (columns.length === 1 && aggregates.length === 1) {
             const aggregate = aggregates[0];
-            const row = tableDataRows[filteredIndex];
+            const row = tableDataRows[index];
             // TODO: We should ideally match row[columns[0]] with the series, however series can have aliases
             if (aggregate && row?.[aggregate] !== undefined) {
               value = row[aggregate] as number;
             }
           }
-          // If there is no groupby, and multiple aggregates, the table result will be an array with a single element
+          // If there is no columns, and only aggregates, the table result will be an array with a single element
           // [{aggregate1: 123}, {aggregate2: 345}]
           else if (columns.length === 0 && aggregates.length > 1) {
             const aggregate = aggregates[index];
@@ -206,16 +210,16 @@ function VisualizationWidgetContent({
             }
           }
         }
-        const dataType = plottable?.dataType ?? FALLBACK_TYPE;
-        const dataUnit = plottable?.dataUnit ?? undefined;
-        const label = plottable?.label ?? series.seriesName;
+        const dataType = timeSeries.meta.valueType;
+        const dataUnit = timeSeries.meta.valueUnit ?? undefined;
+        const label = plottable?.label ?? timeSeries.yAxis;
         const linkedUrl =
           linkedDashboard && firstColumn && widget.widgetType
             ? getLinkedDashboardUrl({
                 linkedDashboard,
                 organizationSlug: organization.slug,
                 field: firstColumn,
-                value: series.seriesName,
+                value: timeSeries.yAxis,
                 widgetType: widget.widgetType,
                 dashboardFilters,
                 locationQuery: location.query,
@@ -229,7 +233,7 @@ function VisualizationWidgetContent({
         );
 
         return (
-          <Fragment key={series.seriesName}>
+          <Fragment key={timeSeries.yAxis}>
             <Container>
               <SeriesColorIndicator
                 style={{
@@ -273,7 +277,7 @@ function VisualizationWidgetContent({
             showLegend="never"
           />
         </Container>
-        <Flex flex={1} direction="column" borderTop="primary">
+        <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%" overflowY="auto">
             {footerTable}
           </Container>

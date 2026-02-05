@@ -15,43 +15,47 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-/**
- * Transforms legacy Series[] data into Plottable[] objects for the TimeSeriesWidgetVisualization component.
- */
-export function transformLegacySeriesToPlottables(
-  timeseriesResults: Series[] | undefined,
+export function transformLegacySeriesToTimeSeries(
+  timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
-  timeseriesResultsUnits: Record<string, DataUnit> | undefined,
-  widget: Widget
-): Plottable[] {
-  if (!timeseriesResults || timeseriesResults.length === 0) {
-    return [];
+  timeseriesResultsUnits: Record<string, DataUnit> | undefined
+): TimeSeries | null {
+  if (!timeseriesResult) {
+    return null;
   }
 
-  const plottables = timeseriesResults
-    .map(series => {
-      const unaliasedSeriesName =
-        series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
-      const fieldType =
-        timeseriesResultsTypes?.[unaliasedSeriesName] ??
-        aggregateOutputType(unaliasedSeriesName);
+  const unaliasedSeriesName =
+    timeseriesResult.seriesName?.split(' : ').at(-1)?.trim() ??
+    timeseriesResult.seriesName;
+  const fieldType =
+    timeseriesResultsTypes?.[unaliasedSeriesName] ??
+    aggregateOutputType(unaliasedSeriesName);
 
-      // Prefer results types and units from the config if available
-      // Fallback to the default mapping logic if not available
-      const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
-      const valueType =
-        timeseriesResultsTypes?.[series.seriesName] ??
-        (mapped.valueType as AggregationOutputType);
-      const valueUnit = timeseriesResultsUnits?.[series.seriesName] ?? mapped.valueUnit;
+  // Prefer results types and units from the config if available
+  // Fallback to the default mapping logic if not available
+  const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
+  const valueType =
+    timeseriesResultsTypes?.[timeseriesResult.seriesName] ??
+    (mapped.valueType as AggregationOutputType);
+  const valueUnit =
+    timeseriesResultsUnits?.[timeseriesResult.seriesName] ?? mapped.valueUnit;
 
-      const timeSeries = convertEventsStatsToTimeSeriesData(
-        series.seriesName,
-        createEventsStatsFromSeries(series, valueType, valueUnit)
-      );
-      return createPlottableFromTimeSeries(timeSeries[1], widget);
-    })
-    .filter(plottable => plottable !== null);
-  return plottables;
+  const isOther =
+    timeseriesResult.seriesName === 'Other' ||
+    timeseriesResult.seriesName?.endsWith(' : Other');
+
+  const timeSeries = convertEventsStatsToTimeSeriesData(
+    timeseriesResult.seriesName,
+    createEventsStatsFromSeries(timeseriesResult, valueType, valueUnit)
+  )[1];
+
+  return {
+    ...timeSeries,
+    meta: {
+      ...timeSeries.meta,
+      isOther,
+    },
+  };
 }
 
 function createEventsStatsFromSeries(
@@ -79,7 +83,7 @@ function createEventsStatsFromSeries(
   };
 }
 
-function createPlottableFromTimeSeries(
+export function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
   widget: Widget
 ): Plottable | null {

@@ -3,148 +3,171 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {ContinuousTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/continuousTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 
-import {transformLegacySeriesToPlottables} from './transformLegacySeriesToPlottables';
+import {
+  createPlottableFromTimeSeries,
+  transformLegacySeriesToTimeSeries,
+} from './transformLegacySeriesToPlottables';
 
-describe('transformLegacySeriesToPlottables', () => {
-  it('returns empty array for empty or undefined legacy series', () => {
-    const widget = WidgetFixture({displayType: DisplayType.LINE});
-
-    expect(
-      transformLegacySeriesToPlottables(undefined, undefined, undefined, widget)
-    ).toEqual([]);
-    expect(transformLegacySeriesToPlottables([], undefined, undefined, widget)).toEqual(
-      []
-    );
+describe('transformLegacySeriesToTimeSeries', () => {
+  it('returns null for undefined series', () => {
+    expect(transformLegacySeriesToTimeSeries(undefined, undefined, undefined)).toBeNull();
   });
 
-  it('creates correct plottable instances for different display types', () => {
-    const series = [
-      {
-        seriesName: 'count()',
-        data: [
-          {name: 1729796400000, value: 100},
-          {name: 1729800000000, value: 200},
-        ],
-      },
-    ];
-    expect(
-      transformLegacySeriesToPlottables(
-        series,
-        undefined,
-        undefined,
-        WidgetFixture({displayType: DisplayType.LINE})
-      )[0]
-    ).toBeInstanceOf(Line);
+  it('transforms series data correctly', () => {
+    const series = {
+      seriesName: 'count()',
+      data: [
+        {name: 1729796400000, value: 100},
+        {name: 1729800000000, value: 200},
+      ],
+    };
 
-    expect(
-      transformLegacySeriesToPlottables(
-        series,
-        undefined,
-        undefined,
-        WidgetFixture({displayType: DisplayType.AREA})
-      )[0]
-    ).toBeInstanceOf(Area);
+    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
 
-    expect(
-      transformLegacySeriesToPlottables(
-        series,
-        undefined,
-        undefined,
-        WidgetFixture({displayType: DisplayType.BAR})
-      )[0]
-    ).toBeInstanceOf(Bars);
-
-    expect(
-      transformLegacySeriesToPlottables(
-        series,
-        undefined,
-        undefined,
-        WidgetFixture({displayType: DisplayType.TABLE})
-      )
-    ).toEqual([]);
+    expect(timeSeries).not.toBeNull();
+    expect(timeSeries!.yAxis).toBe('count()');
+    expect(timeSeries!.values).toHaveLength(2);
+    expect(timeSeries!.values[0]).toMatchObject({timestamp: 1729796400000, value: 100});
+    expect(timeSeries!.values[1]).toMatchObject({timestamp: 1729800000000, value: 200});
+    expect(timeSeries!.meta.valueType).toBe('number');
   });
 
   it('handles alias series names', () => {
-    const series = [
-      {
-        seriesName: 'my_alias : epm()',
-        data: [
-          {name: 1729796400000, value: 100},
-          {name: 1729800000000, value: 200},
-        ],
-      },
-    ];
+    const series = {
+      seriesName: 'my_alias : epm()',
+      data: [
+        {name: 1729796400000, value: 100},
+        {name: 1729800000000, value: 200},
+      ],
+    };
 
-    const plottables = transformLegacySeriesToPlottables(
-      series,
-      undefined,
-      undefined,
-      WidgetFixture({displayType: DisplayType.LINE})
-    ) as Line[];
-    expect(plottables).toHaveLength(1);
-    // expect to be a line and have rate unit
-    expect(plottables[0]!).toBeInstanceOf(Line);
-    expect(plottables[0]!.timeSeries.meta.valueUnit).toBe('1/minute');
+    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
+
+    expect(timeSeries).not.toBeNull();
+    expect(timeSeries!.meta.valueUnit).toBe('1/minute');
+  });
+
+  it('sets isOther to true for "Other" series', () => {
+    const otherSeries = {
+      seriesName: 'Other',
+      data: [{name: 1729796400000, value: 100}],
+    };
+    const aliasedOtherSeries = {
+      seriesName: 'count() : Other',
+      data: [{name: 1729796400000, value: 100}],
+    };
+    const regularSeries = {
+      seriesName: 'count()',
+      data: [{name: 1729796400000, value: 100}],
+    };
+
+    expect(
+      transformLegacySeriesToTimeSeries(otherSeries, undefined, undefined)!.meta.isOther
+    ).toBe(true);
+    expect(
+      transformLegacySeriesToTimeSeries(aliasedOtherSeries, undefined, undefined)!.meta
+        .isOther
+    ).toBe(true);
+    expect(
+      transformLegacySeriesToTimeSeries(regularSeries, undefined, undefined)!.meta.isOther
+    ).toBe(false);
   });
 
   it('transforms session series data correctly', () => {
+    const erroredRateSeries = {
+      seriesName: 'errored_rate(session)',
+      data: [
+        {name: 172979640, value: 100},
+        {name: 172980000, value: 200},
+      ],
+    };
+    const sumSessionSeries = {
+      seriesName: 'sum(session)',
+      data: [
+        {name: 172979640, value: 300},
+        {name: 172980000, value: 400},
+      ],
+    };
+
+    const erroredRateTimeSeries = transformLegacySeriesToTimeSeries(
+      erroredRateSeries,
+      undefined,
+      undefined
+    );
+    const sumSessionTimeSeries = transformLegacySeriesToTimeSeries(
+      sumSessionSeries,
+      undefined,
+      undefined
+    );
+
+    expect(erroredRateTimeSeries!.yAxis).toBe('errored_rate(session)');
+    expect(sumSessionTimeSeries!.yAxis).toBe('sum(session)');
+    expect(erroredRateTimeSeries!.values).toHaveLength(2);
+    expect(erroredRateTimeSeries!.values[0]).toMatchObject({
+      timestamp: 172979640,
+      value: 100,
+    });
+    expect(erroredRateTimeSeries!.values[1]).toMatchObject({
+      timestamp: 172980000,
+      value: 200,
+    });
+    expect(sumSessionTimeSeries!.values).toHaveLength(2);
+    expect(sumSessionTimeSeries!.values[0]).toMatchObject({
+      timestamp: 172979640,
+      value: 300,
+    });
+    expect(sumSessionTimeSeries!.values[1]).toMatchObject({
+      timestamp: 172980000,
+      value: 400,
+    });
+    expect(erroredRateTimeSeries!.meta.valueType).toBe('percentage');
+    expect(sumSessionTimeSeries!.meta.valueType).toBe('number');
+    expect(erroredRateTimeSeries!.meta.interval).toBe(360);
+    expect(sumSessionTimeSeries!.meta.interval).toBe(360);
+  });
+});
+
+describe('createPlottableFromTimeSeries', () => {
+  const mockTimeSeries = {
+    yAxis: 'count()',
+    values: [
+      {timestamp: 1729796400000, value: 100, incomplete: false},
+      {timestamp: 1729800000000, value: 200, incomplete: false},
+    ],
+    meta: {
+      valueType: 'number' as const,
+      valueUnit: null,
+      interval: 3600,
+    },
+  };
+
+  it('creates Line instance for LINE display type', () => {
     const widget = WidgetFixture({displayType: DisplayType.LINE});
+    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
 
-    const sessionSeries = [
-      {
-        seriesName: 'errored_rate(session)',
-        data: [
-          {name: 172979640, value: 100},
-          {name: 172980000, value: 200},
-        ],
-      },
-      {
-        seriesName: 'sum(session)',
-        data: [
-          {name: 172979640, value: 300},
-          {name: 172980000, value: 400},
-        ],
-      },
-    ];
-    const sessionResult = transformLegacySeriesToPlottables(
-      sessionSeries,
-      undefined,
-      undefined,
-      widget
-    ) as ContinuousTimeSeries[];
+    expect(plottable).toBeInstanceOf(Line);
+  });
 
-    expect(sessionResult[0]!.timeSeries.yAxis).toBe('errored_rate(session)');
-    expect(sessionResult[1]!.timeSeries.yAxis).toBe('sum(session)');
-    expect(sessionResult[0]!.timeSeries.values).toEqual([
-      {
-        timestamp: 172979640,
-        value: 100,
-        incomplete: false,
-      },
-      {
-        timestamp: 172980000,
-        value: 200,
-        incomplete: false,
-      },
-    ]);
-    expect(sessionResult[1]!.timeSeries.values).toEqual([
-      {
-        timestamp: 172979640,
-        value: 300,
-        incomplete: false,
-      },
-      {
-        timestamp: 172980000,
-        value: 400,
-        incomplete: false,
-      },
-    ]);
-    expect(sessionResult[0]!.timeSeries.meta.valueType).toBe('percentage');
-    expect(sessionResult[1]!.timeSeries.meta.valueType).toBe('number');
-    expect(sessionResult[0]!.timeSeries.meta.interval).toBe(360);
-    expect(sessionResult[1]!.timeSeries.meta.interval).toBe(360);
+  it('creates Area instance for AREA display type', () => {
+    const widget = WidgetFixture({displayType: DisplayType.AREA});
+    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+
+    expect(plottable).toBeInstanceOf(Area);
+  });
+
+  it('creates Bars instance for BAR display type', () => {
+    const widget = WidgetFixture({displayType: DisplayType.BAR});
+    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+
+    expect(plottable).toBeInstanceOf(Bars);
+  });
+
+  it('returns null for TABLE display type', () => {
+    const widget = WidgetFixture({displayType: DisplayType.TABLE});
+    const plottable = createPlottableFromTimeSeries(mockTimeSeries, widget);
+
+    expect(plottable).toBeNull();
   });
 });
