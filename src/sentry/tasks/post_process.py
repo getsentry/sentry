@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import MutableMapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
 
@@ -1658,6 +1658,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
             if group.seer_autofix_last_triggered is not None:
                 return
 
+            # Don't run automation on old issues
+            if group.first_seen < (timezone.now() - timedelta(days=14)):
+                return
+
             # Triage signals will not run issues if they are not fixable at MEDIUM threshold
             if group.seer_fixability_score is not None:
                 if (
@@ -1733,6 +1737,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
+    ],
+    GroupCategory.INSTRUMENTATION: [
+        process_snoozes,
+        process_inbox_adds,
+        kick_off_seer_automation,
     ],
 }
 

@@ -11,8 +11,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 // The endpoint seems to just return these fields, but the original TagValue type
 // has extra fields related to user information that we don't seem to need.
-interface MockedTagValue
-  extends Pick<TagValue, 'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'> {}
+interface MockedTagValue extends Pick<
+  TagValue,
+  'key' | 'value' | 'name' | 'count' | 'firstSeen' | 'lastSeen'
+> {}
 
 function renderWithProvider({
   widgetQuery,

@@ -84,8 +84,10 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface AskSeerPollingComboBoxProps<T extends QueryTokensProps>
-  extends Omit<AriaComboBoxProps<unknown>, 'children'> {
+interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
+  AriaComboBoxProps<unknown>,
+  'children'
+> {
   /**
    * The source of the analytics event, must be a dot-separated identifier like "trace.
    * explorer" or "issue.list"

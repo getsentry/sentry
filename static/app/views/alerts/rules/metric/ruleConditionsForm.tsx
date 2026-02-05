@@ -124,6 +124,7 @@ type Props = {
   isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
 type State = {
@@ -525,6 +526,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 ? this.transactionAlertDisabledMessage
                 : undefined
             }
+            onMetricLoadingChange={this.props.onMetricLoadingChange}
           />
           <Tooltip
             title={this.transactionAlertDisabledMessage}
@@ -870,6 +872,8 @@ function EAPSearchQueryBuilderWithContext({
     useTraceItemAttributes('number');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceItemAttributes('string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -877,10 +881,12 @@ function EAPSearchQueryBuilderWithContext({
     onSearch,
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
     numberSecondaryAliases,
     stringSecondaryAliases,
+    booleanSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;

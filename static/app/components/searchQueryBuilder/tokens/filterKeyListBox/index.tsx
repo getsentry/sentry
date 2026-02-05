@@ -37,18 +37,17 @@ interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   setSelectedSection: (section: string) => void;
 }
 
-interface FilterKeyMenuContentProps<T>
-  extends Pick<
-    FilterKeyListBoxProps<T>,
-    | 'hiddenOptions'
-    | 'listBoxProps'
-    | 'listBoxRef'
-    | 'recentFilters'
-    | 'state'
-    | 'selectedSection'
-    | 'setSelectedSection'
-    | 'sections'
-  > {
+interface FilterKeyMenuContentProps<T> extends Pick<
+  FilterKeyListBoxProps<T>,
+  | 'hiddenOptions'
+  | 'listBoxProps'
+  | 'listBoxRef'
+  | 'recentFilters'
+  | 'state'
+  | 'selectedSection'
+  | 'setSelectedSection'
+  | 'sections'
+> {
   fullWidth: boolean;
 }
 

@@ -478,7 +478,52 @@ describe('Incident Rules Form', () => {
             name: 'Logs Incident Rule',
             projects: ['project-slug'],
             eventTypes: [EventTypes.TRACE_ITEM_LOG],
-            alertType: 'trace_item_logs',
+            alertType: 'eap_metrics',
+            dataset: 'events_analytics_platform',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('creates a trace metrics alert rule', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'visibility-explore-view',
+        'tracemetrics-enabled',
+        'tracemetrics-alerts',
+      ];
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+          aggregate: 'sum(value,my_metric,counter,-)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Trace Metrics Incident Rule'
+      );
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Trace Metrics Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+            alertType: 'eap_metrics',
             dataset: 'events_analytics_platform',
           }),
         })

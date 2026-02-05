@@ -31,12 +31,12 @@ type VisualizeGhostFieldProps = {
   aggregates: Array<SelectValue<FieldValue>>;
   fields: QueryFieldValue[];
   isBigNumberWidget: boolean;
-  isChartWidget: boolean;
+  isTimeSeriesWidget: boolean;
   stringFields: string[];
 };
 
 function VisualizeGhostField({
-  isChartWidget,
+  isTimeSeriesWidget,
   isBigNumberWidget,
   fields,
   activeId,
@@ -194,8 +194,8 @@ function VisualizeGhostField({
             </Fragment>
           )}
         </FieldBar>
-        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-          {!isChartWidget && !isBigNumberWidget && (
+        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
+          {!isTimeSeriesWidget && !isBigNumberWidget && (
             <LegendAliasInput
               type="text"
               name="name"

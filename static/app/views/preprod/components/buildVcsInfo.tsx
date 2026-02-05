@@ -1,4 +1,4 @@
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';

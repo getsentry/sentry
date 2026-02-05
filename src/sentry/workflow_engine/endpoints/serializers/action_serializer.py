@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -10,14 +10,14 @@ class ActionSerializerResponse(TypedDict):
     id: str
     type: str
     integrationId: str | None
-    data: dict
-    config: dict
+    data: dict[str, Any]
+    config: dict[str, Any]
     status: str
 
 
 @register(Action)
 class ActionSerializer(Serializer):
-    def serialize(self, obj: Action, *args, **kwargs) -> ActionSerializerResponse:
+    def serialize(self, obj: Action, *args: Any, **kwargs: Any) -> ActionSerializerResponse:
         # Get the action handler and config transformer if available
         action_handler = action_handler_registry.get(obj.type)
         config_transformer = action_handler.get_config_transformer()

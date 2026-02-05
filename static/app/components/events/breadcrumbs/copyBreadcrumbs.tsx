@@ -63,13 +63,9 @@ export function formatBreadcrumbsAsText(crumbs: EnhancedCrumb[]): string {
 
 interface CopyBreadcrumbsDropdownProps {
   breadcrumbs: EnhancedCrumb[];
-  borderless?: boolean;
 }
 
-export function CopyBreadcrumbsDropdown({
-  breadcrumbs,
-  borderless,
-}: CopyBreadcrumbsDropdownProps) {
+export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownProps) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
 
@@ -102,23 +98,21 @@ export function CopyBreadcrumbsDropdown({
   return (
     <DropdownMenu
       size="xs"
+      triggerLabel={t('Copy')}
       triggerProps={{
         title: t('Copy Breadcrumbs'),
         icon: <IconCopy />,
         size: 'xs',
-        borderless,
-        showChevron: false,
       }}
-      menuTitle={t('Copy Breadcrumbs')}
       items={[
         {
           key: 'copy-text',
-          label: t('Copy as Text'),
+          label: t('As Text'),
           onAction: handleCopyAsText,
         },
         {
           key: 'copy-markdown',
-          label: t('Copy as Markdown'),
+          label: t('As Markdown'),
           onAction: handleCopyAsMarkdown,
         },
       ]}

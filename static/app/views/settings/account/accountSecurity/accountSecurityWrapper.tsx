@@ -9,11 +9,12 @@ import {t} from 'sentry/locale';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-const ENDPOINT = '/users/me/authenticators/';
+const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}});
 
 export default function AccountSecurityWrapper() {
   const api = useApi();
@@ -26,7 +27,12 @@ export default function AccountSecurityWrapper() {
     staleTime: 0,
   });
   const {refetch: refetchOrganizations} = orgRequest;
-  const emailsRequest = useApiQuery<UserEmail[]>(['/users/me/emails/'], {staleTime: 0});
+  const emailsRequest = useApiQuery<UserEmail[]>(
+    [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
+    {
+      staleTime: 0,
+    }
+  );
   const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
 
   const handleRefresh = useCallback(() => {
