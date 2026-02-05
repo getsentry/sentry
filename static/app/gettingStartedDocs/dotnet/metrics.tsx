@@ -95,7 +95,7 @@ export const metrics: OnboardingConfig = {
         },
         {
           type: 'code',
-          language: 'dotnet',
+          language: 'csharp',
           code: `using Sentry;
 
 SentrySdk.Init(options =>
