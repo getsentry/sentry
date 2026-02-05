@@ -1,55 +1,3 @@
-/**
- * Finds the longest common prefix shared by all strings in the array.
- */
-export function computeCommonPrefix(strings: string[]): string {
-  if (strings.length === 0) {
-    return '';
-  }
-
-  let prefix = strings[0]!;
-  for (let i = 1; i < strings.length; i++) {
-    const s = strings[i]!;
-    let j = 0;
-    while (j < prefix.length && j < s.length && prefix[j] === s[j]) {
-      j++;
-    }
-    prefix = prefix.slice(0, j);
-    if (prefix === '') {
-      return '';
-    }
-  }
-
-  return prefix;
-}
-
-/**
- * Finds the longest common suffix shared by all strings in the array.
- */
-export function computeCommonSuffix(strings: string[]): string {
-  if (strings.length === 0) {
-    return '';
-  }
-
-  let suffix = strings[0]!;
-  for (let i = 1; i < strings.length; i++) {
-    const s = strings[i]!;
-    let j = 0;
-    while (
-      j < suffix.length &&
-      j < s.length &&
-      suffix[suffix.length - 1 - j] === s[s.length - 1 - j]
-    ) {
-      j++;
-    }
-    suffix = suffix.slice(suffix.length - j);
-    if (suffix === '') {
-      return '';
-    }
-  }
-
-  return suffix;
-}
-
 const ELLIPSIS = '\u2026';
 const MIN_AFFIX_LENGTH = 3;
 
@@ -106,6 +54,11 @@ export function trimCommonAffixes(
   strings: string[],
   minAffixLength: number = MIN_AFFIX_LENGTH
 ): string[] {
+  // Common affixes only make sense with 2+ strings
+  if (strings.length <= 1) {
+    return strings;
+  }
+
   const {prefixLen: rawPrefixLen, suffixLen: rawSuffixLen} =
     computeCommonAffixLengths(strings);
 

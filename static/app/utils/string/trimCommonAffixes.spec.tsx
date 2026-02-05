@@ -1,57 +1,14 @@
-import {
-  computeCommonPrefix,
-  computeCommonSuffix,
-  trimCommonAffixes,
-} from './trimCommonAffixes';
-
-describe('computeCommonPrefix', () => {
-  it('returns empty string for empty array', () => {
-    expect(computeCommonPrefix([])).toBe('');
-  });
-
-  it('returns the full string for a single-element array', () => {
-    expect(computeCommonPrefix(['/api/v2/users'])).toBe('/api/v2/users');
-  });
-
-  it('finds the common prefix', () => {
-    expect(computeCommonPrefix(['/api/v2/users', '/api/v2/teams'])).toBe('/api/v2/');
-  });
-
-  it('returns empty string when no common prefix', () => {
-    expect(computeCommonPrefix(['Chrome', 'Firefox', 'Safari'])).toBe('');
-  });
-
-  it('handles identical strings', () => {
-    expect(computeCommonPrefix(['abc', 'abc', 'abc'])).toBe('abc');
-  });
-});
-
-describe('computeCommonSuffix', () => {
-  it('returns empty string for empty array', () => {
-    expect(computeCommonSuffix([])).toBe('');
-  });
-
-  it('returns the full string for a single-element array', () => {
-    expect(computeCommonSuffix(['hello'])).toBe('hello');
-  });
-
-  it('finds the common suffix', () => {
-    expect(computeCommonSuffix(['users_count', 'teams_count'])).toBe('s_count');
-    expect(computeCommonSuffix(['foo.test.ts', 'bar.spec.ts'])).toBe('.ts');
-  });
-
-  it('returns empty string when no common suffix', () => {
-    expect(computeCommonSuffix(['Chrome', 'Firefox', 'Safari'])).toBe('');
-  });
-
-  it('handles identical strings', () => {
-    expect(computeCommonSuffix(['abc', 'abc', 'abc'])).toBe('abc');
-  });
-});
+import {trimCommonAffixes} from './trimCommonAffixes';
 
 describe('trimCommonAffixes', () => {
   it('returns empty array for empty input', () => {
     expect(trimCommonAffixes([])).toEqual([]);
+  });
+
+  it('returns single-element array unchanged', () => {
+    expect(trimCommonAffixes(['/api/v2/organizations/:orgId/projects'])).toEqual([
+      '/api/v2/organizations/:orgId/projects',
+    ]);
   });
 
   it('returns values unchanged when no common affixes', () => {
