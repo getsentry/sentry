@@ -51,7 +51,7 @@ export function LinkButton({
             }
           />
         )}
-        <ButtonLabel size={size} borderless={props.borderless}>
+        <ButtonLabel size={size}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
@@ -116,7 +116,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
+})<Pick<CommonButtonProps, 'size'>>`
   height: 100%;
   min-width: 0;
   display: flex;
