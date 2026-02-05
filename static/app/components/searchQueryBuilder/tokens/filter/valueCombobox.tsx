@@ -45,6 +45,7 @@ import {
 import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   isDateToken,
+  isNumericFilterToken,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -539,6 +540,9 @@ export function getInitialInputValue(
   }
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
+  }
+  if (isNumericFilterToken(token)) {
+    return token.value.text;
   }
   return '';
 }
