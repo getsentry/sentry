@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import ActionService
 from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
@@ -38,22 +36,24 @@ class DatabaseBackedActionService(ActionService):
         sentry_app_install_uuid: str,
         sentry_app_id: int | None = None,
     ) -> None:
-        actions = None
-        if sentry_app_id:
-            actions = Action.objects.filter(
-                Q(config__target_identifier=sentry_app_install_uuid)
-                | Q(config__target_identifier=str(sentry_app_id)),
-                type=Action.Type.SENTRY_APP,
-                dataconditiongroupaction__condition_group__organization_id=organization_id,
-            )
-        else:
-            actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid,
-                type=Action.Type.SENTRY_APP,
-                dataconditiongroupaction__condition_group__organization_id=organization_id,
-            )
+        sentry_app_id_actions = None
 
-        actions.update(status=status)
+        if sentry_app_id:
+            sentry_app_id_actions = Action.objects.filter(
+                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+                config__target_identifier=str(sentry_app_id),
+                type=Action.Type.SENTRY_APP,
+                dataconditiongroupaction__condition_group__organization_id=organization_id,
+            )
+        installation_uuid_actions = Action.objects.filter(
+            config__target_identifier=sentry_app_install_uuid,
+            type=Action.Type.SENTRY_APP,
+            dataconditiongroupaction__condition_group__organization_id=organization_id,
+        )
+
+        actions = sentry_app_id_actions | installation_uuid_actions
+        if actions:
+            actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
         self,
@@ -64,22 +64,22 @@ class DatabaseBackedActionService(ActionService):
         organization_id: int | None = None,
         sentry_app_id: int | None = None,
     ) -> None:
-        actions = None
+        sentry_app_id_actions = None
+
         if sentry_app_id and organization_id:
-            actions = Action.objects.filter(
-                Q(config__target_identifier=sentry_app_install_uuid)
-                | Q(config__target_identifier=str(sentry_app_id)),
+            sentry_app_id_actions = Action.objects.filter(
+                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_ID,
+                config__target_identifier=str(sentry_app_id),
                 type=Action.Type.SENTRY_APP,
                 dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
-        else:
-            # we previously only used the installation id, so without the org id we can't do the sentry app id lookup
-            actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid,
-                type=Action.Type.SENTRY_APP,
-                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            )
+        installation_uuid_actions = Action.objects.filter(
+            config__target_identifier=sentry_app_install_uuid,
+            type=Action.Type.SENTRY_APP,
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+        )
 
+        actions = sentry_app_id_actions | installation_uuid_actions
         if actions:
             actions.update(status=status)
 
