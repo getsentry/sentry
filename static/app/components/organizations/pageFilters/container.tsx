@@ -131,51 +131,52 @@ function PageFiltersContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
 
-  // If the max pickable days is decreased and the selection exceeds the new max,
-  // update the datetime state to the new max pickable days.
+  // Handle dynamic maxPickableDays changes (e.g., switching between pages with different limits).
+  // When the limit decreases and the current selection exceeds it, reset to the new max.
   const previousMaxPickableDays = usePrevious(maxPickableDays);
   const shouldResetDateTime = useMemo(() => {
+    // Only act when maxPickableDays decreases (increasing the limit never invalidates selection)
+    if (
+      previousMaxPickableDays === maxPickableDays ||
+      previousMaxPickableDays < maxPickableDays
+    ) {
+      return false;
+    }
+
     const {period, start, end} = selection.datetime;
 
+    // For relative periods (e.g., "14d"), check if the period exceeds the new max
     if (period) {
       return statsPeriodToDays(period) > maxPickableDays;
     }
 
+    // For absolute date ranges, check if the start date is before the allowed window.
+    // Uses same calculation as initialization in pageFilters.tsx
     if (start && end) {
-      // Use same calculation as initialization in pageFilters.tsx
       const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
       const maxStart = new Date(maxPeriod.start);
       return new Date(start).getTime() < maxStart.getTime();
     }
 
     return false;
-  }, [maxPickableDays, selection.datetime]);
-  useLayoutEffect(() => {
-    if (
-      previousMaxPickableDays !== maxPickableDays &&
-      previousMaxPickableDays > maxPickableDays
-    ) {
-      if (!shouldResetDateTime) {
-        return;
-      }
+  }, [maxPickableDays, previousMaxPickableDays, selection.datetime]);
 
-      const newDateState = getDatetimeFromState({
-        period: `${maxPickableDays}d`,
-        start: null,
-        end: null,
-        utc: selection.datetime.utc,
-        environment: [],
-        project: [],
-      });
-      updateDateTime(newDateState, router);
+  useLayoutEffect(() => {
+    if (!shouldResetDateTime) {
+      return;
     }
-  }, [
-    maxPickableDays,
-    previousMaxPickableDays,
-    router,
-    selection.datetime.utc,
-    shouldResetDateTime,
-  ]);
+
+    // Reset to a relative period matching the new max (clears any absolute dates)
+    const newDateState = getDatetimeFromState({
+      period: `${maxPickableDays}d`,
+      start: null,
+      end: null,
+      utc: selection.datetime.utc,
+      environment: [],
+      project: [],
+    });
+    updateDateTime(newDateState, router);
+  }, [maxPickableDays, router, selection.datetime.utc, shouldResetDateTime]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);
