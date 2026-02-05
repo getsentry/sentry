@@ -29,7 +29,7 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     createdBy: str | None
     alertRuleId: int | None
     ruleId: int | None
-    latestGroup: dict | None
+    latestGroup: dict[str, Any] | None
     description: str | None
 
 
@@ -42,9 +42,9 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     workflowIds: list[str] | None
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict] | None
-    conditionGroup: dict | None
-    config: dict
+    dataSources: list[dict[str, Any]] | None
+    conditionGroup: dict[str, Any] | None
+    config: dict[str, Any]
     enabled: bool
     openIssues: int
 
@@ -52,7 +52,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
 @register(Detector)
 class DetectorSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[Detector], user, **kwargs
+        self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:
         attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
 
@@ -173,7 +173,7 @@ class DetectorSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> DetectorSerializerResponse:
         alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
