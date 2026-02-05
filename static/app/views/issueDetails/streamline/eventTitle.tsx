@@ -49,55 +49,6 @@ type EventNavigationProps = {
 
 export const MIN_NAV_HEIGHT = 44;
 
-function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
-  const organization = useOrganization();
-  const activeThreadId = useActiveThreadId();
-
-  // Get data for markdown copy functionality
-  const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
-
-  const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(
-      group,
-      event,
-      groupSummaryData,
-      autofixData,
-      activeThreadId
-    );
-  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
-
-  const {copy} = useCopyToClipboard();
-
-  const handleCopyMarkdown = useCallback(() => {
-    copy(markdownText, {successMessage: t('Copied issue to clipboard as Markdown')}).then(
-      () => {
-        trackAnalytics('issue_details.copy_issue_details_as_markdown', {
-          organization,
-          groupId: group.id,
-          eventId: event?.id,
-          hasAutofix: Boolean(autofixData),
-          hasSummary: Boolean(groupSummaryData),
-        });
-      }
-    );
-  }, [
-    copy,
-    markdownText,
-    organization,
-    group.id,
-    event?.id,
-    autofixData,
-    groupSummaryData,
-  ]);
-
-  return (
-    <MarkdownButton priority="link" onClick={handleCopyMarkdown}>
-      {t('Copy as Markdown')}
-    </MarkdownButton>
-  );
-}
-
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -173,7 +124,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               {t('JSON')}
             </JsonLink>
             <Divider />
-            <GroupMarkdownButton group={group} event={event} />
           </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
