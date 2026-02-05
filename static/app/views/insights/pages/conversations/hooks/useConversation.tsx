@@ -18,18 +18,6 @@ export interface UseConversationsOptions {
 }
 
 /**
- * Prefetch conversation data when a conversationId is provided.
- * Call this at the page level to start fetching before the drawer opens,
- * so data is ready (or loading) when the drawer content mounts.
- */
-export function usePrefetchConversation(conversationId: string | null) {
-  // This just calls useConversation with the provided ID.
-  // React Query will cache the result, so when ConversationDrawerContent
-  // mounts and calls useConversation with the same ID, data is already available.
-  useConversation({conversationId: conversationId ?? ''});
-}
-
-/**
  * Raw span data returned from the AI conversation details endpoint
  */
 interface ConversationApiSpan {
