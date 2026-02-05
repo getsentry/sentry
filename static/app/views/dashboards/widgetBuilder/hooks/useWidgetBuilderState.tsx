@@ -506,6 +506,7 @@ function useWidgetBuilderState(): {
               options
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
+            setLimit(undefined, options);
           } else {
             setYAxis([], options);
             setFields(
@@ -518,6 +519,7 @@ function useWidgetBuilderState(): {
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
             );
+            setLimit(undefined, options);
           }
 
           setThresholds(undefined, options);
