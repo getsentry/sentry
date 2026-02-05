@@ -37,6 +37,7 @@ import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 const TOTAL_CHARACTER_THRESHOLD = 40;
 const TRUNCATED_LABEL_MAX_LENGTH = 15;
+const ROTATION_CATEGORY_THRESHOLD = 10;
 const ROTATED_LABEL_ANGLE = 45;
 
 export interface CategoricalSeriesWidgetVisualizationProps {
@@ -121,7 +122,7 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
-  const shouldRotate = allCategories.length > 10;
+  const shouldRotate = allCategories.length > ROTATION_CATEGORY_THRESHOLD;
 
   const formattedLabels = useMemo(() => {
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);

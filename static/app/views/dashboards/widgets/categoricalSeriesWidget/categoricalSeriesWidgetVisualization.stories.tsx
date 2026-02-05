@@ -9,14 +9,12 @@ import {Heading} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 
-import {
-  sampleCommonAffixData,
-  sampleManyCommonAffixData,
-} from './fixtures/commonAffixCategorical';
+import {sampleCommonAffixData} from './fixtures/commonAffixCategorical';
 import {sampleCountCategoricalData} from './fixtures/countCategorical';
 import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
 import {sampleLargeValueData} from './fixtures/largeValueCategorical';
 import {sampleManyCategoriesData} from './fixtures/manyCategoriesCategorical';
+import {sampleManyCommonAffixData} from './fixtures/manyCommonAffixCategorical';
 import {sampleMultiSeriesData} from './fixtures/multiSeriesCategorical';
 import {sampleNegativeData} from './fixtures/negativeCategorical';
 import {samplePercentageData} from './fixtures/percentageCategorical';
