@@ -49,7 +49,8 @@ const MergedButtonBarStyles = () => css`
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
 
-      & > .dropdown-actor > button {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
@@ -61,7 +62,8 @@ const MergedButtonBarStyles = () => css`
     &:not(:last-child):not(:first-child)[role='presentation'] > a {
       border-radius: 0;
 
-      & > .dropdown-actor > button {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-radius: 0;
       }
     }
@@ -84,7 +86,8 @@ const MergedButtonBarStyles = () => css`
 
       &[role='presentation'] > button,
       &[role='presentation'] > a,
-      & > .dropdown-actor > button {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         margin-left: -1px;

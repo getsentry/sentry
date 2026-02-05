@@ -4,7 +4,7 @@ import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Button, StyledButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
@@ -311,7 +311,8 @@ const RequestLogFilters = styled('div')`
   align-items: center;
   padding-bottom: ${space(1)};
 
-  > :first-child ${StyledButton} {
+  > :first-child button,
+  > :first-child a {
     border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
 `;
