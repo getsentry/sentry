@@ -188,15 +188,13 @@ def create_issue_occurrence_from_detection(
                 "trace_id": trace_id,
                 "type": "trace",
             },
-            "category": {
-                "category": category,
-                "subcategory": subcategory,
-            },
-            "message": {
-                "explanation": detected_issue.explanation,
-                "impact": detected_issue.impact,
-                "evidence": detected_issue.evidence,
-            },
+        },
+        "llm_detection": {
+            "category": detected_issue.category,
+            "subcategory": detected_issue.subcategory,
+            "explanation": detected_issue.explanation,
+            "impact": detected_issue.impact,
+            "evidence": detected_issue.evidence,
         },
     }
 
