@@ -22,6 +22,11 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import {
+  computeCommonPrefix,
+  computeCommonSuffix,
+  trimCommonAffixes,
+} from 'sentry/utils/string/trimCommonAffixes';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -31,13 +36,10 @@ import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidg
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
 import {formatXAxisValue} from './formatters/formatXAxisValue';
-import {
-  computeCommonPrefix,
-  computeCommonSuffix,
-  trimCommonAffixes,
-} from './formatters/trimCommonAffixes';
 import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
+
+const TOTAL_CHARACTER_THRESHOLD = 40;
 
 export interface CategoricalSeriesWidgetVisualizationProps {
   /**
@@ -122,7 +124,6 @@ export function CategoricalSeriesWidgetVisualization(
   };
 
   // Step 1: If total label length exceeds threshold, trim common affixes
-  const TOTAL_CHARACTER_THRESHOLD = 40;
   const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
   const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
 

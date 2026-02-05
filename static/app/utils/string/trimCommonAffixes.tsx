@@ -57,14 +57,22 @@ const MIN_AFFIX_LENGTH = 3;
  * value, replacing each with `…`.
  */
 export function trimCommonAffixes(value: string, prefix: string, suffix: string): string {
-  let result = value;
+  const prefixLen = prefix.length > MIN_AFFIX_LENGTH ? prefix.length : 0;
+  const suffixLen = suffix.length > MIN_AFFIX_LENGTH ? suffix.length : 0;
 
-  if (prefix.length > MIN_AFFIX_LENGTH) {
-    result = `\u2026${result.slice(prefix.length)}`;
+  // If prefix and suffix overlap or consume the entire string, only trim the prefix
+  if (prefixLen + suffixLen >= value.length) {
+    return prefixLen > 0 ? `\u2026${value.slice(prefixLen)}` : value;
   }
 
-  if (suffix.length > MIN_AFFIX_LENGTH) {
-    result = `${result.slice(0, result.length - suffix.length)}\u2026`;
+  let result = value;
+
+  if (prefixLen > 0) {
+    result = `\u2026${result.slice(prefixLen)}`;
+  }
+
+  if (suffixLen > 0) {
+    result = `${result.slice(0, result.length - suffixLen)}\u2026`;
   }
 
   return result;

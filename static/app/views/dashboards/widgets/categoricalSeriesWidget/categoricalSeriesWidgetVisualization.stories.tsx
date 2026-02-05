@@ -9,11 +9,13 @@ import {Heading} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 
-import {sampleManyCommonAffixData} from './fixtures/commonAffixCategorical';
+import {
+  sampleCommonAffixData,
+  sampleManyCommonAffixData,
+} from './fixtures/commonAffixCategorical';
 import {sampleCountCategoricalData} from './fixtures/countCategorical';
 import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
 import {sampleLargeValueData} from './fixtures/largeValueCategorical';
-import {sampleLongLabelData} from './fixtures/longLabelCategorical';
 import {sampleManyCategoriesData} from './fixtures/manyCategoriesCategorical';
 import {sampleMultiSeriesData} from './fixtures/multiSeriesCategorical';
 import {sampleNegativeData} from './fixtures/negativeCategorical';
@@ -68,7 +70,7 @@ export default Storybook.story(
             <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. Each item in the{' '}
             <code>plottables</code> array must implement the{' '}
             <code>CategoricalPlottable</code> interface. Right now the only supported
-            prottable is <code>Bars</code>.
+            plottable is <code>Bars</code>.
           </p>
 
           <CodeBlock language="jsx">
@@ -214,13 +216,14 @@ export default Storybook.story(
           </MediumWidget>
           <Heading as="h3">Common Affix Truncation</Heading>
           <p>
-            Common suffixes and prefixed will be truncated automatically if needed. e.g.,
-            the categories <code>"/api/issues"</code> and <code>"/api/errors"</code> will
-            turn into<code>"issues"</code> and <code>"errors"</code> to save space.{' '}
+            Common prefixes and suffixes are truncated automatically if needed. For
+            example, categories sharing the prefix{' '}
+            <code>/api/v2/organizations/:orgId/</code> will have it replaced with{' '}
+            <code>&hellip;</code>, showing only the unique portion of each label.
           </p>
           <MediumWidget>
             <CategoricalSeriesWidgetVisualization
-              plottables={[new Bars(sampleLongLabelData)]}
+              plottables={[new Bars(sampleCommonAffixData)]}
             />
           </MediumWidget>
           <Heading as="h3">Rotation</Heading>
