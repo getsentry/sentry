@@ -20,6 +20,7 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
@@ -33,18 +34,25 @@ const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function renderTextMessages(content: any) {
-  if (!Array.isArray(content)) {
-    return content;
-  }
-  return content
-    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) =>
-      FILE_CONTENT_PARTS.includes(part.type)
-        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
-        : part.text.trim()
-    )
+function extractTextFromContentParts(parts: any[]): string {
+  return parts
+    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) => {
+      if (FILE_CONTENT_PARTS.includes(part.type)) {
+        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
+      }
+      // Handle both part.text and part.content (some SDKs use content instead of text)
+      const text = part.text ?? part.content;
+      return typeof text === 'string' ? text.trim() : text;
+    })
     .join('\n');
+}
+
+function renderTextMessages(content: any): any {
+  if (Array.isArray(content)) {
+    return extractTextFromContentParts(content);
+  }
+  return content;
 }
 
 function renderToolMessage(content: any) {
@@ -95,12 +103,13 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
+        const parsedContent = tryParseJson(message.content);
         return {
           role: message.role,
           content:
             message.role === 'tool'
-              ? renderToolMessage(message.content)
-              : renderTextMessages(message.content),
+              ? renderToolMessage(parsedContent)
+              : renderTextMessages(parsedContent),
         };
       })
       .filter(

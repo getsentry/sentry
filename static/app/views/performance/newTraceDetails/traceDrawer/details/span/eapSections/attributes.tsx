@@ -33,6 +33,7 @@ import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
+  tryParseJson,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
@@ -43,24 +44,6 @@ type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
-
-function tryParseJson(value: unknown) {
-  if (typeof value !== 'string') {
-    return value;
-  }
-  try {
-    const parsedValue = JSON.parse(value);
-    // Some arrays are double stringified, so we need to unwrap them
-    // This needs to be fixed on the SDK side
-    // TODO: Remove this once the SDK is fixed
-    if (!Array.isArray(parsedValue)) {
-      return parsedValue;
-    }
-    return parsedValue.map((item: any): any => tryParseJson(item));
-  } catch (error) {
-    return value;
-  }
-}
 
 const jsonRenderer = (props: CustomRenderersProps) => {
   const value = tryParseJson(props.item.value);
