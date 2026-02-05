@@ -19,7 +19,7 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
     },
     {
       type: 'code',
-      language: 'dotnet',
+      language: 'csharp',
       code: `using Sentry;
 
 SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
