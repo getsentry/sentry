@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
+import type {AddOnCategoryInfo, BillingMetricHistory} from 'getsentry/types';
 import {
   checkIsAddOnChildCategory,
   getBilledCategory,
@@ -34,11 +36,9 @@ function UsageOverviewTable({
   const filteredCategories = sortedCategories.filter(
     categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
   );
-  const enabledCategories = filteredCategories.filter(categoryInfo =>
-    productIsEnabled(subscription, categoryInfo.category)
-  );
-  const disabledCategories = filteredCategories.filter(
-    categoryInfo => !productIsEnabled(subscription, categoryInfo.category)
+  const [enabledCategories, disabledCategories] = partition(
+    filteredCategories,
+    categoryInfo => productIsEnabled(subscription, categoryInfo.category)
   );
 
   // Partition add-on categories into enabled and disabled (locked) groups
@@ -47,14 +47,11 @@ function UsageOverviewTable({
     // as long as they're available
     addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
   );
-  const enabledAddOns = availableAddOns.filter(addOnInfo =>
+  const [enabledAddOns, disabledAddOns] = partition(availableAddOns, addOnInfo =>
     productIsEnabled(subscription, addOnInfo.apiName)
   );
-  const disabledAddOns = availableAddOns.filter(
-    addOnInfo => !productIsEnabled(subscription, addOnInfo.apiName)
-  );
 
-  const renderCategoryRow = (categoryInfo: (typeof sortedCategories)[number]) => {
+  const renderCategoryRow = (categoryInfo: BillingMetricHistory) => {
     const {category} = categoryInfo;
     return (
       <UsageOverviewTableRow
@@ -69,7 +66,7 @@ function UsageOverviewTable({
     );
   };
 
-  const renderAddOnRows = (addOnInfo: (typeof availableAddOns)[number]) => {
+  const renderAddOnRows = (addOnInfo: AddOnCategoryInfo) => {
     const {apiName, dataCategories} = addOnInfo;
     const billedCategory = getBilledCategory(subscription, apiName);
     if (!billedCategory) {
