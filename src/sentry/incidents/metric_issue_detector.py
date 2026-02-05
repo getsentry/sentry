@@ -273,12 +273,22 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     def is_editing_transaction_dataset(
         self, snuba_query: SnubaQuery, data_source: SnubaQueryDataSourceType
     ) -> bool:
-        if data_source.get("dataset") in [Dataset.PerformanceMetrics, Dataset.Transactions] and (
-            data_source.get("dataset", Dataset(snuba_query.dataset)) != Dataset(snuba_query.dataset)
-            or data_source.get("query", snuba_query.query) != snuba_query.query
-            or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
-            or data_source.get("time_window", snuba_query.time_window) != snuba_query.time_window
-            or data_source.get("event_types", snuba_query.event_types) != snuba_query.event_types
+        organization = self.context.get("organization")
+        current_dataset = Dataset(snuba_query.dataset)
+        new_dataset = data_source.get("dataset", current_dataset)
+
+        if (
+            features.has("organizations:discover-saved-queries-deprecation", organization)
+            and new_dataset in [Dataset.PerformanceMetrics, Dataset.Transactions]
+            and (
+                new_dataset != current_dataset
+                or data_source.get("query", snuba_query.query) != snuba_query.query
+                or data_source.get("aggregate", snuba_query.aggregate) != snuba_query.aggregate
+                or data_source.get("time_window", snuba_query.time_window)
+                != snuba_query.time_window
+                or data_source.get("event_types", snuba_query.event_types)
+                != snuba_query.event_types
+            )
         ):
             return True
         return False
