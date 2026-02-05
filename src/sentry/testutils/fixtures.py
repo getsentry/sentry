@@ -761,10 +761,6 @@ class Fixtures:
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
-    def create_incident_group_open_period(self, *args, **kwargs):
-        # TODO: this is only needed during the ACI migration
-        return Factories.create_incident_group_open_period(*args, **kwargs)
-
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 

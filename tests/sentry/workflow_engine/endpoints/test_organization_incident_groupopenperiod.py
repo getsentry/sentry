@@ -34,17 +34,6 @@ class OrganizationIncidentGroupOpenPeriodAPITestCase(APITestCase):
             organization=self.organization, projects=[self.project], alert_rule=self.alert_rule
         )
 
-        # Create incident-group-open-period relationships
-        self.igop_1 = self.create_incident_group_open_period(
-            incident=self.incident_1, group_open_period=self.open_period_1
-        )
-        self.igop_2 = self.create_incident_group_open_period(
-            incident=self.incident_2, group_open_period=self.open_period_2
-        )
-        self.igop_3 = self.create_incident_group_open_period(
-            incident=self.incident_3, group_open_period=self.open_period_3
-        )
-
 
 @region_silo_test
 class OrganizationIncidentGroupOpenPeriodIndexGetTest(
