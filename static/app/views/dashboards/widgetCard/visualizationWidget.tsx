@@ -219,7 +219,7 @@ function VisualizationWidgetContent({
                 linkedDashboard,
                 organizationSlug: organization.slug,
                 field: firstColumn,
-                value: timeSeries.yAxis,
+                value: timeSeries.yAxis, // TODO: when we migrate to the new time series data, we should use the groupBy values
                 widgetType: widget.widgetType,
                 dashboardFilters,
                 locationQuery: location.query,
