@@ -1,9 +1,9 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Text} from '@sentry/scraps/text';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {ConversationSummary} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
 import {
   useConversation,
@@ -86,15 +87,14 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
   }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
 
   return (
-    <Stack height="100%">
-      <StyledDrawerHeader>
-        <Flex align="center" flex="1" gap="md">
-          {t('Conversation')}
-          <Text variant="muted" size="sm" monospace>
-            {conversation.conversationId.slice(0, 8)}
-          </Text>
-        </Flex>
-      </StyledDrawerHeader>
+    <Flex direction="column" height="100%">
+      <DrawerHeader>
+        <ConversationSummary
+          nodes={nodes}
+          conversationId={conversation.conversationId}
+          isLoading={isLoading}
+        />
+      </DrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
           <ConversationView
@@ -107,7 +107,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </Stack>
+    </Flex>
   );
 });
 
@@ -135,6 +135,9 @@ export function useConversationViewDrawer({
         onClose,
         shouldCloseOnInteractOutside: () => true,
         drawerWidth: `${DRAWER_WIDTH}px`,
+        drawerCss: css`
+          min-width: ${DRAWER_WIDTH}px;
+        `,
         resizable: true,
         conversationId: conversation.conversationId,
         startTimestamp: conversation.startTimestamp,
@@ -275,7 +278,7 @@ const StyledDrawerBody = styled(DrawerBody)`
 `;
 
 const LeftPanel = styled('div')`
-  width: ${LEFT_PANEL_WIDTH}px;
+  flex: 1;
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
@@ -297,15 +300,10 @@ const FullWidthTabPanels = styled(TabPanels)`
 `;
 
 const DetailsPanel = styled('div')`
+  width: ${DETAILS_PANEL_WIDTH}px;
   min-width: ${DETAILS_PANEL_WIDTH}px;
-  flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
-`;
-
-const StyledDrawerHeader = styled(DrawerHeader)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  display: flex;
 `;
