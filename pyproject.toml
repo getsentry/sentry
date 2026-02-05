@@ -89,6 +89,7 @@ dependencies = [
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.22",
     "sentry-sdk[http2]>=2.47.0",
+    "sentry-seer-types>=0.1.0",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
     "setuptools>=70.0.0",
