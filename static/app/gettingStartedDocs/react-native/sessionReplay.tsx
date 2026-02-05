@@ -25,7 +25,7 @@ export const sessionReplay: OnboardingConfig = {
             {
               label: 'npm',
               language: 'bash',
-              code: `npm install @sentry/react-native --save`,
+              code: `npm install @sentry/react-native@latest`,
             },
             {
               label: 'yarn',
