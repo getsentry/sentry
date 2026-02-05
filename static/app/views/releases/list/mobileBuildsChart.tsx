@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'echarts';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -243,7 +243,7 @@ export function MobileBuildsChart({
               trigger: 'axis',
               valueFormatter: (value: number | string) =>
                 typeof value === 'number' ? formatBytesBase10(value) : value,
-              formatter: seriesParams => {
+              formatter: (seriesParams: TooltipComponentFormatterCallbackParams) => {
                 const params = Array.isArray(seriesParams)
                   ? seriesParams
                   : [seriesParams];
@@ -251,20 +251,14 @@ export function MobileBuildsChart({
                 if (!firstParam) {
                   return '';
                 }
-                const data = firstParam.data as {name: number; value: number} | undefined;
-                const timestamp = data?.name ?? 0;
+                const timestamp = (firstParam as {axisValue?: number}).axisValue ?? 0;
                 const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
 
                 const rows = params
                   .map(param => {
-                    const paramData = param.data as
-                      | {name: number; value: number}
-                      | undefined;
-                    const formattedValue = paramData
-                      ? formatBytesBase10(paramData.value)
-                      : '';
+                    const value = (param.value as number[])[1];
                     const marker = typeof param.marker === 'string' ? param.marker : '';
-                    return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formattedValue}</div>`;
+                    return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formatBytesBase10(value)}</div>`;
                   })
                   .join('');
 
