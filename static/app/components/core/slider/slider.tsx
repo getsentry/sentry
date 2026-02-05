@@ -187,9 +187,8 @@ const StyledSlider = styled('input')`
   &::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
-    border: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -197,10 +196,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 10;
@@ -210,9 +209,8 @@ const StyledSlider = styled('input')`
   &::-moz-range-track {
     width: 100%;
     height: 4px;
-    background: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
-    border: 1px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.neutral.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
     border-radius: ${p => p.theme.radius['2xs']};
   }
 
@@ -220,10 +218,10 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-bottom: 2px solid
-      ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
+      ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     border-radius: ${p => p.theme.radius.sm};
     transform: translateY(-7px);
     z-index: 1;

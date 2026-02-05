@@ -20,6 +20,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
@@ -30,14 +31,6 @@ type CaptureRule = {
   messages: string[];
   shouldCapture: boolean;
 };
-
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -166,8 +159,8 @@ function getAISpanAttributes({
     {
       shouldCapture: Boolean(
         model &&
-          (inputTokens || outputTokens) &&
-          (!totalCosts || Number(totalCosts) === 0)
+        (inputTokens || outputTokens) &&
+        (!totalCosts || Number(totalCosts) === 0)
       ),
       messages: [
         'Gen AI span missing cost calculation',
