@@ -15,12 +15,12 @@ export const installCodeBlock: ContentBlock = {
     {
       label: 'yarn',
       language: 'bash',
-      code: `yarn add @sentry/react-native`,
+      code: `yarn add @sentry/react-native@latest`,
     },
     {
       label: 'pnpm',
       language: 'bash',
-      code: `pnpm add @sentry/react-native`,
+      code: `pnpm add @sentry/react-native@latest`,
     },
   ],
 };
