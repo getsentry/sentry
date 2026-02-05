@@ -3,57 +3,21 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+
+import {installCodeBlock} from './utils';
 
 export const logs: OnboardingConfig = {
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
-          text: tct(
-            'Logs for React Native are supported in Sentry React Native SDK version [code:7.0.0] and above. If you are using an older version of the SDK, follow our [link:migration guide] to upgrade.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/migration/" />
-              ),
-            }
+          text: t(
+            'Make sure your Sentry React Native SDK version is at least 7.0.0. If you already have the SDK installed, you can update it to the latest version with:'
           ),
         },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'npm',
-              language: 'bash',
-              code: `npm install --save @sentry/react-native@${getPackageVersion(
-                params,
-                '@sentry/react-native',
-                '7.0.0'
-              )}`,
-            },
-            {
-              label: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/react-native@${getPackageVersion(
-                params,
-                '@sentry/react-native',
-                '7.0.0'
-              )}`,
-            },
-            {
-              label: 'pnpm',
-              language: 'bash',
-              code: `pnpm add @sentry/react-native@${getPackageVersion(
-                params,
-                '@sentry/react-native',
-                '7.0.0'
-              )}`,
-            },
-          ],
-        },
+        installCodeBlock,
       ],
     },
   ],
@@ -72,14 +36,19 @@ export const logs: OnboardingConfig = {
         },
         {
           type: 'code',
-          language: 'javascript',
-          code: `import * as Sentry from '@sentry/react-native';
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: '${params.dsn.public}',
+  dsn: "${params.dsn.public}",
   // Enable logs to be sent to Sentry
   enableLogs: true,
 });`,
+            },
+          ],
         },
       ],
     },
@@ -94,8 +63,11 @@ Sentry.init({
         },
         {
           type: 'code',
-          language: 'javascript',
-          code: `import * as Sentry from '@sentry/react-native';
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/react-native";
 
 // Send different log levels
 Sentry.logger.info('This is an info log');
@@ -116,6 +88,8 @@ Sentry.logger.fmt(
     action: 'login',
   }
 );`,
+            },
+          ],
         },
         {
           type: 'text',

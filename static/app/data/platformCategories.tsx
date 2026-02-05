@@ -317,6 +317,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'dotnet-wpf',
   'dotnet-xamarin',
   'flutter',
+  'react-native',
   'go',
   'go-echo',
   'go-fasthttp',
