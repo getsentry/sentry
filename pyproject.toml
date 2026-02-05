@@ -128,12 +128,6 @@ dependencies = [
 [tool.uv]
 environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
 
-[[tool.uv.index]]
-# We don't allow using public pypi - submit a PR to
-# https://github.com/getsentry/pypi to add a dependency.
-url = "https://pypi.devinfra.sentry.io/simple"
-default = true
-
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.
 # Otherwise, you need to define a build system (uv_build)
