@@ -317,14 +317,6 @@ export function CategoricalSeriesWidgetVisualization(
     [props.plottables]
   );
 
-  // TODO: Enable widget sync for categorical bars once cursor syncing is implemented
-  // const handleChartReady = useCallback(
-  //   (instance: echarts.ECharts) => {
-  //     registerWithWidgetSyncContext(instance);
-  //   },
-  //   [registerWithWidgetSyncContext]
-  // );
-
   // Legend visibility
   const showLegendProp = props.showLegend ?? 'auto';
   const showLegend =
@@ -365,8 +357,6 @@ export function CategoricalSeriesWidgetVisualization(
       }}
       xAxis={xAxis}
       yAxis={yAxis}
-      // TODO: Enable widget sync for categorical bars once cursor syncing is implemented
-      // onChartReady={handleChartReady}
       onHighlight={handleHighlight}
       onDownplay={handleDownplay}
       onClick={handleClick}
