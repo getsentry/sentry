@@ -38,3 +38,7 @@ event = "pull_request"
 actions = ["opened", "synchronize", "reopened"]
 skill = "django-access-review"
 remote = "getsentry/skills"
+
+[triggers.filters]
+paths = ["src/sentry/**/*.py"]
+ignorePaths = ["**/tests/**", "**/*_test.py", "**/test_*.py"]
