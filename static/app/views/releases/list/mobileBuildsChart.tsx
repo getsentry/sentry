@@ -35,9 +35,14 @@ interface MobileBuildsChartProps {
   organizationSlug: string;
 }
 
+function getBuildTimestamp(build: BuildDetailsApiResponse): number | null {
+  const timestamp = Date.parse(build.app_info.date_added ?? '');
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
 function getSeriesKey(build: BuildDetailsApiResponse): string {
   const {app_id, platform, build_configuration} = build.app_info;
-  return `${app_id ?? 'unknown'}|${platform ?? 'unknown'}|${build_configuration ?? 'unknown'}`;
+  return `${build.project_id}|${app_id ?? 'unknown'}|${platform ?? 'unknown'}|${build_configuration ?? 'unknown'}`;
 }
 
 function getSeriesLabel(build: BuildDetailsApiResponse): string {
@@ -57,7 +62,7 @@ export function MobileBuildsChart({
   const navigate = useNavigate();
   const [metric, setMetric] = useState<SizeMetric>(SizeMetric.INSTALL_SIZE);
 
-  const {series, seriesBuildLookup, minTime, maxTime} = useMemo(() => {
+  const {series, seriesBuildLookup, minTime, maxTime, hasTimestamps} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
 
     for (const build of builds) {
@@ -74,16 +79,18 @@ export function MobileBuildsChart({
     const buildLookup = new Map<string, Map<number, BuildDetailsApiResponse>>();
 
     const chartSeries = Array.from(grouped.entries()).map(([key, groupBuilds]) => {
-      const sortedBuilds = [...groupBuilds].sort(
-        (a, b) =>
-          new Date(a.app_info.date_added ?? 0).getTime() -
-          new Date(b.app_info.date_added ?? 0).getTime()
-      );
+      const sortedBuilds = groupBuilds
+        .map(build => ({build, timestamp: getBuildTimestamp(build)}))
+        .filter(
+          (entry): entry is {build: BuildDetailsApiResponse; timestamp: number} =>
+            entry.timestamp !== null
+        )
+        .sort((a, b) => a.timestamp - b.timestamp);
 
       const indexMap = new Map<number, BuildDetailsApiResponse>();
       const data: Array<{name: number; value: number}> = [];
 
-      sortedBuilds.forEach(build => {
+      sortedBuilds.forEach(({build, timestamp}) => {
         if (!isSizeInfoCompleted(build.size_info)) {
           return;
         }
@@ -96,8 +103,6 @@ export function MobileBuildsChart({
           metric === SizeMetric.INSTALL_SIZE
             ? mainMetric.install_size_bytes
             : mainMetric.download_size_bytes;
-
-        const timestamp = new Date(build.app_info.date_added ?? 0).getTime();
 
         data.push({
           name: timestamp,
@@ -128,6 +133,7 @@ export function MobileBuildsChart({
       seriesBuildLookup: buildLookup,
       minTime: allTimestamps.length > 0 ? Math.min(...allTimestamps) : 0,
       maxTime: allTimestamps.length > 0 ? Math.max(...allTimestamps) : 0,
+      hasTimestamps: allTimestamps.length > 0,
     };
   }, [builds, metric]);
 
@@ -173,7 +179,7 @@ export function MobileBuildsChart({
     );
   }
 
-  if (series.length === 0 || (minTime === 0 && maxTime === 0)) {
+  if (series.length === 0 || !hasTimestamps) {
     return null;
   }
 
