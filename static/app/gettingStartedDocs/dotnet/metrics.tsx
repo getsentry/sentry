@@ -33,9 +33,7 @@ SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration
     {
       type: 'text',
       text: tct('For more detailed information, see the [link:metrics documentation].', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
-        ),
+        link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />,
       }),
     },
   ],
