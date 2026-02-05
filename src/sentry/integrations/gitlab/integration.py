@@ -20,6 +20,8 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
+from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -253,6 +255,27 @@ class GitlabIntegration(
         )
         if org_integration is not None:
             self.org_integration = org_integration
+
+        # Check webhook version BEFORE updating config to determine if migration is needed
+        current_webhook_version = config.get(GITLAB_WEBHOOK_VERSION_KEY, 0)
+
+        config.update(data)
+
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
+
+        # Only update webhooks if:
+        # 1. A sync setting was enabled, AND
+        # 2. The webhook version is outdated
+        if current_webhook_version < GITLAB_WEBHOOK_VERSION:
+            update_all_project_webhooks.delay(
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
+            )
 
     # CommitContextIntegration methods
 
