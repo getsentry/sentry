@@ -6,7 +6,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t} from 'sentry/locale';
 
-import {getReplayConfigurationSnippet, getReplaySetupSnippet} from './utils';
+import {
+  getReplayConfigurationSnippet,
+  getReplaySetupSnippet,
+  installCodeBlock,
+} from './utils';
 
 export const sessionReplay: OnboardingConfig = {
   install: params => [
@@ -19,26 +23,7 @@ export const sessionReplay: OnboardingConfig = {
             'Make sure your Sentry React Native SDK version is at least 6.5.0. If you already have the SDK installed, you can update it to the latest version with:'
           ),
         },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'npm',
-              language: 'bash',
-              code: `npm install @sentry/react-native --save`,
-            },
-            {
-              label: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/react-native`,
-            },
-            {
-              label: 'pnpm',
-              language: 'bash',
-              code: `pnpm add @sentry/react-native`,
-            },
-          ],
-        },
+        installCodeBlock,
         {
           type: 'text',
           text: t(
