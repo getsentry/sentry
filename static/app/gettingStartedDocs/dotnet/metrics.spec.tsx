@@ -7,7 +7,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import docs from '.';
 
 describe('metrics', () => {
-  it('dotnet metrics onboarding docs', async () => {
+  it('dotnet metrics onboarding docs', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.METRICS],
     });
