@@ -64,11 +64,11 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI with the [code:celery] extra:', {
+          text: tct('Install [code:sentry-sdk] from PyPI:', {
             code: <code />,
           }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk[celery]'}),
+        getPythonInstallCodeBlock({additionalPackage: 'celery'}),
       ],
     },
   ],

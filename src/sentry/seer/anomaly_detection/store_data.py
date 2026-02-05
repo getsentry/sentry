@@ -25,6 +25,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
+    get_aggregate_type,
     get_dataset_from_label_and_event_types,
     get_event_types,
     translate_direction,
@@ -204,6 +205,8 @@ def send_historical_data_to_seer_legacy(
         direction=translate_direction(alert_rule.threshold_type),
         expected_seasonality=alert_rule.seasonality,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     alert = AlertInSeer(
         id=alert_rule.id,
         source_id=query_subscription.id,

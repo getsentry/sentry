@@ -82,16 +82,13 @@ export interface OnboardingTaskStatus {
 }
 
 interface OnboardingTaskWithAction
-  extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAction {}
+  extends OnboardingTaskStatus, OnboardingTypeDescriptorWithAction {}
 
 interface OnboardingTaskWithExternal
-  extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithExternal {}
+  extends OnboardingTaskStatus, OnboardingTypeDescriptorWithExternal {}
 
 interface OnboardingTaskWithAppLink
-  extends OnboardingTaskStatus,
-    OnboardingTypeDescriptorWithAppLink {}
+  extends OnboardingTaskStatus, OnboardingTypeDescriptorWithAppLink {}
 
 export type OnboardingTask =
   | OnboardingTaskWithAction
@@ -107,8 +104,10 @@ export interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'da
   completionSeen?: boolean;
 }
 
-export interface OnboardingSelectedSDK
-  extends Pick<PlatformIntegration, 'language' | 'link' | 'name' | 'type'> {
+export interface OnboardingSelectedSDK extends Pick<
+  PlatformIntegration,
+  'language' | 'link' | 'name' | 'type'
+> {
   category: Category;
   key: PlatformKey;
 }

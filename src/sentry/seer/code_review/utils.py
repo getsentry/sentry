@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from enum import Enum, StrEnum
 from typing import Any
 
@@ -10,6 +11,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -122,13 +124,21 @@ def _get_trigger_metadata_for_pull_request(event_payload: Mapping[str, Any]) -> 
     # triggers an event (e.g., collaborator pushes commits, admin closes PR
     # or makes ready for review)
     sender = event_payload.get("sender", {})
-    pr_author = event_payload.get("pull_request", {}).get("user", {})
+    pull_request = event_payload.get("pull_request", {})
+    pr_author = pull_request.get("user", {})
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
+    trigger_at = (
+        pull_request.get("updated_at")
+        or pull_request.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
+    )
 
     return {
         "trigger_user": sender.get("login") or pr_author.get("login"),
         "trigger_user_id": sender.get("id") or pr_author.get("id"),
         "trigger_comment_id": None,
         "trigger_comment_type": None,
+        "trigger_at": trigger_at,
     }
 
 
@@ -136,12 +146,21 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
     """Extract trigger metadata for issue_comment events."""
     comment = event_payload.get("comment", {})
     comment_user = comment.get("user", {})
+    # Use updated_at to support both "created" and potential future "edited" triggers.
+    # For newly created comments, updated_at equals created_at.
+    # Return ISO string for Celery serialization; Pydantic will parse to datetime
+    trigger_at = (
+        comment.get("updated_at")
+        or comment.get("created_at")
+        or datetime.now(timezone.utc).isoformat()
+    )
 
     return {
         "trigger_user": comment_user.get("login"),
         "trigger_user_id": comment_user.get("id"),
         "trigger_comment_id": comment.get("id"),
         "trigger_comment_type": "issue_comment",
+        "trigger_at": trigger_at,
     }
 
 
@@ -218,21 +237,27 @@ def _common_codegen_request_payload(
     target_commit_sha: str,
     organization: Organization,
 ) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "repo": _build_repo_definition(repo, target_commit_sha),
+        "bug_prediction_specific_information": {
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+        },
+        "config": {
+            "features": {"bug_prediction": True},
+            "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization.slug),
+        },
+    }
+
+    # Add experiment_enabled flag ONLY for pr-review requests
+    if request_type == SeerCodeReviewRequestType.PR_REVIEW:
+        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
         "request_type": request_type.value,
         "external_owner_id": repo.external_id,
-        "data": {
-            "repo": _build_repo_definition(repo, target_commit_sha),
-            "bug_prediction_specific_information": {
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
-            "config": {
-                "features": {"bug_prediction": True},
-                "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization),
-            },
-        },
+        "data": data,
     }
 
 
@@ -259,6 +284,8 @@ def transform_issue_comment_to_codegen_request(
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_at"] = trigger_metadata["trigger_at"]
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
@@ -299,6 +326,8 @@ def transform_pull_request_to_codegen_request(
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
     config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
     config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_at"] = trigger_metadata["trigger_at"]
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
     return payload
 
 
@@ -482,3 +511,16 @@ def delete_existing_reactions_and_add_reaction(
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, extra=extra, exc_info=True)
+
+
+def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:
+    """
+    Checks if an org is eligible to code review experiments via Flagpole.
+
+    If True the exact experiment is decided by Seer.
+    If False no experiment will be applied to the PR, and it'll use the default behavior.
+    """
+    return features.has(
+        "organizations:code-review-experiments-enabled",
+        organization,
+    )

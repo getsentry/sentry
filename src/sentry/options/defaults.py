@@ -670,6 +670,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -2277,6 +2284,22 @@ register(
 # List of organization IDs that should be using span metrics for boost low volume transactions.
 register(
     "dynamic-sampling.transactions.span-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3943,6 +3966,14 @@ register(
 # Organization slug allowlist to enable Autopilot for specific organizations.
 register(
     "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable missing SDK integration detector for specific projects.
+register(
+    "autopilot.missing-sdk-integration.projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

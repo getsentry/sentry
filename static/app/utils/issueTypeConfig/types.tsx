@@ -203,8 +203,9 @@ export type IssueTypeConfig = {
   usesIssuePlatform: boolean;
 };
 
-export interface IssueCategoryConfigMapping
-  extends Partial<Record<IssueType, Partial<IssueTypeConfig>>> {
+export interface IssueCategoryConfigMapping extends Partial<
+  Record<IssueType, Partial<IssueTypeConfig>>
+> {
   /**
    * Config options that apply to the entire issue category.
    * These options can be overridden by specific issue type configs.
