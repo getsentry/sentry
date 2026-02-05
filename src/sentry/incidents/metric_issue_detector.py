@@ -176,6 +176,11 @@ def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode
         and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
     ):
         return True
+    if (
+        new_extrapolation_mode == ExtrapolationMode.NONE.name.lower()
+        and old_extrapolation_mode != ExtrapolationMode.NONE.name.lower()
+    ):
+        return True
     return False
 
 
@@ -310,7 +315,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
             if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
                 raise serializers.ValidationError(
-                    "Invalid extrapolation mode for this detector type."
+                    "Invalid extrapolation_mode for this detector type. Allowed modes are: client_and_server_weighted, unknown."
                 )
 
         # Handle a dynamic detector's snuba query changing

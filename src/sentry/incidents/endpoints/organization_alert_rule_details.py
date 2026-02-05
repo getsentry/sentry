@@ -140,7 +140,7 @@ def update_alert_rule(
                 new_extrapolation_mode = data.get("extrapolation_mode", old_extrapolation_mode)
                 if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
                     raise serializers.ValidationError(
-                        "Invalid extrapolation mode for this alert type."
+                        "Invalid extrapolation_mode for this alert type. Allowed modes are: client_and_server_weighted, unknown."
                     )
 
         try:

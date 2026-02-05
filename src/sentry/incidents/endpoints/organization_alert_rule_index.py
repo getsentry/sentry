@@ -104,8 +104,14 @@ def create_metric_alert(
             "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
         )
 
-    if data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
-        raise ValidationError("server_weighted extrapolation mode is not supported for new alerts.")
+    extrapolation_mode = data.get("extrapolation_mode")
+    if extrapolation_mode in [
+        ExtrapolationMode.SERVER_WEIGHTED.name.lower(),
+        ExtrapolationMode.NONE.name.lower(),
+    ]:
+        raise ValidationError(
+            f"{extrapolation_mode} extrapolation mode is not supported for new alerts. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     if project:
         data["projects"] = [project.slug]

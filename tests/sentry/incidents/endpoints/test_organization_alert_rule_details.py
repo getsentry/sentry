@@ -52,6 +52,8 @@ from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_conn
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -1416,12 +1418,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert len(audit_log_entry) == 1
 
-    def test_invalid_extrapolation_mode(self) -> None:
+    def test_invalid_extrapolation_mode_save_after_migrated_to_eap(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.extrapolation_mode = ExtrapolationMode.SERVER_WEIGHTED.value
+        alert_rule.snuba_query.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         alert_rule_dict = deepcopy(self.alert_rule_dict)
         alert_rule_dict["dataset"] = "events_analytics_platform"
@@ -1429,10 +1434,33 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["extrapolation_mode"] = "server_weighted"
 
         with self.feature("organizations:incidents"):
+            self.get_success_response(
+                self.organization.slug, alert_rule.id, status_code=200, **alert_rule_dict
+            )
+
+    def test_invalid_extrapolation_mode_save_not_migrated_alert(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        alert_rule.snuba_query.extrapolation_mode = ExtrapolationMode.UNKNOWN.value
+        alert_rule.snuba_query.save()
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "events_analytics_platform"
+        alert_rule_dict["alertType"] = "eap_metrics"
+        alert_rule_dict["extrapolation_mode"] = "none"
+
+        with self.feature("organizations:incidents"):
             resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
             )
-        assert resp.data[0] == "Invalid extrapolation mode for this alert type."
+        assert (
+            resp.data[0]
+            == "Invalid extrapolation_mode for this alert type. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
         self.create_member(

@@ -1510,7 +1510,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert update_validator.is_valid(), update_validator.errors
         with self.assertRaisesMessage(
             ValidationError,
-            expected_message="Invalid extrapolation mode for this detector type.",
+            expected_message="Invalid extrapolation_mode for this detector type. Allowed modes are: client_and_server_weighted, unknown.",
         ):
             update_validator.save()
 
