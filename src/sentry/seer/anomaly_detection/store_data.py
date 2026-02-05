@@ -25,6 +25,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
+    get_aggregate_type,
     get_dataset_from_label_and_event_types,
     get_event_types,
     translate_direction,
@@ -198,23 +199,14 @@ def send_historical_data_to_seer_legacy(
     if query_subscription is None:
         raise ValidationError("No QuerySubscription found for snuba query ID")
 
-    # Determine aggregate type for static threshold application (count metrics only)
-    aggregate_type = None
-    if snuba_query.aggregate:
-        aggregate_lower = snuba_query.aggregate.lower()
-        # Count-based aggregates: count(), count_unique(), etc.
-        if aggregate_lower.startswith("count"):
-            aggregate_type = "count"
-        else:
-            aggregate_type = "other"
-
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,
         sensitivity=alert_rule.sensitivity,
         direction=translate_direction(alert_rule.threshold_type),
         expected_seasonality=alert_rule.seasonality,
-        aggregate=aggregate_type,
     )
+    if aggregate_type := get_aggregate_type(snuba_query.aggregate):
+        anomaly_detection_config["aggregate"] = aggregate_type
     alert = AlertInSeer(
         id=alert_rule.id,
         source_id=query_subscription.id,
