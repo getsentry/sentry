@@ -18,6 +18,7 @@ const MOCK_APP_CONTEXT: AppContext = {
   app_id: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
   type: 'app',
   in_foreground: false,
+  is_active: false,
   app_memory: 1048576 * 12,
   view_names: ['app.view1', 'app.view2'],
   // Extra data is still valid and preserved
@@ -65,6 +66,7 @@ describe('AppContext', () => {
         value: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
       },
       {key: 'in_foreground', subject: 'In Foreground', value: false},
+      {key: 'is_active', subject: 'Is Active', value: false},
       {key: 'app_memory', subject: 'Memory Usage', value: '12.0 MiB'},
       {
         key: 'view_names',

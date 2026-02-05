@@ -18,6 +18,7 @@ enum AppContextKeys {
   VERSION = 'app_version',
   BUILD = 'app_build',
   IN_FOREGROUND = 'in_foreground',
+  IS_ACTIVE = 'is_active',
   APP_MEMORY = 'app_memory',
   VIEW_NAMES = 'view_names',
   // XXX: From https://github.com/getsentry/sentry/issues/87238, not in the schema yet.
@@ -37,6 +38,7 @@ export interface AppContext {
   [AppContextKeys.TYPE]?: string;
   [AppContextKeys.DEVICE_HASH]?: string;
   [AppContextKeys.IN_FOREGROUND]?: boolean;
+  [AppContextKeys.IS_ACTIVE]?: boolean;
   [AppContextKeys.APP_MEMORY]?: number;
   [AppContextKeys.VIEW_NAMES]?: string[];
   [AppContextKeys.FREE_MEMORY]?: number;
@@ -118,6 +120,12 @@ export function getAppContextData({
           key: ctxKey,
           subject: t('In Foreground'),
           value: data.in_foreground,
+        };
+      case AppContextKeys.IS_ACTIVE:
+        return {
+          key: ctxKey,
+          subject: t('Is Active'),
+          value: data.is_active,
         };
       case AppContextKeys.APP_MEMORY:
         return {
