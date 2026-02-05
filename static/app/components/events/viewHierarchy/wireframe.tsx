@@ -57,7 +57,8 @@ function Wireframe({
     () =>
       getHierarchyDimensions(
         hierarchy,
-        positioning === 'absolute' || ['flutter', 'dart-flutter'].includes(platform ?? '')
+        positioning === 'absolute' ||
+          (!positioning && ['flutter', 'dart-flutter'].includes(platform ?? ''))
       ),
     [hierarchy, platform, positioning]
   );
