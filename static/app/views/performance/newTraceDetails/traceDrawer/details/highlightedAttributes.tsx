@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Count from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -30,14 +31,6 @@ type CaptureRule = {
   messages: string[];
   shouldCapture: boolean;
 };
-
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.

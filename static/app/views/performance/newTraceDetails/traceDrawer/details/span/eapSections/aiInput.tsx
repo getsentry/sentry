@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -34,16 +35,10 @@ const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
 function normalizeContent(content: any): any {
-  if (typeof content === 'string') {
-    try {
-      const parsed = JSON.parse(content);
-      // Check for content parts format: non-empty array where elements have a `type` property
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type) {
-        return parsed;
-      }
-    } catch {
-      // Not valid JSON, return as-is
-    }
+  const parsed = tryParseJson(content);
+  // Check for content parts format: non-empty array where elements have a `type` property
+  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type) {
+    return parsed;
   }
   return content;
 }

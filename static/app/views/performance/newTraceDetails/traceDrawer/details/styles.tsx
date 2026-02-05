@@ -51,6 +51,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -1299,14 +1300,6 @@ const MultilineTextWrapper = styled('div')`
     margin-bottom: ${p => p.theme.space.md};
   }
 `;
-
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 function MultilineJSON({
   value,
