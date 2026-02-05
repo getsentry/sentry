@@ -29,6 +29,87 @@ function UsageOverviewTable({
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 
+  const filteredCategories = sortedCategories.filter(
+    categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
+  );
+
+  const availableAddOns = Object.values(subscription.planDetails.addOnCategories).filter(
+    // show add-ons regardless of whether they're enabled
+    // as long as they're available
+    addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
+  );
+
+  const renderCategoryRow = (categoryInfo: (typeof sortedCategories)[number]) => {
+    const {category} = categoryInfo;
+    return (
+      <UsageOverviewTableRow
+        key={category}
+        product={category}
+        selectedProduct={selectedProduct}
+        onRowClick={onRowClick}
+        subscription={subscription}
+        usageData={usageData}
+        organization={organization}
+      />
+    );
+  };
+
+  const renderAddOnRows = (addOnInfo: (typeof availableAddOns)[number]) => {
+    const {apiName, dataCategories} = addOnInfo;
+    const billedCategory = getBilledCategory(subscription, apiName);
+    if (!billedCategory) {
+      return null;
+    }
+
+    // if any sub-category has non-zero or non-reserved budget reserved volume, don't show the add-on
+    // we will render the individual sub-categories alone as part of `sortedCategories`
+    // NOTE: this assumes that the same is true for all sibling sub-categories of the add-on
+    if (
+      dataCategories.some(
+        category => !checkIsAddOnChildCategory(subscription, category, true)
+      )
+    ) {
+      return null;
+    }
+
+    const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+
+    return (
+      <Fragment key={apiName}>
+        <UsageOverviewTableRow
+          product={apiName}
+          selectedProduct={selectedProduct}
+          onRowClick={onRowClick}
+          subscription={subscription}
+          usageData={usageData}
+          organization={organization}
+        />
+        {/* Only show sub-categories if it's a reserved budget add-on */}
+        {reservedBudgetCategory
+          ? sortedCategories
+              .filter(categoryInfo => dataCategories.includes(categoryInfo.category))
+              .map(categoryInfo => {
+                const {category} = categoryInfo;
+
+                return (
+                  <UsageOverviewTableRow
+                    key={category}
+                    product={category}
+                    selectedProduct={selectedProduct}
+                    onRowClick={onRowClick}
+                    subscription={subscription}
+                    isChildProduct
+                    parentProduct={apiName}
+                    usageData={usageData}
+                    organization={organization}
+                  />
+                );
+              })
+          : null}
+      </Fragment>
+    );
+  };
+
   return (
     <Table>
       <thead>
@@ -53,90 +134,8 @@ function UsageOverviewTable({
         </TableHeaderRow>
       </thead>
       <tbody>
-        {sortedCategories
-          .filter(
-            categoryInfo =>
-              // filter out data categories that are part of add-ons
-              !addOnDataCategories.includes(categoryInfo.category)
-          )
-          .map(categoryInfo => {
-            const {category} = categoryInfo;
-
-            return (
-              <UsageOverviewTableRow
-                key={category}
-                product={category}
-                selectedProduct={selectedProduct}
-                onRowClick={onRowClick}
-                subscription={subscription}
-                usageData={usageData}
-                organization={organization}
-              />
-            );
-          })}
-        {Object.values(subscription.planDetails.addOnCategories)
-          .filter(
-            // show add-ons regardless of whether they're enabled
-            // as long as they're available
-            addOnInfo => subscription.addOns?.[addOnInfo.apiName]?.isAvailable ?? false
-          )
-          .map(addOnInfo => {
-            const {apiName, dataCategories} = addOnInfo;
-            const billedCategory = getBilledCategory(subscription, apiName);
-            if (!billedCategory) {
-              return null;
-            }
-
-            // if any sub-category has non-zero or non-reserved budget reserved volume, don't show the add-on
-            // we will render the individual sub-categories alone as part of `sortedCategories`
-            // NOTE: this assumes that the same is true for all sibling sub-categories of the add-on
-            if (
-              dataCategories.some(
-                category => !checkIsAddOnChildCategory(subscription, category, true)
-              )
-            ) {
-              return null;
-            }
-
-            const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
-
-            return (
-              <Fragment key={apiName}>
-                <UsageOverviewTableRow
-                  product={apiName}
-                  selectedProduct={selectedProduct}
-                  onRowClick={onRowClick}
-                  subscription={subscription}
-                  usageData={usageData}
-                  organization={organization}
-                />
-                {/* Only show sub-categories if it's a reserved budget add-on */}
-                {reservedBudgetCategory
-                  ? sortedCategories
-                      .filter(categoryInfo =>
-                        dataCategories.includes(categoryInfo.category)
-                      )
-                      .map(categoryInfo => {
-                        const {category} = categoryInfo;
-
-                        return (
-                          <UsageOverviewTableRow
-                            key={category}
-                            product={category}
-                            selectedProduct={selectedProduct}
-                            onRowClick={onRowClick}
-                            subscription={subscription}
-                            isChildProduct
-                            parentProduct={apiName}
-                            usageData={usageData}
-                            organization={organization}
-                          />
-                        );
-                      })
-                  : null}
-              </Fragment>
-            );
-          })}
+        {filteredCategories.map(renderCategoryRow)}
+        {availableAddOns.map(renderAddOnRows)}
       </tbody>
     </Table>
   );
