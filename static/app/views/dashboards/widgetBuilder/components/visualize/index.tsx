@@ -386,13 +386,12 @@ function Visualize({error, setError}: VisualizeProps) {
   // - Line, Area, Bar (Time Series): Can add multiple Y-axis series
   // - Table: Can add multiple columns
   // - Big Number: Can add fields only if equations are enabled for the dataset
-  // - Bar (Categorical): Can add one aggregate if none exists yet
+  // - Bar (Categorical): Never - categorical bars always have exactly one aggregate
   const canAddFields =
-    (isCategoricalBarWidget && (!aggregateFields || aggregateFields.length === 0)) ||
-    (!isCategoricalBarWidget &&
-      (isTimeSeriesWidget ||
-        isTableWidget ||
-        (isBigNumberWidget && datasetConfig.enableEquations)));
+    !isCategoricalBarWidget &&
+    (isTimeSeriesWidget ||
+      isTableWidget ||
+      (isBigNumberWidget && datasetConfig.enableEquations));
   const linkedDashboards = state.linkedDashboards || [];
 
   // Determines which action to use for updating visualization fields:
