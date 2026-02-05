@@ -294,7 +294,7 @@ const FullWidthTabPanels = styled(TabPanels)`
 `;
 
 const DetailsPanel = styled('div')`
-  width: ${DETAILS_PANEL_WIDTH}px;
+  flex: 1;
   min-width: ${DETAILS_PANEL_WIDTH}px;
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
