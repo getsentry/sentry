@@ -155,8 +155,9 @@ function VisualizationWidgetContent({
     .map(series => {
       let yAxis = aggregates[0];
       if (aggregates.length > 1) {
+        const splitSeriesName = series.seriesName.split(' : ');
         yAxis =
-          aggregates.find(aggregate => series.seriesName.includes(aggregate)) ??
+          aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
           aggregates[0];
       }
       const timeSeries = transformLegacySeriesToTimeSeries(
@@ -261,7 +262,7 @@ function VisualizationWidgetContent({
         );
 
         return (
-          <Fragment key={timeSeries.yAxis}>
+          <Fragment key={plottable.name}>
             <Container>
               <SeriesColorIndicator
                 style={{

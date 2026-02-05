@@ -27,16 +27,11 @@ export function transformLegacySeriesToTimeSeries(
     return null;
   }
 
-  const unaliasedSeriesName =
-    timeseriesResult.seriesName?.split(' : ').at(-1)?.trim() ??
-    timeseriesResult.seriesName;
-  const fieldType =
-    timeseriesResultsTypes?.[unaliasedSeriesName] ??
-    aggregateOutputType(unaliasedSeriesName);
+  const fieldType = timeseriesResultsTypes?.[yAxis] ?? aggregateOutputType(yAxis);
 
   // Prefer results types and units from the config if available
   // Fallback to the default mapping logic if not available
-  const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
+  const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
   const valueType =
     timeseriesResultsTypes?.[timeseriesResult.seriesName] ??
     (mapped.valueType as AggregationOutputType);
@@ -52,7 +47,11 @@ export function transformLegacySeriesToTimeSeries(
 
   const timeSeries = convertEventsStatsToTimeSeriesData(
     yAxis,
-    createEventsStatsFromSeries(timeseriesResult, valueType, valueUnit)
+    createEventsStatsFromSeries(
+      {...timeseriesResult, seriesName: yAxis},
+      valueType,
+      valueUnit
+    )
   )[1];
 
   return {
