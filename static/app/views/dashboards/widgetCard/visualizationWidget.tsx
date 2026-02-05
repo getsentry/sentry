@@ -211,19 +211,19 @@ function VisualizationWidgetContent({
 
         let value: number | null = null;
         const yAxis = timeSeries.yAxis;
+        const firstColumnGroupByValue = timeSeries.groupBy?.find(
+          groupBy => groupBy.key === firstColumn
+        )?.value;
 
         if (tableDataRows) {
           // If the there is one column, the table results will an array with multiple elemtents
           // [{column: 'value', aggregate: 123}, {column: 'value', aggregate: 123}]
           if (columns.length === 1) {
-            const groupByValue = timeSeries.groupBy?.find(
-              groupBy => groupBy.key === firstColumn
-            )?.value;
-            if (groupByValue && firstColumn) {
+            if (firstColumnGroupByValue && firstColumn) {
               // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
-              value = tableDataRows.find(row => row[firstColumn] === groupByValue)?.[
-                yAxis
-              ] as number;
+              value = tableDataRows.find(
+                row => row[firstColumn] === firstColumnGroupByValue
+              )?.[yAxis] as number;
             }
           }
           // If there is no columns, and only aggregates, the table result will be an array with a single element
@@ -238,19 +238,16 @@ function VisualizationWidgetContent({
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
-        const groupValue = timeSeries.groupBy?.find(
-          groupBy => groupBy.key === firstColumn
-        )?.value;
         const linkedUrl =
           linkedDashboard &&
           firstColumn &&
           widget.widgetType &&
-          typeof groupValue === 'string'
+          typeof firstColumnGroupByValue === 'string'
             ? getLinkedDashboardUrl({
                 linkedDashboard,
                 organizationSlug: organization.slug,
                 field: firstColumn,
-                value: groupValue,
+                value: firstColumnGroupByValue,
                 widgetType: widget.widgetType,
                 dashboardFilters,
                 locationQuery: location.query,
