@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-from sentry.integrations.github_copilot.models import GithubCopilotTaskStatusResponse
+from sentry.integrations.github_copilot.models import GithubCopilotTask
 from sentry.testutils.cases import TestCase
 
 
@@ -14,7 +14,7 @@ class GithubCopilotAgentClientTest(TestCase):
     def test_encode_agent_id(self) -> None:
         """Test that encode_agent_id correctly formats the agent ID"""
         agent_id = GithubCopilotAgentClient.encode_agent_id(
-            owner="getsentry", repo="sentry", job_id="task-123"
+            owner="getsentry", repo="sentry", task_id="task-123"
         )
         assert agent_id == "getsentry:sentry:task-123"
 
@@ -46,17 +46,19 @@ class GithubCopilotAgentClientTest(TestCase):
         """Test that get_task_status correctly fetches and parses task status"""
         mock_response = Mock()
         mock_response.json = {
-            "id": "task-123",
-            "status": "completed",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T01:00:00Z",
-            "artifacts": [
-                {
-                    "provider": "github",
-                    "type": "pull_request",
-                    "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
-                }
-            ],
+            "task": {
+                "id": "task-123",
+                "status": "completed",
+                "created_at": "2024-01-01T00:00:00Z",
+                "last_updated_at": "2024-01-01T01:00:00Z",
+                "artifacts": [
+                    {
+                        "provider": "github",
+                        "type": "pull_request",
+                        "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
+                    }
+                ],
+            }
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response
@@ -65,7 +67,7 @@ class GithubCopilotAgentClientTest(TestCase):
             owner="getsentry", repo="sentry", task_id="task-123"
         )
 
-        assert isinstance(result, GithubCopilotTaskStatusResponse)
+        assert isinstance(result, GithubCopilotTask)
         assert result.id == "task-123"
         assert result.status == "completed"
         assert result.artifacts is not None
@@ -84,8 +86,10 @@ class GithubCopilotAgentClientTest(TestCase):
         """Test that get_task_status handles responses without artifacts"""
         mock_response = Mock()
         mock_response.json = {
-            "id": "task-123",
-            "status": "running",
+            "task": {
+                "id": "task-123",
+                "status": "running",
+            }
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response

@@ -62,11 +62,8 @@ class GithubCopilotAgentCollaborator(BaseModel):
     agent_task_id: str | None = None
 
 
-class GithubCopilotTaskResponse(BaseModel):
-    """
-    Response from GitHub Copilot Tasks API.
-    Used for both POST /repos/{owner}/{repo}/tasks and GET /repos/{owner}/{repo}/tasks/{id}
-    """
+class GithubCopilotTask(BaseModel):
+    """Task object returned inside API responses."""
 
     id: str
     name: str | None = None
@@ -82,6 +79,15 @@ class GithubCopilotTaskResponse(BaseModel):
     last_updated_at: str | None = None
     created_at: str | None = None
     sessions: list[GithubCopilotSession] | None = None
+
+
+class GithubCopilotTaskResponse(BaseModel):
+    """
+    Response from GitHub Copilot Tasks API.
+    The API wraps the task object in a {"task": {...}} envelope.
+    """
+
+    task: GithubCopilotTask
 
 
 class GithubPRFromGraphQL(BaseModel):

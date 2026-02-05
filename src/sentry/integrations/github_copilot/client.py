@@ -6,6 +6,7 @@ from datetime import datetime
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.models import (
+    GithubCopilotTask,
     GithubCopilotTaskRequest,
     GithubCopilotTaskResponse,
     GithubPRFromGraphQL,
@@ -98,15 +99,13 @@ class GithubCopilotAgentClient(CodingAgentClient):
         )
 
         task_response = GithubCopilotTaskResponse.validate(api_response.json)
+        task = task_response.task
 
-        if not task_response.id:
-            raise ValueError("No task ID in response")
-
-        agent_id = self.encode_agent_id(owner, repo, task_response.id)
+        agent_id = self.encode_agent_id(owner, repo, task.id)
 
         # Get created_at from the response
         started_at = None
-        created_at_str = task_response.created_at
+        created_at_str = task.created_at
         if created_at_str:
             try:
                 started_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
@@ -122,7 +121,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             agent_url=None,
         )
 
-    def get_task_status(self, owner: str, repo: str, task_id: str) -> GithubCopilotTaskResponse:
+    def get_task_status(self, owner: str, repo: str, task_id: str) -> GithubCopilotTask:
         api_response = self.get(
             f"/agents/repos/{owner}/{repo}/tasks/{task_id}",
             headers=self._get_auth_headers(),
@@ -139,7 +138,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             },
         )
 
-        return GithubCopilotTaskResponse.validate(api_response.json)
+        return GithubCopilotTaskResponse.validate(api_response.json).task
 
     def get_pr_from_graphql(self, global_id: str) -> GithubPRFromGraphQL | None:
         query = """
