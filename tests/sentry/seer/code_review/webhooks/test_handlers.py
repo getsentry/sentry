@@ -6,13 +6,13 @@ import pytest
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.locks import locks
 from sentry.seer.code_review.webhooks.handlers import (
-    DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS,
+    WEBHOOK_SEEN_KEY_PREFIX,
+    WEBHOOK_SEEN_TTL_SECONDS,
     handle_webhook_event,
 )
 from sentry.testutils.cases import TestCase
-from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.redis import redis_clusters
 
 
 class TestHandleWebhookEvent(TestCase):
@@ -63,12 +63,9 @@ class TestHandleWebhookEvent(TestCase):
         mock_preflight.assert_called_once()
 
 
-class TestHandleWebhookEventLocks(TestCase):
-    """Tests for handle_webhook_event lock and dedupe behavior (real lock backend where noted)."""
-
+class TestHandleWebhookEventWebhookSeen(TestCase):
     @pytest.fixture(autouse=True)
     def mock_preflight_allowed(self) -> Generator[None]:
-        """Patch CodeReviewPreflightService so check() returns allowed=True for all tests in this class."""
         with patch(
             "sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService"
         ) as mock_preflight:
@@ -78,45 +75,40 @@ class TestHandleWebhookEventLocks(TestCase):
             yield
 
     @patch("sentry.seer.code_review.webhooks.handlers.handle_pull_request_event")
-    def test_lock_held_handler_not_invoked(
+    def test_webhook_already_seen_handler_not_invoked(
         self,
         mock_pull_request_handler: MagicMock,
     ) -> None:
         """
-        When the lock is already held (e.g. concurrent delivery),
-        handle_webhook_event returns without invoking the handler (dedupe).
+        When the delivery_id was already seen, handle_webhook_event returns without invoking the handler.
         """
-        delivery_id = f"real-lock-dedupe-{uuid4()}"
-        lock_key = f"github:code_review:webhook:{delivery_id}"
-        lock = locks.get(
-            lock_key,
-            duration=DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS,
-            name="github_code_review_webhook_id",
-        )
+        delivery_id = f"already-seen-{uuid4()}"
+        cluster = redis_clusters.get("default")
+        seen_key = f"{WEBHOOK_SEEN_KEY_PREFIX}{delivery_id}"
+        cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
 
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB
         integration.id = 123
 
-        with lock.acquire():
-            handle_webhook_event(
-                github_event=GithubWebhookType.PULL_REQUEST,
-                github_delivery_id=delivery_id,
-                event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
-                organization=self.organization,
-                repo=MagicMock(),
-                integration=integration,
-            )
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_delivery_id=delivery_id,
+            event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
+            organization=self.organization,
+            repo=MagicMock(),
+            integration=integration,
+        )
 
         mock_pull_request_handler.assert_not_called()
 
     @patch("sentry.seer.code_review.webhooks.handlers.handle_pull_request_event")
-    def test_lock_available_handler_invoked(
+    def test_webhook_first_time_seen_handler_invoked(
         self,
         mock_pull_request_handler: MagicMock,
     ) -> None:
-        """When the lock is available, handle_webhook_event acquires it and invokes the handler."""
-        delivery_id = f"real-lock-success-{uuid4()}"
+        """When the delivery_id is not yet seen, handle_webhook_event marks it seen and invokes the handler."""
+        delivery_id = f"seen-success-{uuid4()}"
 
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB
@@ -135,40 +127,90 @@ class TestHandleWebhookEventLocks(TestCase):
         assert mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"] == delivery_id
 
     @patch("sentry.seer.code_review.webhooks.handlers.handle_pull_request_event")
-    @patch("sentry.seer.code_review.webhooks.handlers.locks.get")
-    def test_lock_acquire_failure_handler_not_invoked(
+    def test_same_delivery_id_second_seen_skipped(
         self,
-        mock_locks_get: MagicMock,
         mock_pull_request_handler: MagicMock,
     ) -> None:
-        """If lock acquisition raises UnableToAcquireLock, the handler is not invoked."""
-        delivery_id = f"fail-to-acquire-{uuid4()}"
-
+        """
+        Two deliveries with the same id, one after the other: the first marks seen and runs;
+        the second is already seen (key exists), so only one handler run.
+        """
+        delivery_id = f"seen-sequential-{uuid4()}"
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB
         integration.id = 123
-
-        mock_lock = MagicMock()
-        mock_lock.acquire.side_effect = UnableToAcquireLock()
-        mock_locks_get.return_value = mock_lock
+        event = {"action": "opened", "pull_request": {"number": 1, "draft": False}}
+        repo = MagicMock()
 
         handle_webhook_event(
             github_event=GithubWebhookType.PULL_REQUEST,
             github_delivery_id=delivery_id,
-            event={"action": "opened", "pull_request": {"number": 2, "draft": False}},
+            event=event,
             organization=self.organization,
-            repo=MagicMock(),
+            repo=repo,
+            integration=integration,
+        )
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_delivery_id=delivery_id,
+            event=event,
+            organization=self.organization,
+            repo=repo,
             integration=integration,
         )
 
-        mock_pull_request_handler.assert_not_called()
+        assert mock_pull_request_handler.call_count == 1
+        assert mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"] == delivery_id
+
+    @patch("sentry.seer.code_review.webhooks.handlers.handle_pull_request_event")
+    def test_same_delivery_id_after_ttl_expires_handler_invoked_twice(
+        self,
+        mock_pull_request_handler: MagicMock,
+    ) -> None:
+        """
+        Same delivery_id twice: first run marks seen and runs; we delete the key (simulate TTL
+        expiry); second run marks seen again and runs. Handler is invoked twice.
+        """
+        delivery_id = f"seen-after-ttl-{uuid4()}"
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB
+        integration.id = 123
+        event = {"action": "opened", "pull_request": {"number": 1, "draft": False}}
+        repo = MagicMock()
+
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_delivery_id=delivery_id,
+            event=event,
+            organization=self.organization,
+            repo=repo,
+            integration=integration,
+        )
+        assert mock_pull_request_handler.call_count == 1
+
+        # Simulate TTL expiry: remove the seen key so the same delivery_id can be processed again
+        cluster = redis_clusters.get("default")
+        seen_key = f"{WEBHOOK_SEEN_KEY_PREFIX}{delivery_id}"
+        cluster.delete(seen_key)
+
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_delivery_id=delivery_id,
+            event=event,
+            organization=self.organization,
+            repo=repo,
+            integration=integration,
+        )
+
+        assert mock_pull_request_handler.call_count == 2
+        assert mock_pull_request_handler.call_args[1]["extra"]["github_delivery_id"] == delivery_id
 
     @patch("sentry.seer.code_review.webhooks.handlers.handle_pull_request_event")
     def test_missing_delivery_id_handler_invoked(
         self,
         mock_pull_request_handler: MagicMock,
     ) -> None:
-        """When github_delivery_id is None, the event is handled without acquiring a lock."""
+        """When github_delivery_id is None, the event is handled without a webhook seen check."""
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB
         integration.id = 789

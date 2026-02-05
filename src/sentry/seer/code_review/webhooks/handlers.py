@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
-from contextlib import nullcontext
 from typing import Any
+
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.redis import redis_clusters
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
@@ -22,7 +23,12 @@ from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
 
-DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS = 30
+WEBHOOK_SEEN_TTL_SECONDS = 20
+WEBHOOK_SEEN_KEY_PREFIX = "webhook:github:delivery:"
+
+
+def _get_webhook_seen_cluster() -> RedisCluster[str] | StrictRedis[str]:
+    return redis_clusters.get("default")
 
 
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, Callable[..., None]] = {
@@ -86,28 +92,29 @@ def handle_webhook_event(
             )
         return
 
-    # Dedupe concurrent deliveries with the same webhook event X-GitHub-Delivery ID
+    # Ensure only one request per delivery_id within the TTL window: skip if already processed
     if github_delivery_id:
-        lock = locks.get(
-            f"github:code_review:webhook:{github_delivery_id}",
-            duration=DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS,
-            name="github_code_review_webhook_id",
-        )
         try:
-            lock_ctx = lock.acquire()
-        except UnableToAcquireLock:
-            logger.warning("github.webhook.code_review.webhook_dupe_skipped", extra=extra)
-            return
-    else:
-        lock_ctx = nullcontext()
+            cluster = _get_webhook_seen_cluster()
+            seen_key = f"{WEBHOOK_SEEN_KEY_PREFIX}{github_delivery_id}"
+            is_first_time_seen = cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
+        except Exception as e:
+            logger.warning(
+                "github.webhook.code_review.mark_seen_failed",
+                extra={**extra, "error": str(e)},
+            )
+            # Keep going if error (e.g. Redis down) since we'd rather process twice than never
+        else:
+            if not is_first_time_seen:
+                logger.warning("github.webhook.code_review.duplicate_delivery_skipped", extra=extra)
+                return
 
-    with lock_ctx:
-        handler(
-            github_event=github_event,
-            event=event,
-            organization=organization,
-            repo=repo,
-            integration=integration,
-            org_code_review_settings=preflight.settings,
-            extra=extra,
-        )
+    handler(
+        github_event=github_event,
+        event=event,
+        organization=organization,
+        repo=repo,
+        integration=integration,
+        org_code_review_settings=preflight.settings,
+        extra=extra,
+    )
