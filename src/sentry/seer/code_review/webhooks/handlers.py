@@ -4,6 +4,8 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import Any
 
+import sentry_sdk
+
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -12,7 +14,7 @@ from sentry.models.repository import Repository
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
-from ..utils import extract_github_info
+from ..utils import extract_webhook_context
 from .check_run import handle_check_run_event
 from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
@@ -51,9 +53,19 @@ def handle_webhook_event(
     if integration and integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
-    # The extracted important key values are used for debugging with logs
-    extra = extract_github_info(event, github_event=github_event.value)
-    extra["organization_slug"] = organization.slug
+    # Extract context and set as Sentry SDK tags for automatic propagation
+    # to all logs, errors, and spans within this execution scope
+    context = extract_webhook_context(
+        event=event,
+        organization=organization,
+        repo=repo,
+        integration=integration,
+        github_event=github_event.value,
+    )
+    sentry_sdk.set_tags(context)
+
+    # Keep extra for backwards compatibility with logging
+    extra = context
 
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:

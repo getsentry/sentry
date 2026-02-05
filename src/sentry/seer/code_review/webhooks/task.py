@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -94,6 +95,27 @@ def process_github_webhook_event(
     """
     status = "success"
     should_record_latency = True
+
+    # Extract context from the transformed payload and set as Sentry SDK tags
+    # This ensures all logs, errors, and spans within this task execution
+    # automatically include these tags, following the pattern from seer repository
+    repo_data = event_payload.get("data", {}).get("repo", {})
+    context_tags: dict[str, str | int | None] = {
+        "provider": repo_data.get("provider"),
+        "scm_owner": repo_data.get("owner"),
+        "scm_repo_name": repo_data.get("name"),
+        "scm_repo_full_name": repo_data.get("full_name"),
+        "pr_id": event_payload.get("data", {}).get("pr_id"),
+        "commit_sha": repo_data.get("base_commit_sha"),
+        "request_type": event_payload.get("request_type"),
+        "github_event": github_event,
+        "sentry_organization_id": event_payload.get("organization_id"),
+        "sentry_integration_id": event_payload.get("integration_id"),
+    }
+    # Filter out None values to avoid cluttering Sentry tags
+    context_tags = {k: v for k, v in context_tags.items() if v is not None}
+    sentry_sdk.set_tags(context_tags)
+
     try:
         path = get_seer_endpoint_for_event(github_event).value
 
