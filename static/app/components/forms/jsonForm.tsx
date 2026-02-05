@@ -13,7 +13,8 @@ import FormPanel from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
 interface JsonFormProps
-  extends WithRouterProps,
+  extends
+    WithRouterProps,
     Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
   additionalFieldProps?: Record<string, any>;
 
@@ -34,19 +35,18 @@ interface JsonFormProps
   nested?: boolean;
 }
 
-interface ChildFormPanelProps
-  extends Pick<
-    FormPanelProps,
-    | 'access'
-    | 'disabled'
-    | 'features'
-    | 'nested'
-    | 'additionalFieldProps'
-    | 'renderFooter'
-    | 'renderHeader'
-    | 'initiallyCollapsed'
-    | 'collapsible'
-  > {
+interface ChildFormPanelProps extends Pick<
+  FormPanelProps,
+  | 'access'
+  | 'disabled'
+  | 'features'
+  | 'nested'
+  | 'additionalFieldProps'
+  | 'renderFooter'
+  | 'renderHeader'
+  | 'initiallyCollapsed'
+  | 'collapsible'
+> {
   highlighted?: string;
 }
 

@@ -4,8 +4,10 @@ import {DateRange} from 'react-date-range';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 
-export interface DateRangePickerProps
-  extends Omit<DateRangeProps, 'ranges' | 'onChange'> {
+export interface DateRangePickerProps extends Omit<
+  DateRangeProps,
+  'ranges' | 'onChange'
+> {
   onChange: (range: Range) => void;
   endDate?: Date;
   startDate?: Date;
