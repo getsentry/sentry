@@ -8,7 +8,8 @@ features:
   organizations:fury-mode:
     enabled: True
     name: sentry organizations
-    owner: hybrid-cloud
+    owner:
+      team: hybrid-cloud
     segments:
       - name: sentry orgs
         rollout: 50
@@ -35,7 +36,8 @@ A segment with multiple conditions looks like:
 features:
   organizations:fury-mode:
     enabled: True
-    owner: hybrid-cloud
+    owner:
+      team: hybrid-cloud
     description: sentry organizations
     segments:
       - name: sentry organizations
@@ -145,8 +147,8 @@ class Feature:
 
             raw_owner = config_dict.get("owner", {})
             owner = OwnerInfo(
-                team=raw_owner["team"],
-                email=raw_owner.get("email", None),
+                team=raw_owner.get("team", ""),
+                email=raw_owner.get("email"),
             )
 
             feature = cls(
