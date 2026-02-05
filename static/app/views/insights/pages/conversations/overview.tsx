@@ -34,7 +34,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
+import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
@@ -48,7 +51,33 @@ function ConversationsOverviewPage({
   datePageFilterProps,
 }: ConversationsOverviewPageProps) {
   const organization = useOrganization();
+
+  return (
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <Feature
+        features="gen-ai-conversations"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <ConversationsContent datePageFilterProps={datePageFilterProps} />
+      </Feature>
+    </Feature>
+  );
+}
+
+function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
+  const organization = useOrganization();
   useDefaultToAllProjects();
+
+  const [urlState] = useConversationDrawerQueryState();
+  // Start fetching data and open drawer without
+  // waiting for table to finish loading
+  useConversation({conversationId: urlState.conversationId ?? ''});
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -102,64 +131,52 @@ function ConversationsOverviewPage({
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <Feature
-          features="gen-ai-conversations"
-          organization={organization}
-          renderDisabled={NoAccess}
-        >
-          <Layout.Body>
-            <Layout.Main width="full">
-              <ModuleLayout.Layout>
-                <ModuleLayout.Full>
-                  <Stack gap="md">
-                    <ToolRibbon>
-                      <PageFilterBar condensed>
-                        <InsightsProjectSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <InsightsEnvironmentSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <DatePageFilter
-                          {...datePageFilterProps}
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                      </PageFilterBar>
-                      <AgentSelector
-                        storageKeyPrefix="conversations:agent-filter"
-                        referrer="api.insights.conversations.get-agent-names"
-                      />
-                      <Flex flex={2}>
-                        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                      </Flex>
-                    </ToolRibbon>
-                    <SchemaHintsList
-                      supportedAggregates={DISABLE_AGGREGATES}
-                      booleanTags={booleanTags as TagCollection}
-                      numberTags={numberTags as TagCollection}
-                      stringTags={stringTags as TagCollection}
-                      isLoading={
-                        numberTagsLoading || stringTagsLoading || booleanTagsLoading
-                      }
-                      exploreQuery={searchQuery ?? ''}
-                      source={SchemaHintsSources.CONVERSATIONS}
+      <Layout.Body>
+        <Layout.Main width="full">
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <Stack gap="md">
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
-                  </Stack>
-                </ModuleLayout.Full>
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                  </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="conversations:agent-filter"
+                    referrer="api.insights.conversations.get-agent-names"
+                  />
+                  <Flex flex={2}>
+                    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                  </Flex>
+                </ToolRibbon>
+                <SchemaHintsList
+                  supportedAggregates={DISABLE_AGGREGATES}
+                  booleanTags={booleanTags as TagCollection}
+                  numberTags={numberTags as TagCollection}
+                  stringTags={stringTags as TagCollection}
+                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                  exploreQuery={searchQuery ?? ''}
+                  source={SchemaHintsSources.CONVERSATIONS}
+                />
+              </Stack>
+            </ModuleLayout.Full>
 
-                <ModuleLayout.Full>
-                  <ConversationsTable />
-                </ModuleLayout.Full>
-              </ModuleLayout.Layout>
-            </Layout.Main>
-          </Layout.Body>
-        </Feature>
-      </Feature>
+            <ModuleLayout.Full>
+              <ConversationsTable
+                openConversationViewDrawer={openConversationViewDrawer}
+              />
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </Layout.Main>
+      </Layout.Body>
     </SearchQueryBuilderProvider>
   );
 }
