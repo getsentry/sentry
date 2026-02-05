@@ -137,6 +137,10 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.api.authentication.RelayAuthentication
         add_attribute_to_class(ctx.api, ctx.cls, "relay", AnyType(TypeOfAny.explicit))
         add_attribute_to_class(ctx.api, ctx.cls, "relay_request_data", AnyType(TypeOfAny.explicit))
+        # added by sentry.api.authentication.ClientIdSecretAuthentication
+        add_attribute_to_class(
+            ctx.api, ctx.cls, "user_from_signed_request", AnyType(TypeOfAny.explicit)
+        )
 
 
 def _adjust_request_members(ctx: ClassDefContext) -> None:
