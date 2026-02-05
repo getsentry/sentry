@@ -202,7 +202,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
         if user.id != request.user.id:
-            user = User.objects.get(id=request.user.id)  # type: ignore[misc]
+            assert request.user.id is not None
+            user = User.objects.get(id=request.user.id)
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)

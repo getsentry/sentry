@@ -23,6 +23,7 @@ from sentry.notifications.types import (
 )
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import auth
+from sentry.utils.auth import is_user_signed_request
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -71,7 +72,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def post(
         self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
     ) -> Response:
-        if not request.user_from_signed_request:  # type: ignore[attr-defined]
+        if not is_user_signed_request(request):
             raise NotFound()
         instance = self.fetch_instance(request, organization_id_or_slug, id)
 

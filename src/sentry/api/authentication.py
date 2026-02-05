@@ -251,6 +251,22 @@ class RelayAuthentication(BasicAuthentication):
         return (AnonymousUser(), None)
 
 
+def get_relay_from_request(request: Request) -> Relay:
+    """Get the Relay instance from a relay-authenticated request."""
+    relay: Relay | None = getattr(request, "relay", None)
+    if relay is None:
+        raise AuthenticationFailed("Request not authenticated with relay")
+    return relay
+
+
+def get_relay_request_data(request: Request) -> dict[str, Any]:
+    """Get the unpacked relay request data from a relay-authenticated request."""
+    data: dict[str, Any] | None = getattr(request, "relay_request_data", None)
+    if data is None:
+        raise AuthenticationFailed("Request not authenticated with relay")
+    return data
+
+
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
