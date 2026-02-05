@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {StyledButton} from '@sentry/scraps/button';
-
 import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
@@ -50,7 +48,8 @@ const MergedButtonBarStyles = () => css`
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
       }
@@ -60,7 +59,8 @@ const MergedButtonBarStyles = () => css`
     &:not(:last-child):not(:first-child) {
       border-radius: 0;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-radius: 0;
       }
     }
@@ -92,7 +92,8 @@ const MergedButtonBarStyles = () => css`
       border-bottom-left-radius: 0;
       margin-left: -1px;
 
-      & > .dropdown-actor > ${StyledButton} {
+      & > .dropdown-actor > button,
+      & > .dropdown-actor > a {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         margin-left: -1px;

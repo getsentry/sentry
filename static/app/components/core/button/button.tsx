@@ -70,7 +70,7 @@ export function Button({
   );
 }
 
-export const StyledButton = styled('button')<ButtonProps>`
+const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
 `;
 
