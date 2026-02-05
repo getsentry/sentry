@@ -135,6 +135,12 @@ function PageFiltersContainer({
   // When the limit decreases and the current selection exceeds it, reset to the new max.
   const previousMaxPickableDays = usePrevious(maxPickableDays);
   const shouldResetDateTime = useMemo(() => {
+    // Don't act until page filters are initialized - selection.datetime contains
+    // default values until isReady, not the actual URL state
+    if (!isReady) {
+      return false;
+    }
+
     // Only act when maxPickableDays decreases (increasing the limit never invalidates selection)
     if (
       previousMaxPickableDays === maxPickableDays ||
@@ -159,7 +165,7 @@ function PageFiltersContainer({
     }
 
     return false;
-  }, [maxPickableDays, previousMaxPickableDays, selection.datetime]);
+  }, [isReady, maxPickableDays, previousMaxPickableDays, selection.datetime]);
 
   useLayoutEffect(() => {
     if (!shouldResetDateTime) {
