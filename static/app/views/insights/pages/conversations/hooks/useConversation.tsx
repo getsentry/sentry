@@ -15,6 +15,8 @@ import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceMo
 
 export interface UseConversationsOptions {
   conversationId: string;
+  endTimestamp?: number;
+  startTimestamp?: number;
 }
 
 /**
@@ -172,11 +174,24 @@ export function useConversation(
       },
     }
   );
-  const queryParams = {
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
-  };
+
+  // Use conversation timestamps when available (with 1-hour padding), falling back to page filters
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const hasConversationTimestamps =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
+
+  const queryParams = hasConversationTimestamps
+    ? {
+        project: selection.projects,
+        environment: selection.environments,
+        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
+        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
+      }
+    : {
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
+      };
 
   const conversationQuery = useApiQuery<ConversationApiSpan[]>(
     [queryUrl, {query: queryParams}],

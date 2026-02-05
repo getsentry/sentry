@@ -190,6 +190,56 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe('');
   });
 
+  it('uses conversation timestamps when provided', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-timestamps/`,
+      body: [
+        {
+          'gen_ai.conversation.id': 'conv-timestamps',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'AI generation',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-ts',
+          trace: 'trace-ts',
+          'gen_ai.operation.type': 'ai_client',
+        },
+      ],
+    });
+
+    const startTimestamp = 1700000000000; // Nov 14, 2023
+    const endTimestamp = 1700100000000; // ~1.16 days later
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useConversation({
+          conversationId: 'conv-timestamps',
+          startTimestamp,
+          endTimestamp,
+        }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Verify the API was called with correct timestamps (with 1-hour padding)
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/ai-conversations/conv-timestamps/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: new Date(startTimestamp - 60 * 60 * 1000).toISOString(),
+          end: new Date(endTimestamp + 60 * 60 * 1000).toISOString(),
+        }),
+      })
+    );
+  });
+
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
