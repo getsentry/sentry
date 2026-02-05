@@ -215,6 +215,14 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._record_call("delete", path)
         self._maybe_raise()
 
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        self._record_call("delete_issue_comment", repo, comment_id)
+        self._maybe_raise()
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        self._record_call("delete_comment_reaction", repo, comment_id, reaction_id)
+        self._maybe_raise()
+
     def get_comment_reactions(self, repo: str, comment_id: str) -> list[dict[str, Any]]:
         self._record_call("get_comment_reactions", repo, comment_id)
         self._maybe_raise()

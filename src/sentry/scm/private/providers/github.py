@@ -81,7 +81,7 @@ class GitHubProvider(Provider):
 
     def delete_issue_comment(self, repository: Repository, comment_id: str) -> None:
         try:
-            self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
+            self.client.delete_issue_comment(repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException from e
 
@@ -117,7 +117,7 @@ class GitHubProvider(Provider):
 
     def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None:
         try:
-            self.client.delete(f"/repos/{repository['name']}/issues/comments/{comment_id}")
+            self.client.delete_issue_comment(repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException from e
 
@@ -143,9 +143,7 @@ class GitHubProvider(Provider):
         self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None:
         try:
-            self.client.delete(
-                f"/repos/{repository['name']}/issues/comments/{comment_id}/reactions/{reaction_id}"
-            )
+            self.client.delete_comment_reaction(repository["name"], comment_id, reaction_id)
         except ApiError as e:
             raise SCMProviderException from e
 
