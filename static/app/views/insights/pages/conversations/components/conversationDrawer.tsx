@@ -120,12 +120,10 @@ export function useConversationViewDrawer({
   const openConversationViewDrawer = useCallback(
     ({
       conversation,
-      initialSpanId,
       source,
     }: {
       conversation: UseConversationsOptions;
       source: ConversationDrawerOpenSource;
-      initialSpanId?: string;
     }) => {
       trackAnalytics('conversations.drawer.open', {
         organization,
@@ -139,7 +137,8 @@ export function useConversationViewDrawer({
         drawerWidth: `${DRAWER_WIDTH}px`,
         resizable: true,
         conversationId: conversation.conversationId,
-        spanId: initialSpanId,
+        startTimestamp: conversation.startTimestamp,
+        endTimestamp: conversation.endTimestamp,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -147,11 +146,14 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId, spanId} = drawerUrlState;
+    const {conversationId, startTimestamp, endTimestamp} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
       openConversationViewDrawer({
-        conversation: {conversationId},
-        initialSpanId: spanId ?? undefined,
+        conversation: {
+          conversationId,
+          startTimestamp: startTimestamp ?? undefined,
+          endTimestamp: endTimestamp ?? undefined,
+        },
         source: 'direct_link',
       });
     }
