@@ -458,6 +458,77 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    it('resets period when maxPickableDays decreases', async () => {
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '14d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+
+      rerender(<PageFiltersContainer maxPickableDays={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '7d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+    });
+
+    it('keeps absolute range when within maxPickableDays on decrease', async () => {
+      const start = moment().subtract(2, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(1, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {start, end},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime.period).toBeNull()
+      );
+
+      const initialDatetime = PageFiltersStore.getState().selection.datetime;
+
+      rerender(<PageFiltersContainer maxPickableDays={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime.period).toBeNull()
+      );
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime.start).toEqual(
+          initialDatetime.start
+        )
+      );
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime.end).toEqual(
+          initialDatetime.end
+        )
+      );
+    });
+
     it('does not use maxPickableDays if the query parms do not exceed it', async () => {
       const {router} = render(<PageFiltersContainer maxPickableDays={7} />, {
         organization,

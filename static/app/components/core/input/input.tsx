@@ -5,7 +5,8 @@ import {inputStyles, type InputStylesProps} from './inputStyles';
 
 export {type InputStylesProps} from './inputStyles';
 export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
+  extends
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {
   ref?: React.Ref<HTMLInputElement>;
 }

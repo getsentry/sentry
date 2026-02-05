@@ -59,24 +59,24 @@ describe('Debug Meta - Image Details', () => {
     const statusColumns = screen
       .getAllByTestId('status')
       .map(statusColumn => statusColumn.textContent);
-    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted']);
+    expect(statusColumns).toEqual(['Malformed', 'Malformed', 'Failed', 'Deleted']);
 
     // const informationColumn = candidates.find('InformationColumn');
 
     // Check source names order.
-    // The UI shall sort the candidates by source name (alphabetical)
+    // The UI shall sort the candidates by source name (alphabetical within each status group)
     const sourceNames = screen
       .getAllByTestId('source-name')
       .map(sourceName => sourceName.textContent);
-    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
+    expect(sourceNames).toEqual(['Austria', 'Belgium', 'America', 'Sentry']);
 
     // Check location order.
-    // The UI shall sort the candidates by source location (alphabetical)
+    // The UI shall sort the candidates by source location (alphabetical within each status group)
     const locations = screen
       .getAllByTestId('filename-or-location')
       .map(location => location.textContent);
     // Only 3 results are returned, as the UI only displays the Location component
     // when the location is defined and when it is not internal
-    expect(locations).toEqual(['arizona', 'burgenland', 'brussels']);
+    expect(locations).toEqual(['burgenland', 'brussels', 'arizona']);
   });
 });

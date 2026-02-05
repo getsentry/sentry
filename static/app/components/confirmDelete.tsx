@@ -8,8 +8,10 @@ import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 
-interface Props
-  extends Omit<React.ComponentProps<typeof Confirm>, 'renderConfirmMessage'> {
+interface Props extends Omit<
+  React.ComponentProps<typeof Confirm>,
+  'renderConfirmMessage'
+> {
   /**
    * The string that the user must enter to confirm the deletion
    */
