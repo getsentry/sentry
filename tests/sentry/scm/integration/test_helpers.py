@@ -10,6 +10,7 @@ from sentry.scm.helpers import (
     fetch_service_provider,
     is_rate_limited,
     is_rate_limited_with_allocation_policy,
+    map_integration_to_provider,
     map_repository_model_to_repository,
 )
 from sentry.scm.private.providers.github import GitHubProvider
@@ -97,6 +98,39 @@ class TestMapRepositoryModelToRepository(TestCase):
         assert result["name"] == "test-org/test-repo"
         assert result["organization_id"] == self.organization.id
         assert result["status"] == ObjectStatus.ACTIVE
+
+
+class TestMapIntegrationToProvider(TestCase):
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_returns_github_provider_for_github_integration(self, mock_get_jwt):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={
+                "access_token": "12345token",
+                "expires_at": "2099-01-01T00:00:00",
+            },
+        )
+
+        provider = map_integration_to_provider(self.organization.id, integration)
+
+        assert isinstance(provider, GitHubProvider)
+
+    def test_raises_error_for_unsupported_provider(self):
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="unsupported_provider",
+            name="Unsupported Provider Test",
+            external_id="1",
+        )
+
+        with mock.patch.object(integration, "get_installation"):
+            with pytest.raises(SCMCodedError) as exc_info:
+                map_integration_to_provider(self.organization.id, integration)
+
+        assert exc_info.value.code == "integration_not_found"
 
 
 class TestFetchServiceProvider(TestCase):
