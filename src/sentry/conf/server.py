@@ -1095,7 +1095,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*/4", "*", "*", "*"),
     },
     "autopilot-run-trace-instrumentation-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
@@ -1287,6 +1287,7 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
+        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
