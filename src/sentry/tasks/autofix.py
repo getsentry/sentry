@@ -4,6 +4,12 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import analytics
+from sentry.analytics.events.autofix_automation_events import (
+    AiAutofixGenerateIssueSummaryOnlyEvent,
+    AiAutofixGenerateSummaryAndRunAutomationEvent,
+    AiAutofixRunAutomationOnlyEvent,
+)
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -67,6 +73,15 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
         tags={"organization": organization.slug, "organization_id": organization.id},
         sample_rate=1.0,
     )
+    analytics.record(
+        AiAutofixGenerateSummaryAndRunAutomationEvent(
+            organization_id=organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            issue_event_count=group.times_seen,
+            fixability_score=group.seer_fixability_score,
+        )
+    )
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
 
@@ -96,6 +111,15 @@ def generate_issue_summary_only(group_id: int) -> None:
         "sentry.tasks.autofix.generate_issue_summary_only",
         tags={"organization": organization.slug, "organization_id": organization.id},
         sample_rate=1.0,
+    )
+    analytics.record(
+        AiAutofixGenerateIssueSummaryOnlyEvent(
+            organization_id=organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            issue_event_count=group.times_seen,
+            fixability_score=group.seer_fixability_score,
+        )
     )
     summary_data, status_code = get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
@@ -135,6 +159,15 @@ def run_automation_only_task(group_id: int) -> None:
         "sentry.tasks.autofix.run_automation_only_task",
         tags={"organization": organization.slug, "organization_id": organization.id},
         sample_rate=1.0,
+    )
+    analytics.record(
+        AiAutofixRunAutomationOnlyEvent(
+            organization_id=organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            issue_event_count=group.times_seen,
+            fixability_score=group.seer_fixability_score,
+        )
     )
 
     event = group.get_latest_event()
