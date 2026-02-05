@@ -192,6 +192,17 @@ def create_issue_occurrence_from_detection(
         },
     }
 
+    logger.info(
+        "llm_issue_detection.occurrence_created",
+        extra={
+            "event_id": event_id,
+            "project_id": project.id,
+            "trace_id": trace_id,
+            "langfuse_id": detected_issue.langfuse_id,
+            "langfuse_url": detected_issue.langfuse_url,
+        },
+    )
+
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
