@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
+from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -4418,3 +4419,85 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
 
         # should not be called when feature flag is disabled
         assert mock_forward.call_count == 0
+
+
+class PostProcessGroupInstrumentationIssueTest(
+    TestCase,
+    SnubaTestCase,
+    OccurrenceTestMixin,
+):
+    """Tests that instrumentation issues do not trigger alerts."""
+
+    def create_event(
+        self,
+        data,
+        project_id,
+        assert_no_errors=True,
+    ):
+        data["type"] = "generic"
+
+        event = self.store_event(
+            data=data, project_id=project_id, assert_no_errors=assert_no_errors
+        )
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=project_id,
+            id=uuid.uuid4().hex,
+            fingerprint=["instrumentation-" + uuid.uuid4().hex],
+            issue_title="Missing Instrumentation",
+            subtitle="Database query not instrumented",
+            culprit="api/endpoint",
+            resource_id="1234",
+            evidence_data={"test": "data"},
+            evidence_display=[
+                {"name": "issue", "value": "missing span", "important": True},
+            ],
+            type=InstrumentationIssueExperimentalGroupType.type_id,
+            detection_time=datetime.now().timestamp(),
+            level="info",
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        return group_event
+
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        with self.feature(
+            InstrumentationIssueExperimentalGroupType.build_post_process_group_feature_name()
+        ):
+            post_process_group(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                cache_key=None,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence.id,
+                project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+    @patch("sentry.tasks.post_process.process_rules")
+    @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
+    def test_instrumentation_issues_do_not_trigger_alerts(
+        self,
+        mock_process_workflow_engine_issue_alerts,
+        mock_process_rules,
+    ):
+        """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_process_rules.assert_not_called()
+        mock_process_workflow_engine_issue_alerts.assert_not_called()

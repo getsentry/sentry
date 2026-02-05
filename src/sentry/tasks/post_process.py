@@ -1738,6 +1738,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
     ],
+    GroupCategory.INSTRUMENTATION: [
+        process_snoozes,
+        process_inbox_adds,
+        kick_off_seer_automation,
+    ],
 }
 
 GENERIC_POST_PROCESS_PIPELINE = [
