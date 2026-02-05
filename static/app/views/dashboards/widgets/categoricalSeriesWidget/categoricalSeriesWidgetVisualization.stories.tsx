@@ -4,10 +4,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 
+import {sampleManyCommonAffixData} from './fixtures/commonAffixCategorical';
 import {sampleCountCategoricalData} from './fixtures/countCategorical';
 import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
 import {sampleLargeValueData} from './fixtures/largeValueCategorical';
@@ -35,8 +37,8 @@ export default Storybook.story(
             <Storybook.JSXNode name="CategoricalSeriesWidgetVisualization" /> is a
             categorical chart component, designed to plot discrete category data. Unlike{' '}
             <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />, this component
-            uses category labels on one axis rather than timestamps. It includes features
-            like:
+            uses category labels on the X-axis rather than timestamps. It includes
+            features like:
           </p>
 
           <ul>
@@ -45,20 +47,14 @@ export default Storybook.story(
             <li>
               Skipping <code>null</code> values while plotting
             </li>
+            <li>Label truncation and rotation</li>
           </ul>
 
-          <Storybook.SideBySide>
-            <SmallWidget>
-              <CategoricalSeriesWidgetVisualization
-                plottables={[new Bars(sampleCountCategoricalData)]}
-              />
-            </SmallWidget>
-            <SmallWidget>
-              <CategoricalSeriesWidgetVisualization
-                plottables={[new Bars(sampleDurationCategoricalData)]}
-              />
-            </SmallWidget>
-          </Storybook.SideBySide>
+          <SmallWidget>
+            <CategoricalSeriesWidgetVisualization
+              plottables={[new Bars(sampleCountCategoricalData)]}
+            />
+          </SmallWidget>
         </Fragment>
       );
     });
@@ -71,27 +67,21 @@ export default Storybook.story(
             <code>plottables</code> prop, similar to{' '}
             <Storybook.JSXNode name="TimeSeriesWidgetVisualization" />. Each item in the{' '}
             <code>plottables</code> array must implement the{' '}
-            <code>CategoricalPlottable</code> interface. We currently have support for the
-            following plottables:
+            <code>CategoricalPlottable</code> interface. Right now the only supported
+            prottable is <code>Bars</code>.
           </p>
-
-          <ul>
-            <li>
-              <code>Bars</code>
-            </li>
-          </ul>
 
           <CodeBlock language="jsx">
             {`
 <CategoricalSeriesWidgetVisualization
-  plottables={[new Bar(categoricalSeries)]}
+  plottables={[new Bars(categoricalSeries)]}
 />
           `}
           </CodeBlock>
 
           <p>
-            The <code>Bar</code> class accepts a <code>CategoricalSeries</code> object and
-            an optional configuration object. Here's an example of a{' '}
+            The <code>Bars</code> class accepts a <code>CategoricalSeries</code> object
+            and an optional configuration object. Here's an example of a{' '}
             <code>CategoricalSeries</code>:
           </p>
 
@@ -103,9 +93,11 @@ export default Storybook.story(
     "valueUnit": null
   },
   "data": [
-    {"label": "Chrome", "value": 1250},
-    {"label": "Firefox", "value": 890},
-    {"label": "Safari", "value": 650}
+    {category: "Chrome", value: 1250},
+    {category: "Firefox", value: 890},
+    {category: "Safari", value: 650},
+    {category: "Edge", value: 420},
+    {category: "Opera", value: 180},
   ]
 }`}
           </CodeBlock>
@@ -125,23 +117,23 @@ export default Storybook.story(
       return (
         <Fragment>
           <p>
-            Bar plottables support stacking via the <code>stack</code> configuration
-            option. Bars with the same stack name will be stacked together.
+            <code>Bars</code> plottables support stacking via the <code>stack</code>{' '}
+            configuration option. Bars with the same stack name will be stacked together.
           </p>
 
           <CodeBlock language="jsx">
             {`
 <CategoricalSeriesWidgetVisualization
   plottables={[
-    new Bar(successSeries, {stack: 'all'}),
-    new Bar(errorSeries, {stack: 'all'})
+    new Bars(successSeries, {stack: 'all'}),
+    new Bars(errorSeries, {stack: 'all'})
   ]}
 />`}
           </CodeBlock>
 
           <Storybook.SideBySide>
             <MediumWidget>
-              <p>Unstacked (default)</p>
+              <Heading as="h3">Unstacked</Heading>
               <CategoricalSeriesWidgetVisualization
                 plottables={[
                   new Bars(sampleStackedCategoricalData[0]),
@@ -150,7 +142,7 @@ export default Storybook.story(
               />
             </MediumWidget>
             <MediumWidget>
-              <p>Stacked</p>
+              <Heading as="h3">Stacked</Heading>
               <CategoricalSeriesWidgetVisualization
                 plottables={[
                   new Bars(sampleStackedCategoricalData[0], {stack: 'all'}),
@@ -211,31 +203,42 @@ export default Storybook.story(
         <Fragment>
           <p>
             In a <Storybook.JSXNode name="CategoricalSeriesWidgetVisualization" />, the X
-            axis displays category labels. The labels are automatically truncated when
-            they are too long to fit.
+            axis displays category labels. Labels will be truncated and rotated
+            intelligently to fit.
           </p>
-
-          <p>Short labels:</p>
+          <Heading as="h3">Short Labels</Heading>
           <MediumWidget>
             <CategoricalSeriesWidgetVisualization
               plottables={[new Bars(sampleCountCategoricalData)]}
             />
           </MediumWidget>
-
-          <p>Long labels get truncated. Notice how the endpoint paths are cut off:</p>
+          <Heading as="h3">Common Affix Truncation</Heading>
+          <p>
+            Common suffixes and prefixed will be truncated automatically if needed. e.g.,
+            the categories <code>"/api/issues"</code> and <code>"/api/errors"</code> will
+            turn into<code>"issues"</code> and <code>"errors"</code> to save space.{' '}
+          </p>
           <MediumWidget>
             <CategoricalSeriesWidgetVisualization
               plottables={[new Bars(sampleLongLabelData)]}
             />
           </MediumWidget>
-
-          <p>
-            When you have many categories, the chart will scale to fit them. With 12
-            categories, the bars become narrower:
-          </p>
+          <Heading as="h3">Rotation</Heading>
+          <p>Labels are rotated when there are more than 10 categories.</p>
           <LargeWidget>
             <CategoricalSeriesWidgetVisualization
               plottables={[new Bars(sampleManyCategoriesData)]}
+            />
+          </LargeWidget>
+
+          <Heading as="h3">Affix Truncation and Rotation</Heading>
+          <p>
+            When there are many categories that share a common prefix, both affix
+            truncation and rotation are applied together.
+          </p>
+          <LargeWidget>
+            <CategoricalSeriesWidgetVisualization
+              plottables={[new Bars(sampleManyCommonAffixData)]}
             />
           </LargeWidget>
         </Fragment>

@@ -31,6 +31,11 @@ import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidg
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
 import {formatXAxisValue} from './formatters/formatXAxisValue';
+import {
+  computeCommonPrefix,
+  computeCommonSuffix,
+  trimCommonAffixes,
+} from './formatters/trimCommonAffixes';
 import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
@@ -116,6 +121,24 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
+  // Step 1: If total label length exceeds threshold, trim common affixes
+  const TOTAL_CHARACTER_THRESHOLD = 40;
+  const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
+  const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
+
+  const commonPrefix = shouldTrimAffixes ? computeCommonPrefix(allCategories) : '';
+  const commonSuffix = shouldTrimAffixes ? computeCommonSuffix(allCategories) : '';
+
+  // Step 2: After affix trimming, check if labels are still too long and need end truncation
+  const trimmedLengths = allCategories.reduce(
+    (sum, c) => sum + trimCommonAffixes(c, commonPrefix, commonSuffix).length,
+    0
+  );
+  const shouldTruncate = trimmedLengths > TOTAL_CHARACTER_THRESHOLD;
+
+  // Step 3: Rotate when there are many categories
+  const shouldRotate = allCategories.length > 10;
+
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
     type: 'category',
@@ -127,8 +150,15 @@ export function CategoricalSeriesWidgetVisualization(
       showMaxLabel: null,
       // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
-      formatter: (value: string) =>
-        truncationFormatter(value, props.truncateCategoryLabels ?? true, false),
+      rotate: shouldRotate ? 45 : 0,
+      ...(shouldRotate ? {interval: 0, hideOverlap: false} : {}),
+      formatter: (value: string) => {
+        const trimmed = trimCommonAffixes(value, commonPrefix, commonSuffix);
+        const truncateLength = shouldTruncate
+          ? 15
+          : (props.truncateCategoryLabels ?? true);
+        return truncationFormatter(trimmed, truncateLength, false);
+      },
     },
     axisLine: {
       lineStyle: {
