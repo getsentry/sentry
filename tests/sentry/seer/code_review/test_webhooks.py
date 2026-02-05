@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
 from urllib3 import BaseHTTPResponse
 from urllib3.exceptions import HTTPError
@@ -501,7 +502,6 @@ class ScheduleTaskTest(TestCase):
         - JSON serialization requires string keys, not enum objects
         - The convert_enum_keys_to_strings function handles this conversion
         """
-        # Mock transform to return payload with features dict
         mock_transform.return_value = {
             "request_type": "pr-review",
             "external_owner_id": self.repo.external_id,
@@ -544,9 +544,12 @@ class ScheduleTaskTest(TestCase):
         call_kwargs = mock_task_delay.call_args[1]
         sent_payload = call_kwargs["event_payload"]
 
-        # Verify enum keys are converted to strings
+        # Verify that features keys are strings, not enum objects
         features = sent_payload["data"]["config"]["features"]
         assert "bug_prediction" in features
+        assert features["bug_prediction"] is True
+
+        # Verify all keys in features dict are strings
         for key in features.keys():
             assert isinstance(key, str), f"Expected string key, got {type(key)}"
 
@@ -559,7 +562,6 @@ class ScheduleTaskTest(TestCase):
         self, mock_transform: MagicMock, mock_task_delay: MagicMock
     ) -> None:
         """Test that PR review validation passes without organization_id (it's optional)."""
-        # Mock transform to return payload without organization_id in repo
         mock_transform.return_value = {
             "request_type": "pr-review",
             "external_owner_id": self.repo.external_id,
@@ -605,9 +607,6 @@ class ScheduleTaskTest(TestCase):
         self, mock_transform: MagicMock, mock_task_delay: MagicMock
     ) -> None:
         """Test that PR closed validation fails without organization_id (it's required)."""
-        from pydantic import ValidationError
-
-        # Mock transform to return payload without organization_id
         mock_transform.return_value = {
             "request_type": "pr-closed",
             "external_owner_id": self.repo.external_id,
@@ -657,9 +656,6 @@ class ScheduleTaskTest(TestCase):
         self, mock_transform: MagicMock, mock_task_delay: MagicMock
     ) -> None:
         """Test that PR closed validation fails without integration_id (it's required)."""
-        from pydantic import ValidationError
-
-        # Mock transform to return payload without integration_id
         mock_transform.return_value = {
             "request_type": "pr-closed",
             "external_owner_id": self.repo.external_id,
@@ -709,7 +705,6 @@ class ScheduleTaskTest(TestCase):
         self, mock_transform: MagicMock, mock_task_delay: MagicMock
     ) -> None:
         """Test that PR closed validation passes with all required fields."""
-        # Mock transform to return complete payload with all required fields
         mock_transform.return_value = {
             "request_type": "pr-closed",
             "external_owner_id": self.repo.external_id,
