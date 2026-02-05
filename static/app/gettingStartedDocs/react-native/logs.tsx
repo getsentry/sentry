@@ -73,9 +73,7 @@ Sentry.init({
 Sentry.logger.info('This is an info log');
 
 Sentry.logger.warn('This is a warning log', {
-  attributes: {
-    log_type: 'test',
-  },
+  log_type: 'test',
 });
 
 Sentry.logger.error('This is an error log');
