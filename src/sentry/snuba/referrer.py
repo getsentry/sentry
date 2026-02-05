@@ -659,12 +659,6 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
-        "getsentry.promotion.mobile_performance_adoption.check_conditions"
-    )
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
-        "getsentry.promotion.mobile_performance_adoption.check_eligible"
-    )
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
