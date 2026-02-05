@@ -88,6 +88,7 @@ function ProjectField() {
       aria-label={t('Select Project')}
       disabled={fetching}
       size="sm"
+      required
       validate={() => {
         if (!canEditDetector) {
           return [

@@ -1,7 +1,8 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import type {
@@ -52,6 +53,18 @@ export function NewDetectorLayout<
     formDataToEndpointPayload,
   });
 
+  const [formModel] = useState(() => new FormModel());
+
+  // Track whether initialization is complete to avoid validating during setup
+  const isInitialized = useRef(false);
+  // Track whether we've done an initial full validation
+  const hasValidatedOnce = useRef(false);
+
+  useEffect(() => {
+    // Mark initialization complete after first render cycle
+    isInitialized.current = true;
+  }, []);
+
   const initialData = useMemo(() => {
     return {
       projectId: formContext.project.id,
@@ -69,36 +82,57 @@ export function NewDetectorLayout<
     location.query.owner,
   ]);
 
+  // Validate entire form when any field loses focus (via event bubbling)
+  const handleFormBlur = useCallback(() => {
+    if (!isInitialized.current) {
+      return;
+    }
+    formModel.validateForm();
+  }, [formModel]);
+
+  // On first meaningful field change, validate entire form to surface sibling errors
+  const handleFieldChange = useCallback(() => {
+    if (!isInitialized.current || hasValidatedOnce.current) {
+      return;
+    }
+    hasValidatedOnce.current = true;
+    formModel.validateForm();
+  }, [formModel]);
+
   const formProps: FormProps = {
+    model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
+    onFieldChange: handleFieldChange,
     mapFormErrors,
   };
 
   return (
-    <EditLayout formProps={formProps}>
-      <EditLayout.Header maxWidth={maxWidth}>
-        <EditLayout.HeaderContent>
-          <NewDetectorBreadcrumbs detectorType={detectorType} />
-        </EditLayout.HeaderContent>
+    <div onBlur={handleFormBlur}>
+      <EditLayout formProps={formProps}>
+        <EditLayout.Header maxWidth={maxWidth}>
+          <EditLayout.HeaderContent>
+            <NewDetectorBreadcrumbs detectorType={detectorType} />
+          </EditLayout.HeaderContent>
 
-        <div>
-          <MonitorFeedbackButton />
-        </div>
+          <div>
+            <MonitorFeedbackButton />
+          </div>
 
-        <EditLayout.HeaderFields>
-          <DetectorBaseFields environment={environment} />
-          {previewChart ?? <div />}
-        </EditLayout.HeaderFields>
-      </EditLayout.Header>
+          <EditLayout.HeaderFields>
+            <DetectorBaseFields environment={environment} />
+            {previewChart ?? <div />}
+          </EditLayout.HeaderFields>
+        </EditLayout.Header>
 
-      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+        <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <NewDetectorFooter
-        maxWidth={maxWidth}
-        disabledCreate={disabledCreate}
-        extras={extraFooterButton}
-      />
-    </EditLayout>
+        <NewDetectorFooter
+          maxWidth={maxWidth}
+          disabledCreate={disabledCreate}
+          extras={extraFooterButton}
+        />
+      </EditLayout>
+    </div>
   );
 }
