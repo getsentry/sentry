@@ -1,6 +1,7 @@
 import startCase from 'lodash/startCase';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 

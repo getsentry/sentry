@@ -4,6 +4,7 @@ import type {ApiResult} from 'sentry/api';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import type {Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +21,9 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
       getQueryKey: useCallback(
         (ids: readonly string[]): ApiQueryKey => {
           return [
-            `/organizations/${organization.slug}/teams/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             {
               query: {
                 query: ids.map(id => `id:${id}`).join(' '),

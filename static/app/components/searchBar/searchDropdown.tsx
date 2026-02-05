@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -83,9 +83,14 @@ function SearchDropdown({
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
       {loading ? (
-        <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+        <Flex
+          justify="center"
+          padding="md"
+          key="loading"
+          data-test-id="search-autocomplete-loading"
+        >
           <LoadingIndicator mini />
-        </LoadingWrapper>
+        </Flex>
       ) : (
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
@@ -137,7 +142,7 @@ function SearchDropdown({
           {runShortcut &&
             visibleShortcuts?.map(shortcut => (
               <Button
-                borderless
+                priority="transparent"
                 size="xs"
                 key={shortcut.text}
                 onClick={() => runShortcut(shortcut)}
@@ -386,11 +391,11 @@ function DropdownItem({
           documentation={item.documentation}
           searchSubstring={searchSubstring}
         />
-        <TagWrapper>
+        <Flex as="span" justify="end" align="center" flexShrink={0}>
           {item.kind && !isChild && (
             <KindTag kind={item.kind} deprecated={item.deprecated} />
           )}
-        </TagWrapper>
+        </Flex>
       </Fragment>
     );
   }
@@ -494,16 +499,10 @@ const SearchDropdownOverlay = styled(Overlay)`
   margin-top: ${space(1)};
 `;
 
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  padding: ${space(1)};
-`;
-
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
 
   &:not(:last-child) {
@@ -519,8 +518,8 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -550,7 +549,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
 
 const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   padding: 4px ${space(2)};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
@@ -587,10 +586,10 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
-  line-height: ${p => p.theme.text.lineHeightHeading};
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   display: block;
   width: 100%;
@@ -612,14 +611,6 @@ const FirstWordWrapper = styled('span')`
   font-weight: medium;
 `;
 
-const TagWrapper = styled('span')`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
 const Documentation = styled('span')`
   flex: 2;
   padding: 0 ${space(1)};
@@ -629,8 +620,8 @@ const Documentation = styled('span')`
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSize.md};
-  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.font.size.md};
+  font-family: ${p => p.theme.font.family.sans};
   color: ${p => p.theme.tokens.content.secondary};
   white-space: pre;
 `;
@@ -670,18 +661,18 @@ const IconWrapper = styled('span')`
 `;
 
 const QueryItemWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   width: 100%;
   gap: ${space(1)};
   display: flex;
   white-space: nowrap;
   word-break: normal;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const Value = styled('span')<{hasDocs?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
 
   max-width: ${p => (p.hasDocs ? '280px' : 'none')};
 
@@ -697,7 +688,7 @@ const IconOpenWithMargin = styled(IconOpen)`
 `;
 
 const RecommendedItem = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const RecommendedItemTitle = styled('div')`

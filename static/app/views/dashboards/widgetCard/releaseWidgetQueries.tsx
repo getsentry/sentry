@@ -1,11 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -18,6 +15,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -27,7 +25,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -35,15 +32,11 @@ import {
   METRICS_EXPRESSION_TO_FIELD,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
-import type {
-  GenericWidgetQueriesChildrenProps,
-  GenericWidgetQueriesProps,
-} from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 interface ReleaseWidgetQueriesProps {
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  selection: PageFilters;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -53,7 +46,8 @@ interface ReleaseWidgetQueriesProps {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-  queue?: WidgetQueryQueue;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: PageFilters;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -154,70 +148,15 @@ function getLimit(displayType: DisplayType, limit?: number) {
   }
 }
 
-function customDidUpdateComparator(
-  prevProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
-  nextProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
-) {
-  const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
-    nextProps;
-  const ignoredWidgetProps: Array<Partial<keyof Widget>> = [
-    'queries',
-    'title',
-    'id',
-    'layout',
-    'tempId',
-    'widgetType',
-    'tableWidths',
-  ];
-  const ignoredQueryProps: Array<Partial<keyof WidgetQuery>> = [
-    'name',
-    'fields',
-    'aggregates',
-    'columns',
-  ];
-  return (
-    limit !== prevProps.limit ||
-    organization.slug !== prevProps.organization.slug ||
-    !isEqual(dashboardFilters, prevProps.dashboardFilters) ||
-    !isSelectionEqual(selection, prevProps.selection) ||
-    // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
-    !isEqual(
-      omit(widget, ignoredWidgetProps),
-      omit(prevProps.widget, ignoredWidgetProps)
-    ) ||
-    // If the queries changed (ignore unimportant name, + fields as they are handled lower)
-    !isEqual(
-      widget.queries.map(q => omit(q, ignoredQueryProps)),
-      prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
-    ) ||
-    // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Series)
-    !isEqual(
-      widget.queries.flatMap(q => q.fields?.filter(field => !!field)),
-      prevProps.widget.queries.flatMap(q => q.fields?.filter(field => !!field))
-    ) ||
-    !isEqual(
-      widget.queries.flatMap(q => q.aggregates.filter(aggregate => !!aggregate)),
-      prevProps.widget.queries.flatMap(q => q.aggregates.filter(aggregate => !!aggregate))
-    ) ||
-    !isEqual(
-      widget.queries.flatMap(q => q.columns.filter(column => !!column)),
-      prevProps.widget.queries.flatMap(q => q.columns.filter(column => !!column))
-    ) ||
-    loading !== prevProps.loading ||
-    cursor !== prevProps.cursor
-  );
-}
-
 function ReleaseWidgetQueries({
   widget,
-  selection,
   dashboardFilters,
   cursor,
   limit,
   onDataFetched,
   onDataFetchStart,
+  selection: propsSelection,
   children,
-  queue,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -225,6 +164,11 @@ function ReleaseWidgetQueries({
   const allProjects = useProjects();
   const api = useApi();
   const organization = useOrganization();
+  const hookPageFilters = usePageFilters();
+
+  // Use override selection if provided (for modal zoom), otherwise use hook
+  const selection = propsSelection ?? hookPageFilters.selection;
+
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
     undefined
   );
@@ -377,32 +321,27 @@ function ReleaseWidgetQueries({
     [transformWidget, widget]
   );
 
-  return (
-    <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
-      queue={queue}
-      config={config}
-      api={api}
-      organization={organization}
-      selection={selection}
-      widget={transformedWidget}
-      dashboardFilters={dashboardFilters}
-      cursor={cursor}
-      limit={getLimit(widget.displayType, limit)}
-      onDataFetched={onDataFetched}
-      onDataFetchStart={onDataFetchStart}
-      loading={requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined}
-      customDidUpdateComparator={customDidUpdateComparator}
-      afterFetchTableData={afterFetchData}
-      afterFetchSeriesData={afterFetchData}
-    >
-      {({errorMessage, ...rest}) =>
-        children({
-          errorMessage: requestErrorMessage ?? errorMessage,
-          ...rest,
-        })
-      }
-    </GenericWidgetQueries>
-  );
+  const {errorMessage, ...rest} = useGenericWidgetQueries<
+    SessionApiResponse,
+    SessionApiResponse
+  >({
+    config,
+    widget: transformedWidget,
+    dashboardFilters,
+    cursor,
+    limit: getLimit(widget.displayType, limit),
+    onDataFetched,
+    onDataFetchStart,
+    selection,
+    loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
+    afterFetchTableData: afterFetchData,
+    afterFetchSeriesData: afterFetchData,
+  });
+
+  return children({
+    errorMessage: requestErrorMessage ?? errorMessage,
+    ...rest,
+  });
 }
 
 export default ReleaseWidgetQueries;

@@ -4,6 +4,7 @@ import {
   type BaseDetectorUpdatePayload,
   type Detector,
 } from 'sentry/types/workflowEngine/detectors';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -54,7 +55,9 @@ export const makeDetectorListQueryKey = ({
   query?: string;
   sortBy?: string;
 }): ApiQueryKey => [
-  `/organizations/${orgSlug}/detectors/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
   {
     query: {
       query: createDetectorQuery(query, {includeIssueStreamDetectors}),
@@ -107,13 +110,22 @@ export function useCreateDetector<T extends Detector = Detector>() {
 
   return useMutation<T, void, BaseDetectorUpdatePayload>({
     mutationFn: data =>
-      api.requestPromise(`/organizations/${org.slug}/detectors/`, {
-        method: 'POST',
-        data,
-      }),
+      api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+          path: {organizationIdOrSlug: org.slug},
+        }),
+        {
+          method: 'POST',
+          data,
+        }
+      ),
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/detectors/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+            path: {organizationIdOrSlug: org.slug},
+          }),
+        ],
       });
     },
     onError: _ => {
@@ -129,16 +141,29 @@ export function useUpdateDetector<T extends Detector = Detector>() {
 
   return useMutation<T, void, {detectorId: string} & Partial<BaseDetectorUpdatePayload>>({
     mutationFn: data =>
-      api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
-        method: 'PUT',
-        data,
-      }),
+      api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+          path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
+        }),
+        {
+          method: 'PUT',
+          data,
+        }
+      ),
     onSuccess: (_, data) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/detectors/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/detectors/', {
+            path: {organizationIdOrSlug: org.slug},
+          }),
+        ],
       });
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${org.slug}/detectors/${data.detectorId}/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+            path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
+          }),
+        ],
       });
     },
     onError: _ => {
@@ -153,7 +178,11 @@ export const makeDetectorDetailsQueryKey = ({
 }: {
   detectorId: string;
   orgSlug: string;
-}): ApiQueryKey => [`/organizations/${orgSlug}/detectors/${detectorId}/`];
+}): ApiQueryKey => [
+  getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
+    path: {organizationIdOrSlug: orgSlug, detectorId},
+  }),
+];
 
 export function useDetectorQuery<T extends Detector = Detector>(
   detectorId: string,

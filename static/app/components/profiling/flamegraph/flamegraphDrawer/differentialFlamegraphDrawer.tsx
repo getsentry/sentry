@@ -2,11 +2,11 @@ import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -307,7 +307,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(0.5)};
 `;
 
@@ -353,7 +353,7 @@ const ProfilingDetailsFrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.colors.surface300};
+  background-color: ${props => props.theme.tokens.background.tertiary};
   user-select: none;
   grid-area: tabs;
 `;
@@ -365,7 +365,7 @@ const ProfilingDetailsListItem = styled('li')<{
   height: 100%;
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
   button {
@@ -374,7 +374,7 @@ const ProfilingDetailsListItem = styled('li')<{
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     margin: 0;
     padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
     color: ${p => p.theme.tokens.content.primary};
@@ -383,7 +383,7 @@ const ProfilingDetailsListItem = styled('li')<{
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: ${p => p.theme.fontWeight.bold};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -397,8 +397,8 @@ const ProfilingDetailsListItem = styled('li')<{
   }
 
   &.active button {
-    font-weight: ${p => p.theme.fontWeight.bold};
-    border-bottom: 2px solid ${prop => prop.theme.tokens.interactive.link.accent.active};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+    border-bottom: 2px solid ${prop => prop.theme.tokens.border.accent};
   }
 `;
 

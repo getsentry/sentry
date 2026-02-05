@@ -3,9 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -511,7 +511,9 @@ const SelectedPill = styled('td')<{isSelected: boolean}>`
   height: 22px;
   border-radius: 2px;
   background: ${p =>
-    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.tokens.graphics.muted};
+    p.isSelected
+      ? p.theme.tokens.graphics.accent.vibrant
+      : p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const IconContainer = styled('span')`

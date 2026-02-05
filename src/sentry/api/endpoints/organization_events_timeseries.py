@@ -240,6 +240,39 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 status=200,
             )
 
+    def get_rpc_config(self, dataset: Any, request: Request) -> SearchResolverConfig:
+        if dataset not in RPC_DATASETS:
+            raise NotImplementedError
+
+        extrapolation_mode = self.get_extrapolation_mode(request)
+        disable_aggregate_extrapolation = (
+            request.GET.get("disableAggregateExtrapolation", "0") == "1"
+        )
+
+        if dataset == TraceMetrics:
+            # tracemetrics uses aggregate conditions
+            return TraceMetricsSearchResolverConfig(
+                metric=get_trace_metric_from_request(request),
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
+            )
+        elif dataset == PreprodSize:
+            return PreprodSizeSearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
+            )
+        else:
+            return SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+                extrapolation_mode=extrapolation_mode,
+            )
+
     def get_event_stats(
         self,
         request: Request,
@@ -281,48 +314,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
         )
 
-        def get_rpc_config():
-            if dataset not in RPC_DATASETS:
-                raise NotImplementedError
-
-            extrapolation_mode = self.get_extrapolation_mode(request)
-
-            if dataset == TraceMetrics:
-                # tracemetrics uses aggregate conditions
-                metric = get_trace_metric_from_request(request)
-
-                return TraceMetricsSearchResolverConfig(
-                    metric=metric,
-                    auto_fields=False,
-                    use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation=request.GET.get(
-                        "disableAggregateExtrapolation", "0"
-                    )
-                    == "1",
-                    extrapolation_mode=extrapolation_mode,
-                )
-
-            if dataset == PreprodSize:
-                return PreprodSizeSearchResolverConfig(
-                    auto_fields=False,
-                    use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation=request.GET.get(
-                        "disableAggregateExtrapolation", "0"
-                    )
-                    == "1",
-                    extrapolation_mode=extrapolation_mode,
-                )
-
-            return SearchResolverConfig(
-                auto_fields=False,
-                use_aggregate_conditions=True,
-                disable_aggregate_extrapolation=request.GET.get(
-                    "disableAggregateExtrapolation", "0"
-                )
-                == "1",
-                extrapolation_mode=extrapolation_mode,
-            )
-
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             raw_orderby = self.get_orderby(request)
@@ -343,7 +334,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=get_rpc_config(),
+                    config=self.get_rpc_config(dataset, request),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
@@ -373,7 +364,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=get_rpc_config(),
+                config=self.get_rpc_config(dataset, request),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,

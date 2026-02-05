@@ -1,4 +1,5 @@
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -23,7 +24,12 @@ export function useReplayBulkDeleteAuditLogQueryKey({
   query: Query;
 }): ApiQueryKey {
   const organization = useOrganization();
-  return [`/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`, {query}];
+  return [
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/', {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+    }),
+    {query},
+  ];
 }
 
 export default function useReplayBulkDeleteAuditLog({

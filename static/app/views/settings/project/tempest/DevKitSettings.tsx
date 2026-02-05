@@ -9,8 +9,10 @@ import devkitCrashesStep4 from 'sentry-images/tempest/devkit-crashes-step4.jpg';
 import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Accordion from 'sentry/components/container/accordion';
-import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -113,21 +115,21 @@ export default function DevKitSettings({organization, project}: Props) {
                             ),
                             content: (
                               <AccordionContentWrapper>
-                                <StepContentColumn>
-                                  <StepTextSection>
+                                <Stack gap="2xl" width="100%">
+                                  <Stack gap="md">
                                     <p>
                                       {t(
                                         `Using the Windows tool enter the URL as the 'Request Check URL' and 'Upload URL'.`
                                       )}
                                     </p>
-                                  </StepTextSection>
-                                  <StepImageSection>
+                                  </Stack>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={windowToolImg}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                </StepContentColumn>
+                                  </Flex>
+                                </Stack>
                               </AccordionContentWrapper>
                             ),
                           },
@@ -139,45 +141,45 @@ export default function DevKitSettings({organization, project}: Props) {
                             ),
                             content: (
                               <AccordionContentWrapper>
-                                <StepContentColumn>
-                                  <StepTextSection>
+                                <Stack gap="2xl" width="100%">
+                                  <Stack gap="md">
                                     <p>
                                       {t(
                                         `If you haven't done it via the Windows tool, you can set up the 'Upload URL' and 'Request Check URL' directly in the DevKit. This can be done under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL' and 'Debug Settings' > 'Core Dump' > 'Data Request' > 'Request Check URL' respectively.`
                                       )}
                                     </p>
-                                  </StepTextSection>
-                                  <StepImageSection>
+                                  </Stack>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={devkitCrashesStep1}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                  <StepImageSection>
+                                  </Flex>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={devkitCrashesStep2}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                  <StepImageSection>
+                                  </Flex>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={devkitCrashesStep3}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                  <StepImageSection>
+                                  </Flex>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={devkitCrashesStep4}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                  <StepImageSection>
+                                  </Flex>
+                                  <Flex justify="center" align="center" width="100%">
                                     <CardIllustration
                                       src={devkitCrashesStep5}
                                       alt="Setup Configuration"
                                     />
-                                  </StepImageSection>
-                                </StepContentColumn>
+                                  </Flex>
+                                </Stack>
                               </AccordionContentWrapper>
                             ),
                           },
@@ -230,7 +232,7 @@ export default function DevKitSettings({organization, project}: Props) {
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')``;
@@ -241,8 +243,8 @@ const HeaderWrapper = styled('div')`
 `;
 
 const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;
 
@@ -284,26 +286,6 @@ const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StepContentColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: ${space(3)};
-`;
-
-const StepTextSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const StepImageSection = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-`;
-
 const CardIllustration = styled('img')`
   width: 100%;
   max-width: 600px;
@@ -319,7 +301,7 @@ const IntroText = styled('p')`
 `;
 
 const AccordionHeader = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const AccordionContentWrapper = styled('div')`

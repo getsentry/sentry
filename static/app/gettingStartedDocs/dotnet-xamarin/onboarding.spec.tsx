@@ -2,6 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './index';
 
 describe('xamarin onboarding docs', () => {
@@ -12,6 +14,7 @@ describe('xamarin onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
     });
 
     // Renders main headings
@@ -21,6 +24,7 @@ describe('xamarin onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Limitations'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry

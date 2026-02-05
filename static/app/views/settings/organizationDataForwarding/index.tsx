@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -18,8 +18,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
+import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
+  DATA_FORWARDING_DOCS_URL,
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
@@ -33,7 +35,7 @@ export default function OrganizationDataForwarding() {
   } = useDataForwarders({
     params: {orgSlug: organization.slug},
   });
-  const canCreateForwarder =
+  const hasAvailability =
     dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
 
   const pageContent = (
@@ -63,30 +65,28 @@ export default function OrganizationDataForwarding() {
               </Stack>
               <Flex justify="end">
                 <Access access={['org:write']}>
-                  <LinkButton
-                    priority="primary"
-                    to={`/settings/${organization.slug}/data-forwarding/setup/`}
-                    icon={<IconAdd />}
-                    size="sm"
-                    onClick={() => {
-                      trackAnalytics('data_forwarding.add_forwarder_clicked', {
-                        organization,
-                      });
-                    }}
-                    disabled={!canCreateForwarder || !hasFeature}
-                    title={
-                      canCreateForwarder || !hasFeature
-                        ? undefined
-                        : t('Maximum data forwarders configured.')
-                    }
-                  >
-                    {t('Setup a new Forwarder')}
-                  </LinkButton>
+                  {({hasAccess}) => (
+                    <LinkButton
+                      priority="primary"
+                      to={`/settings/${organization.slug}/data-forwarding/setup/`}
+                      icon={<IconAdd />}
+                      size="sm"
+                      onClick={() => {
+                        trackAnalytics('data_forwarding.add_forwarder_clicked', {
+                          organization,
+                        });
+                      }}
+                      disabled={!hasAccess || !hasAvailability || !hasFeature}
+                      title={getCreateTooltip({hasAvailability, hasAccess, hasFeature})}
+                    >
+                      {t('Setup a new Forwarder')}
+                    </LinkButton>
+                  )}
                 </Access>
               </Flex>
             </Fragment>
           ) : (
-            <DataForwarderOnboarding disabled={!hasFeature} />
+            <DataForwarderOnboarding hasFeature={hasFeature} />
           )}
         </Fragment>
       )}
@@ -109,7 +109,7 @@ export default function OrganizationDataForwarding() {
                 {
                   link: (
                     <ExternalLink
-                      href="https://docs.sentry.io/organization/integrations/data-forwarding/"
+                      href={DATA_FORWARDING_DOCS_URL}
                       onClick={() => {
                         trackAnalytics('data_forwarding.docs_link_clicked', {
                           organization,

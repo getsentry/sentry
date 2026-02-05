@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 

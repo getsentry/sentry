@@ -1,6 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -8,10 +13,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -283,8 +284,10 @@ function NotificationActionItem({
     switch (serviceType) {
       case NotificationActionService.SENTRY_NOTIFICATION:
         return (
-          <NotificationActionFormContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
+          <Flex justify="between" width="100%">
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
             <ButtonBar gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
@@ -293,7 +296,7 @@ function NotificationActionItem({
                 {t('Save')}
               </Button>
             </ButtonBar>
-          </NotificationActionFormContainer>
+          </Flex>
         );
       case NotificationActionService.SLACK:
         return (
@@ -337,16 +340,22 @@ function NotificationActionItem({
   return (
     <StyledCard isEditing={isEditing} data-test-id="notification-action">
       {isEditing ? (
-        <NotificationActionContainer data-test-id={`${serviceType}-form`}>
-          <IconContainer>{renderIcon()}</IconContainer>
+        <Flex align="center" width="100%" data-test-id={`${serviceType}-form`}>
+          <Flex align="center" marginRight="md">
+            {renderIcon()}
+          </Flex>
           {renderNotificationActionForm()}
-        </NotificationActionContainer>
+        </Flex>
       ) : (
         <Fragment>
-          <NotificationActionContainer data-test-id={`${serviceType}-action`}>
-            <IconContainer>{renderIcon()}</IconContainer>
-            <NotificationActionCell>{renderDescription()}</NotificationActionCell>
-          </NotificationActionContainer>
+          <Flex align="center" width="100%" data-test-id={`${serviceType}-action`}>
+            <Flex align="center" marginRight="md">
+              {renderIcon()}
+            </Flex>
+            <Flex align="center" wrap="wrap" gap="xs">
+              {renderDescription()}
+            </Flex>
+          </Flex>
           {renderEditButton()}
         </Fragment>
       )}
@@ -361,37 +370,12 @@ const StyledCard = styled(Card)<{isEditing: boolean}>`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   background-color: ${props =>
-    props.isEditing ? props.theme.colors.surface300 : 'inherit'};
-`;
-
-const IconContainer = styled('div')`
-  margin-right: ${space(1)};
-  display: flex;
-  align-items: center;
-`;
-
-const NotificationActionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-`;
-
-const NotificationActionCell = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const NotificationActionFormContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
+    props.isEditing ? props.theme.tokens.background.tertiary : 'inherit'};
 `;
 
 const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export default NotificationActionItem;

@@ -60,6 +60,16 @@ describe('SeerAutomation', () => {
         autofixAutomationTuning: 'off',
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
+    });
 
     render(<SeerAutomation />, {organization});
 
@@ -112,6 +122,17 @@ describe('SeerAutomation', () => {
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {defaultSeerScannerAutomation: true},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
     });
 
     // Project details used to populate the project list

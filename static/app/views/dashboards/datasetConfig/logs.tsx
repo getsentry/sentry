@@ -1,8 +1,5 @@
 import pickBy from 'lodash/pickBy';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -10,20 +7,11 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {
-  doDiscoverQuery,
-  type DiscoverQueryExtras,
-  type DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -38,10 +26,12 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  useLogsSeriesQuery,
+  useLogsTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useLogsWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -53,23 +43,22 @@ import {
   useTraceItemAttributes,
   useTraceItemAttributesWithConfig,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count(message)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(message)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(message)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count', 'message', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
@@ -81,7 +70,14 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
       acc[AggregationKey.COUNT] = {
         isSortable: true,
         outputType: null,
-        parameters: [],
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'message',
+            required: true,
+          },
+        ],
       };
     } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
       acc[AggregationKey.COUNT_UNIQUE] = {
@@ -131,13 +127,17 @@ function LogsSearchBar({
     useTraceItemAttributes('string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributes('number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributes('boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.LOGS}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
@@ -163,12 +163,16 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.LOGS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -208,33 +212,8 @@ export const LogsConfig: DatasetConfig<
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  getTableRequest: (
-    api: Client,
-    _widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => {
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      undefined,
-      undefined,
-      samplingMode
-    );
-  },
-  getSeriesRequest,
+  useSeriesQuery: useLogsSeriesQuery,
+  useTableQuery: useLogsTableQuery,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
@@ -288,7 +267,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT
   ) {
-    return true; // COUNT() doesn't need parameters for logs
+    return option.value.meta.name === 'message';
   }
 
   const expectedDataTypes =
@@ -309,57 +288,6 @@ function filterYAxisOptions() {
   };
 }
 
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
-) {
-  const url = `/organizations/${organization.slug}/events/`;
-  const eventView = eventViewFromWidget('', query, pageFilters);
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: DiscoverDatasets.OURLOGS,
-    ...queryExtras,
-  };
-
-  if (query.orderby) {
-    params.sort = toArray(query.orderby);
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-      ...(samplingMode ? {sampling: samplingMode} : {}),
-    },
-    // Tries events request up to 3 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
 function getGroupByFieldOptions(
   organization: Organization,
   tags?: TagCollection,
@@ -374,33 +302,6 @@ function getGroupByFieldOptions(
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
-}
-
-function getSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  samplingMode?: SamplingMode
-) {
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    DiscoverDatasets.OURLOGS,
-    referrer
-  );
-
-  if (samplingMode) {
-    requestData.sampling = samplingMode;
-  }
-
-  return doEventsRequest<true>(api, requestData);
 }
 
 // Filters the primary options in the sort by selector

@@ -2,20 +2,21 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {SelectTrigger} from '@sentry/scraps/compactSelect/trigger';
+import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useInfiniteRepositories} from 'sentry/components/prevent/repoSelector/useInfiniteRepositories';
 import {IconInfo} from 'sentry/icons';
 import {IconRepository} from 'sentry/icons/iconRepository';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,7 +67,9 @@ export function RepoSelector() {
 
   const {data: integrations = []} = useApiQuery<OrganizationIntegration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {includeConfig: 0, provider_key: 'github'}},
     ],
     {staleTime: 0}
@@ -164,7 +167,7 @@ export function RepoSelector() {
           disabled={isSyncing}
           onClick={() => triggerResync()}
           size="zero"
-          borderless
+          priority="transparent"
         >
           {t('Sync Repos')}
         </Syncbutton>
@@ -178,13 +181,13 @@ export function RepoSelector() {
           : t('Select Repo');
 
         return (
-          <SelectTrigger.Button
+          <OverlayTrigger.Button
             icon={<IconRepository />}
             data-test-id="page-filter-prevent-repository-selector"
             {...triggerProps}
           >
             <TriggerLabel>{defaultLabel}</TriggerLabel>
-          </SelectTrigger.Button>
+          </OverlayTrigger.Button>
         );
       }}
     />
@@ -202,7 +205,7 @@ const TriggerLabel = styled('span')`
 
 const Syncbutton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};

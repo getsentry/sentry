@@ -2,11 +2,12 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -330,7 +331,7 @@ export default function IncidentsListContainer() {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   & > div {
     padding: ${space(1.5)} ${space(2)};
@@ -342,5 +343,5 @@ const StyledAlert = styled(Alert)`
 `;
 
 const EmptyStateAction = styled('p')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

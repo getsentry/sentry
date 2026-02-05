@@ -2,13 +2,14 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -126,7 +127,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <h3>{t('Manage Monitors')}</h3>
       </Header>
       <Body>
-        <Actions>
+        <Flex justify="between" wrap="wrap" marginBottom="xl" gap="md">
           <ActionButtons>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
               ({operation, actionText, ...analyticsProps}, i) => (
@@ -169,7 +170,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               {...sortSelection}
             />
           </ButtonBar>
-        </Actions>
+        </Flex>
         <StyledPanelTable
           headers={headers}
           stickyHeaders
@@ -221,14 +222,6 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 export const modalCss = css`
   width: 100%;
   max-width: 900px;
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
 
 const ActionButtons = styled(ButtonBar)`

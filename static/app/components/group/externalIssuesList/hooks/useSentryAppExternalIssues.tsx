@@ -68,7 +68,7 @@ export function useSentryAppExternalIssues({
           : `${appDisplayName}: ${externalIssue.displayName}`,
         displayIcon,
         onUnlink: () => {
-          deleteExternalIssue(api, group.id, externalIssue.id)
+          deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
             .then(_data => {
               onDeleteExternalIssue(externalIssue);
               addSuccessMessage(t('Successfully unlinked issue.'));

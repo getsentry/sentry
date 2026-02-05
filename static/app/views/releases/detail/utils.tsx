@@ -184,7 +184,7 @@ function generateReleaseMarkLine(
         formatter: hideLabel ? '' : title,
         fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         backgroundColor: theme.tokens.background.secondary,
       },
       data: [

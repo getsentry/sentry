@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeBlock} from 'sentry/components/core/code';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

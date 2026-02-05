@@ -96,9 +96,9 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     color: ${p => p.theme.tokens.content.secondary};
   }
 `;
@@ -111,7 +111,7 @@ const LocationWrapper = styled('div')`
   margin: 0 0 5px;
   direction: rtl;
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   span {
     direction: ltr;

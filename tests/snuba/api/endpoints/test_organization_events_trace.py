@@ -44,7 +44,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self, is_eap=True):
+    def load_trace(self):
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",
@@ -72,7 +72,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             slow_db_performance_issue=True,
             project_id=self.project.id,
             milliseconds=3000,
-            is_eap=is_eap,
         )
 
         # First Generation
@@ -94,7 +93,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 parent_span_id=root_span_id,
                 project_id=self.gen1_project.id,
                 milliseconds=2000,
-                is_eap=is_eap,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -126,7 +124,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
                 milliseconds=1000,
-                is_eap=is_eap,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -142,7 +139,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             project_id=self.gen3_project.id,
             parent_span_id=self.gen2_span_id,
             milliseconds=500,
-            is_eap=is_eap,
         )
 
 
@@ -227,7 +223,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             spans=[],
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            is_eap=True,
         )
         url = reverse(
             "sentry-api-0-organization-events-trace-light",
@@ -262,7 +257,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             data: dict[str, str | int] = {"event_id": second_root.event_id, "project": -1}
@@ -310,7 +304,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -382,7 +375,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
-            is_eap=True,
         )
 
         with self.feature(self.FEATURES):
@@ -470,7 +462,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
                 milliseconds=500,
-                is_eap=True,
             ).event_id,
             self.create_event(
                 trace_id=self.trace_id,
@@ -479,7 +470,6 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
                 milliseconds=1500,
-                is_eap=True,
             ).event_id,
         ]
 
@@ -796,7 +786,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             tags=[[long_tag_key, long_tag_value]],
             milliseconds=3000,
             store_event_kwargs={"assert_no_errors": False},
-            is_eap=True,
         )
 
         url = reverse(
@@ -870,7 +859,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             ],
             parent_span_id=self.gen2_span_ids[1],
             project_id=self.project.id,
-            is_eap=True,
         )
 
         with self.feature(self.FEATURES):
@@ -910,7 +898,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.project.id,
             milliseconds=3000,
             start_timestamp=self.day_ago - timedelta(minutes=1),
-            is_eap=True,
         )
         orphan_child = self.create_event(
             trace_id=self.trace_id,
@@ -927,7 +914,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=root_span_id,
             project_id=self.project.id,
             milliseconds=300,
-            is_eap=True,
         )
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -954,7 +940,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=None,
             project_id=self.project.id,
             milliseconds=500,
-            is_eap=True,
         )
         second_root = self.create_event(
             trace_id=trace_id,
@@ -963,7 +948,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=None,
             project_id=self.project.id,
             milliseconds=1000,
-            is_eap=True,
         )
         self.url = reverse(
             self.url_name,
@@ -993,7 +977,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
                 milliseconds=1000,
-                is_eap=True,
             ).event_id,
             self.create_event(
                 trace_id=self.trace_id,
@@ -1002,7 +985,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
                 milliseconds=2000,
-                is_eap=True,
             ).event_id,
         ]
 
@@ -1030,7 +1012,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.project.id,
             # Shorter duration means that this event happened first, and should be ordered first
             milliseconds=1000,
-            is_eap=True,
         )
         root_sibling_event = self.create_event(
             trace_id=self.trace_id,
@@ -1039,7 +1020,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=parent_span_id,
             project_id=self.project.id,
             milliseconds=2000,
-            is_eap=True,
         )
 
         with self.feature(self.FEATURES):
@@ -1082,7 +1062,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.project.id,
             milliseconds=3000,
             start_timestamp=self.day_ago - timedelta(minutes=1),
-            is_eap=True,
         )
         child_event = self.create_event(
             trace_id=self.trace_id,
@@ -1102,7 +1081,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
             # results first before child1-0
             milliseconds=2000,
-            is_eap=True,
         )
         grandchild_event = self.create_event(
             trace_id=self.trace_id,
@@ -1120,7 +1098,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             span_id=orphan_span_ids["grandchild"],
             project_id=self.gen1_project.id,
             milliseconds=1000,
-            is_eap=True,
         )
 
         with self.feature(self.FEATURES):

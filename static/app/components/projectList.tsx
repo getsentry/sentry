@@ -2,9 +2,10 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -21,11 +22,11 @@ function DefaultCollapsedProjectsTooltip({
   projects: Array<Project | {slug: string}>;
 }) {
   return (
-    <CollapsedProjects>
+    <Stack gap="xs" width="200px">
       {projects.map(project => (
         <ProjectBadge key={project.slug} project={project} avatarSize={16} />
       ))}
-    </CollapsedProjects>
+    </Stack>
   );
 }
 export function ProjectList({
@@ -87,15 +88,8 @@ const ProjectListWrapper = styled('div')`
   padding-right: 8px;
 `;
 
-const CollapsedProjects = styled('div')`
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.tokens.background.primary};
+  border: 2px solid ${p.theme.tokens.border.primary};
   margin-right: -8px;
   cursor: default;
 
@@ -116,7 +110,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -12,6 +13,14 @@ function WelcomeBackground() {
       }}
       transition={testableTransition({staggerChildren: 0.2})}
     >
+      <WelcomeBackgroundImages />
+    </Container>
+  );
+}
+
+function WelcomeBackgroundImages() {
+  return (
+    <Fragment>
       <Compass
         xmlns="http://www.w3.org/2000/svg"
         width="150"
@@ -215,7 +224,21 @@ function WelcomeBackground() {
           fill="#2f1d4a"
         />
       </Log>
-    </Container>
+    </Fragment>
+  );
+}
+
+export function WelcomeBackgroundNewUi() {
+  return (
+    <ContainerNewUi
+      variants={{
+        animate: {},
+        exit: {},
+      }}
+      transition={testableTransition({staggerChildren: 0.2})}
+    >
+      <WelcomeBackgroundImages />
+    </ContainerNewUi>
   );
 }
 
@@ -246,6 +269,17 @@ const Container = styled(motion.div)`
   max-width: 100vw;
   width: 300%;
   top: -25%;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
+`;
+
+const ContainerNewUi = styled(motion.div)`
+  pointer-events: none;
+  position: absolute;
+  height: 100%;
+  width: 150%;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;

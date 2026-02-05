@@ -3,12 +3,12 @@ import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -137,7 +137,7 @@ const ProjectList = styled('div')`
 `;
 
 const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.tokens.background.primary};
+  border: 2px solid ${p.theme.tokens.border.primary};
   margin-right: -8px;
   cursor: default;
 
@@ -158,7 +158,7 @@ const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.fontSize}px;
@@ -375,7 +375,7 @@ export function SpanBreakdownSliceRenderer({
 }
 
 const Subtext = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 const FlexContainer = styled('div')`

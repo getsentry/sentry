@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -9,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,7 +34,11 @@ function ProjectDetails() {
     projectId: string;
   }>();
   const {data, isPending, isError} = useApiQuery<Project>(
-    [`/projects/${orgId}/${projectId}/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},
+      }),
+    ],
     {staleTime: Infinity}
   );
   const api = useApi();

@@ -1,5 +1,6 @@
 from unittest.mock import ANY
 
+import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
@@ -249,24 +250,6 @@ class BuildsEndpointTest(APITestCase):
         assert response.json()[0]["app_info"]["app_id"] == "baz"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_package_name_is_app_id_alias(self) -> None:
-        self.create_preprod_artifact(app_id="foo")
-        self.create_preprod_artifact(app_id="bar")
-        response = self._request({"query": "package_name:foo"})
-        self._assert_is_successful(response)
-        assert len(response.json()) == 1
-        assert response.json()[0]["app_info"]["app_id"] == "foo"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_bundle_id_is_app_id_alias(self) -> None:
-        self.create_preprod_artifact(app_id="foo")
-        self.create_preprod_artifact(app_id="bar")
-        response = self._request({"query": "bundle_id:foo"})
-        self._assert_is_successful(response)
-        assert len(response.json()) == 1
-        assert response.json()[0]["app_info"]["app_id"] == "foo"
-
-    @with_feature("organizations:preprod-frontend-routes")
     def test_download_count_for_installable_artifact(self) -> None:
         # Create an installable artifact (has both installable_app_file_id and build_number)
         artifact = self.create_preprod_artifact(
@@ -394,24 +377,22 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "small.app"
 
-    # Tests for new filter fields
-
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_build_configuration(self) -> None:
+    def test_query_build_configuration_name(self) -> None:
         debug_config = self.create_preprod_build_configuration(name="Debug")
         release_config = self.create_preprod_build_configuration(name="Release")
 
         self.create_preprod_artifact(app_id="debug.app", build_configuration=debug_config)
         self.create_preprod_artifact(app_id="release.app", build_configuration=release_config)
 
-        response = self._request({"query": "build_configuration:Debug"})
+        response = self._request({"query": "build_configuration_name:Debug"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "debug.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_branch(self) -> None:
+    def test_query_git_head_ref(self) -> None:
         main_cc = self.create_commit_comparison(organization=self.organization, head_ref="main")
         feature_cc = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/new-stuff"
@@ -420,14 +401,14 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="main.app", commit_comparison=main_cc)
         self.create_preprod_artifact(app_id="feature.app", commit_comparison=feature_cc)
 
-        response = self._request({"query": "branch:main"})
+        response = self._request({"query": "git_head_ref:main"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "main.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_has_branch(self) -> None:
+    def test_query_has_git_head_ref(self) -> None:
         cc_with_branch = self.create_commit_comparison(
             organization=self.organization, head_ref="main"
         )
@@ -441,14 +422,14 @@ class BuildsEndpointTest(APITestCase):
         )
         self.create_preprod_artifact(app_id="no_cc.app")
 
-        response = self._request({"query": "has:branch"})
+        response = self._request({"query": "has:git_head_ref"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "with_branch.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_not_has_branch(self) -> None:
+    def test_query_not_has_git_head_ref(self) -> None:
         cc_with_branch = self.create_commit_comparison(
             organization=self.organization, head_ref="main"
         )
@@ -462,7 +443,7 @@ class BuildsEndpointTest(APITestCase):
         )
         self.create_preprod_artifact(app_id="no_cc.app")
 
-        response = self._request({"query": "!has:branch"})
+        response = self._request({"query": "!has:git_head_ref"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 2
@@ -470,119 +451,7 @@ class BuildsEndpointTest(APITestCase):
         assert app_ids == {"without_branch.app", "no_cc.app"}
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_ios(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
-        self.create_preprod_artifact(
-            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
-        )
-        self.create_preprod_artifact(
-            app_id="android.app", artifact_type=PreprodArtifact.ArtifactType.APK
-        )
-
-        response = self._request({"query": "platform:ios"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "ios.app"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_android(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
-        self.create_preprod_artifact(
-            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
-        )
-        self.create_preprod_artifact(
-            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
-        )
-        self.create_preprod_artifact(
-            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
-        )
-
-        response = self._request({"query": "platform:android"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 2
-        app_ids = {d["app_info"]["app_id"] for d in data}
-        assert app_ids == {"android.apk", "android.aab"}
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
-        self.create_preprod_artifact(
-            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
-        )
-        self.create_preprod_artifact(
-            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
-        )
-        self.create_preprod_artifact(
-            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
-        )
-
-        response = self._request({"query": "platform:[ios,android]"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 3
-        app_ids = {d["app_info"]["app_id"] for d in data}
-        assert app_ids == {"ios.app", "android.apk", "android.aab"}
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_platform_not_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
-        self.create_preprod_artifact(
-            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
-        )
-        self.create_preprod_artifact(
-            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
-        )
-        self.create_preprod_artifact(
-            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
-        )
-
-        response = self._request({"query": "!platform:[ios]"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 2
-        app_ids = {d["app_info"]["app_id"] for d in data}
-        assert app_ids == {"android.apk", "android.aab"}
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_repo(self) -> None:
-        cc1 = self.create_commit_comparison(
-            organization=self.organization, head_repo_name="owner/repo-one"
-        )
-        cc2 = self.create_commit_comparison(
-            organization=self.organization, head_repo_name="owner/repo-two"
-        )
-
-        self.create_preprod_artifact(app_id="repo1.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="repo2.app", commit_comparison=cc2)
-
-        response = self._request({"query": "repo:owner/repo-one"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "repo1.app"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_pr_number(self) -> None:
-        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=123)
-        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=456)
-
-        self.create_preprod_artifact(app_id="pr123.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="pr456.app", commit_comparison=cc2)
-
-        response = self._request({"query": "pr_number:123"})
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "pr123.app"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_query_sha(self) -> None:
+    def test_query_git_head_sha(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_sha="abc123" + "0" * 34
         )
@@ -593,14 +462,14 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="sha1.app", commit_comparison=cc1)
         self.create_preprod_artifact(app_id="sha2.app", commit_comparison=cc2)
 
-        response = self._request({"query": "sha:abc123" + "0" * 34})
+        response = self._request({"query": "git_head_sha:abc123" + "0" * 34})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "sha1.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_base_sha(self) -> None:
+    def test_query_git_base_sha(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, base_sha="base111" + "1" * 33
         )
@@ -611,77 +480,155 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="base1.app", commit_comparison=cc1)
         self.create_preprod_artifact(app_id="base2.app", commit_comparison=cc2)
 
-        response = self._request({"query": "base_sha:base111" + "1" * 33})
+        response = self._request({"query": "git_base_sha:base111" + "1" * 33})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "base1.app"
 
     @with_feature("organizations:preprod-frontend-routes")
-    def test_query_operator_greater_than(self) -> None:
-        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=100)
-        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=200)
-        cc3 = self.create_commit_comparison(organization=self.organization, pr_number=300)
+    def test_query_git_pr_number(self) -> None:
+        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=123)
+        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=456)
 
-        self.create_preprod_artifact(app_id="pr100.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="pr200.app", commit_comparison=cc2)
-        self.create_preprod_artifact(app_id="pr300.app", commit_comparison=cc3)
+        self.create_preprod_artifact(app_id="pr123.app", commit_comparison=cc1)
+        self.create_preprod_artifact(app_id="pr456.app", commit_comparison=cc2)
 
-        response = self._request({"query": "pr_number:>200"})
+        response = self._request({"query": "git_pr_number:123"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "pr300.app"
+        assert data[0]["app_info"]["app_id"] == "pr123.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_platform_name_apple(self) -> None:
+        from sentry.preprod.models import PreprodArtifact
+
+        self.create_preprod_artifact(
+            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+        )
+        self.create_preprod_artifact(
+            app_id="android.app", artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        response = self._request({"query": "platform_name:apple"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "ios.app"
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_platform_name_android(self) -> None:
+        from sentry.preprod.models import PreprodArtifact
+
+        self.create_preprod_artifact(
+            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+        )
+        self.create_preprod_artifact(
+            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        self.create_preprod_artifact(
+            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
+        )
+
+        response = self._request({"query": "platform_name:android"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 2
+        app_ids = {d["app_info"]["app_id"] for d in data}
+        assert app_ids == {"android.apk", "android.aab"}
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_platform_name_in(self) -> None:
+        from sentry.preprod.models import PreprodArtifact
+
+        self.create_preprod_artifact(
+            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+        )
+        self.create_preprod_artifact(
+            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        self.create_preprod_artifact(
+            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
+        )
+
+        response = self._request({"query": "platform_name:[apple,android]"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 3
+        app_ids = {d["app_info"]["app_id"] for d in data}
+        assert app_ids == {"ios.app", "android.apk", "android.aab"}
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_platform_name_not_in(self) -> None:
+        from sentry.preprod.models import PreprodArtifact
+
+        self.create_preprod_artifact(
+            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
+        )
+        self.create_preprod_artifact(
+            app_id="android.apk", artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        self.create_preprod_artifact(
+            app_id="android.aab", artifact_type=PreprodArtifact.ArtifactType.AAB
+        )
+
+        response = self._request({"query": "!platform_name:[apple]"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 2
+        app_ids = {d["app_info"]["app_id"] for d in data}
+        assert app_ids == {"android.apk", "android.aab"}
+
+    @with_feature("organizations:preprod-frontend-routes")
+    def test_query_operator_greater_than(self) -> None:
+        self.create_preprod_artifact(app_id="build100.app", build_number=100)
+        self.create_preprod_artifact(app_id="build200.app", build_number=200)
+        self.create_preprod_artifact(app_id="build300.app", build_number=300)
+
+        response = self._request({"query": "build_number:>200"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "build300.app"
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_less_than(self) -> None:
-        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=100)
-        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=200)
-        cc3 = self.create_commit_comparison(organization=self.organization, pr_number=300)
+        self.create_preprod_artifact(app_id="build100.app", build_number=100)
+        self.create_preprod_artifact(app_id="build200.app", build_number=200)
+        self.create_preprod_artifact(app_id="build300.app", build_number=300)
 
-        self.create_preprod_artifact(app_id="pr100.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="pr200.app", commit_comparison=cc2)
-        self.create_preprod_artifact(app_id="pr300.app", commit_comparison=cc3)
-
-        response = self._request({"query": "pr_number:<200"})
+        response = self._request({"query": "build_number:<200"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
-        assert data[0]["app_info"]["app_id"] == "pr100.app"
+        assert data[0]["app_info"]["app_id"] == "build100.app"
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_greater_than_or_equal(self) -> None:
-        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=100)
-        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=200)
-        cc3 = self.create_commit_comparison(organization=self.organization, pr_number=300)
+        self.create_preprod_artifact(app_id="build100.app", build_number=100)
+        self.create_preprod_artifact(app_id="build200.app", build_number=200)
+        self.create_preprod_artifact(app_id="build300.app", build_number=300)
 
-        self.create_preprod_artifact(app_id="pr100.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="pr200.app", commit_comparison=cc2)
-        self.create_preprod_artifact(app_id="pr300.app", commit_comparison=cc3)
-
-        response = self._request({"query": "pr_number:>=200"})
+        response = self._request({"query": "build_number:>=200"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 2
         app_ids = {d["app_info"]["app_id"] for d in data}
-        assert app_ids == {"pr200.app", "pr300.app"}
+        assert app_ids == {"build200.app", "build300.app"}
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_less_than_or_equal(self) -> None:
-        cc1 = self.create_commit_comparison(organization=self.organization, pr_number=100)
-        cc2 = self.create_commit_comparison(organization=self.organization, pr_number=200)
-        cc3 = self.create_commit_comparison(organization=self.organization, pr_number=300)
+        self.create_preprod_artifact(app_id="build100.app", build_number=100)
+        self.create_preprod_artifact(app_id="build200.app", build_number=200)
+        self.create_preprod_artifact(app_id="build300.app", build_number=300)
 
-        self.create_preprod_artifact(app_id="pr100.app", commit_comparison=cc1)
-        self.create_preprod_artifact(app_id="pr200.app", commit_comparison=cc2)
-        self.create_preprod_artifact(app_id="pr300.app", commit_comparison=cc3)
-
-        response = self._request({"query": "pr_number:<=200"})
+        response = self._request({"query": "build_number:<=200"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 2
         app_ids = {d["app_info"]["app_id"] for d in data}
-        assert app_ids == {"pr100.app", "pr200.app"}
+        assert app_ids == {"build100.app", "build200.app"}
 
     @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_contains(self) -> None:
@@ -699,7 +646,7 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="signup.app", commit_comparison=cc2)
         self.create_preprod_artifact(app_id="crash.app", commit_comparison=cc3)
 
-        response = self._request({"query": "branch:Containsfeature"})
+        response = self._request({"query": "git_head_ref:Containsfeature"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 2
@@ -722,7 +669,7 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="signup.app", commit_comparison=cc2)
         self.create_preprod_artifact(app_id="crash.app", commit_comparison=cc3)
 
-        response = self._request({"query": "!branch:Containsfeature"})
+        response = self._request({"query": "!git_head_ref:Containsfeature"})
         self._assert_is_successful(response)
         data = response.json()
         assert data[0]["app_info"]["app_id"] == "crash.app"
@@ -812,6 +759,17 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["app_info"]["app_id"] == "app1"
 
     @with_feature("organizations:preprod-frontend-routes")
+    def test_free_text_search_by_build_id(self) -> None:
+        artifact1 = self.create_preprod_artifact(app_id="app1")
+        self.create_preprod_artifact(app_id="app2")
+
+        response = self._request({"query": str(artifact1.id)})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == str(artifact1.id)
+
+    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_no_matches(self) -> None:
         self.create_preprod_artifact(app_id="com.example.app")
         self.create_preprod_artifact(app_id="com.other.app")
@@ -881,226 +839,161 @@ class BuildsEndpointTest(APITestCase):
             commit_comparison=cc,
         )
 
-        response = self._request({"query": "awesome platform:android"})
+        response = self._request({"query": "awesome platform_name:android"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.android"
 
 
-class BuildTagKeyValuesEndpointTest(APITestCase):
+class QuerysetForQueryTest(APITestCase):
+    """Tests for the queryset_for_query, artifact_in_queryset, and artifact_matches_query functions."""
 
-    @cached_property
-    def user_auth_token(self):
-        auth_token = self.create_user_auth_token(
-            self.user, scope_list=["org:admin", "project:admin"]
+    def test_queryset_for_query_empty_query(self) -> None:
+        from sentry.preprod.api.endpoints.builds import queryset_for_query
+
+        artifact = self.create_preprod_artifact(app_id="com.example.app")
+        queryset = queryset_for_query("", self.organization)
+        assert artifact in queryset
+
+    def test_queryset_for_query_with_filter(self) -> None:
+        from sentry.preprod.api.endpoints.builds import queryset_for_query
+
+        artifact1 = self.create_preprod_artifact(app_id="com.example.one")
+        self.create_preprod_artifact(app_id="com.example.two")
+
+        queryset = queryset_for_query("app_id:com.example.one", self.organization)
+        results = list(queryset)
+        assert len(results) == 1
+        assert results[0].id == artifact1.id
+
+    def test_queryset_for_query_platform_filter(self) -> None:
+        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.models import PreprodArtifact
+
+        ios_artifact = self.create_preprod_artifact(
+            app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
-        return auth_token.token
-
-    def _request(self, key, query=None, token=None):
-        token = self.user_auth_token if token is None else token
-        query = {} if query is None else query
-        url = reverse(
-            "sentry-api-0-organization-build-tagKey-values",
-            args=[self.organization.slug, key],
-            query=query,
-        )
-        return self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
-
-    def _assert_is_successful(self, response):
-        assert response.status_code == 200, f"status {response.status_code} body {response.json()}"
-
-    def test_needs_feature(self) -> None:
-        response = self._request("app_id")
-        assert response.status_code == 403
-        assert response.json() == {
-            "detail": "Feature organizations:preprod-frontend-routes is not enabled for the organization."
-        }
-
-    def test_invalid_token(self) -> None:
-        response = self._request("app_id", token="Invalid")
-        assert response.status_code == 401
-        assert response.json() == {"detail": "Invalid token"}
-
-    def test_wrong_user(self) -> None:
-        random_user = self.create_user("foo@localhost")
-        auth_token = self.create_user_auth_token(
-            random_user, scope_list=["org:admin", "project:admin"]
+        self.create_preprod_artifact(
+            app_id="android.app", artifact_type=PreprodArtifact.ArtifactType.APK
         )
 
-        response = self._request("app_id", token=auth_token.token)
-        assert response.status_code == 403
-        assert response.json() == {"detail": "You do not have permission to perform this action."}
+        queryset = queryset_for_query("platform_name:apple", self.organization)
+        results = list(queryset)
+        assert len(results) == 1
+        assert results[0].id == ios_artifact.id
 
-    def test_missing_scopes(self) -> None:
-        auth_token = self.create_user_auth_token(self.user, scope_list=[])
+    def test_queryset_for_query_invalid_query(self) -> None:
+        from sentry.exceptions import InvalidSearchQuery
+        from sentry.preprod.api.endpoints.builds import queryset_for_query
 
-        response = self._request("app_id", token=auth_token.token)
-        assert response.status_code == 403
-        assert response.json() == {"detail": "You do not have permission to perform this action."}
+        with pytest.raises(InvalidSearchQuery):
+            queryset_for_query("invalid_key:value", self.organization)
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_no_builds(self) -> None:
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        assert response.json() == []
+    def test_artifact_in_queryset_returns_true(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_single_app_id(self) -> None:
-        self.create_preprod_artifact(app_id="com.example.app")
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        assert response.json() == [
-            {
-                "count": 1,
-                "name": "app_id",
-                "value": "com.example.app",
-                "firstSeen": ANY,
-                "lastSeen": ANY,
-            }
-        ]
+        artifact = self.create_preprod_artifact(app_id="com.example.app")
+        queryset = queryset_for_query("", self.organization)
+        assert artifact_in_queryset(artifact, queryset) is True
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_multiple_app_ids_with_counts(self) -> None:
-        # Create 3 artifacts with app_id "foo" and 2 with "bar"
-        for _ in range(3):
-            self.create_preprod_artifact(app_id="foo")
-        for _ in range(2):
-            self.create_preprod_artifact(app_id="bar")
+    def test_artifact_in_queryset_returns_false(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
 
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        data = response.json()
-        assert len(data) == 2
+        artifact = self.create_preprod_artifact(app_id="com.example.one")
+        queryset = queryset_for_query("app_id:com.example.two", self.organization)
+        assert artifact_in_queryset(artifact, queryset) is False
 
-        # Results should be ordered by last_seen descending
-        foo_result = next(r for r in data if r["value"] == "foo")
-        bar_result = next(r for r in data if r["value"] == "bar")
+    def test_artifact_in_queryset_with_filtered_queryset(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
 
-        assert foo_result["count"] == 3
-        assert bar_result["count"] == 2
+        artifact1 = self.create_preprod_artifact(app_id="foo")
+        artifact2 = self.create_preprod_artifact(app_id="bar")
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_bundle_id_alias(self) -> None:
-        self.create_preprod_artifact(app_id="com.example.ios")
-        response = self._request("bundle_id")
-        self._assert_is_successful(response)
-        assert response.json() == [
-            {
-                "count": 1,
-                "name": "bundle_id",  # Note: name is the requested key, not db key
-                "value": "com.example.ios",
-                "firstSeen": ANY,
-                "lastSeen": ANY,
-            }
-        ]
+        queryset = queryset_for_query("app_id:foo", self.organization)
+        assert artifact_in_queryset(artifact1, queryset) is True
+        assert artifact_in_queryset(artifact2, queryset) is False
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_package_name_alias(self) -> None:
-        self.create_preprod_artifact(app_id="com.example.android")
-        response = self._request("package_name")
-        self._assert_is_successful(response)
-        assert response.json() == [
-            {
-                "count": 1,
-                "name": "package_name",  # Note: name is the requested key, not db key
-                "value": "com.example.android",
-                "firstSeen": ANY,
-                "lastSeen": ANY,
-            }
-        ]
+    def test_artifact_matches_query_returns_true(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_null_values_excluded(self) -> None:
-        # Create artifact with null app_id
-        self.create_preprod_artifact(app_id=None)
-        self.create_preprod_artifact(app_id="valid")
+        artifact = self.create_preprod_artifact(app_id="com.example.app")
+        assert artifact_matches_query(artifact, "app_id:com.example.app", self.organization) is True
 
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        assert len(response.json()) == 1
-        assert response.json()[0]["value"] == "valid"
+    def test_artifact_matches_query_returns_false(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_date_filtering(self) -> None:
-        self.create_preprod_artifact(app_id="old", date_added=before_now(days=10))
-        self.create_preprod_artifact(app_id="middle", date_added=before_now(days=5))
-        self.create_preprod_artifact(app_id="recent", date_added=before_now(days=1))
-
-        # Filter to only include middle artifact
-        response = self._request(
-            "app_id",
-            {"start": before_now(days=7), "end": before_now(days=3)},
+        artifact = self.create_preprod_artifact(app_id="com.example.one")
+        assert (
+            artifact_matches_query(artifact, "app_id:com.example.two", self.organization) is False
         )
-        self._assert_is_successful(response)
-        assert len(response.json()) == 1
-        assert response.json()[0]["value"] == "middle"
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_first_seen_last_seen(self) -> None:
-        first_time = before_now(days=5)
-        last_time = before_now(days=1)
+    def test_artifact_matches_query_empty_query(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-        self.create_preprod_artifact(app_id="test", date_added=first_time)
-        self.create_preprod_artifact(app_id="test", date_added=last_time)
+        artifact = self.create_preprod_artifact(app_id="com.example.app")
+        assert artifact_matches_query(artifact, "", self.organization) is True
 
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        result = response.json()[0]
-        assert result["value"] == "test"
-        assert result["count"] == 2
-        # Timestamps should match the first and last artifact dates
+    def test_artifact_matches_query_complex_filter(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.models import PreprodArtifact
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_project_filtering(self) -> None:
-        other_project = self.create_project(name="Other", slug="other")
-        self.create_preprod_artifact(app_id="this_project")
-        self.create_preprod_artifact(app_id="other_project", project=other_project)
+        cc = self.create_commit_comparison(
+            organization=self.organization, head_ref="feature/test", pr_number=123
+        )
+        artifact = self.create_preprod_artifact(
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=cc,
+        )
 
-        response = self._request("app_id", {"project": [self.project.id]})
-        self._assert_is_successful(response)
-        assert len(response.json()) == 1
-        assert response.json()[0]["value"] == "this_project"
+        # Test multiple filters combined
+        assert (
+            artifact_matches_query(
+                artifact, "platform_name:apple git_head_ref:feature/test", self.organization
+            )
+            is True
+        )
+        assert (
+            artifact_matches_query(
+                artifact, "platform_name:android git_head_ref:feature/test", self.organization
+            )
+            is False
+        )
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_ordering_by_last_seen(self) -> None:
-        # Create artifacts with different last seen times
-        self.create_preprod_artifact(app_id="old", date_added=before_now(days=10))
-        self.create_preprod_artifact(app_id="recent", date_added=before_now(days=1))
-        self.create_preprod_artifact(app_id="old", date_added=before_now(days=5))
+    def test_artifact_matches_query_with_numeric_filter(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-        response = self._request("app_id")
-        self._assert_is_successful(response)
-        data = response.json()
+        artifact = self.create_preprod_artifact(build_number=100)
 
-        # "recent" should come first because it has most recent last_seen
-        assert data[0]["value"] == "recent"
-        assert data[1]["value"] == "old"
+        assert artifact_matches_query(artifact, "build_number:>50", self.organization) is True
+        assert artifact_matches_query(artifact, "build_number:<50", self.organization) is False
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_pagination(self) -> None:
-        # Create many different app_ids
-        for i in range(5):
-            self.create_preprod_artifact(app_id=f"app_{i}")
+    def test_artifact_matches_query_invalid_query(self) -> None:
+        from sentry.exceptions import InvalidSearchQuery
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-        response = self._request("app_id", {"per_page": 2})
-        self._assert_is_successful(response)
-        assert len(response.json()) == 2
+        artifact = self.create_preprod_artifact()
+        with pytest.raises(InvalidSearchQuery):
+            artifact_matches_query(artifact, "invalid_key:value", self.organization)
 
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_other_tag_keys(self) -> None:
-        # Test that non-aliased keys work directly
-        self.create_preprod_artifact(build_version="1.0.0")
-        self.create_preprod_artifact(build_version="1.0.1")
-        self.create_preprod_artifact(build_version="1.0.0")
+    def test_artifact_matches_query_free_text_search(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
 
-        response = self._request("build_version")
-        self._assert_is_successful(response)
-        data = response.json()
+        artifact = self.create_preprod_artifact(app_id="com.example.myapp")
 
-        v100 = next(r for r in data if r["value"] == "1.0.0")
-        v101 = next(r for r in data if r["value"] == "1.0.1")
+        assert artifact_matches_query(artifact, "myapp", self.organization) is True
+        assert artifact_matches_query(artifact, "nonexistent", self.organization) is False
 
-        assert v100["count"] == 2
-        assert v101["count"] == 1
-        assert v100["name"] == "build_version"
+    def test_artifact_matches_query_installable_filter(self) -> None:
+        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+
+        non_installable = self.create_preprod_artifact(app_id="not_installable")
+        installable = self.create_preprod_artifact(
+            app_id="installable",
+            installable_app_file_id=12345,
+        )
+
+        assert artifact_matches_query(installable, "is:installable", self.organization) is True
+        assert artifact_matches_query(non_installable, "is:installable", self.organization) is False
+        assert artifact_matches_query(non_installable, "!is:installable", self.organization) is True

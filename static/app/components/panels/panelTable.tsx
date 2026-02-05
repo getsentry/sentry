@@ -179,8 +179,8 @@ const Wrapper = styled(Panel, {
 
 const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background: ${p => p.theme.tokens.background.secondary};

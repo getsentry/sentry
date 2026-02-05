@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ApiForm from 'sentry/components/forms/apiForm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import RadioField from 'sentry/components/forms/fields/radioField';

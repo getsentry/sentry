@@ -1,7 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
@@ -42,7 +44,7 @@ export default function PageBanner({
         />
       )}
       <Background image={image} />
-      <Stack>
+      <Stack justify="between" gap="md" maxWidth="50%">
         <TypeText>
           {icon}
           {title}
@@ -92,14 +94,6 @@ const Background = styled('div')<{image: any}>`
   background-size: cover;
 `;
 
-const Stack = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  max-width: 50%;
-  gap: ${space(1)};
-`;
-
 const TextContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -112,14 +106,14 @@ const TextContainer = styled('div')`
 
 const SubText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.font.size.md};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 `;
 
 const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(0.5)};
   text-transform: uppercase;
 `;

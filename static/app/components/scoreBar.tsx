@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
@@ -55,9 +56,13 @@ const ScoreBar = styled(BaseScoreBar)`
 
   ${p =>
     p.vertical
-      ? `flex-direction: column-reverse;
-    justify-content: flex-end;`
-      : 'min-width: 80px;'};
+      ? css`
+          flex-direction: column-reverse;
+          justify-content: flex-end;
+        `
+      : css`
+          min-width: 80px;
+        `};
 `;
 
 type BarProps = {

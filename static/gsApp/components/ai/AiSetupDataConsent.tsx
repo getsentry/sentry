@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
@@ -103,7 +104,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   }
 
   return (
-    <ConsentItemsContainer>
+    <Stack gap="xl">
       <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
@@ -146,7 +147,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </TouchCustomerMessage>
           ) : (
             <Fragment>
-              <ButtonWrapper>
+              <Flex align="center" gap="md">
                 {canStartTrial ? (
                   <StartTrialButton
                     organization={organization}
@@ -219,7 +220,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         size="md"
                         priority="default"
                         aria-label={t('Refresh')}
-                        borderless
                       />
                     </Flex>
                   </Flex>
@@ -245,7 +245,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                 {autofixAcknowledgeMutation.isError && (
                   <ErrorText>{t('Something went wrong.')}</ErrorText>
                 )}
-              </ButtonWrapper>
+              </Flex>
               {canStartTrial && (
                 <LegalText>
                   {t(
@@ -257,7 +257,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )
         ) : (
           <Fragment>
-            <ButtonWrapper>
+            <Flex align="center" gap="md">
               <Button
                 priority="primary"
                 onClick={() => autofixAcknowledgeMutation.mutate()}
@@ -280,7 +280,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
               {autofixAcknowledgeMutation.isError && (
                 <ErrorText>{t('Something went wrong.')}</ErrorText>
               )}
-            </ButtonWrapper>
+            </Flex>
           </Fragment>
         )}
         <LegalText>
@@ -294,17 +294,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           )}
         </Alert>
       )}
-    </ConsentItemsContainer>
+    </Stack>
   );
 }
 
 export default AiSetupDataConsent;
-
-const ConsentItemsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
 
 const SayHelloHeader = styled('h3')`
   margin: 0;
@@ -323,8 +317,8 @@ const SingleCard = styled('div')`
 `;
 
 const MeetSeerHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -338,20 +332,14 @@ const Paragraph = styled('p')`
 
 const TouchCustomerMessage = styled('p')`
   color: ${p => p.theme.tokens.content.promotion};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: ${space(2)};
 `;
 
 const LegalText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

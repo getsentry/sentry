@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import PanelItem from 'sentry/components/panels/panelItem';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';

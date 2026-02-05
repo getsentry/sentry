@@ -1,22 +1,25 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {NumberInput} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {SectionLabel} from './statusCheckSharedComponents';
 import type {StatusCheckRule} from './types';
 import {
+  bytesToMB,
+  getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
-  getUnitForMeasurement,
+  mbToBytes,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
 } from './types';
@@ -27,33 +30,22 @@ interface Props {
   rule: StatusCheckRule;
 }
 
-const FILTER_KEYS: TagCollection = {
-  'build.platform': {key: 'build.platform', name: 'Platform'},
-  'build.package_name': {key: 'build.package_name', name: 'Package Name'},
-  'build.build_configuration': {
-    key: 'build.build_configuration',
-    name: 'Build Configuration',
-  },
-  'build.branch': {key: 'build.branch', name: 'Branch'},
-};
-
-const getTagValues = (
-  tag: {key: string; name: string},
-  _searchQuery: string
-): Promise<string[]> => {
-  if (tag.key === 'build.platform') {
-    return Promise.resolve(['android', 'ios']);
-  }
-  return Promise.resolve([]);
-};
-
 export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
+  const {project} = useProjectSettingsOutlet();
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
-  const [value, setValue] = useState(rule.value);
+  const displayUnit = getDisplayUnit(measurement);
+  const initialDisplayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
+  const [displayValue, setDisplayValue] = useState(initialDisplayValue);
   const [filterQuery, setFilterQuery] = useState(rule.filterQuery ?? '');
 
-  const unit = getUnitForMeasurement(measurement);
+  const currentValueInBytes =
+    displayUnit === '%' ? displayValue : mbToBytes(displayValue);
+  const isDirty =
+    metric !== rule.metric ||
+    measurement !== rule.measurement ||
+    currentValueInBytes !== rule.value ||
+    filterQuery !== (rule.filterQuery ?? '');
 
   const handleSave = () => {
     onSave({
@@ -61,8 +53,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
       filterQuery,
       measurement,
       metric,
-      unit,
-      value,
+      value: currentValueInBytes,
     });
   };
 
@@ -71,8 +62,9 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
   }, []);
 
   const handleDelete = () => {
-    const valueWithUnit =
-      rule.unit === '%' ? `${rule.value}%` : `${rule.value} ${rule.unit}`;
+    const ruleDisplayValue =
+      getDisplayUnit(rule.measurement) === '%' ? rule.value : bytesToMB(rule.value);
+    const valueWithUnit = `${ruleDisplayValue} ${getDisplayUnit(rule.measurement)}`;
     const ruleDescription = `${getMetricLabel(rule.metric)} - ${getMeasurementLabel(rule.measurement)}`;
 
     openConfirmModal({
@@ -111,28 +103,37 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
         />
         <Text variant="muted">{t('is greater than')}</Text>
         <Flex align="center" gap="xs">
-          <StyledNumberInput value={value} onChange={v => setValue(v ?? 0)} min={0} />
-          <Text variant="muted">{unit}</Text>
+          <StyledNumberInput
+            value={displayValue}
+            onChange={v => setDisplayValue(v ?? 0)}
+            min={0}
+          />
+          <Text variant="muted">{displayUnit}</Text>
         </Flex>
       </Flex>
 
       <Stack gap="sm">
         <SectionLabel>{t('For')}</SectionLabel>
-        <SearchQueryBuilder
-          filterKeys={FILTER_KEYS}
-          getTagValues={getTagValues}
+        <PreprodSearchBar
           initialQuery={filterQuery}
-          onChange={handleQueryChange}
+          projects={[Number(project.id)]}
+          onChange={(query, _state) => handleQueryChange(query)}
           searchSource="preprod_status_check_filters"
-          disallowFreeText
-          disallowLogicalOperators
-          placeholder={t('Add build filters...')}
           portalTarget={document.body}
+          disallowFreeText
+          disallowHas
+          disallowLogicalOperators
+          allowedKeys={[
+            'app_id',
+            'git_head_ref',
+            'build_configuration_name',
+            'platform_name',
+          ]}
         />
       </Stack>
 
       <Flex gap="md" marginTop="sm">
-        <Button priority="primary" onClick={handleSave}>
+        <Button priority="primary" onClick={handleSave} disabled={!isDirty}>
           {t('Save Rule')}
         </Button>
         <Button onClick={handleDelete}>{t('Delete Rule')}</Button>

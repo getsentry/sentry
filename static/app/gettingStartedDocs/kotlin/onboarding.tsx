@@ -1,4 +1,5 @@
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,

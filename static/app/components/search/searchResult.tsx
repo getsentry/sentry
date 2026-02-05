@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -91,10 +92,10 @@ function SearchResult({item, matches, highlighted}: Props) {
   }
 
   return (
-    <Wrapper>
-      <Content>{renderContent()}</Content>
+    <Flex justify="between" align="center" gap="md">
+      <Stack>{renderContent()}</Stack>
       <div>{renderResultType(item)}</div>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -108,7 +109,7 @@ const SearchDetail = styled('div')`
 `;
 
 const ExtraDetail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.5)};
 `;
@@ -118,18 +119,6 @@ const BadgeDetail = styled('div')<{highlighted: boolean}>`
   color: ${p => (p.highlighted ? p.theme.tokens.interactive.link.accent.rest : null)};
 `;
 
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
 `;
@@ -137,6 +126,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.interactive.link.accent.active};
 `;

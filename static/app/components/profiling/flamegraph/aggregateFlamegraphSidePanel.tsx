@@ -1,8 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
@@ -232,8 +233,8 @@ const AggregateFlamegraphSidePanelContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   padding: ${space(1)};
 `;
 

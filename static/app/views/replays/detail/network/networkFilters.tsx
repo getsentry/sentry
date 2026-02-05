@@ -1,5 +1,7 @@
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
@@ -44,10 +46,11 @@ function NetworkFilters({
           },
         ]}
         size="sm"
-        triggerProps={{
-          prefix: t('Filter'),
-          children: selectValue?.length === 0 ? t('Any') : null,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')}>
+            {selectValue?.length === 0 ? t('Any') : triggerProps.children}
+          </OverlayTrigger.Button>
+        )}
         value={selectValue}
       />
       <SearchBar

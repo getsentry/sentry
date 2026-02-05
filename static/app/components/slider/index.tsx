@@ -6,13 +6,16 @@ import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
-  extends Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
+  extends
+    Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
     Pick<AriaSliderThumbOptions, 'autoFocus' | 'onFocus' | 'onBlur' | 'onFocusChange'> {
   /**
    * (This prop is now deprecated - slider ranges need to have consistent, evenly
@@ -208,7 +211,7 @@ export function Slider({
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
-          <SliderLabelWrapper className="label-container">
+          <Flex justify="between" marginBottom="lg" className="label-container">
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
               {nThumbs > 1 ? (
@@ -221,7 +224,7 @@ export function Slider({
                 getFormattedValue(selectedRange[1]!)
               )}
             </SliderLabelOutput>
-          </SliderLabelWrapper>
+          </Flex>
         )}
 
         <SliderTrack
@@ -307,14 +310,8 @@ const SliderGroup = styled('div')`
   white-space: nowrap;
 `;
 
-const SliderLabelWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1.5)};
-`;
-
 const SliderLabel = styled('label')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -363,11 +360,11 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   position: absolute;
   height: inherit;
   border-radius: inherit;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.tokens.content.danger};`}
-  ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
+  ${p => p.error && `background: ${p.theme.tokens.background.danger.vibrant};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.background.secondary};`}
 `;
 
 const SliderTick = styled('div')<{
@@ -404,5 +401,5 @@ const SliderTickLabel = styled('small')`
   margin: 0 -1px;
 
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

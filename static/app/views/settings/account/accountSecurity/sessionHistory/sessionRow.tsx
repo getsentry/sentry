@@ -36,14 +36,14 @@ export default SessionRow;
 
 const IpAddress = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 const CountryCode = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const IpAndLocation = styled('div')`

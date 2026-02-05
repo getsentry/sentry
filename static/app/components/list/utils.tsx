@@ -38,8 +38,8 @@ const numericStyle = (
         ? css`
             width: 24px;
             height: 24px;
-            font-weight: ${theme.fontWeight.normal};
-            font-size: ${theme.fontSize.sm};
+            font-weight: ${theme.font.weight.sans.regular};
+            font-size: ${theme.font.size.sm};
             background-color: ${theme.tokens.background.warning.vibrant};
             color: ${theme.tokens.content.onVibrant.dark};
           `
@@ -47,7 +47,7 @@ const numericStyle = (
             top: 3px;
             width: 18px;
             height: 18px;
-            font-weight: ${theme.fontWeight.bold};
+            font-weight: ${theme.font.weight.sans.medium};
             font-size: 10px;
             border: 1px solid ${theme.tokens.border.primary};
           `}

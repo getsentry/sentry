@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Switch} from '@sentry/scraps/switch';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Switch} from 'sentry/components/core/switch';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -26,7 +28,7 @@ import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const ENDPOINT = '/users/me/subscriptions/';
+const ENDPOINT = getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}});
 
 export type Subscription = {
   email: string;
@@ -219,7 +221,7 @@ const Heading = styled(PanelItem)`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
@@ -239,10 +241,10 @@ const SubscriptionDetails = styled('label')`
 `;
 
 const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.5)};
 `;

@@ -53,9 +53,9 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            head_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
-                id=int(head_artifact_id)
-            )
+            head_artifact = PreprodArtifact.objects.select_related(
+                "mobile_app_info", "build_configuration"
+            ).get(id=int(head_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise HeadPreprodArtifactResourceDoesNotExist
         else:
@@ -69,9 +69,9 @@ class PreprodArtifactEndpoint(ProjectEndpoint):
             return args, kwargs
 
         try:
-            base_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
-                id=int(base_artifact_id)
-            )
+            base_artifact = PreprodArtifact.objects.select_related(
+                "mobile_app_info", "build_configuration"
+            ).get(id=int(base_artifact_id))
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise BasePreprodArtifactResourceDoesNotExist
         else:

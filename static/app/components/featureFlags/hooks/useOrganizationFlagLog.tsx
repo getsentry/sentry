@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import type {RawFlagData} from 'sentry/components/featureFlags/utils';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 interface Params {
@@ -20,7 +21,14 @@ export function useOrganizationFlagLog({
     (!query.start || !query.end || query.start !== query.end) && enabledParam;
 
   return useApiQuery<RawFlagData>(
-    [`/organizations/${organization.slug}/flags/logs/`, {query}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
+      {query},
+    ],
     {
       staleTime: 0,
       enabled,
@@ -48,7 +56,11 @@ export function useOrganizationFlagLogInfinite({
   const apiQuery = useInfiniteApiQuery<RawFlagData>({
     queryKey: [
       'infinite' as const,
-      `/organizations/${organization.slug}/flags/logs/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {query},
     ],
     staleTime: 0,

@@ -31,8 +31,14 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_HTTP_OP
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
@@ -57,7 +63,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             return
 
         span_duration = get_span_duration(span).total_seconds() * 1000
-        if span_duration < self.settings.get("span_duration_threshold"):
+        if span_duration < self.settings["span_duration_threshold"]:
             return
 
         if self._overlaps_last_span(span):
@@ -70,16 +76,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self.consecutive_http_spans.append(span)
 
     def _validate_and_store_performance_problem(self) -> None:
-        exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
-            "consecutive_count_threshold"
+        exceeds_count_threshold = (
+            len(self.consecutive_http_spans) >= self.settings["consecutive_count_threshold"]
         )
         if not exceeds_count_threshold:
             return
 
         exceeds_min_time_saved_duration = False
         if self.consecutive_http_spans:
-            exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
-                "min_time_saved"
+            exceeds_min_time_saved_duration = (
+                self._calculate_time_saved() >= self.settings["min_time_saved"]
             )
         if not exceeds_min_time_saved_duration:
             return
@@ -88,7 +94,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             get_duration_between_spans(
                 self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
             )
-            < self.settings.get("max_duration_between_spans")
+            < self.settings["max_duration_between_spans"]
             for idx in range(1, len(self.consecutive_http_spans))
         )
         if not subceeds_duration_between_spans_threshold:
@@ -113,6 +119,21 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
         desc: str = self.consecutive_http_spans[0].get("description", "")
 
+        evidence_data = {
+            "parent_span_ids": [],
+            "cause_span_ids": [],
+            "offender_span_ids": offender_span_ids,
+            "op": "http",
+            "transaction_name": self._event.get("transaction", ""),
+            "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
+            "repeating_spans_compact": get_span_evidence_value(
+                self.consecutive_http_spans[0], include_op=False
+            ),
+            "num_repeating_spans": str(len(self.consecutive_http_spans)),
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "http",
@@ -132,18 +153,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
                     important=True,
                 )
             ],
-            evidence_data={
-                "parent_span_ids": [],
-                "cause_span_ids": [],
-                "offender_span_ids": offender_span_ids,
-                "op": "http",
-                "transaction_name": self._event.get("transaction", ""),
-                "repeating_spans": get_span_evidence_value(self.consecutive_http_spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(
-                    self.consecutive_http_spans[0], include_op=False
-                ),
-                "num_repeating_spans": str(len(self.consecutive_http_spans)),
-            },
+            evidence_data=evidence_data,
         )
 
         self._reset_variables()

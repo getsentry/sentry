@@ -2,15 +2,17 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {
+  DocIntegrationAvatar,
+  OrganizationAvatar,
+  SentryAppAvatar,
+} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSync} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
@@ -20,22 +22,16 @@ import CustomerStatus from 'admin/components/customerStatus';
 import PercentChange from 'admin/components/percentChange';
 import ResultGrid from 'admin/components/resultGrid';
 
-const Badge = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 /**
  * DEPRECATION WARNING
  * THIS COMPONENT WILL SOON BE REMOVED
  */
 const getAppRow = (row: any) => [
   <td key={`${row.name}-name`}>
-    <Badge>
+    <Flex align="center" gap="md">
       <SentryAppAvatar size={16} sentryApp={row} />
       {row.name}
-    </Badge>
+    </Flex>
   </td>,
   <td key={`${row.name}-value`} style={{textAlign: 'right'}}>
     {row.installs.toLocaleString()}
@@ -48,10 +44,10 @@ const getAppRow = (row: any) => [
  */
 const getDocIntegrationRow = (doc: DocIntegration) => [
   <td key={`${doc.name}-name`}>
-    <Badge>
+    <Flex align="center" gap="md">
       <DocIntegrationAvatar size={16} docIntegration={doc} />
       {doc.name}
-    </Badge>
+    </Flex>
   </td>,
   <td key={`${doc.name}-value`} style={{textAlign: 'right'}}>
     {doc.popularity}

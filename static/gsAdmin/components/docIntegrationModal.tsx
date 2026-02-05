@@ -1,10 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {Button} from 'sentry/components/core/button';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -15,6 +17,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -47,7 +50,9 @@ function DocIntegrationModal(props: Props) {
     isError,
     isPending,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/integration-features/`], {staleTime: 0});
+  } = useApiQuery<IntegrationFeature[]>([getApiUrl(`/integration-features/`)], {
+    staleTime: 0,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -69,7 +74,7 @@ function DocIntegrationModal(props: Props) {
 
   const renderResourceSection = () => {
     const resourceRows = Object.entries(resources).map(([id, entry]) => (
-      <ResourceContainer key={id}>
+      <Flex gap="xl" key={id}>
         <ResourceTextField
           {...fieldProps}
           name={`___resource-title-${id}`}
@@ -99,7 +104,7 @@ function DocIntegrationModal(props: Props) {
           }}
         />
         <RemoveButton
-          borderless
+          priority="transparent"
           icon={<IconClose />}
           size="zero"
           onClick={e => {
@@ -112,7 +117,7 @@ function DocIntegrationModal(props: Props) {
           }}
           aria-label="Close"
         />
-      </ResourceContainer>
+      </Flex>
     ));
     resourceRows.push(
       <AddButton
@@ -298,11 +303,6 @@ const AddButton = styled(Button)`
 
 const RemoveButton = styled(Button)`
   margin-top: ${space(4)};
-`;
-
-const ResourceContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
 `;
 
 const ResourceTextField = styled(TextField)`

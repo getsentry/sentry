@@ -436,6 +436,36 @@ describe('IssueRuleEditor', () => {
         'staging'
       );
     });
+
+    it('clears channel_id when Slack channel name is modified', async () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/1/',
+        body: ProjectAlertRuleFixture({
+          actions: [
+            {
+              id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+              workspace: '123',
+              channel: '#old-channel',
+              channel_id: 'C12345',
+            },
+          ],
+        }),
+      });
+      createWrapper();
+
+      const channelInput = await screen.findByPlaceholderText(
+        'i.e #critical, Jane Schmidt'
+      );
+      expect(channelInput).toHaveValue('#old-channel');
+
+      const channelIdInput = screen.getByPlaceholderText('i.e. CA2FRA079 or UA1J9RTE1');
+      expect(channelIdInput).toHaveValue('C12345');
+
+      await userEvent.clear(channelInput);
+      await userEvent.type(channelInput, '#new-channel');
+
+      expect(channelIdInput).toHaveValue('');
+    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', () => {

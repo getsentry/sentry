@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconClose, IconFilter} from 'sentry/icons';
@@ -80,7 +81,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
         {filterBy && (
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={isFiltered ? <IconClose /> : <IconFilter />}
             title={filterLabel}
             aria-label={filterLabel}

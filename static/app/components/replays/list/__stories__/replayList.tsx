@@ -3,8 +3,10 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
 import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
@@ -43,11 +45,11 @@ export default function ReplayList({onSelect, queryResult}: Props) {
         )}
         emptyMessage={() => <NoReplays />}
         loadingMoreMessage={() => (
-          <Centered>
+          <Container justifySelf="center">
             <Tooltip title={t('Loading more replays...')}>
               <LoadingIndicator mini />
             </Tooltip>
-          </Centered>
+          </Container>
         )}
         loadingCompleteMessage={() => null}
       />
@@ -65,25 +67,21 @@ function NoReplays() {
   );
 }
 
-const Centered = styled('div')`
-  justify-self: center;
-`;
-
 const NoReplaysWrapper = styled('div')`
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 
 const NoReplaysMessage = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
+    font-size: ${p => p.theme.font.size.xl};
   }
 `;

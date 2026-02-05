@@ -209,7 +209,7 @@ function SidebarChartsContainer({
         interval: 0.2,
         axisLabel: {
           formatter: (value: number) => `${formatFloat(value, 1)}`,
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
         },
         ...axisLineConfig,
       },
@@ -221,7 +221,7 @@ function SidebarChartsContainer({
         max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
         },
         ...axisLineConfig,
       },
@@ -333,7 +333,7 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export default SidebarChartsContainer;

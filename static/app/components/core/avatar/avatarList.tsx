@@ -1,8 +1,9 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
@@ -164,7 +165,7 @@ const AvatarListWrapper = styled('div')`
 `;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
-  border: 2px solid ${p.theme.tokens.background.primary};
+  border: 2px solid ${p.theme.tokens.border.primary};
   margin-left: -8px;
   cursor: default;
 
@@ -195,7 +196,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => Math.floor(p.size / 2.3)}px;

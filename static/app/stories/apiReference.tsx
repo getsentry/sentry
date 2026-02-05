@@ -2,10 +2,11 @@ import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import * as Storybook from 'sentry/stories';
@@ -22,7 +23,7 @@ export function APIReference(props: APIReferenceProps) {
   return (
     <Storybook.Section>
       {props.componentProps?.description && <p>{props.componentProps.description}</p>}
-      <StoryTypesSearchContainer>
+      <Container marginBottom="md">
         <InputGroup>
           <InputGroup.LeadingItems disablePointerEvents>
             <IconSearch />
@@ -34,7 +35,7 @@ export function APIReference(props: APIReferenceProps) {
           />
           {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
         </InputGroup>
-      </StoryTypesSearchContainer>
+      </Container>
       <StoryTableContainer>
         <StoryTypesTable>
           <StoryTypesTableHeader>
@@ -111,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;
@@ -348,10 +349,6 @@ const StoryTableContainer = styled('div')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StoryTypesSearchContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const StoryTypesTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
@@ -361,7 +358,7 @@ const StoryTypesTable = styled('table')`
   table-layout: fixed;
 
   th {
-    background-color: ${p => p.theme.colors.surface300};
+    background-color: ${p => p.theme.tokens.background.tertiary};
   }
 
   tr:not(:last-child) {
@@ -380,13 +377,13 @@ const StoryTypesTable = styled('table')`
 
 const StoryTypesTableHeader = styled('thead')`
   tr {
-    background-color: ${p => p.theme.colors.surface300};
+    background-color: ${p => p.theme.tokens.background.tertiary};
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
 const StoryTypesTableHeaderCell = styled('th')`
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
   padding: ${p => p.theme.space.md};
 `;
 
@@ -398,7 +395,7 @@ const StoryTypesTableCell = styled('td')`
 const StoryTypesTableDefinitionCell = styled('td')`
   padding: ${p => p.theme.space.md};
   padding-left: 0;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.tertiary};
 
   button {
     margin-left: ${p => p.theme.space['2xs']};
@@ -406,18 +403,18 @@ const StoryTypesTableDefinitionCell = styled('td')`
   }
 
   > span {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.sm};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const StoryType = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
 `;
 
 const StoryPropDescription = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${p => p.theme.space.xs};
 `;
 

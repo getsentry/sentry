@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
 import {useDismissable} from 'sentry/components/banner';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -23,6 +24,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -107,6 +109,10 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
                       resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
                   </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="agents:agent-filter"
+                    referrer={Referrer.AGENT_SELECTOR}
+                  />
                   {!showOnboarding && (
                     <Flex flex={2}>
                       <TraceItemSearchQueryBuilder

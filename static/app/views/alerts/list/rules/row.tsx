@@ -1,18 +1,16 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {
-  CompactSelect,
-  type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -42,6 +40,7 @@ import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/has
 
 type Props = {
   hasEditAccess: boolean;
+  hasMetricAlerts: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
   onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
   organization: Organization;
@@ -58,6 +57,7 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   hasEditAccess,
+  hasMetricAlerts,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
@@ -123,6 +123,9 @@ function RuleListRow({
   const canEdit = ownerActor?.id
     ? userTeams.some(team => team.id === ownerActor.id)
     : true;
+
+  const isMetricAlert = rule.type === CombinedAlertType.METRIC;
+  const shouldDisableAlertRule = isMetricAlert && !hasMetricAlerts;
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
@@ -277,9 +280,22 @@ function RuleListRow({
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            <Link to={ruleUrl()}>
-              {rule.name} {titleBadge}
-            </Link>
+            {shouldDisableAlertRule ? (
+              <Tooltip
+                skipWrapper
+                title={t(
+                  'This metric alert is not available. Your organization does not have access to this feature.'
+                )}
+              >
+                <DisabledAlertName>
+                  {rule.name} {titleBadge}
+                </DisabledAlertName>
+              </Tooltip>
+            ) : (
+              <Link to={ruleUrl()}>
+                {rule.name} {titleBadge}
+              </Link>
+            )}
           </AlertName>
           <AlertIncidentDate>
             <AlertLastIncidentActivationInfo rule={rule} />
@@ -318,14 +334,18 @@ function RuleListRow({
                 options={dropdownTeams}
                 value={assignee}
                 searchable
-                triggerProps={{
-                  'aria-label': assignee
-                    ? `Assigned to #${teamName?.name}`
-                    : t('Unassigned'),
-                  size: 'zero',
-                  borderless: true,
-                  children: avatarElement,
-                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button
+                    {...triggerProps}
+                    aria-label={
+                      assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
+                    }
+                    size="zero"
+                    priority="transparent"
+                  >
+                    {avatarElement}
+                  </OverlayTrigger.Button>
+                )}
                 searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}
               />
@@ -333,23 +353,32 @@ function RuleListRow({
           </Flex>
         )}
       </Flex>
-      <ActionsColumn>
+      <Flex justify="center" align="center" padding="md">
         <Access access={['alerts:write']}>
-          {({hasAccess}) => (
-            <DropdownMenu
-              items={actions}
-              position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-              }}
-              disabledKeys={hasAccess && canEdit ? [] : ['delete']}
-            />
-          )}
+          {({hasAccess}) => {
+            const disabledKeys: string[] = [];
+            if (!hasAccess || !canEdit) {
+              disabledKeys.push('delete');
+            }
+            if (shouldDisableAlertRule) {
+              disabledKeys.push('edit', 'duplicate');
+            }
+            return (
+              <DropdownMenu
+                items={actions}
+                position="bottom-end"
+                triggerProps={{
+                  'aria-label': t('Actions'),
+                  size: 'xs',
+                  icon: <IconEllipsis />,
+                  showChevron: false,
+                }}
+                disabledKeys={disabledKeys}
+              />
+            );
+          }}
         </Access>
-      </ActionsColumn>
+      </Flex>
     </ErrorBoundary>
   );
 }
@@ -380,7 +409,7 @@ const AlertName = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const AlertIncidentDate = styled('div')`
@@ -393,13 +422,6 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const ActionsColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
 `;
 
 const IconContainer = styled('div')`
@@ -421,6 +443,11 @@ const MarginLeft = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   margin-right: ${space(1.5)};
+`;
+
+const DisabledAlertName = styled('span')`
+  color: ${p => p.theme.tokens.content.disabled};
+  cursor: not-allowed;
 `;
 
 export default RuleListRow;

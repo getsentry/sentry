@@ -1,9 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';

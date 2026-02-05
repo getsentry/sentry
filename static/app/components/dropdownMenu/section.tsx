@@ -37,8 +37,8 @@ const DropdownMenuSectionWrap = styled('li')`
 
 const Heading = styled('span')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
   white-space: nowrap;

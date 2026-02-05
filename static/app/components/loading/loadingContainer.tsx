@@ -34,7 +34,7 @@ export default function LoadingContainer({
         <div>
           <LoadingMask
             isReloading={isReloading}
-            maskBackgroundColor={maskBackgroundColor ?? theme.white}
+            maskBackgroundColor={maskBackgroundColor ?? theme.colors.white}
           />
           <Indicator />
         </div>

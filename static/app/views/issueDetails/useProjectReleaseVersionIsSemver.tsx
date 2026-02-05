@@ -1,4 +1,5 @@
 import type {Release} from 'sentry/types/release';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
@@ -14,7 +15,12 @@ export default function useProjectReleaseVersionIsSemver({
 
   const {data, isError, isPending} = useApiQuery<Release>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(version ?? '')}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          version: version ?? '',
+        },
+      }),
     ],
     {staleTime: 0, enabled: Boolean(version) && enabled}
   );

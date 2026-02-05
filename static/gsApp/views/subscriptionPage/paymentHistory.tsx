@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -20,6 +21,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,7 +55,9 @@ function PaymentHistory() {
     getResponseHeader,
   } = useApiQuery<InvoiceBase[]>(
     [
-      `/customers/${organization.slug}/invoices/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/invoices/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {cursor: location.query.cursor},
       },

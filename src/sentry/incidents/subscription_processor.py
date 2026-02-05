@@ -55,24 +55,71 @@ class MetricIssueDetectorConfig(TypedDict):
 
 class SubscriptionProcessor:
     """
-    Class for processing subscription updates for workflow engine. Accepts a subscription
-    and then can process one or more updates via `process_update`.
+    Class for processing subscription updates for workflow engine.
+    Use the `process` classmethod as the entry point.
     """
 
-    def __init__(self, subscription: QuerySubscription) -> None:
+    def __init__(
+        self,
+        subscription: QuerySubscription,
+        detector: Detector,
+    ) -> None:
+        """
+        Initialize with pre-validated subscription and detector.
+        Use the `process` classmethod rather than calling this directly.
+        """
         self.subscription = subscription
-        self.detector: Detector | None = None
-        self.last_update = to_datetime(0)
+        self.detector = detector
+        self.last_update = get_detector_last_update(detector, subscription.project_id)
 
-        # We're doing workflow engine processing, we need the Detector.
+    @classmethod
+    def process(
+        cls,
+        subscription: QuerySubscription,
+        subscription_update: QuerySubscriptionUpdate,
+    ) -> bool:
+        """
+        Entry point for processing a subscription update.
+        Returns False if required objects don't exist or are invalid.
+        """
+        # Look up detector
         try:
-            self.detector = Detector.objects.get(
-                data_sources__source_id=str(self.subscription.id),
+            detector = Detector.objects.get(
+                data_sources__source_id=str(subscription.id),
                 data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
             )
-            self.last_update = get_detector_last_update(self.detector, self.subscription.project_id)
         except Detector.DoesNotExist:
-            logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
+            logger.info("Detector not found", extra={"subscription_id": subscription.id})
+            metrics.incr(
+                "incidents.subscription_processor.detector_lookup",
+                tags={"found": "False"},
+            )
+            return False
+
+        metrics.incr(
+            "incidents.subscription_processor.detector_lookup",
+            tags={"found": "True"},
+        )
+
+        # Fetch and cache Project
+        try:
+            project = Project.objects.get_from_cache(id=subscription.project_id)
+            subscription.set_cached_field_value("project", project)
+        except Project.DoesNotExist:
+            metrics.incr("incidents.alert_rules.ignore_deleted_project")
+            return False
+
+        if project.status != ObjectStatus.ACTIVE:
+            metrics.incr("incidents.alert_rules.ignore_deleted_project")
+            return False
+
+        # Fetch and cache Organization
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        project.set_cached_field_value("organization", organization)
+
+        # Create processor and run
+        processor = cls(subscription, detector)
+        return processor.process_update(subscription_update)
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
@@ -116,11 +163,9 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_comparison_delta(self, detector: Detector | None) -> int | None:
-        if detector:
-            detector_cfg: MetricIssueDetectorConfig = detector.config
-            return detector_cfg.get("comparison_delta")
-        return None
+    def get_comparison_delta(self, detector: Detector) -> int | None:
+        detector_cfg: MetricIssueDetectorConfig = detector.config
+        return detector_cfg.get("comparison_delta")
 
     def process_results_workflow_engine(
         self,
@@ -199,27 +244,10 @@ class SubscriptionProcessor:
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
-        This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
+        Core processing method. Assumes subscription has cached project/organization
+        and detector exists (enforced by the `process` classmethod).
         """
         dataset = self.subscription.snuba_query.dataset
-        try:
-            # Check that the project exists
-            self.subscription.set_cached_field_value(
-                "project",
-                Project.objects.get_from_cache(id=self.subscription.project_id),
-            )
-        except Project.DoesNotExist:
-            metrics.incr("incidents.alert_rules.ignore_deleted_project")
-            return False
-        if self.subscription.project.status != ObjectStatus.ACTIVE:
-            metrics.incr("incidents.alert_rules.ignore_deleted_project")
-            return False
-
-        self.subscription.project.set_cached_field_value(
-            "organization",
-            Organization.objects.get_from_cache(id=self.subscription.project.organization_id),
-        )
-
         organization = self.subscription.project.organization
 
         if self.has_downgraded(dataset, organization):
@@ -245,22 +273,11 @@ class SubscriptionProcessor:
                 },
             )
 
-        comparison_delta = None
         with (
             metrics.timer("incidents.alert_rules.process_update"),
             track_memory_usage("incidents.alert_rules.process_update_memory"),
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
-            if self.detector is None:
-                logger.error(
-                    "No detector found for subscription, skipping subscription processing",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "project_id": self.subscription.project.id,
-                    },
-                )
-                return False
-
             comparison_delta = self.get_comparison_delta(self.detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 

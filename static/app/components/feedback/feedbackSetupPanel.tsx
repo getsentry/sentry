@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';

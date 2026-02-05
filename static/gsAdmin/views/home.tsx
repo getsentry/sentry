@@ -1,8 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
@@ -79,9 +82,9 @@ export default function HomePage() {
   }
   return (
     <SplashWrapper>
-      <Header>
+      <Flex align="center" margin="3xl 0">
         <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
-      </Header>
+      </Flex>
       <div>
         <strong>
           This is an internal tool meant to enable Sentry Employees (you!) to better
@@ -89,12 +92,12 @@ export default function HomePage() {
         </strong>
         <div>If you have any questions, ask us in #discuss-admin</div>
       </div>
-      <Centered>
+      <Flex justify="center" margin="xl 0">
         <Warning>
           <strong>NOTE:</strong>&nbsp;
           <span>All actions are logged and audited</span>
         </Warning>
-      </Centered>
+      </Flex>
       <div>
         <SearchLabel>Users</SearchLabel>
         <DebounceSearch
@@ -108,7 +111,9 @@ export default function HomePage() {
       </div>
       <RegionPanel>
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={regionUrl}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -165,14 +170,9 @@ const SplashWrapper = styled('div')`
   padding: ${space(3)};
 `;
 
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: ${space(4)} 0;
-`;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: normal;
   color: ${p => p.theme.tokens.content.primary};
 `;
@@ -182,12 +182,6 @@ const OverviewWrap = styled('div')`
 `;
 const SecondaryText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Centered = styled('div')`
-  display: flex;
-  justify-content: center;
-  margin: ${space(2)} 0;
 `;
 
 const Warning = styled('div')`

@@ -2,6 +2,7 @@ import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   useApiQuery,
@@ -14,7 +15,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 export const NAMESPACE_SYMBOL = '\uf00d';
 
 const getRecentSearchUrl = (orgSlug: string): string =>
-  `/organizations/${orgSlug}/recent-searches/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/recent-searches/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
 
 // HACK: This prefix is used to prefix the recent searches query to isolate
 // search results among the same search type. It intentionally doesn't follow

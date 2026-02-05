@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload} from 'sentry/icons';
@@ -18,6 +19,7 @@ interface Props {
 
 export default function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
+  const hasDiscoverQuery = organization.features.includes('discover-query');
   const handleDataExport = useDataExport({
     payload: {
       queryType: ExportQueryType.ISSUES_BY_TAG,
@@ -35,7 +37,7 @@ export default function TagExportDropdown({tagKey, group, organization, project}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          borderless
+          priority="transparent"
           size="xs"
           aria-label={t('Export options')}
           icon={<IconDownload />}
@@ -60,7 +62,10 @@ export default function TagExportDropdown({tagKey, group, organization, project}
             handleDataExport();
             setIsExportDisabled(true);
           },
-          disabled: isExportDisabled,
+          disabled: isExportDisabled || !hasDiscoverQuery,
+          tooltip: hasDiscoverQuery
+            ? undefined
+            : t('This feature is not available for your organization'),
         },
       ]}
     />

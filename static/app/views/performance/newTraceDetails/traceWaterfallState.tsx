@@ -134,7 +134,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   max-height: 150px;
   text-align: center;
   height: auto;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   z-index: 30;
   padding: 20px;
@@ -180,7 +180,7 @@ const NoMarginIndicator = styled(LoadingIndicator)`
 `;
 
 const ErrorTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 export const TraceWaterfallState = {

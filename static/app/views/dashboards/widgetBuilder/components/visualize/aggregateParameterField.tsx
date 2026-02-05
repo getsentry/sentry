@@ -1,6 +1,8 @@
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {
   BufferedInput,
   type ParameterDescription,
@@ -74,7 +76,7 @@ export function AggregateParameterField({
         key="dropdown"
         name="dropdown"
         placeholder={t('Select value')}
-        options={parameter.options}
+        options={sortSelectedFirst(currentValue, parameter.options)}
         value={currentValue}
         required={parameter.required}
         onChange={({value}: any) => {

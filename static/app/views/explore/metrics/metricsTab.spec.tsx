@@ -238,7 +238,7 @@ describe('MetricsTabContent', () => {
           query_status: 'success',
           sample_counts: [0],
           table_result_length: 6,
-          table_result_mode: 'aggregates',
+          table_result_mode: 'metric samples',
           table_result_sort: ['-timestamp'],
           user_queries: '',
           user_queries_count: 0,
@@ -273,7 +273,7 @@ describe('MetricsTabContent', () => {
         query_status: 'success',
         sample_counts: [0],
         table_result_length: 6,
-        table_result_mode: 'aggregates',
+        table_result_mode: 'metric samples',
         table_result_sort: ['-timestamp'],
         user_queries: '',
         user_queries_count: 0,
@@ -521,5 +521,68 @@ describe('MetricsTabContent', () => {
     });
 
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should switch to aggregate mode when a group by is added', async () => {
+    // Mock the trace-items attributes endpoint for string type attributes
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'test.region', name: 'test.region'},
+        {key: 'test.service', name: 'test.service'},
+      ],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
+
+    // Mock the trace-items attributes endpoint for number type attributes (empty)
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+
+    const {router} = render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(1);
+
+    // Wait for the toolbar to load
+    await waitFor(() => {
+      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    // Verify initial state is samples mode
+    const initialMetricQuery = JSON.parse(router.location.query.metric as string);
+    expect(initialMetricQuery.mode).toBe('samples');
+
+    // Click on the Group by selector - use text content since prefix renders differently
+    const groupByButton = within(toolbars[0]!).getByText('Group by');
+    await userEvent.click(groupByButton);
+
+    // Select a group by option (test.region)
+    const regionOption = await screen.findByRole('option', {name: 'test.region'});
+    await userEvent.click(regionOption);
+
+    let metricQuery = router.location.query.metric;
+    expect(metricQuery).toBeDefined();
+
+    // Verify that the mode switched to aggregate in the URL
+    let parsedQuery: ReturnType<typeof JSON.parse>;
+    await waitFor(() => {
+      metricQuery = router.location.query.metric;
+      parsedQuery = JSON.parse(metricQuery as string);
+      expect(parsedQuery.mode).toBe('aggregate');
+    });
+    expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
   });
 });

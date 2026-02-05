@@ -187,6 +187,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
             response_text="Hi there!",
+            tokens=150,
+            cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
         )
@@ -217,8 +219,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert "transaction" in span
         assert "is_transaction" in span
         # Verify AI conversation attributes are included
+        assert span["gen_ai.operation.type"] == "ai_client"
         assert span["gen_ai.request.messages"] is not None
         assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.usage.total_tokens"] == 150
+        assert span["gen_ai.cost.total_tokens"] == 0.0025
         # Verify user attributes are included
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
@@ -353,3 +358,120 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["gen_ai.conversation.id"] == conversation_id_2
+
+    def test_returns_tool_attributes(self) -> None:
+        """Test that tool spans include gen_ai.tool.name attribute"""
+        now = before_now(days=80).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            tool_name="search_database",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+
+        span = response.data[0]
+        assert span["span.op"] == "gen_ai.execute_tool"
+        assert span["gen_ai.operation.type"] == "tool"
+        assert span["gen_ai.tool.name"] == "search_database"
+
+    def test_stats_period_is_ignored(self) -> None:
+        """Test that statsPeriod parameter is ignored so old links still work"""
+        timestamp = before_now(days=90).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        # Use explicit start/end that includes the span, but add statsPeriod=1h
+        # which would normally restrict to last hour and exclude our 90-day-old span
+        query = {
+            "project": [self.project.id],
+            "start": (timestamp - timedelta(hours=1)).isoformat(),
+            "end": (timestamp + timedelta(hours=1)).isoformat(),
+            "statsPeriod": "1h",  # This should be ignored
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_tokens_on_multiple_span_types(self) -> None:
+        """Test that raw spans are returned with their individual token/cost values.
+
+        This endpoint returns raw span data without aggregation. Consumers must
+        filter by gen_ai.operation.type:ai_client when summing tokens/costs
+        to avoid double counting from agent spans that may also have token data.
+        """
+        now = before_now(days=91).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        # Agent span with tokens/cost
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            description="Test Agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+            tokens=500,
+            cost=0.05,
+        )
+
+        # ai_client span with tokens/cost
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            tokens=100,
+            cost=0.01,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 2
+
+        # Sort by timestamp to ensure consistent order (oldest first)
+        spans = sorted(response.data, key=lambda s: s["precise.start_ts"])
+
+        # First span is the agent span with its own token values
+        agent_span = spans[0]
+        assert agent_span["gen_ai.operation.type"] == "invoke_agent"
+        assert agent_span["gen_ai.usage.total_tokens"] == 500
+        assert agent_span["gen_ai.cost.total_tokens"] == 0.05
+
+        # Second span is the ai_client span with its own token values
+        ai_client_span = spans[1]
+        assert ai_client_span["gen_ai.operation.type"] == "ai_client"
+        assert ai_client_span["gen_ai.usage.total_tokens"] == 100
+        assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01

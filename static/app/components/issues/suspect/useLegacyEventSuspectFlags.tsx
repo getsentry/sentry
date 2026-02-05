@@ -11,6 +11,7 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -49,7 +50,9 @@ export default function useLegacyEventSuspectFlags({
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
   const apiQueryResponse = useApiQuery<RawFlagData>(
     [
-      `/organizations/${organization.slug}/flags/logs/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           flag: intersectionFlags,

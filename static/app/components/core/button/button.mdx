@@ -2,7 +2,7 @@
 title: Button
 description: Buttons are clickable elements that trigger an action that does not change the current URL.
 category: buttons
-source: 'sentry/components/core/button'
+source: '@sentry/scraps/button'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
   js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/button/index.tsx#L22
@@ -14,16 +14,19 @@ resources:
     WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
 ---
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {
   IconAdd,
   IconArrow,
   IconChevron,
   IconClock,
   IconClose,
+  IconCopy,
   IconDelete,
   IconDocs,
+  IconDownload,
   IconEdit,
   IconEllipsis,
   IconLightning,
@@ -144,6 +147,8 @@ We have standardized call to action copy and specific icon pairings. When creati
 |                                            |             | Save `Item`                            | Preserve changes                                          |
 | <IconClose />                              | `close`     | Cancel                                 | Exit without saving changes                               |
 | <IconLink />                               | `link`      | Share                                  | Copies link to paste anywhere                             |
+| <IconCopy />                               | `copy`      | Copy                                   | Copy data to clipboard                                    |
+| <IconDownload />                           | `download`  | Download                               | Download data as a file                                   |
 |                                            |             | Connect                                | Create link between two objects                           |
 |                                            |             | Disconnect                             | Break link between two objects                            |
 | <IconZoom isZoomIn />                      | `zoom`      | Zoom In                                | Applies to charts and zooms to fit                        |
@@ -194,3 +199,8 @@ In scenarios where high information density is critical, buttons may be displaye
 To meet WCAG 2.2 AA compliance, `<Button>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible), [WCAG 2.5.8](https://www.w3.org/TR/WCAG22/#target-size-minimum) success criteria.
 
 Developers should take care to ensure that their implementations additionally follow the [WAI-ARIA Button Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/) and properly handle focus changes when an action is triggered.
+
+## See Also
+
+- [LinkButton](/stories/core/linkbutton/) - Button-styled component for navigation
+- [Link](/stories/core/link/) - Text link component for navigation

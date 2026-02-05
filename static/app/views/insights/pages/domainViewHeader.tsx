@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {ButtonBar} from '@sentry/scraps/button';
+import type {TabListItemProps} from '@sentry/scraps/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {TabListItemProps} from 'sentry/components/core/tabs';
-import {TabList} from 'sentry/components/core/tabs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -109,21 +110,23 @@ export function DomainViewHeader({
       })),
   ];
 
-  const feedbackOptions =
-    isAgentMonitoring || isLaravelInsights || isNextJsInsights || isSessionsInsights
-      ? {
-          tags: {
-            ['feedback.source']: isAgentMonitoring
-              ? 'agent-monitoring'
-              : isLaravelInsights
-                ? 'laravel-insights'
-                : isSessionsInsights
-                  ? 'sessions-insights'
-                  : 'nextjs-insights',
-            ['feedback.owner']: 'telemetry-experience',
-          },
-        }
-      : undefined;
+  const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
+    [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
+    [!!isLaravelInsights, {owner: 'performance', source: 'laravel-insights'}],
+    [isSessionsInsights, {owner: 'replay', source: 'sessions-insights'}],
+    [!!isNextJsInsights, {owner: 'performance', source: 'nextjs-insights'}],
+  ];
+
+  const activeFeedback = feedbackConfig.find(([condition]) => condition)?.[1];
+
+  const feedbackOptions = activeFeedback
+    ? {
+        tags: {
+          ['feedback.source']: activeFeedback.source,
+          ['feedback.owner']: activeFeedback.owner,
+        },
+      }
+    : undefined;
   return (
     <Fragment>
       <Layout.Header unified={unified}>

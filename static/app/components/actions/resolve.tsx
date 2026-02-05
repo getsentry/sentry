@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -224,7 +224,7 @@ function ResolveActions({
               key: 'semver-release',
               label: t('The current semver release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : (
@@ -236,7 +236,7 @@ function ResolveActions({
                       </div>{' '}
                     </Fragment>
                   )}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -249,7 +249,7 @@ function ResolveActions({
               key: 'current-release',
               label: t('The current release'),
               details: (
-                <CurrentReleaseWrapper>
+                <Flex align="center" gap="2xs">
                   {actionTitle ? (
                     actionTitle
                   ) : latestRelease ? (
@@ -262,7 +262,7 @@ function ResolveActions({
                       ({isSemver ? t('semver') : t('non-semver')})
                     </Fragment>
                   ) : null}
-                </CurrentReleaseWrapper>
+                </Flex>
               ),
               onAction: () =>
                 onActionOrConfirm(() =>
@@ -413,18 +413,12 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.colors.gray500};
   width: 250px;
   white-space: normal;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SetupReleasesHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${space(1)};
-`;
-
-const CurrentReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`

@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
@@ -130,8 +132,8 @@ const TagPanel = styled('div')`
 
 const TagHeader = styled('h5')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
   display: block;
   width: 100%;
@@ -171,7 +173,7 @@ const TagBarPlaceholder = styled('div')`
   width: 100%;
   border-radius: 3px;
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
-  background: ${p => Color(p.theme.colors.gray400).alpha(0.1).toString()};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
 `;
 
@@ -186,7 +188,7 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     background: ${p =>
-      `linear-gradient(to right, ${Color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${Color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
+      `linear-gradient(to right, ${color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

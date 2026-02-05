@@ -31,7 +31,7 @@ export {DetailsPanel};
 
 const Title = styled('header')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Container = styled('div')`

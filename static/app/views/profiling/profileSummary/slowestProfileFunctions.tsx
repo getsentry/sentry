@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -117,7 +118,9 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           value={functionType}
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
-          triggerProps={TRIGGER_PROPS}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+          )}
           offset={4}
         />
         <SlowestFunctionsPagination
@@ -286,12 +289,11 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),

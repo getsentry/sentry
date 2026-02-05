@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
@@ -368,10 +369,10 @@ function AuditLogList({
             <Fragment key={entry.id}>
               <UserInfo>
                 <div>{getAvatarDisplay(entry.actor)}</div>
-                <NameContainer>
+                <Stack justify="center">
                   {addUsernameDisplay(entry.actor)}
                   <AuditNote entry={entry} orgSlug={organization.slug} />
-                </NameContainer>
+                </Stack>
               </UserInfo>
               <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
@@ -410,7 +411,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Name = styled('strong')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const EventSelector = styled(Select)`
@@ -421,18 +422,12 @@ const UserInfo = styled('div')`
   display: flex;
   align-items: center;
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-width: 250px;
 `;
 
-const NameContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
   margin-top: ${space(0.5)};
 `;
@@ -447,7 +442,7 @@ const IpAddressOverflow = styled('div')`
 `;
 
 const MonoDetail = styled('code')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   white-space: no-wrap;
 `;
 
@@ -455,7 +450,7 @@ const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export default AuditLogList;

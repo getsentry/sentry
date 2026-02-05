@@ -1,5 +1,6 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +55,9 @@ function withRuleRedirect<P extends Record<string, any>>(
 
     const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
       [
-        `/organizations/${organization.slug}/alert-rule-workflow/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-workflow/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: {rule_id: ruleId}},
       ],
       {
@@ -102,7 +105,9 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
 
     const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
       [
-        `/organizations/${organization.slug}/alert-rule-detector/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: {alert_rule_id: ruleId}},
       ],
       {
@@ -170,7 +175,9 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
       useApiQuery<IncidentGroupOpenPeriod>(
         [
-          `/organizations/${organization.slug}/incident-groupopenperiod/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {query: {incident_identifier: alertId}},
         ],
         {
@@ -184,7 +191,9 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {data: alertRuleDetector, isPending: isDetectorPending} =
       useApiQuery<AlertRuleDetector>(
         [
-          `/organizations/${organization.slug}/alert-rule-detector/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {query: {alert_rule_id: ruleId}},
         ],
         {
@@ -296,7 +305,9 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const {data: incidentGroupOpenPeriod, isPending} =
       useApiQuery<IncidentGroupOpenPeriod>(
         [
-          `/organizations/${organization.slug}/incident-groupopenperiod/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {query: {incident_identifier: alertId}},
         ],
         {

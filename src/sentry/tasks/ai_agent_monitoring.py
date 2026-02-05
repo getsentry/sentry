@@ -177,6 +177,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                     "completion": "0.00000165",
                     "internal_reasoning": "0.0000003",
                     "input_cache_read": "0.0000003",
+                    "input_cache_write": "0.00000125",
                 },
             },
         ]
@@ -222,6 +223,7 @@ def _fetch_openrouter_models() -> dict[ModelId, AIModelCostV2]:
                 outputPerToken=safe_float_conversion(pricing.get("completion")),
                 outputReasoningPerToken=safe_float_conversion(pricing.get("internal_reasoning")),
                 inputCachedPerToken=safe_float_conversion(pricing.get("input_cache_read")),
+                inputCacheWritePerToken=safe_float_conversion(pricing.get("input_cache_write")),
             )
 
             models_dict[model_id] = ai_model_cost
@@ -247,6 +249,7 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                         "input": 0.0000003,
                         "output": 0.00000165,
                         "cache_read": 0.0000003,
+                        "cache_write": 0.00000125,
                     }
                 }
             }
@@ -298,6 +301,8 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelCostV2]:
                     / 1000000,  # models.dev have price per 1M tokens
                     outputReasoningPerToken=0.0,  # models.dev doesn't provide reasoning costs
                     inputCachedPerToken=safe_float_conversion(cost_data.get("cache_read"))
+                    / 1000000,  # models.dev have price per 1M tokens
+                    inputCacheWritePerToken=safe_float_conversion(cost_data.get("cache_write"))
                     / 1000000,  # models.dev have price per 1M tokens
                 )
 

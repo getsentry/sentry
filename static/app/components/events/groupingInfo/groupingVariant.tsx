@@ -202,16 +202,16 @@ const Header = styled('div')`
 `;
 
 const VariantTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   display: flex;
   align-items: center;
 `;
 
 const VariantHint = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-left: ${p => p.theme.space.xs};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

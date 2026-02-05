@@ -2,9 +2,10 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -218,19 +219,20 @@ function SidebarContent() {
           <CompactSelect
             value={currentProject?.id}
             onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
-            triggerProps={{
-              'aria-label': currentProject?.slug,
-              children: currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                {currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )}
+              </OverlayTrigger.Button>
+            )}
             options={projectSelectOptions}
             position="bottom-end"
           />
@@ -387,9 +389,9 @@ const Introduction = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;

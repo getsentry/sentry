@@ -45,7 +45,7 @@ const StyledPanelItem = styled(PanelItem)`
 
 const TypeAndStatus = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-wrap: wrap;
   align-items: center;

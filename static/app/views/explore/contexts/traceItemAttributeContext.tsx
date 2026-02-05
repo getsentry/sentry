@@ -4,17 +4,28 @@ import {createContext, useContext, useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
+  SENTRY_LOG_BOOLEAN_TAGS,
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
+  SENTRY_PREPROD_BOOLEAN_TAGS,
+  SENTRY_PREPROD_NUMBER_TAGS,
+  SENTRY_PREPROD_STRING_TAGS,
+  SENTRY_SPAN_BOOLEAN_TAGS,
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
+  SENTRY_TRACEMETRIC_BOOLEAN_TAGS,
+  SENTRY_TRACEMETRIC_NUMBER_TAGS,
+  SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {removeHiddenKeys} from 'sentry/views/explore/utils';
 
 type TypedTraceItemAttributes = {
+  boolean: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   number: TagCollection;
   numberSecondaryAliases: TagCollection;
   string: TagCollection;
@@ -22,6 +33,7 @@ type TypedTraceItemAttributes = {
 };
 
 type TypedTraceItemAttributesStatus = {
+  booleanAttributesLoading: boolean;
   numberAttributesLoading: boolean;
   stringAttributesLoading: boolean;
 };
@@ -75,6 +87,11 @@ function useTraceItemAttributeConfig({
   search,
   query,
 }: TraceItemAttributeConfig) {
+  const organization = useOrganization();
+  const hasBooleanFilters = organization.features.includes(
+    'search-query-builder-explicit-boolean-filters'
+  );
+
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
@@ -89,6 +106,16 @@ function useTraceItemAttributeConfig({
     useTraceItemAttributeKeys({
       enabled,
       type: 'string',
+      traceItemType,
+      projects,
+      search,
+      query,
+    });
+
+  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
+    useTraceItemAttributeKeys({
+      enabled: enabled && hasBooleanFilters,
+      type: 'boolean',
       traceItemType,
       projects,
       search,
@@ -130,20 +157,47 @@ function useTraceItemAttributeConfig({
     };
   }, [stringAttributes, traceItemType]);
 
+  const allBooleanAttributes = useMemo(() => {
+    if (!hasBooleanFilters) {
+      return {attributes: {}, secondaryAliases: {}};
+    }
+
+    const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
+      tag,
+      {key: tag, name: tag, kind: FieldKind.BOOLEAN},
+    ]);
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(booleanAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.BOOLEAN}])
+    );
+
+    return {
+      attributes: {...booleanAttributes, ...Object.fromEntries(tags)},
+      secondaryAliases,
+    };
+  }, [booleanAttributes, hasBooleanFilters, traceItemType]);
+
   return useMemo(
     () => ({
+      boolean: allBooleanAttributes.attributes,
       number: allNumberAttributes.attributes,
       string: allStringAttributes.attributes,
+      booleanSecondaryAliases: allBooleanAttributes.secondaryAliases,
       numberSecondaryAliases: allNumberAttributes.secondaryAliases,
       stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      booleanAttributesLoading,
       numberAttributesLoading,
       stringAttributesLoading,
     }),
     [
+      allBooleanAttributes.attributes,
+      allBooleanAttributes.secondaryAliases,
       allNumberAttributes.attributes,
       allNumberAttributes.secondaryAliases,
       allStringAttributes.attributes,
       allStringAttributes.secondaryAliases,
+      booleanAttributesLoading,
       numberAttributesLoading,
       stringAttributesLoading,
     ]
@@ -152,9 +206,20 @@ function useTraceItemAttributeConfig({
 
 function processTraceItemAttributes(
   typedAttributesResult: TypedTraceItemAttributesResult,
-  type?: 'number' | 'string',
+  type?: 'number' | 'string' | 'boolean',
   hiddenKeys?: string[]
 ) {
+  if (type === 'boolean') {
+    return {
+      attributes: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.boolean, hiddenKeys)
+        : typedAttributesResult.boolean,
+      secondaryAliases: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.booleanSecondaryAliases, hiddenKeys)
+        : typedAttributesResult.booleanSecondaryAliases,
+      isLoading: typedAttributesResult.booleanAttributesLoading,
+    };
+  }
   if (type === 'number') {
     return {
       attributes: hiddenKeys
@@ -178,7 +243,7 @@ function processTraceItemAttributes(
 }
 
 export function useTraceItemAttributes(
-  type?: 'number' | 'string',
+  type?: 'number' | 'string' | 'boolean',
   hiddenKeys?: string[]
 ) {
   const typedAttributesResult = useContext(TraceItemAttributeContext);
@@ -194,7 +259,7 @@ export function useTraceItemAttributes(
 
 export function useTraceItemAttributesWithConfig(
   config: TraceItemAttributeConfig,
-  type?: 'number' | 'string',
+  type?: 'number' | 'string' | 'boolean',
   hiddenKeys?: string[]
 ) {
   const typedAttributesResult = useTraceItemAttributeConfig(config);
@@ -205,6 +270,12 @@ function getDefaultStringAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_STRING_TAGS;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_STRING_TAGS;
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SENTRY_TRACEMETRIC_STRING_TAGS;
+  }
   return SENTRY_LOG_STRING_TAGS;
 }
 
@@ -212,5 +283,24 @@ function getDefaultNumberAttributes(itemType: TraceItemDataset) {
   if (itemType === TraceItemDataset.SPANS) {
     return SENTRY_SPAN_NUMBER_TAGS;
   }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_NUMBER_TAGS;
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SENTRY_TRACEMETRIC_NUMBER_TAGS;
+  }
   return SENTRY_LOG_NUMBER_TAGS;
+}
+
+function getDefaultBooleanAttributes(itemType: TraceItemDataset) {
+  if (itemType === TraceItemDataset.SPANS) {
+    return SENTRY_SPAN_BOOLEAN_TAGS;
+  }
+  if (itemType === TraceItemDataset.PREPROD) {
+    return SENTRY_PREPROD_BOOLEAN_TAGS;
+  }
+  if (itemType === TraceItemDataset.TRACEMETRICS) {
+    return SENTRY_TRACEMETRIC_BOOLEAN_TAGS;
+  }
+  return SENTRY_LOG_BOOLEAN_TAGS;
 }

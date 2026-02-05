@@ -1,11 +1,13 @@
 import moment from 'moment-timezone';
 
+import {Link} from '@sentry/scraps/link';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
@@ -21,16 +23,23 @@ import type {Policy, PolicyRevision} from 'getsentry/types';
 
 export default function PolicyDetails() {
   const api = useApi();
-  const {policySlug} = useParams();
+  const {policySlug} = useParams<{policySlug: string}>();
 
   const {
     data: policy,
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Policy>([`/policies/${policySlug}/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<Policy>(
+    [
+      getApiUrl(`/policies/$policySlug/`, {
+        path: {policySlug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;

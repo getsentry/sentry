@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
-import type {StackProps} from '@sentry/scraps/layout/stack';
+import type {StackProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 // interface + type union because `extends` doesn't play nicely with generics

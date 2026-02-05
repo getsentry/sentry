@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -92,7 +93,7 @@ function AllocationRow({
               <span
                 style={
                   allocation.consumedQuantity > allocation.reservedQuantity
-                    ? {color: theme.red400}
+                    ? {color: theme.colors.red500}
                     : {}
                 }
               >
@@ -126,7 +127,7 @@ function AllocationRow({
             size="xs"
             onClick={deleteAction}
             priority="danger"
-            style={deleteHovered ? {color: theme.red400} : {}}
+            style={deleteHovered ? {color: theme.colors.red500} : {}}
             onMouseEnter={() => setDeleteHovered(true)}
             onMouseLeave={() => setDeleteHovered(false)}
             data-test-id="delete"

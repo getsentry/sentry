@@ -77,7 +77,7 @@ function AddWidget({onAddWidget}: Props) {
               size: 'md',
               showChevron: false,
               icon: <IconAdd size="lg" variant="muted" />,
-              borderless: true,
+              priority: 'transparent',
             }}
           />
         </InnerWrapper>

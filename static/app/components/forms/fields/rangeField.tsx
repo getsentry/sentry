@@ -6,7 +6,8 @@ import {Slider} from 'sentry/components/slider';
 import type {InputFieldProps} from './inputField';
 
 export interface RangeFieldProps
-  extends Omit<SliderProps, 'value' | 'defaultValue' | 'disabled' | 'error'>,
+  extends
+    Omit<SliderProps, 'value' | 'defaultValue' | 'disabled' | 'error'>,
     Omit<
       InputFieldProps,
       | 'disabled'
