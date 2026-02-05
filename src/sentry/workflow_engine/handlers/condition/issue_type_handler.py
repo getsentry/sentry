@@ -24,9 +24,9 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
             "type": "object",
             "properties": {
                 "value": {"type": "integer", "enum": get_all_valid_type_ids()},
-                "type": {"type": "boolean"},
+                "include": {"type": "boolean"},
             },
-            "required": ["value"],  # if type is not present, then default to True
+            "required": ["value"],  # if include is not present, then default to True
             "additionalProperties": False,
         }
 
@@ -38,6 +38,6 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
         except (TypeError, InvalidGroupTypeError, KeyError, ValueError):
             return False
 
-        include = comparison.get("type", True)
+        include = comparison.get("include", True)
 
         return group.issue_type == value if include else group.issue_type != value

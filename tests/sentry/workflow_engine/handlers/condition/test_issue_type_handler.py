@@ -77,6 +77,6 @@ class TestIssueTypeCondition(ConditionTestCase):
         assert self.event.group is not None
         group_event = self.event.for_group(self.group)
 
-        self.dc.update(comparison={"value": ErrorGroupType.type_id, "type": False})
+        self.dc.update(comparison={"value": ErrorGroupType.type_id, "include": False})
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
