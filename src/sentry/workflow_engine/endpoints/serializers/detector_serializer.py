@@ -64,7 +64,7 @@ class DetectorSerializer(Serializer):
             ds.id: serialized
             for ds, serialized in zip(data_sources, serialize(data_sources, user=user))
         }
-        ds_map = defaultdict(list)
+        ds_map: defaultdict[int, list[Any]] = defaultdict(list)
         for dsd in dsd_list:
             ds_map[dsd.detector_id].append(serialized_data_sources[dsd.data_source_id])
 
@@ -82,7 +82,7 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
-        workflows_map = defaultdict(list)
+        workflows_map: defaultdict[int, list[str]] = defaultdict(list)
         detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
             "detector_id", "workflow_id"
         )

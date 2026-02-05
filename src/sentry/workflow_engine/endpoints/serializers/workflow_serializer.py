@@ -80,11 +80,11 @@ class WorkflowSerializer(Serializer):
             dcg.id: serialized
             for dcg, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
-        dcg_map = defaultdict(list)
+        dcg_map: defaultdict[int, list[Any]] = defaultdict(list)
         for wdcg in wdcg_list:
             dcg_map[wdcg.workflow_id].append(serialized_condition_groups[wdcg.condition_group_id])
 
-        detectors_map = defaultdict(list)
+        detectors_map: defaultdict[int, list[str]] = defaultdict(list)
         detector_workflows = DetectorWorkflow.objects.filter(workflow__in=item_list).values_list(
             "detector_id", "workflow_id"
         )

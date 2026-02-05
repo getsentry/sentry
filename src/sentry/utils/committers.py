@@ -78,7 +78,7 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
         release_commits = ReleaseCommit.objects.filter(release__in=missed).select_related(
             "commit", "release", "commit__author"
         )
-        to_cache = defaultdict(list)
+        to_cache: defaultdict[str, list[Commit]] = defaultdict(list)
         for rc in release_commits:
             to_cache[release_cache_key(rc.release)].append(rc.commit)
             if rc.commit not in commits:

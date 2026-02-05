@@ -360,7 +360,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             user_ids = autofix_state.actor_ids
             if user_ids:
                 users = user_service.serialize_many(
-                    filter={"user_ids": user_ids, "organization_id": request.organization.id},
+                    filter={"user_ids": user_ids, "organization_id": request.organization.id},  # type: ignore[attr-defined]
                     as_user=request.user,
                 )
 

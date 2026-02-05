@@ -9,7 +9,7 @@ from sentry.models.team import Team, TeamStatus
 TeamData = TypeVar("TeamData")
 DictOfMembers = dict[Any, list[TeamData]]
 MembersTeams = DictOfMembers[str]
-MembersTeamRoles = DictOfMembers[dict[str, str]]
+MembersTeamRoles = DictOfMembers[dict[str, str | None]]
 
 
 def get_teams_by_organization_member_id(
@@ -25,8 +25,8 @@ def get_teams_by_organization_member_id(
     teams = Team.objects.filter(id__in=team_ids)
     teams_by_id = {team.id: team for team in teams}
 
-    result_teams = defaultdict(list)
-    result_teams_with_roles = defaultdict(list)
+    result_teams: defaultdict[int, list[str]] = defaultdict(list)
+    result_teams_with_roles: defaultdict[int, list[dict[str, str | None]]] = defaultdict(list)
     for member_id, team_id, role in organization_member_tuples:
         teamSlug = teams_by_id[team_id].slug
         result_teams[member_id].append(teamSlug)  # Deprecated

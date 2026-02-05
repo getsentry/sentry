@@ -31,7 +31,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         """
 
         starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            organization=organization, user_id=request.user.id  # type: ignore[misc]
         ).select_related("group_search_view")
 
         return self.paginate(

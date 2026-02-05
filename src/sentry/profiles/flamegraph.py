@@ -323,7 +323,9 @@ class FlamegraphExecutor:
 
         results = self._query_chunks_for_profilers(queries)
 
-        profiler_metas_by_profiler = defaultdict(list)
+        profiler_metas_by_profiler: defaultdict[tuple[int, str], list[ProfilerMeta]] = defaultdict(
+            list
+        )
         for profiler_meta in profiler_metas:
             key = (profiler_meta.project_id, profiler_meta.profiler_id)
             profiler_metas_by_profiler[key].append(profiler_meta)

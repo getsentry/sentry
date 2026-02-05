@@ -480,7 +480,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             )
             return
 
-        user = User.objects.get(id=extra.get("user_id"))
+        user = User.objects.get(id=extra.get("user_id"))  # type: ignore[misc]
         # create the internal integration and link it to the join table
         sentry_app = SentryAppCreator(
             name="Vercel Internal Integration",

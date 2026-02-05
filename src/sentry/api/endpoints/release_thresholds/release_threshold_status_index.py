@@ -308,7 +308,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # ========================================================================
         # Step 4: Determine threshold status per threshold type and return results
         # ========================================================================
-        release_threshold_health = defaultdict(list)
+        release_threshold_health: defaultdict[str, list[EnrichedThreshold]] = defaultdict(list)
         for threshold_type, filter_list in thresholds_by_type.items():
             project_id_list = [proj_id for proj_id in filter_list["project_ids"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]

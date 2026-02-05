@@ -315,7 +315,7 @@ def _fetch_tags_or_values_for_mri(
 
     where = [Condition(Column("metric_id"), Op.IN, list(metric_ids))] if metric_ids else []
 
-    tag_or_value_ids_per_metric_id = defaultdict(list)
+    tag_or_value_ids_per_metric_id: defaultdict[int, list[Any]] = defaultdict(list)
     # This dictionary is required as a mapping from an entity to the ids available in it to
     # validate that constituent metrics of a SingleEntityDerivedMetric actually span a single
     # entity by validating that the ids of the constituent metrics all lie in the same entity

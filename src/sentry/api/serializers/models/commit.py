@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import PullRequestSerializerResponse
@@ -11,6 +13,9 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+
+if TYPE_CHECKING:
+    from sentry.models.release import Release
 
 
 class CommitSerializerResponse(TypedDict):
@@ -120,7 +125,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
         from sentry.models.releasecommit import ReleaseCommit
 
         attrs = super().get_attrs(item_list, user)
-        releases_by_commit = defaultdict(list)
+        releases_by_commit: defaultdict[int, list[Release]] = defaultdict(list)
         queryset = ReleaseCommit.objects.filter(commit__in=item_list).select_related("release")[
             :1000
         ]

@@ -602,8 +602,8 @@ def tokenize_query(query: str) -> dict[str, list[str]]:
 
     Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
-    result = defaultdict(list)
-    query_params = defaultdict(list)
+    result: defaultdict[str, list[str]] = defaultdict(list)
+    query_params: defaultdict[str, list[str]] = defaultdict(list)
     tokens = split_query_into_tokens(query)
     for token in tokens:
         if token.upper() in ["OR", "AND"] or token.strip("()") == "":

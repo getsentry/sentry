@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -31,7 +32,7 @@ class UserNotificationsSerializer(Serializer):
         ).select_related("user")
         keys_to_user_option_objects = {user_option.key: user_option for user_option in user_options}
 
-        results = defaultdict(list)
+        results: defaultdict[Any, list[UserOption]] = defaultdict(list)
         for user_option in keys_to_user_option_objects.values():
             results[user_option.user].append(user_option)
         return results

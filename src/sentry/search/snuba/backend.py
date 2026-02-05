@@ -49,12 +49,12 @@ def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
     include_none = False
-    types_to_actors = defaultdict(list)
+    types_to_actors: defaultdict[str | None, list[User | Team | None]] = defaultdict(list)
     for actor in actors:
         if actor is None:
             include_none = True
         types_to_actors[
-            (actor and actor.class_name()) if not isinstance(actor, SimpleLazyObject) else "User"
+            (actor and actor.class_name()) if not isinstance(actor, SimpleLazyObject) else "User"  # type: ignore[index]
         ].append(actor)
 
     query = Q()
@@ -173,13 +173,13 @@ def assigned_or_suggested_filter(
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
 
-    types_to_owners = defaultdict(list)
+    types_to_owners: defaultdict[str | None, list[User | Team | None]] = defaultdict(list)
     include_none = False
     for owner in owners:
         if owner is None:
             include_none = True
         types_to_owners[
-            (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
+            (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"  # type: ignore[index]
         ].append(owner)
 
     query = Q()

@@ -349,7 +349,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         )
 
         # group annotations by group id
-        annotations_by_group_id = defaultdict(list)
+        annotations_by_group_id: defaultdict[int, list[dict[str, str]]] = defaultdict(list)
         for group_link in group_links:
             issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
             annotations = self.map_external_issues_to_annotations(issues_for_group)

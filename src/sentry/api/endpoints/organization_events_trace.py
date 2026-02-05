@@ -687,8 +687,8 @@ def query_trace_data(
     ]
 
     # Join group IDs from the occurrence dataset to transactions data
-    occurrence_issue_ids = defaultdict(list)
-    occurrence_ids = defaultdict(list)
+    occurrence_issue_ids: defaultdict[str, list[Any]] = defaultdict(list)
+    occurrence_ids: defaultdict[str, list[Any]] = defaultdict(list)
     for row in transformed_results[2]:
         occurrence_issue_ids[row["event_id"]].extend(row["issue.ids"])
         occurrence_ids[row["event_id"]].append(row["occurrence_id"])
@@ -1021,7 +1021,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params = self.get_snuba_params(self.request, self.request.organization)
+            snuba_params = self.get_snuba_params(self.request, self.request.organization)  # type: ignore[attr-defined]
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
@@ -1173,7 +1173,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params = self.get_snuba_params(self.request, self.request.organization)
+        snuba_params = self.get_snuba_params(self.request, self.request.organization)  # type: ignore[attr-defined]
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
         if roots:
@@ -1363,7 +1363,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             raise ParseError("Cannot return a detailed response using Spans")
 
         with sentry_sdk.start_span(op="serialize", name="create parent map"):
-            parent_to_children_event_map = defaultdict(list)
+            parent_to_children_event_map: defaultdict[str, list[TraceEvent]] = defaultdict(list)
             serialized_transactions: list[TraceEvent] = []
             for transaction in transactions:
                 parent_id = transaction["trace.parent_transaction"]
@@ -1384,7 +1384,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     parent_to_children_event_map[parent_id].append(serialized_transaction)
                 serialized_transactions.append(serialized_transaction)
 
-        parent_error_map = defaultdict(list)
+        parent_error_map: defaultdict[str | None, list[TraceError]] = defaultdict(list)
         for error in errors:
             if error.get("trace.transaction") is not None:
                 parent_error_map[error["trace.transaction"]].append(self.serialize_error(error))

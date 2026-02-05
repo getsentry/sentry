@@ -78,7 +78,7 @@ class MockServiceMethod:
 
 class MockChannel:
     def __init__(self):
-        self._responses = defaultdict(list)
+        self._responses: defaultdict[str, list[MockServiceCall]] = defaultdict(list)
 
     def unary_unary(
         self,

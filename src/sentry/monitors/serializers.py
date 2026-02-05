@@ -264,7 +264,7 @@ class MonitorSerializer(Serializer):
         for monitor_env in monitor_environments:
             monitor_env.set_cached_field_value("monitor", monitors_by_id[monitor_env.monitor_id])
 
-        serialized_monitor_environments = defaultdict(list)
+        serialized_monitor_environments: defaultdict[int, list[Any]] = defaultdict(list)
 
         for monitor_env, serialized in zip(
             monitor_environments, serialize(monitor_environments, user)

@@ -605,7 +605,7 @@ class ReleaseSerializer(Serializer):
         release_metadata_attrs = _get_last_commit_metadata(item_list, user)
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
-        release_projects = defaultdict(list)
+        release_projects: defaultdict[int, list[_ProjectDict]] = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
             "new_groups",
             "release_id",
@@ -619,7 +619,7 @@ class ReleaseSerializer(Serializer):
         platforms = ProjectPlatform.objects.filter(
             project_id__in={x["project__id"] for x in project_releases}
         ).values_list("project_id", "platform")
-        platforms_by_project = defaultdict(list)
+        platforms_by_project: defaultdict[int, list[str]] = defaultdict(list)
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 

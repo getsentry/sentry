@@ -87,7 +87,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                 continue
 
             # TODO: convert timezones to UTC offsets and group
-            users_by_tz = defaultdict(list)
+            users_by_tz: defaultdict[str, list[int]] = defaultdict(list)
             users_with_tz = user_option_service.get_many(
                 filter=dict(user_ids=user_ids, key="timezone")
             )
@@ -96,7 +96,7 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                 user_option.user_id for user_option in users_with_tz
             }
             if users_with_tz:
-                users_by_tz["UTC"] = list(users_without_tz)
+                users_by_tz["UTC"] = [uid for uid in users_without_tz if uid is not None]
             for user_option in users_with_tz:
                 users_by_tz[user_option.value].append(user_option.user_id)
 

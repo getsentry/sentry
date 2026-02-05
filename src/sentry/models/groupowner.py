@@ -238,7 +238,7 @@ def get_owner_details(group_list: Sequence[Group]) -> dict[int, list[OwnersSeria
     group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
         user_id__isnull=True, team_id__isnull=True
     )
-    owner_details = defaultdict(list)
+    owner_details: defaultdict[int, list[OwnersSerialized]] = defaultdict(list)
     for go in group_owners:
         owner_details[go.group_id].append(
             OwnersSerialized(

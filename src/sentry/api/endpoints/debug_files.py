@@ -349,7 +349,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if request.GET.get("id") and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)  # type: ignore[misc]
                     .select_related("file")
                     .first()
                 )

@@ -138,7 +138,7 @@ def _backfill_group_open_periods(
     # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
     # but we don't create an entry for that.
 
-    activities = defaultdict(list)
+    activities: defaultdict[int, list[Any]] = defaultdict(list)
 
     try:
         for activity in Activity.objects.filter(

@@ -95,7 +95,7 @@ def handle_discard(
             detail="Only error issues can be discarded."
         )
     # grouped by project_id
-    groups_to_delete = defaultdict(list)
+    groups_to_delete: defaultdict[int, list[Group]] = defaultdict(list)
 
     for group in group_list:
         with transaction.atomic(router.db_for_write(GroupTombstone)):

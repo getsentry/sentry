@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -363,10 +365,10 @@ def query_attribute_distributions(
         totals_2_result = totals_2_future.result()
 
     cohort_1_distribution = []
-    cohort_1_distribution_map = defaultdict(list)
+    cohort_1_distribution_map: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
 
     cohort_2_distribution = []
-    cohort_2_distribution_map = defaultdict(list)
+    cohort_2_distribution_map: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
     processed_cohort_2_buckets = set()
 
     for attribute in cohort_2_data:

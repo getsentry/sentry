@@ -12,6 +12,7 @@ from sentry.incidents.endpoints.serializers.incident import (
 )
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
@@ -91,7 +92,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             gopas = list(
                 GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)[:1000]
             )
-            open_period_activities = defaultdict(list)
+            open_period_activities: defaultdict[int, list[Any]] = defaultdict(list)
             # XXX: the incident endpoint is undocumented, so we aren' on the hook for supporting
             # any specific payloads. Since this isn't used on the Sentry side for notification charts,
             # I've opted to just use the GroupOpenPeriodActivity serializer.
@@ -110,7 +111,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
     ) -> dict[GroupOpenPeriod, Detector]:
         # open period -> group -> detector via detectorgroup
         groups = [op.group for op in open_periods]
-        group_to_open_periods = defaultdict(list)
+        group_to_open_periods: defaultdict[Group, list[GroupOpenPeriod]] = defaultdict(list)
 
         for op in open_periods:
             group_to_open_periods[op.group].append(op)

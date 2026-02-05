@@ -16,7 +16,7 @@ class DataConditionGroupSerializer(Serializer):
         self, item_list: Sequence[DataConditionGroup], user: Any, **kwargs: Any
     ) -> MutableMapping[DataConditionGroup, dict[str, Any]]:
         attrs: MutableMapping[DataConditionGroup, dict[str, Any]] = defaultdict(dict)
-        conditions = defaultdict(list)
+        conditions: defaultdict[int, list[Any]] = defaultdict(list)
 
         condition_list = list(DataCondition.objects.filter(condition_group__in=item_list))
 
@@ -30,7 +30,7 @@ class DataConditionGroupSerializer(Serializer):
             action.id: serialized
             for action, serialized in zip(actions, serialize(actions, user=user))
         }
-        action_map = defaultdict(list)
+        action_map: defaultdict[int, list[Any]] = defaultdict(list)
         for dcga in dcga_list:
             action_map[dcga.condition_group_id].append(serialized_actions[dcga.action_id])
 

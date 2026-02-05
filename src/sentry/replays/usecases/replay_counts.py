@@ -134,7 +134,7 @@ def _get_replay_id_mappings(
         referrer="api.organization-issue-replay-count",
     )
 
-    replay_id_to_issue_map = defaultdict(list)
+    replay_id_to_issue_map: defaultdict[str, list[Any]] = defaultdict(list)
 
     for row in results["data"]:
         for replay_id in row["group_uniq_array_100_replay_id"]:

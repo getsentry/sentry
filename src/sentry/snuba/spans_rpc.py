@@ -253,7 +253,7 @@ class Spans(rpc_dataset_common.RPCBase):
             if "attributeDistributions" in stats_types and result.HasField(
                 "attribute_distributions"
             ):
-                attrs = defaultdict(list)
+                attrs: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
                 for attribute in result.attribute_distributions.attributes:
                     if not can_expose_attribute(
                         attribute.attribute_name, SupportedTraceItemType.SPANS

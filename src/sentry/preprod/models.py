@@ -234,7 +234,9 @@ class PreprodArtifact(DefaultFieldsModel):
             .order_by("app_id", "artifact_type", "build_configuration_id", "date_added")
         )
 
-        artifacts_by_key = defaultdict(list)
+        artifacts_by_key: defaultdict[
+            tuple[str | None, int | None, int | None], list[PreprodArtifact]
+        ] = defaultdict(list)
         for artifact in all_artifacts:
             key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
             artifacts_by_key[key].append(artifact)

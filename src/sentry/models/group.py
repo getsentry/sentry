@@ -347,7 +347,7 @@ class GroupManager(BaseManager["Group"]):
         if not short_ids:
             raise Group.DoesNotExist()
 
-        project_short_id_lookup = defaultdict(list)
+        project_short_id_lookup: defaultdict[str, list[int]] = defaultdict(list)
         for short_id in short_ids:
             project_short_id_lookup[short_id.project_slug].append(short_id.short_id)
 
@@ -373,7 +373,7 @@ class GroupManager(BaseManager["Group"]):
         # If any requested short_ids are missing after the exact slug match,
         # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
         # Handles legacy project slugs that may not be entirely lowercase.
-        missing_by_slug = defaultdict(list)
+        missing_by_slug: defaultdict[str, list[int]] = defaultdict(list)
         for sid in short_ids:
             if sid.short_id not in group_lookup:
                 missing_by_slug[sid.project_slug].append(sid.short_id)

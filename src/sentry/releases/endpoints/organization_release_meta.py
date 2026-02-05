@@ -93,7 +93,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         platforms = ProjectPlatform.objects.filter(
             project_id__in={x["project__id"] for x in project_releases}
         ).values_list("project_id", "platform")
-        platforms_by_project = defaultdict(list)
+        platforms_by_project: defaultdict[int, list[str]] = defaultdict(list)
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 

@@ -583,8 +583,8 @@ class CheckAM2Compatibility:
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
 
-        unsupported_widgets = defaultdict(list)
-        ondemand_supported_widgets = defaultdict(list)
+        unsupported_widgets: defaultdict[int, list[tuple[int, Any, Any]]] = defaultdict(list)
+        ondemand_supported_widgets: defaultdict[int, list[tuple[int, Any, Any]]] = defaultdict(list)
         ondemand_widget_ids = cls.get_ondemand_widget_ids(org_id)
 
         for (

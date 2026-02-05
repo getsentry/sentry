@@ -68,7 +68,7 @@ def handle_archived_until_escalating(
         },
     )
 
-    groups_by_project_id = defaultdict(list)
+    groups_by_project_id: defaultdict[int, list[Group]] = defaultdict(list)
     for group in group_list:
         groups_by_project_id[group.project_id].append(group)
 

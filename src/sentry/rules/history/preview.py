@@ -165,7 +165,7 @@ def get_issue_state_activity(
     """
     Returns a list of issue state change activities for each active group in the given time range
     """
-    group_activity = defaultdict(list)
+    group_activity: defaultdict[int, list[ConditionActivity]] = defaultdict(list)
     for condition in conditions:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
@@ -328,8 +328,8 @@ def get_events(
     """
     Returns events that have caused issue state changes.
     """
-    group_ids = defaultdict(list)
-    event_ids = defaultdict(list)
+    group_ids: defaultdict[Dataset, list[int]] = defaultdict(list)
+    event_ids: defaultdict[Dataset, list[str]] = defaultdict(list)
     dataset_map = get_group_dataset(list(group_activity.keys()))
     for group, activities in group_activity.items():
         dataset = dataset_map[group]
@@ -373,7 +373,7 @@ def get_events(
         query_params.append(SnubaQueryParams(**kwargs, tenant_ids=tenant_ids))
 
     # query events by event_id
-    for dataset, ids in event_ids.items():
+    for dataset, eids in event_ids.items():
         if dataset not in columns:
             continue
         query_params.append(
@@ -382,7 +382,7 @@ def get_events(
                 start=start,
                 end=end,
                 filter_keys={"project_id": [project.id]},
-                conditions=[("event_id", "IN", ids)],
+                conditions=[("event_id", "IN", eids)],
                 selected_columns=columns[dataset],
                 tenant_ids=tenant_ids,
             )
@@ -426,7 +426,7 @@ def apply_frequency_conditions(
     """
     Applies frequency conditions to issue state activity.
     """
-    condition_types = defaultdict(list)
+    condition_types: defaultdict[str, list[RuleBase]] = defaultdict(list)
     for condition_data in frequency_conditions:
         condition_cls = rules.get(condition_data["id"])
         if condition_cls is None:
@@ -435,7 +435,7 @@ def apply_frequency_conditions(
             condition_cls(project=project, data=condition_data)
         )
 
-    filtered_activity = defaultdict(list)
+    filtered_activity: defaultdict[int, list[ConditionActivity]] = defaultdict(list)
     if condition_match == "all":
         for group, activities in group_activity.items():
             init_activities_from_freq_cond = False

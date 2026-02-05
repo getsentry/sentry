@@ -229,7 +229,7 @@ def link_crons_to_compatible_issue_workflows(
     Monitor = apps.get_model("monitors", "Monitor")
 
     cron_detectors_all = Detector.objects.filter(type="monitor_check_in_failure")
-    detectors_by_project = defaultdict(list)
+    detectors_by_project: defaultdict[int, list[Any]] = defaultdict(list)
     for detector in cron_detectors_all:
         detectors_by_project[detector.project_id].append(detector)
 

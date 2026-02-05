@@ -155,7 +155,7 @@ class Node(UserDict):
 
     @classmethod
     def _merge_nodes(cls, nodes: Iterable["Node"]) -> "Node":
-        children_by_name = defaultdict(list)
+        children_by_name: defaultdict[Edge, list[Node]] = defaultdict(list)
         for node in nodes:
             for name, child in node.items():
                 children_by_name[name].append(child)

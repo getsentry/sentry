@@ -2,6 +2,7 @@
 import json  # noqa: S003
 from collections import defaultdict
 from copy import deepcopy
+from typing import Any
 
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -16,7 +17,7 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
     AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
-    rules_by_org = defaultdict(list)
+    rules_by_org: defaultdict[int, list[Any]] = defaultdict(list)
     for rule in Rule.objects.filter(source=1):
         rules_by_org[rule.project.organization_id].append(rule)
 
@@ -40,7 +41,7 @@ def dedupe_cron_shadow_workflows(apps: StateApps, schema_editor: BaseDatabaseSch
         monitor_id_to_detector = {
             int(dsl.data_source.source_id): dsl.detector for dsl in data_source_links
         }
-        rule_hashes = defaultdict(list)
+        rule_hashes: defaultdict[str, list[int]] = defaultdict(list)
         for rule in rules:
             data = deepcopy(rule.data)
             # Clean up the data so that it's easy to compare

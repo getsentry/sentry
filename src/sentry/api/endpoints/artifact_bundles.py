@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from collections import defaultdict
 
@@ -141,7 +143,9 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             ).select_related("artifact_bundle")
             # We group the bundles by their id, since we might have multiple bundles with the same bundle_id due to a
             # problem that was fixed in https://github.com/getsentry/sentry/pull/49836.
-            grouped_bundles = defaultdict(list)
+            grouped_bundles: defaultdict[ArtifactBundle, list[ProjectArtifactBundle]] = defaultdict(
+                list
+            )
             for project_artifact_bundle in project_artifact_bundles_qs:
                 grouped_bundles[project_artifact_bundle.artifact_bundle].append(
                     project_artifact_bundle

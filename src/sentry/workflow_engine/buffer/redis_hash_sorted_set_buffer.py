@@ -276,7 +276,7 @@ class RedisHashSortedSetBuffer:
 
     def _group_keys_by_slot(self, keys: Sequence[str]) -> list[list[str]]:
         """Group keys by their Redis cluster slot."""
-        slot_groups = defaultdict(list)
+        slot_groups: defaultdict[int, list[str]] = defaultdict(list)
         for key in keys:
             slot = self._calculate_key_slot(key)
             slot_groups[slot].append(key)
@@ -287,7 +287,7 @@ class RedisHashSortedSetBuffer:
     ) -> dict[str, list[int]]:
         """Parse flat array result from Lua script and return results dict."""
         # Parse flat array result: [key1, member1, key1, member2, key2, member3, ...]
-        slot_results_dict = defaultdict(list)
+        slot_results_dict: defaultdict[str, list[int]] = defaultdict(list)
         for key_raw, member_raw in _by_pairs(slot_result):
             key = _decode_redis_value(key_raw)
             member_int = int(_decode_redis_value(member_raw))
@@ -383,7 +383,7 @@ class RedisHashSortedSetBuffer:
         self, cluster: rb.Cluster, keys: Sequence[str]
     ) -> dict[str, list[str]]:
         """Group keys by their rb.Cluster host for efficient batching."""
-        host_groups = defaultdict(list)
+        host_groups: defaultdict[str, list[str]] = defaultdict(list)
         router = cluster.get_router()
 
         for key in keys:

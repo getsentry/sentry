@@ -301,7 +301,7 @@ def build_group_to_groupevent(
         start_timestamp = instance_data.get("start_timestamp")
 
         if event_id is None:
-            logger.info(
+            logger.info(  # type: ignore[unreachable]
                 "delayed_processing.missing_event_id",
                 extra={"rule": rule_group[0], "project_id": project_id},
             )
@@ -722,7 +722,9 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
             },
         )
 
-    rules_to_slow_conditions = defaultdict(list)
+    rules_to_slow_conditions: defaultdict[Rule, list[EventFrequencyConditionData]] = defaultdict(
+        list
+    )
     for rule in alert_rules:
         rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
 

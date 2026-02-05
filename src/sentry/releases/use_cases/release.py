@@ -130,7 +130,7 @@ def get_projects(
     projects: Iterable[Project],
     fetch_platforms: Callable[[Iterable[int]], list[tuple[int, str]]],
 ) -> dict[int, BaseProject]:
-    platforms = defaultdict(list)
+    platforms: defaultdict[int, list[str]] = defaultdict(list)
     for project_id, platform in fetch_platforms([p.id for p in projects]):
         platforms[project_id].append(platform)
 

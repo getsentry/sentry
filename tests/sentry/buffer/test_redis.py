@@ -205,7 +205,7 @@ class TestRedisBuffer:
             assert pending == [key.encode("utf-8")]
 
     def group_rule_data_by_project_id(self, buffer, project_ids):
-        project_ids_to_rule_data = defaultdict(list)
+        project_ids_to_rule_data: defaultdict[int, list[dict[str, str]]] = defaultdict(list)
         for proj_id in project_ids:
             rule_group_pairs = buffer.get_hash(Project, {"project_id": proj_id[0]})
             for k, v in rule_group_pairs.items():

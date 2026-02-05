@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -13,6 +15,9 @@ from sentry.users.services.user.model import RpcUser
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithProjectsResponse
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 
 class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
@@ -47,7 +52,7 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         # Previously, we were using a `select_related` when fetching the OrganizationMember.
         # This resulted in django trying to set the attributes for the many to many relation
         # which was slow.
-        team_ids_by_member_id = defaultdict(list)
+        team_ids_by_member_id: defaultdict[int, list[int]] = defaultdict(list)
 
         # Be very careful here. We are intentionally only using `team_id` and `organizationmember_id`.
         # This is to stop django from fetching these models. We don't even want django to do
@@ -60,7 +65,7 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         #
         # We require the caller to pass in the list of projects (not just ids to avoid an extra query)
         # Make sure we only work with `team_id` and not the team object so django doesn't fetching it.
-        projects_by_team_id = defaultdict(list)
+        projects_by_team_id: defaultdict[int, list[Project]] = defaultdict(list)
 
         for project_team in ProjectTeam.objects.filter(
             project_id__in=self.project_ids,

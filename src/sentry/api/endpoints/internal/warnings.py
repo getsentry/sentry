@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 from collections import defaultdict
 
@@ -25,7 +27,7 @@ class InternalWarningsEndpoint(Endpoint):
             UnsupportedBackend: "Unsupported Backends",
         }
 
-        groups = defaultdict(list)
+        groups: defaultdict[type, list[str]] = defaultdict(list)
         warnings = []
         for warning in seen_warnings:
             cls = type(warning)

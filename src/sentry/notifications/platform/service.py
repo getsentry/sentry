@@ -134,7 +134,7 @@ class NotificationService[T: NotificationData]:
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
         targets = self._get_targets(strategy=strategy, targets=targets)
 
-        errors = defaultdict(list)
+        errors: defaultdict[NotificationProviderKey, list[str]] = defaultdict(list)
         for target in targets:
             try:
                 self.notify_target(target=target)

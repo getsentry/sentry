@@ -637,7 +637,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
     def semver_package_autocomplete_function(self):
         packages = (
             Release.objects.filter(
-                organization_id=self.snuba_params.organization_id,
+                organization_id=self.snuba_params.organization_id,  # type: ignore[misc]
                 package__startswith=self.query,
             )
             .values_list("package")
@@ -645,7 +645,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
 
         versions = Release.objects.filter(
-            organization_id=self.snuba_params.organization_id,
+            organization_id=self.snuba_params.organization_id,  # type: ignore[misc]
             package__in=packages,
             id__in=ReleaseProject.objects.filter(
                 project_id__in=self.snuba_params.project_ids

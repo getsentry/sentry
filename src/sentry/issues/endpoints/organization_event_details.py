@@ -32,7 +32,7 @@ VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 def add_comparison_to_event(event, average_columns, request: Request):
     if "spans" not in event.data:
         return
-    group_to_span_map = defaultdict(list)
+    group_to_span_map: defaultdict[str, list[Any]] = defaultdict(list)
     end = datetime.now()
     start = end - timedelta(hours=24)
     for span in event.data["spans"]:

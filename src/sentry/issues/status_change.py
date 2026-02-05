@@ -125,7 +125,7 @@ def handle_status_update(
         if activity_data["ignoreUntil"] is not None:
             activity_data["ignoreUntil"] = json.datetime_to_str(activity_data["ignoreUntil"])
 
-        groups_by_project_id = defaultdict(list)
+        groups_by_project_id: defaultdict[int, list[Group]] = defaultdict(list)
         for group in group_list:
             groups_by_project_id[group.project_id].append(group)
 

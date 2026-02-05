@@ -399,7 +399,7 @@ def is_user_signed_request(request: Request) -> bool:
     This function returns True if the request is a signed valid link
     """
     try:
-        return bool(request.user_from_signed_request)
+        return bool(request.user_from_signed_request)  # type: ignore[attr-defined]
     except AttributeError:
         return False
 

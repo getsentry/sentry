@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
@@ -60,7 +62,7 @@ class OrganizationMemberSerializer(Serializer):
             u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
         }
 
-        external_users_map = defaultdict(list)
+        external_users_map: defaultdict[str, list[Any]] = defaultdict(list)
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
             external_actors = list(

@@ -116,7 +116,7 @@ def get_access_by_project(
         "project_id", "team_id"
     )
 
-    project_to_teams = defaultdict(list)
+    project_to_teams: defaultdict[int, list[int]] = defaultdict(list)
     teams_list = []
     for project_id, team_id in project_teams:
         project_to_teams[project_id].append(team_id)
@@ -184,7 +184,7 @@ def get_environments_by_projects(projects: Sequence[Project]) -> MutableMapping[
         .values("project_id", "environment__name")
     )
 
-    environments_by_project = defaultdict(list)
+    environments_by_project: defaultdict[int, list[str]] = defaultdict(list)
     for project_env in project_envs:
         environments_by_project[project_env["project_id"]].append(project_env["environment__name"])
 
@@ -198,11 +198,11 @@ def get_features_for_projects(
 ) -> MutableMapping[Project, list[str]]:
     # Arrange to call features.has_for_batch rather than features.has
     # for performance's sake
-    projects_by_org = defaultdict(list)
+    projects_by_org: defaultdict[Any, list[Project]] = defaultdict(list)
     for project in all_projects:
         projects_by_org[project.organization].append(project)
 
-    features_by_project = defaultdict(list)
+    features_by_project: defaultdict[Project, list[str]] = defaultdict(list)
     project_features = [
         feature
         for feature in features.all(feature_type=ProjectFeature).keys()
@@ -396,7 +396,7 @@ class ProjectSerializer(Serializer):
         platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
             "project_id", "platform"
         )
-        platforms_by_project = defaultdict(list)
+        platforms_by_project: defaultdict[int, list[str]] = defaultdict(list)
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
@@ -640,7 +640,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             for pt in project_teams
         }
 
-        teams_by_project_id = defaultdict(list)
+        teams_by_project_id: defaultdict[int, list[dict[str, str]]] = defaultdict(list)
         for pt in project_teams:
             teams_by_project_id[pt.project_id].append(teams[pt.team_id])
 

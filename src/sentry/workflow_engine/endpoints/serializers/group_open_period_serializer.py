@@ -69,7 +69,9 @@ class GroupOpenPeriodSerializer(Serializer):
 
         activities = first_activity_qs.union(activities).order_by("date_added")
 
-        gopas = defaultdict(list)
+        gopas: defaultdict[GroupOpenPeriod, list[GroupOpenPeriodActivityResponse]] = defaultdict(
+            list
+        )
         for activity, serialized_activity in zip(
             activities, serialize(list(activities), user=user, **kwargs)
         ):

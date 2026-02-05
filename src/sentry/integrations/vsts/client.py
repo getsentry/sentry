@@ -167,7 +167,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
     def identity(self):
         if self._identity:
             return self._identity
-        self._identity = Identity.objects.get(id=self.identity_id)
+        self._identity = Identity.objects.get(id=self.identity_id)  # type: ignore[misc]
         return self._identity
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> Any:

@@ -173,7 +173,7 @@ def schedule_tasks_to_delete_groups(
     if not group_list:
         return Response(status=204)
 
-    groups_by_project_id = defaultdict(list)
+    groups_by_project_id: defaultdict[int, list[Group]] = defaultdict(list)
     for group in group_list:
         groups_by_project_id[group.project_id].append(group)
 

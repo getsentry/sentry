@@ -287,7 +287,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             detector_workflow_values = DetectorWorkflow.objects.filter(
                 detector__in=detector_ids
             ).values_list("detector_id", "workflow_id")
-            detector_id_to_workflow_ids = defaultdict(list)
+            detector_id_to_workflow_ids: defaultdict[int, list[int]] = defaultdict(list)
             for detector_id, workflow_id in detector_workflow_values:
                 detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
@@ -295,11 +295,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
             )
 
-            workflow_id_to_action_ids = defaultdict(list)
+            workflow_id_to_action_ids: defaultdict[int, list[int]] = defaultdict(list)
             for workflow_id, action_id in workflow_action_values:
                 workflow_id_to_action_ids[workflow_id].append(action_id)
 
-            detector_to_action_ids = defaultdict(list)
+            detector_to_action_ids: defaultdict[Detector, list[int]] = defaultdict(list)
             for detector_id in detectors:
                 for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
                     detector_to_action_ids[detectors[detector_id]].extend(

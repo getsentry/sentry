@@ -306,8 +306,8 @@ def _run_perf_issues_query(occurrence_query: DiscoverQueryBuilder):
     result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
     occurrence_data = occurrence_query.process_results(result)["data"]
 
-    occurrence_ids = defaultdict(list)
-    occurrence_issue_ids = defaultdict(list)
+    occurrence_ids: defaultdict[Any, list[Any]] = defaultdict(list)
+    occurrence_issue_ids: defaultdict[Any, list[Any]] = defaultdict(list)
     issue_occurrences = []
     for event in occurrence_data:
         event["event_type"] = "occurrence"
@@ -532,7 +532,7 @@ def query_trace_data(
     id_to_error: dict[str, Any] = {}
     for event in errors_data:
         id_to_error.setdefault(event["trace.span"], []).append(event)
-    id_to_occurrence = defaultdict(list)
+    id_to_occurrence: defaultdict[str, list[Any]] = defaultdict(list)
     with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])

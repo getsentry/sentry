@@ -259,7 +259,7 @@ class BaseTeamSerializer(Serializer):
                 )
             }
 
-            project_map = defaultdict(list)
+            project_map: defaultdict[int, list[Any]] = defaultdict(list)
             for project_team in project_teams:
                 project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
@@ -271,7 +271,7 @@ class BaseTeamSerializer(Serializer):
                 ExternalActor.objects.filter(team_id__in={team.id for team in item_list})
             )
 
-            external_teams_map = defaultdict(list)
+            external_teams_map: defaultdict[str, list[Any]] = defaultdict(list)
             serialized_list = serialize(external_actors, user, key="team")
             for serialized in serialized_list:
                 external_teams_map[serialized["teamId"]].append(serialized)

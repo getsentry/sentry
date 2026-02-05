@@ -3,6 +3,7 @@ import json  # noqa: S003
 import logging
 from collections import defaultdict
 from copy import deepcopy
+from typing import Any
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -73,7 +74,7 @@ def fix_cron_to_cron_workflow_links(
     unlink_monitors_without_alert_rules(apps)
 
     # Handle monitors with alert_rule_id based on their deduped workflows
-    rules_by_org = defaultdict(list)
+    rules_by_org: defaultdict[int, list[Any]] = defaultdict(list)
     for rule in Rule.objects.filter(source=1):
         rules_by_org[rule.project.organization_id].append(rule)
 
@@ -88,7 +89,7 @@ def fix_cron_to_cron_workflow_links(
         if not rules:
             continue
 
-        rule_hashes = defaultdict(list)
+        rule_hashes: defaultdict[str, list[int]] = defaultdict(list)
         for rule in rules:
             data = deepcopy(rule.data)
             for action in data.get("actions", []):

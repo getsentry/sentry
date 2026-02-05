@@ -258,7 +258,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    aggregated_projects = defaultdict(list)
+    aggregated_projects: defaultdict[int, list[tuple[int, int, int, int]]] = defaultdict(list)
     project_count_query_iter = query_project_counts_by_org(org_ids, measure, query_interval)
     for chunk in project_count_query_iter:
         for org_id, project_id, root_count_value, keep_count, drop_count in chunk:

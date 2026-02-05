@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db.models import prefetch_related_objects
 
@@ -44,7 +44,7 @@ class IncidentSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "alert_rule__snuba_query")
-        incident_projects = defaultdict(list)
+        incident_projects: defaultdict[int, list[str]] = defaultdict(list)
         for incident_project in IncidentProject.objects.filter(
             incident__in=item_list
         ).select_related("project"):
@@ -68,7 +68,7 @@ class IncidentSerializer(Serializer):
             # There could be many activities. An incident could seesaw between error/warning for a long period.
             # e.g - every 1 minute for 10 months
             activities = list(IncidentActivity.objects.filter(incident__in=item_list)[:1000])
-            incident_activities = defaultdict(list)
+            incident_activities: defaultdict[int, list[Any]] = defaultdict(list)
             for activity, serialized_activity in zip(activities, serialize(activities, user=user)):
                 incident_activities[activity.incident_id].append(serialized_activity)
             for incident in item_list:

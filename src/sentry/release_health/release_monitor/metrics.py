@@ -38,7 +38,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         with metrics.timer(
             "release_monitor.fetch_projects_with_recent_sessions.loop", sample_rate=1.0
         ):
-            aggregated_projects = defaultdict(list)
+            aggregated_projects: defaultdict[int, list[int]] = defaultdict(list)
             start_time = time.time()
             offset = 0
             while (time.time() - start_time) < self.MAX_SECONDS:
@@ -101,7 +101,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         with metrics.timer(
             "release_monitor.fetch_projects_with_recent_sessions.loop", sample_rate=1.0
         ):
-            aggregated_projects = defaultdict(list)
+            aggregated_projects: defaultdict[int, list[int]] = defaultdict(list)
             start_time = time.time()
             prev_org_id = 0
             prev_project_id = 0

@@ -930,7 +930,7 @@ class RPCBase:
             raise
 
         """Process the results"""
-        map_result_key_to_timeseries = defaultdict(list)
+        map_result_key_to_timeseries: defaultdict[str, list[TimeSeries]] = defaultdict(list)
 
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 

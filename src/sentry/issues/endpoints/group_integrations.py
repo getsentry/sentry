@@ -46,7 +46,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             integration_id__in=[i.id for i in item_list],
         )
 
-        issues_by_integration = defaultdict(list)
+        issues_by_integration: defaultdict[int, list[dict[str, Any]]] = defaultdict(list)
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
             integration = integration_service.get_integration(integration_id=ei.integration_id)
