@@ -128,7 +128,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         if not request.user.is_authenticated:
             return Response(status=400)
 
-        org: Organization = request.organization  # type: ignore[attr-defined]
+        org: Organization = request.organization
 
         integration_check = None
         # This check is to skip using the GitHub integration for Autofix in s4s.

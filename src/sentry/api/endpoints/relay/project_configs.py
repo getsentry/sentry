@@ -39,7 +39,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     enforce_rate_limit = False
 
     def post(self, request: Request):
-        relay = request.relay  # type: ignore[attr-defined]
+        relay = request.relay
         assert relay is not None  # should be provided during Authentication
         response: dict[str, Any] = {}
 
@@ -49,7 +49,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "3" and request.relay_request_data.get("global"):  # type: ignore[attr-defined]
+        if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
             response["global_status"] = "ready"
 
@@ -110,7 +110,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return post_or_schedule
 
     def _post_or_schedule_by_key(self, request: Request):
-        public_keys = set(request.relay_request_data.get("publicKeys") or ())  # type: ignore[attr-defined]
+        public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         proj_configs = {}
         pending = []
@@ -144,7 +144,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return None
 
     def _post_by_key(self, request: Request) -> MutableMapping[str, ProjectConfig]:
-        public_keys = request.relay_request_data.get("publicKeys")  # type: ignore[attr-defined]
+        public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
         project_keys: MutableMapping[str, ProjectKey] = {}
@@ -176,7 +176,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_orgs"):
             with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                 for org in Organization.objects.get_many_from_cache(organization_ids):
-                    if request.relay.has_org_access(org):  # type: ignore[attr-defined]
+                    if request.relay.has_org_access(org):
                         orgs[org.id] = org
 
         with start_span(op="relay_fetch_org_options"):
@@ -221,7 +221,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return configs
 
     def _post_by_project(self, request: Request) -> MutableMapping[str, ProjectConfig]:
-        project_ids = set(request.relay_request_data.get("projects") or ())  # type: ignore[attr-defined]
+        project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):
             if project_ids:
@@ -237,7 +237,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                     orgs_seq = Organization.objects.get_many_from_cache(org_ids)
-                    orgs = {o.id: o for o in orgs_seq if request.relay.has_org_access(o)}  # type: ignore[attr-defined]
+                    orgs = {o.id: o for o in orgs_seq if request.relay.has_org_access(o)}
             else:
                 orgs = {}
 

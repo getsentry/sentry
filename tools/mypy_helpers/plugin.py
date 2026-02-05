@@ -132,6 +132,11 @@ def _adjust_http_request_members(ctx: ClassDefContext) -> None:
         # added by sentry.middleware.superuser
         # TODO: figure out how to get the real types here
         add_attribute_to_class(ctx.api, ctx.cls, "superuser", AnyType(TypeOfAny.explicit))
+        # added by OrganizationEndpoint.convert_args and similar
+        add_attribute_to_class(ctx.api, ctx.cls, "organization", AnyType(TypeOfAny.explicit))
+        # added by sentry.api.authentication.RelayAuthentication
+        add_attribute_to_class(ctx.api, ctx.cls, "relay", AnyType(TypeOfAny.explicit))
+        add_attribute_to_class(ctx.api, ctx.cls, "relay_request_data", AnyType(TypeOfAny.explicit))
 
 
 def _adjust_request_members(ctx: ClassDefContext) -> None:
