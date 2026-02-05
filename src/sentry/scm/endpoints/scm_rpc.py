@@ -50,7 +50,7 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class ScmRpcSignatureAuthentication(StandardAuthentication):
     """
-    Authentication for seer RPC requests.
+    Authentication for SCM RPC requests.
     Requests are sent with an HMAC signed by a shared private key.
     """
 
@@ -65,7 +65,7 @@ class ScmRpcSignatureAuthentication(StandardAuthentication):
         if not compare_request_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("scm_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -155,17 +155,16 @@ class ScmRpcServiceEndpoint(Endpoint):
                 'Argument \'repository_id\' must be an integer or a dict {"provider": string, "external_id": string}'
             )
 
-        try:
-            scm = SourceCodeManager.make_from_repository_id(organization_id, repository_id)
-        except ObjectDoesNotExist as e:
-            raise NotFound(
-                f"Repository not found for organization_id={organization_id} and repository_id={repository_id}"
-            ) from e
+        scm = SourceCodeManager.make_from_repository_id(organization_id, repository_id)
 
         try:
             return method(scm, **arguments)
         except TypeError as e:
             raise ValidationError(f"Error calling method {method_name}: {str(e)}") from e
+        except ObjectDoesNotExist as e:
+            raise NotFound(
+                f"Repository not found for organization_id={organization_id} and repository_id={repository_id}"
+            ) from e
 
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
