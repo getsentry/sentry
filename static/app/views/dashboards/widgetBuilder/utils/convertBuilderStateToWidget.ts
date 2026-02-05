@@ -77,11 +77,20 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         : state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
-  // If there's no sort, use the first field as the default sort (this doesn't apply to release table widgets)
-  const defaultSort =
-    state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE
-      ? ''
-      : (fields?.[0] ?? defaultQuery.orderby);
+  // If there's no sort, use a sensible default based on display type
+  // - Release tables: empty (special handling)
+  // - Categorical bars: first aggregate (like tables, sort by the metric)
+  // - Others: first field
+  const defaultSort = (() => {
+    if (state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE) {
+      return '';
+    }
+    if (state.displayType === DisplayType.CATEGORICAL_BAR) {
+      // Categorical bars should sort by aggregate, not by category column
+      return aggregates?.[0] ? `-${aggregates[0]}` : defaultQuery.orderby;
+    }
+    return fields?.[0] ?? defaultQuery.orderby;
+  })();
   const sort =
     defined(state.sort) && state.sort.length > 0
       ? serializeSorts(state.dataset)(state.sort)[0]!
