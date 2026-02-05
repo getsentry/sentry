@@ -136,14 +136,14 @@ class IsGithubRateLimitSensitiveTest(TestCase):
     def test_returns_true_when_organization_slug_in_list(self):
         org = self.create_organization(slug="org-1")
         with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
-            assert is_github_rate_limit_sensitive(org) is True
+            assert is_github_rate_limit_sensitive(org.slug) is True
 
     def test_returns_false_when_organization_slug_not_in_list(self):
         org = self.create_organization(slug="org-3")
         with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
-            assert is_github_rate_limit_sensitive(org) is False
+            assert is_github_rate_limit_sensitive(org.slug) is False
 
     def test_returns_false_when_list_is_empty(self):
         org = self.create_organization(slug="org-1")
         with self.options({"github-app.rate-limit-sensitive-orgs": []}):
-            assert is_github_rate_limit_sensitive(org) is False
+            assert is_github_rate_limit_sensitive(org.slug) is False
