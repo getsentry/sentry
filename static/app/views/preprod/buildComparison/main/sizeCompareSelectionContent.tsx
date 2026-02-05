@@ -36,11 +36,9 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -76,20 +74,31 @@ export function SizeCompareSelectionContent({
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Build structured query string for the new builds endpoint
+  const filterParts = ['state:processed'];
+  if (headBuildDetails.app_info?.app_id) {
+    filterParts.push(`app_id:${headBuildDetails.app_info.app_id}`);
+  }
+  if (headBuildDetails.app_info?.build_configuration) {
+    filterParts.push(
+      `build_configuration:${headBuildDetails.app_info.build_configuration}`
+    );
+  }
+  if (searchQuery) {
+    filterParts.push(searchQuery);
+  }
+
   const queryParams: Record<string, any> = {
     per_page: 25,
-    state: BuildDetailsState.PROCESSED,
-    app_id: headBuildDetails.app_info?.app_id,
-    build_configuration: headBuildDetails.app_info?.build_configuration,
+    query: filterParts.join(' '),
     ...(cursor && {cursor}),
-    ...(searchQuery && {query: searchQuery}),
     ...(projectId && {project: projectId}),
   };
 
-  const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
-    useApiQuery<ListBuildsApiResponse>(
+  const buildsQuery: UseApiQueryResult<BuildDetailsApiResponse[], RequestError> =
+    useApiQuery<BuildDetailsApiResponse[]>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+        getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {query: queryParams},
@@ -189,7 +198,7 @@ export function SizeCompareSelectionContent({
       )}
       {buildsQuery.data && (
         <Stack gap="md">
-          {buildsQuery.data.builds.map(build => {
+          {buildsQuery.data.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }
