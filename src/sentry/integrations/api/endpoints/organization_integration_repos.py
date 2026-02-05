@@ -55,9 +55,9 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         if integration.status == ObjectStatus.DISABLED:
             return self.respond({"repos": []})
 
-        installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
-            status=ObjectStatus.HIDDEN
-        )
+        installed_repos = Repository.objects.filter(
+            integration_id=integration.id, organization_id=organization.id
+        ).exclude(status=ObjectStatus.HIDDEN)
         installed_repo_names = {installed_repo.name for installed_repo in installed_repos}
 
         install = integration.get_installation(organization_id=organization.id)
