@@ -4,14 +4,10 @@ source: tests/sentry/grouping/test_variants.py::test_variants
 app:
   hash: null
   contributing component: null
-  hint: ignored because system exception takes precedence
+  hint: ignored because system threads take precedence
   root_component:
-    app (ignored because system exception takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        type*
-          "TimeoutError"
-        value*
-          "timed out"
+    app (ignored because system threads take precedence)
+      threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by built-in stack trace rule (category:internals -app))
             module*
@@ -22,7 +18,7 @@ app:
               "<module>"
             context_line*
               "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=<int>, pipe_handle=<int>)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -31,7 +27,7 @@ app:
               "spawn_main"
             context_line*
               "exitcode = _main(fd, parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -40,7 +36,7 @@ app:
               "_main"
             context_line*
               "return self._bootstrap(parent_sentinel)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -49,7 +45,7 @@ app:
               "_bootstrap"
             context_line*
               "self.run()"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -58,70 +54,277 @@ app:
               "run"
             context_line*
               "self._target(*self._args, **self._kwargs)"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
             module*
-              "sentry.taskworker.workerchild"
+              "uvicorn._subprocess"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "_subprocess.py"
             function*
-              "child_process"
+              "subprocess_started"
             context_line*
-              "run_worker("
-          frame (non app frame)
+              "target(sockets=sockets)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
             module*
-              "sentry.taskworker.workerchild"
+              "uvicorn.server"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "server.py"
             function*
-              "run_worker"
+              "run"
             context_line*
-              "_execute_activation(task_func, inflight.activation)"
+              "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
           frame (non app frame)
             module*
-              "sentry.taskworker.workerchild"
+              "asyncio.runners"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "runners.py"
             function*
-              "_execute_activation"
+              "run"
             context_line*
-              "task_func(*args, **kwargs)"
+              "return runner.run(main)"
           frame (non app frame)
             module*
-              "sentry.taskworker.task"
+              "asyncio.runners"
             filename (ignored because module takes precedence)
-              "task.py"
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return self._loop.run_until_complete(task)"
+          frame (non app frame)
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_until_complete"
+            context_line*
+              "self.run_forever()"
+          frame (non app frame)
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_forever"
+            context_line*
+              "self._run_once()"
+          frame (non app frame)
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "_run_once"
+            context_line*
+              "handle._run()"
+          frame (non app frame)
+            module*
+              "asyncio.events"
+            filename (ignored because module takes precedence)
+              "events.py"
+            function*
+              "_run"
+            context_line*
+              "self._context.run(self._callback, *self._args)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "uvicorn.lifespan.on"
+            filename (ignored because module takes precedence)
+              "on.py"
+            function*
+              "main"
+            context_line*
+              "await app(scope, self.receive, self.send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "uvicorn.middleware.proxy_headers"
+            filename (ignored because module takes precedence)
+              "proxy_headers.py"
             function*
               "__call__"
             context_line*
-              "return self._func(*args, **kwargs)"
+              "return await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await super().__call__(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.applications"
+            filename (ignored because module takes precedence)
+              "applications.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.middleware.errors"
+            filename (ignored because module takes precedence)
+              "errors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.middleware.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.middleware.cors"
+            filename (ignored because module takes precedence)
+              "cors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.middleware.exceptions"
+            filename (ignored because module takes precedence)
+              "exceptions.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.middleware.asyncexitstack"
+            filename (ignored because module takes precedence)
+              "asyncexitstack.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "app"
+            context_line*
+              "await self.lifespan(scope, receive, send)"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "lifespan"
+            context_line*
+              "async with self.lifespan_context(app) as maybe_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
           frame (non app frame)
             module*
-              "sentry.tasks.post_process"
+              "app.main"
             filename (ignored because module takes precedence)
-              "post_process.py"
+              "main.py"
             function*
-              "post_process_group"
+              "run_app"
             context_line*
-              "run_post_process_job("
+              "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
           frame (non app frame)
             module*
-              "sentry.tasks.post_process"
+              "app.main"
             filename (ignored because module takes precedence)
-              "post_process.py"
+              "main.py"
             function*
-              "run_post_process_job"
+              "do_log"
             context_line*
-              "logger.exception("
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
-            module*
-              "logging"
-            filename (ignored because module takes precedence)
-              "__init__.py"
-            function*
-              "exception"
-            context_line*
-              "self.error(msg, *args, exc_info=exc_info, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+              "getattr(logger, level)(msg, *args, **kwargs)"
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -130,7 +333,7 @@ app:
               "error"
             context_line*
               "self._log(ERROR, msg, args, **kwargs)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -139,7 +342,7 @@ app:
               "_log"
             context_line*
               "self.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -148,7 +351,7 @@ app:
               "handle"
             context_line*
               "self.callHandlers(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -157,7 +360,7 @@ app:
               "callHandlers"
             context_line*
               "hdlr.handle(record)"
-          frame (marked out of app by built-in stack trace rule (path:/usr/local/lib/** -app))
+          frame (non app frame)
             module*
               "logging"
             filename (ignored because module takes precedence)
@@ -166,54 +369,23 @@ app:
               "handle"
             context_line*
               "self.emit(record)"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "connect"
-            context_line*
-              "sock = self._connect()"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "_connect"
-            context_line*
-              "raise err"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "_connect"
-            context_line*
-              "sock.connect(socket_address)"
 --------------------------------------------------------------------------
 default:
   hash: null
   contributing component: null
-  hint: ignored because system exception takes precedence
+  hint: ignored because system threads take precedence
   root_component:
-    default (ignored because system exception takes precedence)
-      message (ignored because system exception takes precedence)
-        "Failed to process pipeline step %s"
+    default (ignored because system threads take precedence)
+      message (ignored because system threads take precedence)
+        "Error creating HTTP client: cannot import name 'create_http_client' from 'app.utils.http' (D:\\engine\\app\\utils\\http.py)"
 --------------------------------------------------------------------------
 system:
-  hash: "1bc764ab44acfab9a38f23ae670038bd"
-  contributing component: exception
+  hash: "a18195beb2cfb93ea25c9331c988dbee"
+  contributing component: threads
   hint: None
   root_component:
     system*
-      exception*
-        type*
-          "TimeoutError"
-        value (ignored because stacktrace takes precedence)
-          "timed out"
+      threads*
         stacktrace*
           frame (ignored by built-in stack trace rule (category:internals -group))
             module*
@@ -262,67 +434,274 @@ system:
               "self._target(*self._args, **self._kwargs)"
           frame*
             module*
-              "sentry.taskworker.workerchild"
+              "uvicorn._subprocess"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "_subprocess.py"
             function*
-              "child_process"
+              "subprocess_started"
             context_line*
-              "run_worker("
+              "target(sockets=sockets)"
           frame*
             module*
-              "sentry.taskworker.workerchild"
+              "uvicorn.server"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "server.py"
             function*
-              "run_worker"
+              "run"
             context_line*
-              "_execute_activation(task_func, inflight.activation)"
+              "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
           frame*
             module*
-              "sentry.taskworker.workerchild"
+              "asyncio.runners"
             filename (ignored because module takes precedence)
-              "workerchild.py"
+              "runners.py"
             function*
-              "_execute_activation"
+              "run"
             context_line*
-              "task_func(*args, **kwargs)"
+              "return runner.run(main)"
+          frame (ignored due to recursion)
+            module*
+              "asyncio.runners"
+            filename (ignored because module takes precedence)
+              "runners.py"
+            function*
+              "run"
+            context_line*
+              "return self._loop.run_until_complete(task)"
           frame*
             module*
-              "sentry.taskworker.task"
+              "asyncio.base_events"
             filename (ignored because module takes precedence)
-              "task.py"
+              "base_events.py"
+            function*
+              "run_until_complete"
+            context_line*
+              "self.run_forever()"
+          frame*
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "run_forever"
+            context_line*
+              "self._run_once()"
+          frame*
+            module*
+              "asyncio.base_events"
+            filename (ignored because module takes precedence)
+              "base_events.py"
+            function*
+              "_run_once"
+            context_line*
+              "handle._run()"
+          frame*
+            module*
+              "asyncio.events"
+            filename (ignored because module takes precedence)
+              "events.py"
+            function*
+              "_run"
+            context_line*
+              "self._context.run(self._callback, *self._args)"
+          frame*
+            module*
+              "uvicorn.lifespan.on"
+            filename (ignored because module takes precedence)
+              "on.py"
+            function*
+              "main"
+            context_line*
+              "await app(scope, self.receive, self.send)"
+          frame*
+            module*
+              "uvicorn.middleware.proxy_headers"
+            filename (ignored because module takes precedence)
+              "proxy_headers.py"
             function*
               "__call__"
             context_line*
-              "return self._func(*args, **kwargs)"
+              "return await self.app(scope, receive, send)"
           frame*
             module*
-              "sentry.tasks.post_process"
+              "fastapi.applications"
             filename (ignored because module takes precedence)
-              "post_process.py"
+              "applications.py"
             function*
-              "post_process_group"
+              "__call__"
             context_line*
-              "run_post_process_job("
+              "await super().__call__(scope, receive, send)"
           frame*
             module*
-              "sentry.tasks.post_process"
+              "starlette.applications"
             filename (ignored because module takes precedence)
-              "post_process.py"
+              "applications.py"
             function*
-              "run_post_process_job"
+              "__call__"
             context_line*
-              "logger.exception("
+              "await self.middleware_stack(scope, receive, send)"
           frame*
             module*
-              "logging"
+              "starlette.middleware.errors"
             filename (ignored because module takes precedence)
-              "__init__.py"
+              "errors.py"
             function*
-              "exception"
+              "__call__"
             context_line*
-              "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.base"
+            filename (ignored because module takes precedence)
+              "base.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.cors"
+            filename (ignored because module takes precedence)
+              "cors.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.middleware.exceptions"
+            filename (ignored because module takes precedence)
+              "exceptions.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "fastapi.middleware.asyncexitstack"
+            filename (ignored because module takes precedence)
+              "asyncexitstack.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.app(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "__call__"
+            context_line*
+              "await self.middleware_stack(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "app"
+            context_line*
+              "await self.lifespan(scope, receive, send)"
+          frame*
+            module*
+              "starlette.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "lifespan"
+            context_line*
+              "async with self.lifespan_context(app) as maybe_state:"
+          frame*
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame (ignored due to recursion)
+            module*
+              "fastapi.routing"
+            filename (ignored because module takes precedence)
+              "routing.py"
+            function*
+              "merged_lifespan"
+            context_line*
+              "async with original_context(app) as maybe_original_state:"
+          frame*
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "run_app"
+            context_line*
+              "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+          frame*
+            module*
+              "app.main"
+            filename (ignored because module takes precedence)
+              "main.py"
+            function*
+              "do_log"
+            context_line*
+              "getattr(logger, level)(msg, *args, **kwargs)"
           frame*
             module*
               "logging"
@@ -368,30 +747,3 @@ system:
               "handle"
             context_line*
               "self.emit(record)"
-          frame*
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "connect"
-            context_line*
-              "sock = self._connect()"
-          frame*
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "_connect"
-            context_line*
-              "raise err"
-          frame (ignored due to recursion)
-            module*
-              "redis.connection"
-            filename (ignored because module takes precedence)
-              "connection.py"
-            function*
-              "_connect"
-            context_line*
-              "sock.connect(socket_address)"
