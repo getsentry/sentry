@@ -1,17 +1,12 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as pageFiltersActionCreators from 'sentry/actionCreators/pageFilters';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 
 import {ExploreContent} from './content';
-
-jest.mock('sentry/actionCreators/pageFilters', () => ({
-  ...jest.requireActual('sentry/actionCreators/pageFilters'),
-  updateDateTime: jest.fn(),
-}));
 
 describe('ExploreContent', () => {
   const {organization, project} = initializeOrg({
@@ -107,8 +102,8 @@ describe('ExploreContent', () => {
     jest.clearAllMocks();
   });
 
-  describe('cross events date restriction', () => {
-    it('renders with cross events and applies 7 day date restriction', async () => {
+  describe('cross events', () => {
+    it('renders with cross events', async () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],
@@ -136,81 +131,53 @@ describe('ExploreContent', () => {
       ).toBeInTheDocument();
     });
 
-    it('auto-adjusts period to 7d when cross events present and period exceeds 7 days', async () => {
+    it('resets period when max pickable days decreases', async () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],
         datetime: {period: '14d', start: null, end: null, utc: null},
       });
 
-      render(<ExploreContent />, {
+      const {router} = render(<ExploreContent />, {
         organization,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
             query: {
-              crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
+              statsPeriod: '14d',
             },
           },
         },
       });
 
-      await waitFor(() => {
-        expect(pageFiltersActionCreators.updateDateTime).toHaveBeenCalledWith({
-          period: '7d',
+      await screen.findByText('Traces');
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '14d',
           start: null,
           end: null,
           utc: null,
+        })
+      );
+
+      act(() => {
+        router.navigate({
+          pathname: '/organizations/org-slug/explore/traces/',
+          search: `statsPeriod=14d&crossEvents=${encodeURIComponent(
+            JSON.stringify([{query: '', type: 'spans'}])
+          )}`,
         });
       });
-    });
 
-    it('does not adjust period when cross events present and period is within 7 days', async () => {
-      PageFiltersStore.onInitializeUrlState({
-        projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
-        datetime: {period: '7d', start: null, end: null, utc: null},
-      });
-
-      render(<ExploreContent />, {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-            },
-          },
-        },
-      });
-
-      // Wait for component to fully render
-      await screen.findByText('Traces');
-
-      expect(pageFiltersActionCreators.updateDateTime).not.toHaveBeenCalled();
-    });
-
-    it('does not adjust period when no cross events present', async () => {
-      PageFiltersStore.onInitializeUrlState({
-        projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
-        datetime: {period: '14d', start: null, end: null, utc: null},
-      });
-
-      render(<ExploreContent />, {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {},
-          },
-        },
-      });
-
-      // Wait for component to fully render
-      await screen.findByText('Traces');
-
-      expect(pageFiltersActionCreators.updateDateTime).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: MAX_PERIOD_FOR_CROSS_EVENTS,
+          start: null,
+          end: null,
+          utc: null,
+        })
+      );
     });
   });
 });
