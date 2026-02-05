@@ -4,11 +4,15 @@ import type {SeriesOption} from 'echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesLabel';
 import {formatCategoricalSeriesName} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesName';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/settings';
+import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   CategoricalItem,
+  CategoricalItemCategory,
   CategoricalSeries,
-  CategoricalValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
+
+import type {PlottableCategoricalValueType} from './plottable';
 
 export type CategoricalDataSeriesConfig = {
   /**
@@ -102,9 +106,18 @@ export abstract class CategoricalDataSeries<
 
   /**
    * The type of values in this series (e.g., "duration", "number").
+   * Constrained to plottable types - defaults to fallback type for unsupported types.
    */
-  get dataType(): CategoricalValueType {
-    return this.categoricalSeries.meta.valueType;
+  get dataType(): PlottableCategoricalValueType {
+    const valueType = this.categoricalSeries.meta.valueType;
+    if (
+      PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(
+        valueType as PlottableCategoricalValueType
+      )
+    ) {
+      return valueType as PlottableCategoricalValueType;
+    }
+    return FALLBACK_TYPE;
   }
 
   /**
@@ -115,9 +128,9 @@ export abstract class CategoricalDataSeries<
   }
 
   /**
-   * The category labels for all data points in this series.
+   * The raw category values for all data points in this series.
    */
-  get categories(): string[] {
+  get categories(): CategoricalItemCategory[] {
     return this.categoricalSeries.values.map(item => item.category);
   }
 

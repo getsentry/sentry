@@ -2,7 +2,16 @@ import type {SeriesOption} from 'echarts';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import type {CategoricalValueType} from 'sentry/views/dashboards/widgets/common/types';
+import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
+import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/types';
+
+/**
+ * The constrained set of value types that can be plotted in a categorical chart.
+ * This mirrors PlottableTimeSeriesValueType - the plottable layer constrains
+ * what types are actually renderable, even though the data layer accepts any type.
+ */
+export type PlottableCategoricalValueType =
+  (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];
 
 /**
  * A `CategoricalPlottable` is any object that can be converted to an ECharts
@@ -13,13 +22,15 @@ import type {CategoricalValueType} from 'sentry/views/dashboards/widgets/common/
  */
 export interface CategoricalPlottable {
   /**
-   * The category labels for this plottable's data points.
+   * The raw category values for this plottable's data points.
+   * Use formatXAxisValue() to convert to display strings.
    */
-  categories: string[];
+  categories: CategoricalItemCategory[];
   /**
    * Type of the underlying data (e.g., "duration", "number").
+   * Constrained to plottable types only.
    */
-  dataType: CategoricalValueType;
+  dataType: PlottableCategoricalValueType;
   /**
    * Unit of the underlying data (e.g., "millisecond"), or null if unitless.
    */
