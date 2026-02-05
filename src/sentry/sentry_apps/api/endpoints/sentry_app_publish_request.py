@@ -2,6 +2,7 @@ import logging
 from collections.abc import Iterable
 
 import sentry_sdk
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,9 +51,6 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         if sentry_app.is_internal:
             return Response({"detail": "Cannot publish internal integration."}, status=400)
 
-        if sentry_app.is_publish_request_inprogress:
-            return Response({"detail": "Publish request in progress."}, status=400)
-
         if not SentryAppAvatar.objects.filter(
             sentry_app=sentry_app, color=True, avatar_type=SentryAppAvatarTypes.UPLOAD.value
         ).exists():
@@ -73,7 +71,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         # Permission is enforced by SentryAppPermission which requires org:admin for POST on
         # unpublished apps (see unpublished_scope_map).
-        sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+        # Auto-approve: Apps are now published immediately upon submission.
+        sentry_app.status = SentryAppStatus.PUBLISHED
+        sentry_app.date_published = timezone.now()
         sentry_app.save()
 
         org_mapping = OrganizationMapping.objects.filter(
@@ -93,7 +93,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         questionnaire: Iterable[dict[str, str]] = request.data.get("questionnaire", [])
 
         assert organization is not None, "RpcOrganizationContext must exist to get the organization"
-        new_subject = f"We've received your integration submission for {sentry_app.slug}"
+        new_subject = f"Your integration {sentry_app.slug} has been published"
         new_context = {
             "questionnaire": questionnaire,
             "actor": request.user,
@@ -109,7 +109,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             context=new_context,
             template=template,
             html_template=html_template,
-            type="sentry-app-publish-request",
+            type="sentry-app-published",
         )
 
         # Must send to user & partners so that the reply-to email will be each other

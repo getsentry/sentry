@@ -138,7 +138,7 @@ export function SentryAppPublishRequestModal(props: Props) {
   };
 
   const handleSubmitSuccess = () => {
-    addSuccessMessage(t('Request to publish %s successful.', app.slug));
+    addSuccessMessage(t('%s has been published successfully.', app.slug));
     closeModal();
     onPublishSubmission();
   };
@@ -165,12 +165,12 @@ export function SentryAppPublishRequestModal(props: Props) {
       <Footer>
         <FooterParagraph>
           {t(
-            'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+            'By publishing your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
           )}
         </FooterParagraph>
         <FooterParagraph>
           {t(
-            'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+            'Your integration will be published immediately upon submission. Users outside of your organization will be able to install it right away.'
           )}
         </FooterParagraph>
         <FooterParagraph>
@@ -185,13 +185,13 @@ export function SentryAppPublishRequestModal(props: Props) {
   return (
     <Fragment>
       <Header>
-        <h1>{t('Publish Request Questionnaire')}</h1>
+        <h1>{t('Publish Integration')}</h1>
       </Header>
       <Body>
         <Explanation>
           {t(
-            `Please fill out this questionnaire in order to get your integration evaluated for publication.
-              Once your integration has been approved, users outside of your organization will be able to install it.`
+            `Please fill out this questionnaire to publish your integration.
+              Once published, users outside of your organization will be able to install it.`
           )}
         </Explanation>
         <Form
@@ -201,7 +201,7 @@ export function SentryAppPublishRequestModal(props: Props) {
           onSubmitSuccess={handleSubmitSuccess}
           onSubmitError={handleSubmitError}
           model={formModel}
-          submitLabel={t('Request Publication')}
+          submitLabel={t('Publish')}
           onCancel={closeModal}
         >
           <JsonForm forms={forms} />

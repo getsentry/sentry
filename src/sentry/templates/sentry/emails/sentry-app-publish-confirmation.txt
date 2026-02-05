@@ -2,10 +2,12 @@
 {% load sentry_helpers %}
 {% autoescape off %}
 
-Thank you for your submission!
-This email confirms that user {{ actor.email }} has submitted {{ sentry_app.slug }} for {{ organization.slug }}.
+Congratulations! Your integration has been published.
+This email confirms that user {{ actor.email }} has published {{ sentry_app.slug }} for {{ organization.slug }}.
 
-Here're your responses to the submission form:
+Your integration is now live and available for other organizations to install.
+
+Here are your responses to the submission form for our records:
 -------
 {% for question in questionnaire %}
 
@@ -14,11 +16,9 @@ Here're your responses to the submission form:
 
 {% endfor %}
 -------
-Our team will review your submission to ensure it meets our guidelines.
-By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.
-Please note our current processing time for integration publishing requests is 4–5 weeks.
-You’ll hear from us once the integration is approved or if any changes are required.
-Thanks again for contributing to the Sentry community!
+By publishing your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.
+You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.
+Thanks for contributing to the Sentry community!
 
 Best regards,
 The Sentry Team

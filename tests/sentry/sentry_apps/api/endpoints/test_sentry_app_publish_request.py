@@ -47,6 +47,11 @@ class SentryAppPublishRequestTest(APITestCase):
         assert response.status_code == 201
         send.assert_called_with(to=["integrations-platform@sentry.io", self.user.email])
 
+        # Verify the app is auto-published
+        self.sentry_app.refresh_from_db()
+        assert self.sentry_app.status == SentryAppStatus.PUBLISHED
+        assert self.sentry_app.date_published is not None
+
     @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
     def test_publish_request_email_fails(self, send: mock.MagicMock) -> None:
         send.return_value = 0
@@ -135,3 +140,26 @@ class SentryAppPublishRequestTest(APITestCase):
         url = reverse("sentry-api-0-sentry-app-publish-request", args=[self.sentry_app.slug])
         response = self.client.post(url, format="json")
         assert response.status_code == 403
+
+    @mock.patch("sentry.utils.email.message_builder.MessageBuilder.send")
+    def test_publish_request_in_progress_can_still_publish(self, send: mock.MagicMock) -> None:
+        """Apps that were previously submitted (in progress) can still be published via this endpoint."""
+        self.sentry_app.update(status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS)
+        self.upload_logo()
+        self.upload_issue_link_logo()
+        send.return_value = 2
+        response = self.client.post(
+            self.url,
+            format="json",
+            data={
+                "questionnaire": [
+                    {"question": "First question", "answer": "First response"},
+                ]
+            },
+        )
+        assert response.status_code == 201
+
+        # Verify the app is now published
+        self.sentry_app.refresh_from_db()
+        assert self.sentry_app.status == SentryAppStatus.PUBLISHED
+        assert self.sentry_app.date_published is not None
