@@ -104,54 +104,53 @@ export function EditDetectorLayout<
     initialData,
     onSubmit: handleFormSubmit,
     onFieldChange: handleFieldChange,
+    onBlur: handleFormBlur,
     mapFormErrors,
   };
 
   return (
-    <div onBlur={handleFormBlur}>
-      <EditLayout formProps={formProps}>
-        <EditLayout.Header maxWidth={maxWidth}>
-          <EditLayout.HeaderContent>
-            <EditDetectorBreadcrumbs detector={detector} />
-          </EditLayout.HeaderContent>
+    <EditLayout formProps={formProps}>
+      <EditLayout.Header maxWidth={maxWidth}>
+        <EditLayout.HeaderContent>
+          <EditDetectorBreadcrumbs detector={detector} />
+        </EditLayout.HeaderContent>
 
-          <div>
-            <EditLayout.Actions>
-              <MonitorFeedbackButton />
-            </EditLayout.Actions>
-          </div>
+        <div>
+          <EditLayout.Actions>
+            <MonitorFeedbackButton />
+          </EditLayout.Actions>
+        </div>
 
-          <EditLayout.HeaderFields>
-            <DetectorBaseFields environment={environment} />
-            {previewChart ?? <div />}
-          </EditLayout.HeaderFields>
-        </EditLayout.Header>
+        <EditLayout.HeaderFields>
+          <DetectorBaseFields environment={environment} />
+          {previewChart ?? <div />}
+        </EditLayout.HeaderFields>
+      </EditLayout.Header>
 
-        <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-        <FormContext.Consumer>
-          {({form}) => (
-            <EditLayout.Footer maxWidth={maxWidth}>
-              <DisableDetectorAction detector={detector} />
-              <DeleteDetectorAction detector={detector} />
-              {extraFooterButton}
-              <Observer>
-                {() => (
-                  <Button
-                    type="submit"
-                    priority="primary"
-                    size="sm"
-                    disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
-                    title={form ? getSubmitButtonTitle(form) : undefined}
-                  >
-                    {t('Save')}
-                  </Button>
-                )}
-              </Observer>
-            </EditLayout.Footer>
-          )}
-        </FormContext.Consumer>
-      </EditLayout>
-    </div>
+      <FormContext.Consumer>
+        {({form}) => (
+          <EditLayout.Footer maxWidth={maxWidth}>
+            <DisableDetectorAction detector={detector} />
+            <DeleteDetectorAction detector={detector} />
+            {extraFooterButton}
+            <Observer>
+              {() => (
+                <Button
+                  type="submit"
+                  priority="primary"
+                  size="sm"
+                  disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
+                  title={form ? getSubmitButtonTitle(form) : undefined}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </Observer>
+          </EditLayout.Footer>
+        )}
+      </FormContext.Consumer>
+    </EditLayout>
   );
 }

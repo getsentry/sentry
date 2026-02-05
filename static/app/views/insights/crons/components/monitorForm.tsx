@@ -259,340 +259,333 @@ function MonitorForm({
   ];
 
   return (
-    <div onBlur={handleFormBlur}>
-      <Form
-        allowUndo
-        requireChanges
-        apiEndpoint={apiEndpoint}
-        apiMethod={apiMethod}
-        model={form.current}
-        onFieldChange={handleFieldChange}
-        initialData={
-          monitor
-            ? {
-                name: monitor.name,
-                slug: monitor.slug,
-                owner,
-                project: monitor.project.slug,
-                'alertRule.targets': alertRuleTarget,
-                'alertRule.environment': monitor.alertRule?.environment,
-                ...formDataFromConfig(monitor.config),
-              }
-            : {
-                project: selectedProject ? selectedProject.slug : null,
-              }
-        }
-        onSubmitSuccess={onSubmitSuccess}
-        submitLabel={submitLabel}
-        mapFormErrors={mapMonitorFormErrors}
-      >
-        <StyledList symbol="colored-numeric">
-          {monitor?.isUpserting && (
-            <Alert.Container>
-              <Alert variant="warning">
-                {t(
-                  'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
+    <Form
+      allowUndo
+      requireChanges
+      apiEndpoint={apiEndpoint}
+      apiMethod={apiMethod}
+      model={form.current}
+      onFieldChange={handleFieldChange}
+      onBlur={handleFormBlur}
+      initialData={
+        monitor
+          ? {
+              name: monitor.name,
+              slug: monitor.slug,
+              owner,
+              project: monitor.project.slug,
+              'alertRule.targets': alertRuleTarget,
+              'alertRule.environment': monitor.alertRule?.environment,
+              ...formDataFromConfig(monitor.config),
+            }
+          : {
+              project: selectedProject ? selectedProject.slug : null,
+            }
+      }
+      onSubmitSuccess={onSubmitSuccess}
+      submitLabel={submitLabel}
+      mapFormErrors={mapMonitorFormErrors}
+    >
+      <StyledList symbol="colored-numeric">
+        {monitor?.isUpserting && (
+          <Alert.Container>
+            <Alert variant="warning">
+              {t(
+                'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
 
-          <StyledListItem>{t('Add a name and project')}</StyledListItem>
-          <ListItemSubText>
-            {t('The name will show up in notifications.')}
-          </ListItemSubText>
-          <InputGroup noPadding>
+        <StyledListItem>{t('Add a name and project')}</StyledListItem>
+        <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
+        <InputGroup noPadding>
+          <TextField
+            name="name"
+            label={t('Name')}
+            placeholder={t('My Cron Job')}
+            required
+            stacked
+            inline={false}
+          />
+          {monitor && (
             <TextField
-              name="name"
-              label={t('Name')}
-              placeholder={t('My Cron Job')}
+              name="slug"
+              label={t('Slug')}
+              help={tct(
+                'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
+                {strong: <strong />}
+              )}
+              placeholder={t('monitor-slug')}
               required
               stacked
               inline={false}
+              transformInput={slugify}
             />
-            {monitor && (
-              <TextField
-                name="slug"
-                label={t('Slug')}
-                help={tct(
-                  'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
-                  {strong: <strong />}
-                )}
-                placeholder={t('monitor-slug')}
-                required
-                stacked
-                inline={false}
-                transformInput={slugify}
-              />
-            )}
-            <SentryProjectSelectorField
-              name="project"
-              label={t('Project')}
-              groupProjects={project =>
-                platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
-              }
-              groups={[
-                {key: 'suggested', label: t('Suggested Projects')},
-                {key: 'other', label: t('Other Projects')},
-              ]}
-              projects={filteredProjects}
-              placeholder={t('Choose Project')}
-              disabled={!!monitor}
-              disabledReason={t('Existing monitors cannot be moved between projects')}
-              valueIsSlug
-              required
-              stacked
-              inline={false}
-            />
-          </InputGroup>
-          <StyledListItem>{t('Set your schedule')}</StyledListItem>
-          <ListItemSubText>
-            {tct('You can use [link:the crontab syntax] or our interval schedule.', {
-              link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
-            })}
-          </ListItemSubText>
-          <InputGroup noPadding>
-            <SelectField
-              name="config.scheduleType"
-              label={t('Schedule Type')}
-              hideLabel
-              options={SCHEDULE_OPTIONS}
-              defaultValue={ScheduleType.CRONTAB}
-              orientInline
-              required
-              stacked
-              inline={false}
-            />
-            <Observer>
-              {() => {
-                const scheduleType = form.current.getValue('config.scheduleType');
+          )}
+          <SentryProjectSelectorField
+            name="project"
+            label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groups={[
+              {key: 'suggested', label: t('Suggested Projects')},
+              {key: 'other', label: t('Other Projects')},
+            ]}
+            projects={filteredProjects}
+            placeholder={t('Choose Project')}
+            disabled={!!monitor}
+            disabledReason={t('Existing monitors cannot be moved between projects')}
+            valueIsSlug
+            required
+            stacked
+            inline={false}
+          />
+        </InputGroup>
+        <StyledListItem>{t('Set your schedule')}</StyledListItem>
+        <ListItemSubText>
+          {tct('You can use [link:the crontab syntax] or our interval schedule.', {
+            link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
+          })}
+        </ListItemSubText>
+        <InputGroup noPadding>
+          <SelectField
+            name="config.scheduleType"
+            label={t('Schedule Type')}
+            hideLabel
+            options={SCHEDULE_OPTIONS}
+            defaultValue={ScheduleType.CRONTAB}
+            orientInline
+            required
+            stacked
+            inline={false}
+          />
+          <Observer>
+            {() => {
+              const scheduleType = form.current.getValue('config.scheduleType');
 
-                const parsedSchedule =
-                  scheduleType === 'crontab'
-                    ? crontabAsText(
-                        form.current.getValue<string>('config.schedule')?.toString() ?? ''
-                      )
-                    : null;
+              const parsedSchedule =
+                scheduleType === 'crontab'
+                  ? crontabAsText(
+                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
+                    )
+                  : null;
 
-                if (scheduleType === 'crontab') {
-                  return (
-                    <MultiColumnInput columns="1fr 2fr">
-                      <TextField
-                        name="config.schedule"
-                        label={t('Crontab Schedule')}
-                        hideLabel
-                        placeholder="* * * * *"
-                        defaultValue={DEFAULT_CRONTAB}
-                        transformInput={(value: string) =>
-                          // Remove non-ASCII characters from crontab schedule
-                          // eslint-disable-next-line no-control-regex
-                          value.replace(/[^\x00-\x7F]/g, '')
+              if (scheduleType === 'crontab') {
+                return (
+                  <MultiColumnInput columns="1fr 2fr">
+                    <TextField
+                      name="config.schedule"
+                      label={t('Crontab Schedule')}
+                      hideLabel
+                      placeholder="* * * * *"
+                      defaultValue={DEFAULT_CRONTAB}
+                      transformInput={(value: string) =>
+                        // Remove non-ASCII characters from crontab schedule
+                        // eslint-disable-next-line no-control-regex
+                        value.replace(/[^\x00-\x7F]/g, '')
+                      }
+                      css={css`
+                        input {
+                          font-family: ${theme.font.family.mono};
                         }
-                        css={css`
-                          input {
-                            font-family: ${theme.font.family.mono};
-                          }
-                        `}
-                        required
-                        stacked
-                        inline={false}
-                      />
-                      <SelectField
-                        name="config.timezone"
-                        label={t('Timezone')}
-                        hideLabel
-                        defaultValue="UTC"
-                        options={timezoneOptions}
-                        required
-                        stacked
-                        inline={false}
-                      />
-                      {parsedSchedule && (
-                        <CronstrueText>"{parsedSchedule}"</CronstrueText>
+                      `}
+                      required
+                      stacked
+                      inline={false}
+                    />
+                    <SelectField
+                      name="config.timezone"
+                      label={t('Timezone')}
+                      hideLabel
+                      defaultValue="UTC"
+                      options={timezoneOptions}
+                      required
+                      stacked
+                      inline={false}
+                    />
+                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
+                  </MultiColumnInput>
+                );
+              }
+              if (scheduleType === 'interval') {
+                return (
+                  <MultiColumnInput columns="auto 1fr 2fr">
+                    <LabelText>{t('Every')}</LabelText>
+                    <NumberField
+                      name="config.schedule.frequency"
+                      label={t('Interval Frequency')}
+                      hideLabel
+                      placeholder="e.g. 1"
+                      defaultValue="1"
+                      min={1}
+                      required
+                      stacked
+                      inline={false}
+                    />
+                    <SelectField
+                      name="config.schedule.interval"
+                      label={t('Interval Type')}
+                      hideLabel
+                      options={getScheduleIntervals(
+                        Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
-                    </MultiColumnInput>
-                  );
-                }
-                if (scheduleType === 'interval') {
-                  return (
-                    <MultiColumnInput columns="auto 1fr 2fr">
-                      <LabelText>{t('Every')}</LabelText>
-                      <NumberField
-                        name="config.schedule.frequency"
-                        label={t('Interval Frequency')}
-                        hideLabel
-                        placeholder="e.g. 1"
-                        defaultValue="1"
-                        min={1}
-                        required
-                        stacked
-                        inline={false}
-                      />
-                      <SelectField
-                        name="config.schedule.interval"
-                        label={t('Interval Type')}
-                        hideLabel
-                        options={getScheduleIntervals(
-                          Number(form.current.getValue('config.schedule.frequency') ?? 1)
-                        )}
-                        defaultValue="day"
-                        required
-                        stacked
-                        inline={false}
-                      />
-                    </MultiColumnInput>
-                  );
-                }
-                return null;
-              }}
-            </Observer>
-          </InputGroup>
-          <StyledListItem>{t('Set margins')}</StyledListItem>
+                      defaultValue="day"
+                      required
+                      stacked
+                      inline={false}
+                    />
+                  </MultiColumnInput>
+                );
+              }
+              return null;
+            }}
+          </Observer>
+        </InputGroup>
+        <StyledListItem>{t('Set margins')}</StyledListItem>
+        <ListItemSubText>
+          {t('Configure when we mark your monitor as failed or missed.')}
+        </ListItemSubText>
+        <InputGroup>
+          <Panel>
+            <PanelBody>
+              <NumberField
+                name="config.checkinMargin"
+                min={CHECKIN_MARGIN_MINIMUM}
+                placeholder={tn(
+                  'Defaults to %s minute',
+                  'Defaults to %s minutes',
+                  DEFAULT_CHECKIN_MARGIN
+                )}
+                help={t('Number of minutes before a check-in is considered missed.')}
+                label={t('Grace Period')}
+              />
+              <NumberField
+                name="config.maxRuntime"
+                min={TIMEOUT_MINIMUM}
+                placeholder={tn(
+                  'Defaults to %s minute',
+                  'Defaults to %s minutes',
+                  DEFAULT_MAX_RUNTIME
+                )}
+                help={t(
+                  'Number of minutes before an in-progress check-in is marked timed out.'
+                )}
+                label={t('Max Runtime')}
+              />
+            </PanelBody>
+          </Panel>
+        </InputGroup>
+        <Fragment>
+          <StyledListItem>{t('Set thresholds')}</StyledListItem>
           <ListItemSubText>
-            {t('Configure when we mark your monitor as failed or missed.')}
+            {t('Configure when an issue is created or resolved.')}
           </ListItemSubText>
           <InputGroup>
             <Panel>
               <PanelBody>
                 <NumberField
-                  name="config.checkinMargin"
-                  min={CHECKIN_MARGIN_MINIMUM}
-                  placeholder={tn(
-                    'Defaults to %s minute',
-                    'Defaults to %s minutes',
-                    DEFAULT_CHECKIN_MARGIN
-                  )}
-                  help={t('Number of minutes before a check-in is considered missed.')}
-                  label={t('Grace Period')}
-                />
-                <NumberField
-                  name="config.maxRuntime"
-                  min={TIMEOUT_MINIMUM}
-                  placeholder={tn(
-                    'Defaults to %s minute',
-                    'Defaults to %s minutes',
-                    DEFAULT_MAX_RUNTIME
-                  )}
+                  name="config.failureIssueThreshold"
+                  min={1}
+                  placeholder="1"
                   help={t(
-                    'Number of minutes before an in-progress check-in is marked timed out.'
+                    'Create a new issue when this many consecutive missed or error check-ins are processed.'
                   )}
-                  label={t('Max Runtime')}
+                  label={t('Failure Tolerance')}
+                />
+                <NumberField
+                  name="config.recoveryThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                  )}
+                  label={t('Recovery Tolerance')}
                 />
               </PanelBody>
             </Panel>
           </InputGroup>
-          <Fragment>
-            <StyledListItem>{t('Set thresholds')}</StyledListItem>
-            <ListItemSubText>
-              {t('Configure when an issue is created or resolved.')}
-            </ListItemSubText>
-            <InputGroup>
-              <Panel>
-                <PanelBody>
-                  <NumberField
-                    name="config.failureIssueThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recoveryThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </PanelBody>
-              </Panel>
-            </InputGroup>
-          </Fragment>
-          <StyledListItem>{t('Set Owner')}</StyledListItem>
-          <ListItemSubText>
-            {t(
-              'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
-            )}
-          </ListItemSubText>
-          <InputGroup>
-            <Panel>
-              <PanelBody>
-                <SentryMemberTeamSelectorField
-                  name="owner"
-                  label={t('Owner')}
-                  help={t('Automatically assign issues to a team or user.')}
-                />
-              </PanelBody>
-            </Panel>
-          </InputGroup>
-          <StyledListItem>{t('Notifications')}</StyledListItem>
-          <ListItemSubText>
-            {t('Configure who to notify upon issue creation and when.')}
-          </ListItemSubText>
-          <InputGroup>
-            {monitor?.config.alert_rule_id && (
-              <AlertLink
-                variant="muted"
-                to={makeAlertsPathname({
-                  path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
-                  organization,
-                })}
-              >
-                {t('Customize this monitors notification configuration in Alerts')}
-              </AlertLink>
-            )}
-            <Panel>
-              <PanelBody>
-                <Observer>
-                  {() => {
-                    const projectSlug = form.current
-                      .getValue<string>('project')
-                      ?.toString();
-                    return (
-                      <SentryMemberTeamSelectorField
-                        label={t('Notify')}
-                        help={t('Send notifications to a member or team.')}
-                        name="alertRule.targets"
-                        memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
-                        multiple
-                      />
-                    );
-                  }}
-                </Observer>
-                <Observer>
-                  {() => {
-                    const selectedAssignee = form.current.getValue('alertRule.targets');
-                    // Check for falsey value or empty array value
+        </Fragment>
+        <StyledListItem>{t('Set Owner')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
+        <InputGroup>
+          <Panel>
+            <PanelBody>
+              <SentryMemberTeamSelectorField
+                name="owner"
+                label={t('Owner')}
+                help={t('Automatically assign issues to a team or user.')}
+              />
+            </PanelBody>
+          </Panel>
+        </InputGroup>
+        <StyledListItem>{t('Notifications')}</StyledListItem>
+        <ListItemSubText>
+          {t('Configure who to notify upon issue creation and when.')}
+        </ListItemSubText>
+        <InputGroup>
+          {monitor?.config.alert_rule_id && (
+            <AlertLink
+              variant="muted"
+              to={makeAlertsPathname({
+                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                organization,
+              })}
+            >
+              {t('Customize this monitors notification configuration in Alerts')}
+            </AlertLink>
+          )}
+          <Panel>
+            <PanelBody>
+              <Observer>
+                {() => {
+                  const projectSlug = form.current
+                    .getValue<string>('project')
+                    ?.toString();
+                  return (
+                    <SentryMemberTeamSelectorField
+                      label={t('Notify')}
+                      help={t('Send notifications to a member or team.')}
+                      name="alertRule.targets"
+                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
+                      multiple
+                    />
+                  );
+                }}
+              </Observer>
+              <Observer>
+                {() => {
+                  const selectedAssignee = form.current.getValue('alertRule.targets');
+                  // Check for falsey value or empty array value
 
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    const disabled = !selectedAssignee || !selectedAssignee.toString();
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                  const disabled = !selectedAssignee || !selectedAssignee.toString();
 
-                    return (
-                      <SelectField
-                        label={t('Environment')}
-                        help={t(
-                          'Only receive notifications from a specific environment.'
-                        )}
-                        name="alertRule.environment"
-                        options={alertRuleEnvs}
-                        disabled={disabled}
-                        defaultValue=""
-                        disabledReason={t(
-                          'Please select which teams or members to notify first.'
-                        )}
-                      />
-                    );
-                  }}
-                </Observer>
-              </PanelBody>
-            </Panel>
-          </InputGroup>
-        </StyledList>
-      </Form>
-    </div>
+                  return (
+                    <SelectField
+                      label={t('Environment')}
+                      help={t('Only receive notifications from a specific environment.')}
+                      name="alertRule.environment"
+                      options={alertRuleEnvs}
+                      disabled={disabled}
+                      defaultValue=""
+                      disabledReason={t(
+                        'Please select which teams or members to notify first.'
+                      )}
+                    />
+                  );
+                }}
+              </Observer>
+            </PanelBody>
+          </Panel>
+        </InputGroup>
+      </StyledList>
+    </Form>
   );
 }
 

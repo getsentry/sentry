@@ -104,35 +104,34 @@ export function NewDetectorLayout<
     initialData,
     onSubmit: formSubmitHandler,
     onFieldChange: handleFieldChange,
+    onBlur: handleFormBlur,
     mapFormErrors,
   };
 
   return (
-    <div onBlur={handleFormBlur}>
-      <EditLayout formProps={formProps}>
-        <EditLayout.Header maxWidth={maxWidth}>
-          <EditLayout.HeaderContent>
-            <NewDetectorBreadcrumbs detectorType={detectorType} />
-          </EditLayout.HeaderContent>
+    <EditLayout formProps={formProps}>
+      <EditLayout.Header maxWidth={maxWidth}>
+        <EditLayout.HeaderContent>
+          <NewDetectorBreadcrumbs detectorType={detectorType} />
+        </EditLayout.HeaderContent>
 
-          <div>
-            <MonitorFeedbackButton />
-          </div>
+        <div>
+          <MonitorFeedbackButton />
+        </div>
 
-          <EditLayout.HeaderFields>
-            <DetectorBaseFields environment={environment} />
-            {previewChart ?? <div />}
-          </EditLayout.HeaderFields>
-        </EditLayout.Header>
+        <EditLayout.HeaderFields>
+          <DetectorBaseFields environment={environment} />
+          {previewChart ?? <div />}
+        </EditLayout.HeaderFields>
+      </EditLayout.Header>
 
-        <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
+      <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-        <NewDetectorFooter
-          maxWidth={maxWidth}
-          disabledCreate={disabledCreate}
-          extras={extraFooterButton}
-        />
-      </EditLayout>
-    </div>
+      <NewDetectorFooter
+        maxWidth={maxWidth}
+        disabledCreate={disabledCreate}
+        extras={extraFooterButton}
+      />
+    </EditLayout>
   );
 }

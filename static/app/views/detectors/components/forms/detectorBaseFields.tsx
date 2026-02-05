@@ -84,6 +84,7 @@ function ProjectField() {
         {key: 'all', label: t('All Projects')},
       ]}
       name="projectId"
+      label={t('Project')}
       placeholder={t('Project')}
       aria-label={t('Select Project')}
       disabled={fetching}
@@ -127,6 +128,7 @@ function EnvironmentField({
       flexibleControlStateSize
       stacked
       name="environment"
+      label={t('Environment')}
       placeholder={t('Environment')}
       aria-label={t('Select Environment')}
       size="sm"

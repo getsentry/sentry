@@ -227,337 +227,336 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
   }, [formModel, hasRule, hasCustomName]);
 
   return (
-    <div onBlur={handleFormBlur}>
-      <Form
-        model={formModel}
-        apiMethod={rule ? 'PUT' : 'POST'}
-        saveOnBlur={false}
-        initialData={initialData}
-        submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-        mapFormErrors={mapAssertionFormErrors}
-        onFieldChange={handleFieldChange}
-        onPreSubmit={() => {
-          if (!methodHasBody(formModel)) {
-            formModel.setValue('body', null);
-          }
-          // When runtime assertions are disabled, the assertions field is not mounted,
-          // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
-          if (!hasRuntimeAssertions) {
-            const assertion = formModel.getValue<Assertion | null>('assertion');
-            if (!assertion?.root || assertion.root.children?.length === 0) {
-              formModel.setValue('assertion', null);
-            }
-          }
-        }}
-        extraButton={
-          <Flex gap="md">
-            {rule && handleDelete && (
-              <Confirm
-                message={t(
-                  'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
-                  rule.name
-                )}
-                header={<h5>{t('Delete Uptime Rule?')}</h5>}
-                priority="danger"
-                confirmText={t('Delete Rule')}
-                onConfirm={handleDelete}
-              >
-                <Button priority="danger">{t('Delete Rule')}</Button>
-              </Confirm>
-            )}
-            {hasRuntimeAssertions && (
-              <TestUptimeMonitorButton
-                label={t('Test Rule')}
-                getFormData={() => {
-                  const data = formModel.getTransformedData();
-                  return {
-                    url: data.url,
-                    method: data.method ?? DEFAULT_METHOD,
-                    headers: data.headers ?? [],
-                    body: methodHasBody(formModel) ? data.body : null,
-                    timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-                    assertion: data.assertion ?? null,
-                  };
-                }}
-              />
-            )}
-          </Flex>
+    <Form
+      model={formModel}
+      apiMethod={rule ? 'PUT' : 'POST'}
+      saveOnBlur={false}
+      initialData={initialData}
+      submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      mapFormErrors={mapAssertionFormErrors}
+      onFieldChange={handleFieldChange}
+      onBlur={handleFormBlur}
+      onPreSubmit={() => {
+        if (!methodHasBody(formModel)) {
+          formModel.setValue('body', null);
         }
-      >
-        <List symbol="colored-numeric">
-          <AlertListItem>{t('Select a project and environment')}</AlertListItem>
-          <ListItemSubText>
-            {t(
-              'The selected project and environment is where Uptime Issues will be created.'
-            )}
-          </ListItemSubText>
-          <FormRow>
-            <SentryProjectSelectorField
-              disabled={rule !== undefined}
-              disabledReason={t('Existing uptime rules cannot be moved between projects')}
-              name="projectSlug"
-              label={t('Project')}
-              placeholder={t('Choose Project')}
-              projects={projects}
-              valueIsSlug
-              inline={false}
+        // When runtime assertions are disabled, the assertions field is not mounted,
+        // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
+        if (!hasRuntimeAssertions) {
+          const assertion = formModel.getValue<Assertion | null>('assertion');
+          if (!assertion?.root || assertion.root.children?.length === 0) {
+            formModel.setValue('assertion', null);
+          }
+        }
+      }}
+      extraButton={
+        <Flex gap="md">
+          {rule && handleDelete && (
+            <Confirm
+              message={t(
+                'Are you sure you want to delete "%s"? Once deleted, this alert cannot be recreated automatically.',
+                rule.name
+              )}
+              header={<h5>{t('Delete Uptime Rule?')}</h5>}
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={handleDelete}
+            >
+              <Button priority="danger">{t('Delete Rule')}</Button>
+            </Confirm>
+          )}
+          {hasRuntimeAssertions && (
+            <TestUptimeMonitorButton
+              label={t('Test Rule')}
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                  assertion: data.assertion ?? null,
+                };
+              }}
+            />
+          )}
+        </Flex>
+      }
+    >
+      <List symbol="colored-numeric">
+        <AlertListItem>{t('Select a project and environment')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'The selected project and environment is where Uptime Issues will be created.'
+          )}
+        </ListItemSubText>
+        <FormRow>
+          <SentryProjectSelectorField
+            disabled={rule !== undefined}
+            disabledReason={t('Existing uptime rules cannot be moved between projects')}
+            name="projectSlug"
+            label={t('Project')}
+            placeholder={t('Choose Project')}
+            projects={projects}
+            valueIsSlug
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            placeholder={t('Select an environment')}
+            noOptionsMessage={() => t('Start typing to create an environment')}
+            onCreateOption={(env: any) => {
+              setNewEnvironment(env);
+              formModel.setValue('environment', env);
+            }}
+            creatable
+            options={environments.map(e => ({value: e, label: e}))}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          />
+        </FormRow>
+        <AlertListItem>{t('Configure Request')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure the HTTP request made for uptime checks.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <TextField
+              name="url"
+              label={t('URL')}
+              placeholder={t('The URL to monitor')}
               flexibleControlStateSize
-              stacked
+              monospace
               required
             />
             <SelectField
-              name="environment"
-              label={t('Environment')}
-              placeholder={t('Select an environment')}
-              noOptionsMessage={() => t('Start typing to create an environment')}
-              onCreateOption={(env: any) => {
-                setNewEnvironment(env);
-                formModel.setValue('environment', env);
-              }}
-              creatable
-              options={environments.map(e => ({value: e, label: e}))}
-              inline={false}
+              name="method"
+              label={t('Method')}
+              defaultValue="GET"
+              options={HTTP_METHOD_OPTIONS.map(option => ({
+                value: option,
+                label: option,
+              }))}
               flexibleControlStateSize
-              stacked
               required
             />
-          </FormRow>
-          <AlertListItem>{t('Configure Request')}</AlertListItem>
-          <ListItemSubText>
-            {t('Configure the HTTP request made for uptime checks.')}
-          </ListItemSubText>
-          <Configuration>
-            <ConfigurationPanel>
-              <TextField
-                name="url"
-                label={t('URL')}
-                placeholder={t('The URL to monitor')}
-                flexibleControlStateSize
-                monospace
-                required
-              />
-              <SelectField
-                name="method"
-                label={t('Method')}
-                defaultValue="GET"
-                options={HTTP_METHOD_OPTIONS.map(option => ({
-                  value: option,
-                  label: option,
-                }))}
-                flexibleControlStateSize
-                required
-              />
-              <SelectField
-                options={VALID_INTERVALS_SEC.map(value => ({
-                  value,
-                  label: t('Every %s', getDuration(value)),
-                }))}
-                name="intervalSeconds"
-                label={t('Interval')}
-                defaultValue={60}
-                flexibleControlStateSize
-                showHelpInTooltip={{isHoverable: true}}
-                help={({model}) =>
-                  tct(
-                    'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
-                      ),
-                      interval: (
-                        <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
-                      ),
-                      expectedFailureInterval: (
-                        <strong>
-                          {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
-                        </strong>
-                      ),
-                    }
-                  )
-                }
-                required
-              />
-              <RangeField
-                name="timeoutMs"
-                label={t('Timeout')}
-                min={1000}
-                max={60_000}
-                step={250}
-                tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
-                defaultValue={DEFAULT_TIMEOUT_MS}
-                showTickLabels
-                formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
-                flexibleControlStateSize
-                required
-              />
-              <UptimeHeadersField
-                name="headers"
-                label={t('Headers')}
-                showHelpInTooltip={{isHoverable: true}}
-                help={t(
-                  'Avoid adding sensitive credentials to headers as they are stored in plain text.'
-                )}
-                flexibleControlStateSize
-              />
-              <TextareaField
-                name="body"
-                label={t('Body')}
-                visible={({model}: any) => methodHasBody(model)}
-                rows={4}
-                maxRows={15}
-                autosize
-                monospace
-                placeholder='{"key": "value"}'
-                flexibleControlStateSize
-              />
-              <BooleanField
-                name="traceSampling"
-                label={t('Allow Sampling')}
-                showHelpInTooltip={{isHoverable: true}}
-                help={tct(
-                  'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+            <SelectField
+              options={VALID_INTERVALS_SEC.map(value => ({
+                value,
+                label: t('Every %s', getDuration(value)),
+              }))}
+              name="intervalSeconds"
+              label={t('Interval')}
+              defaultValue={60}
+              flexibleControlStateSize
+              showHelpInTooltip={{isHoverable: true}}
+              help={({model}) =>
+                tct(
+                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
                   {
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                    ),
+                    interval: (
+                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                    ),
+                    expectedFailureInterval: (
+                      <strong>
+                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                      </strong>
                     ),
                   }
-                )}
-                flexibleControlStateSize
-              />
-            </ConfigurationPanel>
-            <Alert.Container>
-              <Alert variant="muted">
-                {tct(
-                  'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
-                    ),
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
-            <Observer>
-              {() => (
-                <HTTPSnippet
-                  url={formModel.getValue('url')}
-                  method={formModel.getValue('method')}
-                  headers={formModel.getValue('headers')}
-                  body={methodHasBody(formModel) ? formModel.getValue('body') : null}
-                  traceSampling={formModel.getValue('traceSampling')}
-                />
+                )
+              }
+              required
+            />
+            <RangeField
+              name="timeoutMs"
+              label={t('Timeout')}
+              min={1000}
+              max={60_000}
+              step={250}
+              tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
+              defaultValue={DEFAULT_TIMEOUT_MS}
+              showTickLabels
+              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+              flexibleControlStateSize
+              required
+            />
+            <UptimeHeadersField
+              name="headers"
+              label={t('Headers')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={t(
+                'Avoid adding sensitive credentials to headers as they are stored in plain text.'
               )}
-            </Observer>
-          </Configuration>
-          {hasRuntimeAssertions && (
-            <Fragment>
-              <AlertListItem>{t('Verification')}</AlertListItem>
-              <ListItemSubText>
-                {t(
-                  'Define conditions that must be met for the check to be considered successful.'
-                )}
-              </ListItemSubText>
-              <Configuration>
-                <ConfigurationPanel>
-                  <UptimeAssertionsField
-                    name="assertion"
-                    label={t('Assertions')}
-                    flexibleControlStateSize
-                  />
-                </ConfigurationPanel>
-              </Configuration>
-            </Fragment>
-          )}
-          <AlertListItem>{t('Set thresholds')}</AlertListItem>
-          <ListItemSubText>
-            {t('Configure when an issue is created or resolved.')}
-          </ListItemSubText>
-          <Configuration>
-            <ConfigurationPanel>
-              <NumberField
-                name="downtimeThreshold"
-                min={1}
-                placeholder={t('Defaults to 3')}
-                help={({model}) => {
-                  const intervalSeconds = Number(model.getValue('intervalSeconds'));
-                  const threshold =
-                    Number(model.getValue('downtimeThreshold')) ||
-                    DEFAULT_DOWNTIME_THRESHOLD;
-                  const downDuration = intervalSeconds * threshold;
-                  return tct(
-                    'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
-                    {
-                      threshold: <strong>{threshold}</strong>,
-                      downtime: <strong>{getDuration(downDuration)}</strong>,
-                    }
-                  );
-                }}
-                label={t('Failure Tolerance')}
-                flexibleControlStateSize
+              flexibleControlStateSize
+            />
+            <TextareaField
+              name="body"
+              label={t('Body')}
+              visible={({model}: any) => methodHasBody(model)}
+              rows={4}
+              maxRows={15}
+              autosize
+              monospace
+              placeholder='{"key": "value"}'
+              flexibleControlStateSize
+            />
+            <BooleanField
+              name="traceSampling"
+              label={t('Allow Sampling')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={tct(
+                'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                  ),
+                }
+              )}
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
+          <Alert.Container>
+            <Alert variant="muted">
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
+          <Observer>
+            {() => (
+              <HTTPSnippet
+                url={formModel.getValue('url')}
+                method={formModel.getValue('method')}
+                headers={formModel.getValue('headers')}
+                body={methodHasBody(formModel) ? formModel.getValue('body') : null}
+                traceSampling={formModel.getValue('traceSampling')}
               />
-              <NumberField
-                name="recoveryThreshold"
-                min={1}
-                placeholder={t('Defaults to 1')}
-                help={({model}) => {
-                  const intervalSeconds = Number(model.getValue('intervalSeconds'));
-                  const threshold =
-                    Number(model.getValue('recoveryThreshold')) ||
-                    DEFAULT_RECOVERY_THRESHOLD;
-                  const upDuration = intervalSeconds * threshold;
-                  return tct(
-                    'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
-                    {
-                      threshold: <strong>{threshold}</strong>,
-                      uptime: <strong>{getDuration(upDuration)}</strong>,
-                    }
-                  );
-                }}
-                label={t('Recovery Tolerance')}
-                flexibleControlStateSize
-              />
-            </ConfigurationPanel>
-          </Configuration>
-          <AlertListItem>{t('Establish ownership')}</AlertListItem>
-          <ListItemSubText>
-            {t(
-              'Choose a team or member as the rule owner. Issues created will be automatically assigned to the owner.'
             )}
-          </ListItemSubText>
-          <FormRow>
-            <TextField
-              name="name"
-              label={t('Uptime rule name')}
-              placeholder={t('Uptime rule name')}
-              onChange={() => {
-                // Immediately dispose of the autorun name setter, since it won't
-                // receive the hasCustomName state before the autorun is ran
-                // again after this change (overriding whatever change the user
-                // just made)
-                disposeNameSetter.current?.();
-                setHasCustomName(true);
+          </Observer>
+        </Configuration>
+        {hasRuntimeAssertions && (
+          <Fragment>
+            <AlertListItem>{t('Verification')}</AlertListItem>
+            <ListItemSubText>
+              {t(
+                'Define conditions that must be met for the check to be considered successful.'
+              )}
+            </ListItemSubText>
+            <Configuration>
+              <ConfigurationPanel>
+                <UptimeAssertionsField
+                  name="assertion"
+                  label={t('Assertions')}
+                  flexibleControlStateSize
+                />
+              </ConfigurationPanel>
+            </Configuration>
+          </Fragment>
+        )}
+        <AlertListItem>{t('Set thresholds')}</AlertListItem>
+        <ListItemSubText>
+          {t('Configure when an issue is created or resolved.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <NumberField
+              name="downtimeThreshold"
+              min={1}
+              placeholder={t('Defaults to 3')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('downtimeThreshold')) ||
+                  DEFAULT_DOWNTIME_THRESHOLD;
+                const downDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue created after [threshold] consecutive failures (after [downtime] of downtime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    downtime: <strong>{getDuration(downDuration)}</strong>,
+                  }
+                );
               }}
-              inline={false}
+              label={t('Failure Tolerance')}
               flexibleControlStateSize
-              stacked
-              required
             />
-            <SentryMemberTeamSelectorField
-              name="owner"
-              label={t('Owner')}
-              inline={false}
-              flexibleControlStateSize
-              stacked
-              style={{
-                padding: 0,
-                border: 'none',
+            <NumberField
+              name="recoveryThreshold"
+              min={1}
+              placeholder={t('Defaults to 1')}
+              help={({model}) => {
+                const intervalSeconds = Number(model.getValue('intervalSeconds'));
+                const threshold =
+                  Number(model.getValue('recoveryThreshold')) ||
+                  DEFAULT_RECOVERY_THRESHOLD;
+                const upDuration = intervalSeconds * threshold;
+                return tct(
+                  'Issue resolved after [threshold] consecutive successes (after [uptime] of recovered uptime).',
+                  {
+                    threshold: <strong>{threshold}</strong>,
+                    uptime: <strong>{getDuration(upDuration)}</strong>,
+                  }
+                );
               }}
+              label={t('Recovery Tolerance')}
+              flexibleControlStateSize
             />
-            <HiddenField name="timeoutMs" defaultValue={10000} />
-          </FormRow>
-        </List>
-      </Form>
-    </div>
+          </ConfigurationPanel>
+        </Configuration>
+        <AlertListItem>{t('Establish ownership')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the rule owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
+        <FormRow>
+          <TextField
+            name="name"
+            label={t('Uptime rule name')}
+            placeholder={t('Uptime rule name')}
+            onChange={() => {
+              // Immediately dispose of the autorun name setter, since it won't
+              // receive the hasCustomName state before the autorun is ran
+              // again after this change (overriding whatever change the user
+              // just made)
+              disposeNameSetter.current?.();
+              setHasCustomName(true);
+            }}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          />
+          <SentryMemberTeamSelectorField
+            name="owner"
+            label={t('Owner')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            style={{
+              padding: 0,
+              border: 'none',
+            }}
+          />
+          <HiddenField name="timeoutMs" defaultValue={10000} />
+        </FormRow>
+      </List>
+    </Form>
   );
 }
 
