@@ -919,8 +919,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             {},
         )
 
-        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
-        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.id}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         expected = f"""\
@@ -1266,7 +1266,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=[triggered_rule],
         )
 
-        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
@@ -1361,7 +1361,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
@@ -1467,8 +1467,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.slug}"
-        artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.slug}"
+        artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.id}"
+        artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
@@ -1570,8 +1570,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.slug}"
-        passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.slug}"
+        failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.id}"
+        passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
