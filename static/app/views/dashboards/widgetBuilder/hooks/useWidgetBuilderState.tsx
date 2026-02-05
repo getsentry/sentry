@@ -131,10 +131,10 @@ export interface WidgetBuilderState {
   displayType?: DisplayType;
   /**
    * Fields/columns used by the widget. Usage varies by display type:
-   * - Tables: all columns (both plain fields and aggregates)
-   * - Big Numbers: aggregate fields
-   * - Time-series charts (area, bar, line): grouping fields (non-aggregates)
-   * - Categorical Bars: both X-axis field (FIELD kind) and aggregate (FUNCTION kind)
+   * - Table: all columns (both plain fields and aggregates)
+   * - Big Number: aggregate fields
+   * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
+   * - Bar (Categorical): exactly one (FIELD kind) and exactly one (FUNCTION kind)
    */
   fields?: Column[];
   legendAlias?: string[];
@@ -363,15 +363,13 @@ function useWidgetBuilderState(): {
             // aggregate (FUNCTION kind) in state.fields, not yAxis
             setYAxis([], options);
             setLegendAlias([], options);
-            // Fetch more rows than displayed (10 categories max) to ensure accurate
-            // "Other" aggregation when there are many unique category values
-            setLimit(25, options);
 
             // Build the aggregate list from existing state, similar to time-series charts
             const nextAggregates = [
               ...aggregatesWithoutAlias.slice(0, 1),
               ...(yAxisWithoutAlias?.slice(0, 1) ?? []),
             ];
+
             // If no existing aggregate found, use the dataset's default
             if (nextAggregates.length === 0) {
               nextAggregates.push({
@@ -467,6 +465,7 @@ function useWidgetBuilderState(): {
             setYAxis([], options);
 
             const categoricalBarFields: Column[] = [];
+
             // Add X-axis field from dataset config
             if (config.defaultCategoryField) {
               categoricalBarFields.push({
@@ -474,6 +473,7 @@ function useWidgetBuilderState(): {
                 field: config.defaultCategoryField,
               });
             }
+
             // Add aggregate from dataset config
             if (config.defaultField) {
               categoricalBarFields.push({
@@ -506,7 +506,6 @@ function useWidgetBuilderState(): {
               options
             );
             setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
-            setLimit(undefined, options);
           } else {
             setYAxis([], options);
             setFields(
@@ -519,7 +518,6 @@ function useWidgetBuilderState(): {
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
             );
-            setLimit(undefined, options);
           }
 
           setThresholds(undefined, options);

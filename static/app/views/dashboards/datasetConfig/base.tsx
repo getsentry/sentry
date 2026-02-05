@@ -234,7 +234,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
   /**
-   * Field options to display in the Group by selector.
+   * Field options to display in the Group by selector and the X axis selector
    */
   getGroupByFieldOptions?: (
     organization: Organization,

@@ -229,10 +229,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
-  if (
-    widget.displayType === DisplayType.CATEGORICAL_SERIES ||
-    widget.displayType === DisplayType.CATEGORICAL_BAR
-  ) {
+  if (widget.displayType === DisplayType.CATEGORICAL_BAR) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
@@ -733,6 +730,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   // Transform table data to categorical series format
   const query = widget.queries[0];
   const tableData = tableResults[0];
+
   if (!query || !tableData.meta) {
     return (
       <StyledErrorPanel>
@@ -741,14 +739,11 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     );
   }
 
-  const categoricalSeriesData = transformTableToCategoricalSeries({
-    query,
-    tableData: {
-      data: tableData.data,
-      meta: {
-        fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
-        units: (tableData.meta.units ?? {}) as TabularData['meta']['units'],
-      },
+  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+    data: tableData.data,
+    meta: {
+      fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
+      units: (tableData.meta.units ?? {}) as TabularData['meta']['units'],
     },
   });
 

@@ -359,25 +359,34 @@ function Visualize({error, setError}: VisualizeProps) {
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   // Determines which state field stores the visualization fields:
-  // - Time-series charts (Line, Area, Bar): use state.yAxis for aggregates
-  // - Tables, Big Numbers: use state.fields for all columns (fields + aggregates)
-  // - Categorical Bars: use exactly two state.fields. One is of `function` type, configured here.
-  //   the other is of `field` type and configured in the X axis selector.
-  const usesYAxis = isTimeSeriesWidget && !isCategoricalBarWidget;
 
-  const allFields = usesYAxis ? state.yAxis : state.fields;
-  // For categorical bars, only show aggregate fields (FUNCTION kind) in the Visualize section
-  // The X-axis field (FIELD kind) is managed separately in the X-Axis selector
+  // - Line, Area, Bar (Time Series): use state.yAxis for aggregates
+  // - Table, Big Number: use state.fields for all columns (fields + aggregates)
+  // - Bar (Categorical): Use exactly two state.fields. One is of `function` type, configured here.
+  //   the other is of `field` type and configured in the X axis selector.
+  const usesYAxisState = isTimeSeriesWidget && !isCategoricalBarWidget;
+  const allFields = usesYAxisState ? state.yAxis : state.fields;
+  // For categorical bars, only show aggregate fields (FUNCTION kind) in the
+  // Visualize section. There should be exactly one in the state. The X-axis
+  // field (FIELD kind) is managed separately in the X-Axis selector
   const aggregateFields = isCategoricalBarWidget
     ? allFields?.filter(f => f.kind === FieldValueKind.FUNCTION)
     : null;
-  const fields = isCategoricalBarWidget ? aggregateFields : allFields;
+
+  const fields = isCategoricalBarWidget
+    ? aggregateFields
+    : usesYAxisState
+      ? state.yAxis
+      : state.fields;
+
+  const canHaveAlias =
+    !isTimeSeriesWidget && !isBigNumberWidget && !isCategoricalBarWidget;
 
   // Determines whether "Add Series/Column/Equation" buttons are shown:
-  // - Time-series chart widgets: can add multiple y-axis series
-  // - Table widgets: can add multiple columns
-  // - Big Number widgets: can add fields only if equations are enabled for the dataset
-  // - Categorical Bar widgets: can add one aggregate if none exists yet
+  // - Line, Area, Bar (Time Series): Can add multiple Y-axis series
+  // - Table: Can add multiple columns
+  // - Big Number: Can add fields only if equations are enabled for the dataset
+  // - Bar (Categorical): Can add one aggregate if none exists yet
   const canAddFields =
     (isCategoricalBarWidget && (!aggregateFields || aggregateFields.length === 0)) ||
     (!isCategoricalBarWidget &&
@@ -387,14 +396,22 @@ function Visualize({error, setError}: VisualizeProps) {
   const linkedDashboards = state.linkedDashboards || [];
 
   // Determines which action to use for updating visualization fields:
-  // - Time series widgets: SET_Y_AXIS for y-axis aggregates
-  // - Categorical bar widgets: SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
-  // - Other widgets (table, big number): SET_FIELDS for all columns
-  const updateAction = usesYAxis
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns
+  const updateAction = usesYAxisState
     ? BuilderStateAction.SET_Y_AXIS
     : isCategoricalBarWidget
       ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
       : BuilderStateAction.SET_FIELDS;
+
+  const tooltipText = isTimeSeriesWidget
+    ? t(
+        'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+      )
+    : isCategoricalBarWidget
+      ? t('Primary metric that appears in your chart.')
+      : t('Columns to display in your table. You can also add equations.');
 
   const fieldOptions = useMemo(() => {
     // Explicitly merge numeric and string tags to ensure filtering
@@ -568,16 +585,8 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={
-          isTimeSeriesWidget || isCategoricalBarWidget ? t('Visualize') : t('Columns')
-        }
-        tooltipText={
-          isTimeSeriesWidget || isCategoricalBarWidget
-            ? t(
-                'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
-              )
-            : t('Columns to display in your table. You can also add equations.')
-        }
+        title={isTableWidget ? t('Columns') : t('Visualize')}
+        tooltipText={tooltipText}
       />
       <StyledFieldGroup
         error={isTimeSeriesWidget ? aggregateErrors : fieldErrors}
@@ -903,50 +912,45 @@ function Visualize({error, setError}: VisualizeProps) {
                             isCategoricalBarWidget
                           }
                         >
-                          {!isTimeSeriesWidget &&
-                            !isBigNumberWidget &&
-                            !isCategoricalBarWidget && (
-                              <LegendAliasInput
-                                name="alias"
-                                placeholder={t('Add Alias')}
-                                value={field.alias ?? ''}
-                                disabled={disableTransactionWidget}
-                                onChange={e => {
-                                  const newFields = cloneDeep(fields);
-                                  newFields[index]!.alias = e.target.value;
-                                  dispatch(
-                                    {
-                                      type: updateAction,
-                                      payload: newFields,
-                                    },
-                                    {updateUrl: false}
-                                  );
-                                }}
-                                onBlur={e => {
-                                  const newFields = cloneDeep(fields);
-                                  newFields[index]!.alias = e.target.value;
-                                  dispatch(
-                                    {
-                                      type: updateAction,
-                                      payload: newFields,
-                                    },
-                                    {updateUrl: true}
-                                  );
-                                  trackAnalytics(
-                                    'dashboards_views.widget_builder.change',
-                                    {
-                                      builder_version: WidgetBuilderVersion.SLIDEOUT,
-                                      field: 'visualize.legendAlias',
-                                      from: source,
-                                      new_widget: !isEditing,
-                                      value: '',
-                                      widget_type: state.dataset ?? '',
-                                      organization,
-                                    }
-                                  );
-                                }}
-                              />
-                            )}
+                          {canHaveAlias && (
+                            <LegendAliasInput
+                              name="alias"
+                              placeholder={t('Add Alias')}
+                              value={field.alias ?? ''}
+                              disabled={disableTransactionWidget}
+                              onChange={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch(
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
+                                  {updateUrl: false}
+                                );
+                              }}
+                              onBlur={e => {
+                                const newFields = cloneDeep(fields);
+                                newFields[index]!.alias = e.target.value;
+                                dispatch(
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
+                                  {updateUrl: true}
+                                );
+                                trackAnalytics('dashboards_views.widget_builder.change', {
+                                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                                  field: 'visualize.legendAlias',
+                                  from: source,
+                                  new_widget: !isEditing,
+                                  value: '',
+                                  widget_type: state.dataset ?? '',
+                                  organization,
+                                });
+                              }}
+                            />
+                          )}
                           {hasDrillDownFlows &&
                             isTableWidget &&
                             fields[index]?.kind === FieldValueKind.FIELD && (

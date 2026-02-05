@@ -140,15 +140,16 @@ export function SelectRow({
 
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   // Derived from state rather than passed as prop - categorical bars use a dedicated action
-  const isCategoricalBar = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
   // Determines which action to use for updating visualization fields:
-  // - Time series widgets: SET_Y_AXIS for y-axis aggregates
-  // - Categorical bar widgets: SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
-  // - Other widgets (table, big number): SET_FIELDS for all columns
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging
+  // with X-axis, which is set in `XAxisSelector`)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns at once
   const updateAction = isTimeSeriesWidget
     ? BuilderStateAction.SET_Y_AXIS
-    : isCategoricalBar
+    : isCategoricalBarWidget
       ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
       : BuilderStateAction.SET_FIELDS;
 

@@ -5,43 +5,54 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export function WidgetBuilderXAxisSelector() {
-  const {state, dispatch} = useWidgetBuilderContext();
   const organization = useOrganization();
+
+  const {state, dispatch} = useWidgetBuilderContext();
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
+
   const tags: TagCollection = useTags();
 
-  // Only use string tags for categorical X-axis (numeric values don't make good categories)
+  // Only use string tags for categorical X-axis (numeric values don't make good
+  // categories). This has a major caveat that _some_ numerical tags like HTTP
+  // response status _are_ good for grouping, so we may want to allow that.
   const {tags: stringSpanTags, isLoading: isLoadingSpanTags} = useTraceItemTags('string');
 
-  const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
+  const datasetConfig = getDatasetConfig(state.dataset);
 
   // Determine if we're loading tags for EAP datasets
   const isEAPDataset =
     state.dataset === WidgetType.SPANS ||
     state.dataset === WidgetType.LOGS ||
     state.dataset === WidgetType.TRACEMETRICS;
+
   const isLoading = isEAPDataset && isLoadingSpanTags;
 
-  // Get string field options for X-axis categories.
-  // Only string fields make sense as categorical X-axis values (e.g., browser, country, transaction).
-  // Numeric fields would create too many unique categories and are better suited for Y-axis aggregates.
   const fieldOptions = useMemo(() => {
+    // For EAP, use the EAP-style tags and format them directly, we've already
+    // narrowed down to just string tags
     if (isEAPDataset) {
-      // For EAP datasets, use only string tags
       return Object.values(stringSpanTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
+        trailingItems: () => <TypeBadge kind={FieldKind.FIELD} />,
       }));
     }
 
@@ -57,12 +68,13 @@ export function WidgetBuilderXAxisSelector() {
           ) {
             return false;
           }
-          // Only include string fields
+
           return option.value.meta.dataType === 'string';
         })
         .map(option => ({
           label: option.value.meta.name,
           value: option.value.meta.name,
+          trailingItems: () => <TypeBadge kind={FieldKind.FIELD} />,
         }));
     }
 
@@ -86,15 +98,23 @@ export function WidgetBuilderXAxisSelector() {
       type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
       payload: String(option.value),
     });
+
+    trackAnalytics('dashboards_views.widget_builder.change', {
+      builder_version: WidgetBuilderVersion.SLIDEOUT,
+      field: 'xAxis',
+      from: source,
+      new_widget: !isEditing,
+      value: '',
+      widget_type: state.dataset ?? '',
+      organization,
+    });
   };
 
   return (
     <Fragment>
       <SectionHeader
         title={t('X-Axis')}
-        tooltipText={t(
-          'Select the field to use for X-axis categories (e.g., browser, country)'
-        )}
+        tooltipText={t('Select the field to use for X-axis categories.')}
       />
       <FullWidthCompactSelect
         searchable
@@ -107,8 +127,8 @@ export function WidgetBuilderXAxisSelector() {
   );
 }
 
-// Styled component needed for nested button selector - this is an edge case
-// where core components can't replace Emotion
+// This is not currently possible with `Container` trickery or props on
+// `CompactSelect`, though it may be coming soon
 const FullWidthCompactSelect = styled(CompactSelect)`
   width: 100%;
 

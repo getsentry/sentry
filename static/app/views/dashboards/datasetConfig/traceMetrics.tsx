@@ -188,7 +188,7 @@ export const TraceMetricsConfig: DatasetConfig<
   EventsTimeSeriesResponse,
   EventsTableData
 > = {
-  defaultCategoryField: 'transaction',
+  defaultCategoryField: '',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,

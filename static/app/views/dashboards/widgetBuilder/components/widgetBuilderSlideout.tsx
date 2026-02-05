@@ -133,7 +133,7 @@ function WidgetBuilderSlideout({
       ? t('Edit Widget')
       : t('Custom Widget Builder');
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
-  const isCategoricalBar = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
 
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
   const showQueryFilterBuilder = !(
@@ -144,22 +144,20 @@ function WidgetBuilderSlideout({
   // - Time-series widgets: show Group By to allow breaking down by fields
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
-  const showGroupBySelector =
-    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isCategoricalBar;
+  const showGroupBySelector = isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE);
 
-  // X-Axis selector is only for Categorical Bar widgets.
-  // Unlike time-series charts where X-axis is always time, categorical bars
-  // use a field (like browser, country, etc.) as the X-axis categories.
-  const showXAxisSelector = isCategoricalBar;
+  // X-Axis selector is only for Categorical Bar widgets, other chart widgets
+  // always use time as the X-axis
+  const showXAxisSelector = isCategoricalBarWidget;
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
-  // - Table widgets: always show to control row ordering
-  // - Time-series widgets with Group By: show to control which top N groups are displayed
-  // - Categorical Bar widgets: show to control category ordering (like tables)
+  // - Table: Always show to control row ordering
+  // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
+  // - Bar (Categorical): Show to control category ordering (like tables)
   const showSortByStep =
-    isCategoricalBar ||
+    isCategoricalBarWidget ||
     (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
     state.displayType === DisplayType.TABLE;
 
@@ -410,6 +408,7 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
+
                     {showXAxisSelector && (
                       <Section>
                         <WidgetBuilderXAxisSelector />

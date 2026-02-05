@@ -32,10 +32,7 @@ describe('transformTableToCategoricalSeries', () => {
       },
     };
 
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
+    const result = transformTableToCategoricalSeries(query, tableData);
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
@@ -79,10 +76,7 @@ describe('transformTableToCategoricalSeries', () => {
       },
     };
 
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
+    const result = transformTableToCategoricalSeries(query, tableData);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
@@ -109,45 +103,6 @@ describe('transformTableToCategoricalSeries', () => {
     });
   });
 
-  it('handles null and non-numeric values', () => {
-    const query = WidgetQueryFixture({
-      fields: ['browser', 'count()'],
-      columns: ['browser'],
-      aggregates: ['count()'],
-      orderby: '-count()',
-    });
-
-    const tableData: TabularData = {
-      data: [
-        {browser: 'Chrome', 'count()': 100},
-        {browser: null, 'count()': 50},
-        {browser: 'Safari', 'count()': 'invalid'},
-      ],
-      meta: {
-        fields: {
-          browser: 'string',
-          'count()': 'integer',
-        },
-        units: {
-          browser: null,
-          'count()': null,
-        },
-      },
-    };
-
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
-
-    expect(result).toHaveLength(1);
-    expect(result[0]!.values).toEqual([
-      {category: 'Chrome', value: 100},
-      {category: '(empty)', value: 50}, // null/empty becomes "(empty)" label
-      {category: 'Safari', value: null}, // non-numeric becomes null
-    ]);
-  });
-
   it('returns empty array when no columns defined', () => {
     const query = WidgetQueryFixture({
       fields: ['count()'],
@@ -163,10 +118,7 @@ describe('transformTableToCategoricalSeries', () => {
       },
     };
 
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
+    const result = transformTableToCategoricalSeries(query, tableData);
 
     expect(result).toEqual([]);
   });
@@ -186,41 +138,8 @@ describe('transformTableToCategoricalSeries', () => {
       },
     };
 
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
+    const result = transformTableToCategoricalSeries(query, tableData);
 
     expect(result).toEqual([]);
-  });
-
-  it('defaults to "number" for unknown value types', () => {
-    const query = WidgetQueryFixture({
-      fields: ['browser', 'count()'],
-      columns: ['browser'],
-      aggregates: ['count()'],
-    });
-
-    // Cast to test edge case - APIs can return unexpected types
-    const tableData = {
-      data: [{browser: 'Chrome', 'count()': 100}],
-      meta: {
-        fields: {
-          browser: 'string',
-          'count()': 'unknown_type',
-        },
-        units: {
-          browser: null,
-          'count()': null,
-        },
-      },
-    } as unknown as TabularData;
-
-    const result = transformTableToCategoricalSeries({
-      query,
-      tableData,
-    });
-
-    expect(result[0]!.meta.valueType).toBe('number');
   });
 });

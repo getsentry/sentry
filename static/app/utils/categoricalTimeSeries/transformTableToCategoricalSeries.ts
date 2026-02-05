@@ -1,29 +1,21 @@
-import {t} from 'sentry/locale';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/settings';
-import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   CategoricalSeries,
-  CategoricalSeriesMeta,
   TabularData,
-  TabularValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-interface TransformOptions {
-  query: WidgetQuery;
-  tableData: TabularData;
-}
-
 /**
- * Transforms table data from the /events/ endpoint into CategoricalSeries format
- * suitable for rendering in CategoricalSeriesWidgetVisualization.
+ * Transforms table data from the /events/ endpoint into `CategoricalSeries` format
+ * suitable for rendering in `CategoricalSeriesWidgetVisualization`, according to the
+ * Widget Query that requested it.
  *
  * For categorical bar charts:
  * - query.columns[0] is the X-axis category field
  * - query.aggregates contains the Y-axis aggregate(s)
  *
  * Example transformation:
- * Input (from /events/):
+ * Input (TabularData):
  *   data: [{browser: 'Chrome', 'count()': 1250}, {browser: 'Firefox', 'count()': 890}]
  *   meta: {fields: {browser: 'string', 'count()': 'integer'}, units: {'count()': null}}
  *
@@ -32,10 +24,10 @@ interface TransformOptions {
  *   meta: {valueType: 'integer', valueUnit: null}
  *   values: [{category: 'Chrome', value: 1250}, {category: 'Firefox', value: 890}]
  */
-export function transformTableToCategoricalSeries({
-  query,
-  tableData,
-}: TransformOptions): CategoricalSeries[] {
+export function transformTableToCategoricalSeries(
+  query: WidgetQuery,
+  tableData: TabularData
+): CategoricalSeries[] {
   // The X-axis field is the first column (non-aggregate field)
   const xAxisField = query.columns[0];
   if (!xAxisField) {
@@ -51,51 +43,32 @@ export function transformTableToCategoricalSeries({
   const {meta, data: rows} = tableData;
 
   return aggregates.map(aggregate => {
-    // Get type and unit from metadata
-    const fieldType = meta.fields[aggregate];
-    const fieldUnit = meta.units[aggregate];
+    const valueType = meta.fields[aggregate];
+    const valueUnit = meta.units[aggregate];
 
     // Transform rows to categorical items
     // Handle null/undefined/empty values distinctly from valid category values
     const values = rows.map(row => {
-      const rawCategory = row[xAxisField];
-      let category: string;
-      if (rawCategory === null || rawCategory === undefined || rawCategory === '') {
-        category = t('(empty)');
-      } else {
-        category = String(rawCategory);
-      }
+      // These values cannot be `undefined` as far as I know, but the types
+      // suggest that they can
+      const category = row[xAxisField] ?? null;
+      const rawValue = row[aggregate];
+      // CategoricalItemValue must be number | null, so coerce non-numeric values to null
+      const value = typeof rawValue === 'number' ? rawValue : null;
+
       return {
         category,
-        value: typeof row[aggregate] === 'number' ? row[aggregate] : null,
+        value,
       };
     });
 
     return {
       valueAxis: aggregate,
       meta: {
-        valueType: mapToCategoricalValueType(fieldType),
-        valueUnit: fieldUnit ?? null,
+        valueType: valueType ?? FALLBACK_TYPE,
+        valueUnit: valueUnit ?? null,
       },
       values,
     };
   });
-}
-
-/**
- * Maps TabularValueType to CategoricalSeriesMeta['valueType'].
- * Falls back to FALLBACK_TYPE for null, undefined, or unknown types.
- */
-function mapToCategoricalValueType(
-  type: TabularValueType | undefined
-): CategoricalSeriesMeta['valueType'] {
-  if (
-    type &&
-    PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(
-      type as (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number]
-    )
-  ) {
-    return type;
-  }
-  return FALLBACK_TYPE;
 }
