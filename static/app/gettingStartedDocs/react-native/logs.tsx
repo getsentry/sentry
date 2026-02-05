@@ -84,7 +84,7 @@ Sentry.logger.error('This is an error log');
 const user = 'john_doe';
 const action = 'login';
 Sentry.logger.info(
-  Sentry.logger.fmt`User '${user}' performed '${action}'`
+  Sentry.logger.fmt\`User '\${user}' performed '\${action}'\`
 );`,
             },
           ],
