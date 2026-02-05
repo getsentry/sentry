@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
@@ -11,6 +11,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
@@ -55,33 +56,7 @@ export default function MonitorCreateForm() {
       transformData: transformMonitorFormData,
     })
   );
-
-  // Track whether initialization is complete to avoid validating during setup
-  const isInitialized = useRef(false);
-  // Track whether we've done an initial full validation
-  const hasValidatedOnce = useRef(false);
-
-  useEffect(() => {
-    // Mark initialization complete after first render cycle
-    isInitialized.current = true;
-  }, []);
-
-  // Validate entire form when any field loses focus (via event bubbling)
-  const handleFormBlur = useCallback(() => {
-    if (!isInitialized.current) {
-      return;
-    }
-    form.current.validateForm();
-  }, []);
-
-  // On first meaningful field change, validate entire form to surface sibling errors
-  const handleFieldChange = useCallback(() => {
-    if (!isInitialized.current || hasValidatedOnce.current) {
-      return;
-    }
-    hasValidatedOnce.current = true;
-    form.current.validateForm();
-  }, []);
+  const {onBlur, onFieldChange} = useFormEagerValidation(form.current);
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -118,8 +93,8 @@ export default function MonitorCreateForm() {
       apiEndpoint={`/organizations/${organization.slug}/monitors/`}
       apiMethod="POST"
       model={form.current}
-      onFieldChange={handleFieldChange}
-      onBlur={handleFormBlur}
+      onFieldChange={onFieldChange}
+      onBlur={onBlur}
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
@@ -23,6 +23,7 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -113,33 +114,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
     : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
-
-  // Track whether initialization is complete to avoid validating during setup
-  const isInitialized = useRef(false);
-  // Track whether we've done an initial full validation
-  const hasValidatedOnce = useRef(false);
-
-  useEffect(() => {
-    // Mark initialization complete after first render cycle
-    isInitialized.current = true;
-  }, []);
-
-  // Validate entire form when any field loses focus (via event bubbling)
-  const handleFormBlur = useCallback(() => {
-    if (!isInitialized.current) {
-      return;
-    }
-    formModel.validateForm();
-  }, [formModel]);
-
-  // On first meaningful field change, validate entire form to surface sibling errors
-  const handleFieldChange = useCallback(() => {
-    if (!isInitialized.current || hasValidatedOnce.current) {
-      return;
-    }
-    hasValidatedOnce.current = true;
-    formModel.validateForm();
-  }, [formModel]);
+  const {onBlur, onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -234,8 +209,8 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={mapAssertionFormErrors}
-      onFieldChange={handleFieldChange}
-      onBlur={handleFormBlur}
+      onFieldChange={onFieldChange}
+      onBlur={onBlur}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);

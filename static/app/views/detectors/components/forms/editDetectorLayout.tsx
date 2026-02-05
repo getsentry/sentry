@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react-lite';
 
@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import FormContext from 'sentry/components/forms/formContext';
 import FormModel from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
@@ -62,16 +63,7 @@ export function EditDetectorLayout<
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const [formModel] = useState(() => new FormModel());
-
-  // Track whether initialization is complete to avoid validating during setup
-  const isInitialized = useRef(false);
-  // Track whether we've done an initial full validation
-  const hasValidatedOnce = useRef(false);
-
-  useEffect(() => {
-    // Mark initialization complete after first render cycle
-    isInitialized.current = true;
-  }, []);
+  const {onBlur, onFieldChange} = useFormEagerValidation(formModel);
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -82,29 +74,12 @@ export function EditDetectorLayout<
     return savedDetectorToFormData(detector);
   }, [detector, savedDetectorToFormData]);
 
-  // Validate entire form when any field loses focus (via event bubbling)
-  const handleFormBlur = useCallback(() => {
-    if (!isInitialized.current) {
-      return;
-    }
-    formModel.validateForm();
-  }, [formModel]);
-
-  // On first meaningful field change, validate entire form to surface sibling errors
-  const handleFieldChange = useCallback(() => {
-    if (!isInitialized.current || hasValidatedOnce.current) {
-      return;
-    }
-    hasValidatedOnce.current = true;
-    formModel.validateForm();
-  }, [formModel]);
-
   const formProps = {
     model: formModel,
     initialData,
     onSubmit: handleFormSubmit,
-    onFieldChange: handleFieldChange,
-    onBlur: handleFormBlur,
+    onFieldChange,
+    onBlur,
     mapFormErrors,
   };
 
