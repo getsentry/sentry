@@ -56,7 +56,7 @@ function ConversationsOverviewPage({
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
   // waiting for table to finish loading
-  useConversation(urlState.conversationId ?? '');
+  useConversation({conversationId: urlState.conversationId ?? ''});
   useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
