@@ -108,10 +108,10 @@ class TestIssueCategoryCondition(ConditionTestCase):
         assert self.event.group is not None
         group_event = self.event.for_group(self.group)
 
-        self.dc.update(comparison={"value": GroupCategory.ERROR.value, "type": False})
+        self.dc.update(comparison={"value": GroupCategory.ERROR.value, "include": False})
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
-        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value, "type": False})
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value, "include": False})
         self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

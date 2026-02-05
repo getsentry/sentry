@@ -15,7 +15,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
         "type": "object",
         "properties": {
             "value": {"type": "integer", "enum": [*GroupCategory]},
-            "type": {"type": "boolean"},
+            "include": {"type": "boolean"},
         },
         "required": ["value"],  # if type is not present, then default to True
         "additionalProperties": False,
@@ -30,7 +30,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
         except (TypeError, ValueError, KeyError):
             return False
 
-        include = comparison.get("type", True)
+        include = comparison.get("include", True)
 
         try:
             issue_category = group.issue_category
