@@ -329,9 +329,9 @@ describe('OrganizationMembersList', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/settings/members/`,
+          pathname: `/settings/${organization.slug}/members/`,
         },
-        route: '/organizations/:orgId/settings/members/',
+        route: '/settings/:orgId/members/',
       },
     });
 
@@ -367,9 +367,9 @@ describe('OrganizationMembersList', () => {
       organization,
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/settings/members/`,
+          pathname: `/settings/${organization.slug}/members/`,
         },
-        route: '/organizations/:orgId/settings/members/',
+        route: '/settings/:orgId/members/',
       },
     });
 
@@ -718,7 +718,7 @@ describe('OrganizationMembersList', () => {
         organization,
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/settings/members/`,
+            pathname: `/settings/${organization.slug}/members/`,
             query: {query: currentUser.name},
           },
           route: '/organizations/:orgId/settings/members/',

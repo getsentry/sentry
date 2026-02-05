@@ -41,7 +41,7 @@ export default function SeerWizardSetupBanner() {
 
               <Flex paddingTop="lg">
                 <LinkButton
-                  to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
+                  to={`/settings/${organization.slug}/seer/onboarding/`}
                   priority="primary"
                   icon={<IconSeer />}
                 >
