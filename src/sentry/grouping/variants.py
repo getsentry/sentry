@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
 from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.fingerprinting.types import FingerprintInfo
-from sentry.grouping.fingerprinting.utils import is_default_fingerprint_var
+from sentry.grouping.fingerprinting.utils import (
+    get_custom_fingerprint_type,
+    is_default_fingerprint_var,
+)
 from sentry.grouping.utils import hash_from_values
 
 if TYPE_CHECKING:
@@ -201,7 +204,10 @@ class CustomFingerprintVariant(BaseVariant):
 
     @property
     def key(self) -> str:
-        return "built_in_fingerprint" if self.is_built_in else "custom_fingerprint"
+        fingerprint_type = get_custom_fingerprint_type(self.fingerprint_info)
+        prefix = fingerprint_type.replace(" ", "_").replace("-", "_")
+
+        return f"{prefix}_fingerprint"
 
     def get_hash(self) -> str | None:
         return hash_from_values(self.values)
