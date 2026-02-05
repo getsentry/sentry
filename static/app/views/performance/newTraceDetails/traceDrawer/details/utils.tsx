@@ -241,3 +241,21 @@ export function getTraceAttributesTreeActions(
     });
   };
 }
+
+/**
+ * Attempts to parse a JSON string, recursively unwrapping double-stringified arrays.
+ */
+export function tryParseJson(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    const parsedValue = JSON.parse(value);
+    if (!Array.isArray(parsedValue)) {
+      return parsedValue;
+    }
+    return parsedValue.map((item: unknown): unknown => tryParseJson(item));
+  } catch {
+    return value;
+  }
+}

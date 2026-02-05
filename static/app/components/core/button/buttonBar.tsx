@@ -37,6 +37,7 @@ const MergedButtonBarStyles = () => css`
     z-index: 2;
   }
 
+  & > [role='presentation'],
   & > .dropdown,
   & > button,
   & > input,
@@ -56,7 +57,9 @@ const MergedButtonBarStyles = () => css`
     }
 
     /* Middle buttons are square */
-    &:not(:last-child):not(:first-child) {
+    &:not(:last-child):not(:first-child),
+    &:not(:last-child):not(:first-child)[role='presentation'] > button,
+    &:not(:last-child):not(:first-child)[role='presentation'] > a {
       border-radius: 0;
 
       & > .dropdown-actor > button,
@@ -66,24 +69,13 @@ const MergedButtonBarStyles = () => css`
     }
 
     /* Middle buttons only need one border so we don't get a double line */
-    &:first-child {
-      & + .dropdown:not(:last-child),
-      & + a:not(:last-child),
-      & + input:not(:last-child),
-      & + button:not(:last-child) {
-        margin-left: -1px;
-      }
-    }
-
-    /* Middle buttons only need one border so we don't get a double line */
-    /* stylelint-disable-next-line no-duplicate-selectors */
-    &:not(:last-child):not(:first-child) {
-      & + .dropdown,
-      & + button,
-      & + input,
-      & + a {
-        margin-left: -1px;
-      }
+    & + [role='presentation'] > button,
+    & + [role='presentation'] > a,
+    & + .dropdown:not(:last-child),
+    & + a:not(:last-child),
+    & + input:not(:last-child),
+    & + button:not(:last-child) {
+      margin-left: -1px;
     }
 
     /* Last button is square on the left side */
@@ -92,8 +84,10 @@ const MergedButtonBarStyles = () => css`
       border-bottom-left-radius: 0;
       margin-left: -1px;
 
-      & > .dropdown-actor > button,
-      & > .dropdown-actor > a {
+      &[role='presentation'] > button,
+      &[role='presentation'] > a,
+      & > .dropdown-actor > button
+      & > .dropdown-actor > a{
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         margin-left: -1px;

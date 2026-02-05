@@ -4,6 +4,7 @@ name = "sentry"
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
 dependencies = [
+    "backports-zstd>=1.3.0",
     "beautifulsoup4>=4.7.1",
     "boto3>=1.34.128",
     "botocore>=1.34.128",
