@@ -1,4 +1,5 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -136,6 +137,9 @@ export function useConversationViewDrawer({
         onClose,
         shouldCloseOnInteractOutside: () => true,
         drawerWidth: `${DRAWER_WIDTH}px`,
+        drawerCss: css`
+          min-width: ${DRAWER_WIDTH}px;
+        `,
         resizable: true,
         conversationId: conversation.conversationId,
         spanId: initialSpanId,

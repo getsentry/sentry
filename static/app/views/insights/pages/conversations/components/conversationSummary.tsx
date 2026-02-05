@@ -134,7 +134,7 @@ export function ConversationSummary({
         />
         <AggregateItem
           icon={<IconFire size="sm" />}
-          iconColor={theme.colors.red400}
+          iconColor={theme.tokens.graphics.danger.vibrant}
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
