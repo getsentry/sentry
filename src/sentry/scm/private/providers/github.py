@@ -113,7 +113,7 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]:
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> dict[Reaction, int]:
         try:
             return self.client.get_comment_reactions(repository["name"], comment_id)
         except ApiError as e:

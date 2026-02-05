@@ -74,7 +74,9 @@ class Provider(Protocol):
 
     def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None: ...
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]: ...
+    def get_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> dict[Reaction, int]: ...
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
