@@ -13,7 +13,7 @@ import {useActionableItemsWithProguardErrors} from 'sentry/components/events/int
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -66,7 +66,6 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
       activeThreadId
     );
   }, [group, event, groupSummaryData, autofixData, activeThreadId]);
-  const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();
 
@@ -93,13 +92,7 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   ]);
 
   return (
-    <MarkdownButton
-      title={tct('Copies [numLines] lines of Markdown', {
-        numLines: <strong>{markdownLines}</strong>,
-      })}
-      priority="link"
-      onClick={handleCopyMarkdown}
-    >
+    <MarkdownButton priority="link" onClick={handleCopyMarkdown}>
       {t('Copy as Markdown')}
     </MarkdownButton>
   );
