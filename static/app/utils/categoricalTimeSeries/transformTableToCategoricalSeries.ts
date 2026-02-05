@@ -1,9 +1,10 @@
 import {t} from 'sentry/locale';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/settings';
 import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   CategoricalSeries,
-  CategoricalValueType,
+  CategoricalSeriesMeta,
   TabularData,
   TabularValueType,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -82,22 +83,19 @@ export function transformTableToCategoricalSeries({
 }
 
 /**
- * Maps TabularValueType to CategoricalValueType.
- * CategoricalValueType is a subset of the plottable value types.
- * Accepts undefined to handle cases where the field isn't in the metadata.
+ * Maps TabularValueType to CategoricalSeriesMeta['valueType'].
+ * Falls back to FALLBACK_TYPE for null, undefined, or unknown types.
  */
 function mapToCategoricalValueType(
   type: TabularValueType | undefined
-): CategoricalValueType {
-  if (!type) {
-    return 'number';
+): CategoricalSeriesMeta['valueType'] {
+  if (
+    type &&
+    PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(
+      type as (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number]
+    )
+  ) {
+    return type;
   }
-
-  // CategoricalValueType is constrained to PLOTTABLE_TIME_SERIES_VALUE_TYPES
-  if (PLOTTABLE_TIME_SERIES_VALUE_TYPES.includes(type as CategoricalValueType)) {
-    return type as CategoricalValueType;
-  }
-
-  // Default to 'number' for unsupported types
-  return 'number';
+  return FALLBACK_TYPE;
 }
