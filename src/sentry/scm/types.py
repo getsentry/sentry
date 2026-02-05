@@ -18,6 +18,7 @@ class Comment(TypedDict):
     author: Author
     created_at: str
     updated_at: str
+    provider: ProviderName
     raw: dict[str, Any]
 
 
@@ -33,6 +34,7 @@ class PullRequest(TypedDict):
     head: PullRequestBranch
     base: PullRequestBranch
     author: Author
+    provider: ProviderName
     raw: dict[str, Any]
 
 

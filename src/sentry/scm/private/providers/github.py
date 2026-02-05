@@ -30,6 +30,7 @@ def _transform_comment(raw: dict[str, Any]) -> Comment:
         author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
         created_at=raw["created_at"],
         updated_at=raw["updated_at"],
+        provider="github",
         raw=raw,
     )
 
@@ -42,6 +43,7 @@ def _transform_pull_request(raw: dict[str, Any]) -> PullRequest:
         head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
         base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
         author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        provider="github",
         raw=raw,
     )
 

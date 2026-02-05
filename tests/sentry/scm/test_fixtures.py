@@ -82,6 +82,7 @@ class BaseTestProvider(Provider):
             head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
             base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
             author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+            provider="test",
             raw=raw,
         )
 
@@ -95,6 +96,7 @@ class BaseTestProvider(Provider):
                 author={"id": "1", "username": "testuser"},
                 created_at="2024-01-01T00:00:00Z",
                 updated_at="2024-01-01T00:00:00Z",
+                provider="test",
                 raw={},
             )
         ]
@@ -117,6 +119,7 @@ class BaseTestProvider(Provider):
                 author={"id": "2", "username": "reviewer"},
                 created_at="2024-01-02T00:00:00Z",
                 updated_at="2024-01-02T00:00:00Z",
+                provider="test",
                 raw={},
             )
         ]
