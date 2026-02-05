@@ -91,7 +91,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
-  'seer.config_reminder.rendered': 'Navigation: Primary Item Rendered',
+  'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
