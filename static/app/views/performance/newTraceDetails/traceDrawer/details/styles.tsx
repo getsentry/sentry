@@ -35,6 +35,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -1319,7 +1320,14 @@ function MultilineJSON({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = tryParseJson(value);
+  const json = useMemo(() => tryParseJson(value), [value]);
+
+  // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
+  const computedExpandedPaths = useMemo(() => {
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    return Array.from(new Set(['$', ...childPaths]));
+  }, [maxDefaultDepth, json]);
+
   return (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
@@ -1355,6 +1363,7 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />
       )}
