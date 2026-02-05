@@ -406,6 +406,8 @@ function useWidgetBuilderState(): {
             }
 
             setQuery(query?.slice(0, 1), options);
+            // Categorical bars show more categories than time-series groupings
+            setLimit(20, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -495,8 +497,8 @@ function useWidgetBuilderState(): {
             } else {
               setSort([], options);
             }
-            // Categorical bars have 1 query and 1 aggregate, so max limit is 10
-            setLimit(getResultsLimit(1, 1), options);
+            // Categorical bars show more categories than time-series groupings
+            setLimit(20, options);
           } else if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(
