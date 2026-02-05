@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 
-import type {ButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+
 import FormContext from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils';
 import {TestUptimeMonitorButton} from 'sentry/views/alerts/rules/uptime/testUptimeMonitorButton';

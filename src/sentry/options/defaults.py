@@ -695,6 +695,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.rate-limit-sensitive-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3130,6 +3136,11 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.evalsha-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # List of trace_ids to enable debug logging for. Empty = debug off.

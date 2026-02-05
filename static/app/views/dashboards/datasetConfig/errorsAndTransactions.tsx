@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';

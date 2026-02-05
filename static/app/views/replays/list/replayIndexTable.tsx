@@ -1,8 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,

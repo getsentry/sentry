@@ -3,12 +3,12 @@ import type {Theme} from '@emotion/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';

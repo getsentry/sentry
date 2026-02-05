@@ -2,6 +2,9 @@ import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addLoadingMessage,
@@ -17,9 +20,6 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';

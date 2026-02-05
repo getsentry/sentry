@@ -6,7 +6,8 @@ import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {
   GroupedOptionsType,
   OptionsType,
@@ -400,8 +401,9 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
-  extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
+export interface ControlProps<
+  OptionType extends OptionTypeBase = GeneralSelectValue,
+> extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
@@ -585,8 +587,9 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-interface PickerProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
+interface PickerProps<
+  OptionType extends OptionTypeBase,
+> extends ControlProps<OptionType> {
   /**
    * Enable async option loading.
    */

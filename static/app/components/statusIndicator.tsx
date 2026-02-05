@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {AlertVariant} from 'sentry/utils/theme';
 
 type StatusVariant = AlertVariant | 'resolved';

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

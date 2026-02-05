@@ -6,11 +6,11 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container} from '@sentry/scraps/layout';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import type {TooltipProps} from 'sentry/components/core/tooltip';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import type {FormSize, Theme} from 'sentry/utils/theme';

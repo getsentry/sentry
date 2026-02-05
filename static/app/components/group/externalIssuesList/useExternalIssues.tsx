@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {Group} from 'sentry/types/group';
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -19,7 +20,14 @@ function getExternalIssuesQueryKey({
   group,
   organization,
 }: UseExternalIssuesOptions): ApiQueryKey {
-  return [`/organizations/${organization.slug}/issues/${group.id}/external-issues/`];
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/', {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        issueId: group.id,
+      },
+    }),
+  ];
 }
 
 export function useExternalIssues({group, organization}: UseExternalIssuesOptions) {

@@ -16,6 +16,7 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,6 +57,12 @@ function ConversationsOverviewPage({
   const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
+    trackAnalytics('conversations.page-view', {
+      organization,
+    });
+  }, [organization]);
+
+  useEffect(() => {
     if (searchQuery === null) {
       setSearchQuery(DEFAULT_QUERY);
     }
@@ -66,6 +73,8 @@ function ConversationsOverviewPage({
     useTraceItemTags('number');
   const {tags: stringTags = [], isLoading: stringTagsLoading} =
     useTraceItemTags('string');
+  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
+    useTraceItemTags('boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -131,9 +140,12 @@ function ConversationsOverviewPage({
                     </ToolRibbon>
                     <SchemaHintsList
                       supportedAggregates={DISABLE_AGGREGATES}
+                      booleanTags={booleanTags as TagCollection}
                       numberTags={numberTags as TagCollection}
                       stringTags={stringTags as TagCollection}
-                      isLoading={numberTagsLoading || stringTagsLoading}
+                      isLoading={
+                        numberTagsLoading || stringTagsLoading || booleanTagsLoading
+                      }
                       exploreQuery={searchQuery ?? ''}
                       source={SchemaHintsSources.CONVERSATIONS}
                     />

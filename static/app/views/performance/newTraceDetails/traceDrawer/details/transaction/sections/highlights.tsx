@@ -2,8 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Link} from '@sentry/scraps/link';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Link} from 'sentry/components/core/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';

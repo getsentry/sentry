@@ -1,13 +1,13 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {AlertLink} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -23,12 +23,13 @@ import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-const ENDPOINT = '/users/me/emails/';
+const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
 function AccountEmails() {
   const queryClient = useQueryClient();

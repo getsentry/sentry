@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Container} from '@sentry/scraps/layout/container';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

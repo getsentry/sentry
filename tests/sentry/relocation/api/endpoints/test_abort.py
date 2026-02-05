@@ -45,6 +45,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
+    @override_options({"staff.ga-rollout": False})
     def test_good_superuser_abort_in_progress(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.PAUSE.value
@@ -64,6 +65,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
+    @override_options({"staff.ga-rollout": False})
     def test_good_superuser_abort_paused(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.PAUSE.value
@@ -83,6 +85,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
+    @override_options({"staff.ga-rollout": False})
     def test_bad_superuser_already_succeeded(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
@@ -102,6 +105,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
+    @override_options({"staff.ga-rollout": False})
     def test_bad_superuser_already_failed(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.FAILURE.value
@@ -117,6 +121,7 @@ class AbortRelocationTest(APITestCase):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
+    @override_options({"staff.ga-rollout": False})
     def test_bad_superuser_not_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
@@ -127,9 +132,11 @@ class AbortRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.get_error_response(self.relocation.uuid, status_code=403)
 
+    @override_options({"staff.ga-rollout": True})
     def test_bad_no_auth(self) -> None:
         self.get_error_response(self.relocation.uuid, status_code=401)
 
-    def test_bad_no_superuser(self) -> None:
+    @override_options({"staff.ga-rollout": True})
+    def test_bad_no_staff(self) -> None:
         self.login_as(user=self.superuser, superuser=False)
         self.get_error_response(self.relocation.uuid, status_code=403)

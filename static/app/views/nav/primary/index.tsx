@@ -1,9 +1,11 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
+
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Container} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Container} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
@@ -85,14 +87,16 @@ export function PrimaryNavigationItems() {
     <Fragment>
       <SidebarBody ref={ref}>
         <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
-          <SidebarLink
-            to={`/${prefix}/issues/`}
-            analyticsKey="issues"
-            group={PrimaryNavGroup.ISSUES}
-            {...makeNavItemProps(PrimaryNavGroup.ISSUES)}
-          >
-            <IconIssues />
-          </SidebarLink>
+          {tourProps => (
+            <SidebarLink
+              to={`/${prefix}/issues/`}
+              analyticsKey="issues"
+              group={PrimaryNavGroup.ISSUES}
+              {...mergeProps(makeNavItemProps(PrimaryNavGroup.ISSUES), tourProps)}
+            >
+              <IconIssues />
+            </SidebarLink>
+          )}
         </NavTourElement>
 
         <NavTourElement
@@ -100,15 +104,17 @@ export function PrimaryNavigationItems() {
           title={null}
           description={null}
         >
-          <SidebarLink
-            to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
-            activeTo={`/${prefix}/explore`}
-            analyticsKey="explore"
-            group={PrimaryNavGroup.EXPLORE}
-            {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
-          >
-            <IconCompass />
-          </SidebarLink>
+          {tourProps => (
+            <SidebarLink
+              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+              activeTo={`/${prefix}/explore`}
+              analyticsKey="explore"
+              group={PrimaryNavGroup.EXPLORE}
+              {...mergeProps(makeNavItemProps(PrimaryNavGroup.EXPLORE), tourProps)}
+            >
+              <IconCompass />
+            </SidebarLink>
+          )}
         </NavTourElement>
 
         <Feature
@@ -121,15 +127,17 @@ export function PrimaryNavigationItems() {
             title={null}
             description={null}
           >
-            <SidebarLink
-              to={`/${prefix}/dashboards/`}
-              activeTo={`/${prefix}/dashboard`}
-              analyticsKey="dashboards"
-              group={PrimaryNavGroup.DASHBOARDS}
-              {...makeNavItemProps(PrimaryNavGroup.DASHBOARDS)}
-            >
-              <IconDashboard />
-            </SidebarLink>
+            {tourProps => (
+              <SidebarLink
+                to={`/${prefix}/dashboards/`}
+                activeTo={`/${prefix}/dashboard`}
+                analyticsKey="dashboards"
+                group={PrimaryNavGroup.DASHBOARDS}
+                {...mergeProps(makeNavItemProps(PrimaryNavGroup.DASHBOARDS), tourProps)}
+              >
+                <IconDashboard />
+              </SidebarLink>
+            )}
           </NavTourElement>
         </Feature>
 
@@ -139,15 +147,17 @@ export function PrimaryNavigationItems() {
             title={null}
             description={null}
           >
-            <SidebarLink
-              to={`/${prefix}/insights/`}
-              activeTo={`/${prefix}/insights`}
-              analyticsKey="insights"
-              group={PrimaryNavGroup.INSIGHTS}
-              {...makeNavItemProps(PrimaryNavGroup.INSIGHTS)}
-            >
-              <IconGraph type="area" />
-            </SidebarLink>
+            {tourProps => (
+              <SidebarLink
+                to={`/${prefix}/insights/`}
+                activeTo={`/${prefix}/insights`}
+                analyticsKey="insights"
+                group={PrimaryNavGroup.INSIGHTS}
+                {...mergeProps(makeNavItemProps(PrimaryNavGroup.INSIGHTS), tourProps)}
+              >
+                <IconGraph type="area" />
+              </SidebarLink>
+            )}
           </NavTourElement>
         </Feature>
 
@@ -189,15 +199,17 @@ export function PrimaryNavigationItems() {
           title={null}
           description={null}
         >
-          <SidebarLink
-            to={`/settings/${organization.slug}/`}
-            activeTo="/settings/"
-            analyticsKey="settings"
-            group={PrimaryNavGroup.SETTINGS}
-            {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}
-          >
-            <IconSettings />
-          </SidebarLink>
+          {tourProps => (
+            <SidebarLink
+              to={`/settings/${organization.slug}/`}
+              activeTo="/settings/"
+              analyticsKey="settings"
+              group={PrimaryNavGroup.SETTINGS}
+              {...mergeProps(makeNavItemProps(PrimaryNavGroup.SETTINGS), tourProps)}
+            >
+              <IconSettings />
+            </SidebarLink>
+          )}
         </NavTourElement>
       </SidebarBody>
 

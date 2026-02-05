@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
+import {ButtonBar} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Stack} from 'sentry/components/core/layout';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

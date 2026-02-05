@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import CommitLink from 'sentry/components/commitLink';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import PullRequestLink from 'sentry/components/pullRequestLink';

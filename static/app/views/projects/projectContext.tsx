@@ -1,10 +1,11 @@
 import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

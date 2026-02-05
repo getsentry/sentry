@@ -289,18 +289,24 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_project_without_repository_mapping(self, mock_delay: mock.MagicMock) -> None:
+    def test_skips_project_without_repository_mapping(
+        self, mock_apply_async: mock.MagicMock
+    ) -> None:
+        self.project.platform = "python"
+        self.project.save()
         run_missing_sdk_integration_detector_for_organization(self.organization)
         # No task should be spawned for projects without code mappings
-        assert not mock_delay.called
+        assert not mock_apply_async.called
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_skips_inactive_repositories(self, mock_delay: mock.MagicMock) -> None:
+    def test_skips_inactive_repositories(self, mock_apply_async: mock.MagicMock) -> None:
+        self.project.platform = "python"
+        self.project.save()
         # Create a code mapping with an inactive repository
         code_mapping = self._create_code_mapping(self.project, "inactive-repo")
         code_mapping.repository.status = ObjectStatus.PENDING_DELETION
@@ -309,19 +315,80 @@ class TestRunMissingSdkIntegrationDetectorForOrganization(TestCase):
         run_missing_sdk_integration_detector_for_organization(self.organization)
 
         # No task should be spawned since repo is inactive
-        assert not mock_delay.called
+        assert not mock_apply_async.called
 
     @pytest.mark.django_db
     @mock.patch(
-        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.delay"
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
     )
-    def test_spawns_task_for_project_with_mapping(self, mock_delay: mock.MagicMock) -> None:
+    def test_spawns_task_for_project_with_mapping(self, mock_apply_async: mock.MagicMock) -> None:
+        self.project.platform = "python"
+        self.project.save()
         self._create_code_mapping(self.project, "test-repo")
 
         run_missing_sdk_integration_detector_for_organization(self.organization)
 
         # Task should be spawned with correct arguments
-        mock_delay.assert_called_once_with(self.organization.id, self.project.id, "test-repo", "")
+        mock_apply_async.assert_called_once_with(
+            args=(self.organization.id, self.project.id, "test-repo", ""),
+            headers={"sentry-propagate-traces": False},
+        )
+
+    @pytest.mark.django_db
+    @mock.patch(
+        "sentry.autopilot.tasks.run_missing_sdk_integration_detector_for_project_task.apply_async"
+    )
+    def test_only_processes_supported_platforms(self, mock_apply_async: mock.MagicMock) -> None:
+        # Create projects with supported platforms
+        python_project = self.create_project(organization=self.organization, platform="python")
+        node_project = self.create_project(organization=self.organization, platform="node")
+        js_project = self.create_project(organization=self.organization, platform="javascript")
+        js_react_project = self.create_project(
+            organization=self.organization, platform="javascript-react"
+        )
+        python_django_project = self.create_project(
+            organization=self.organization, platform="python-django"
+        )
+        node_express_project = self.create_project(
+            organization=self.organization, platform="node-express"
+        )
+
+        # Create projects with unsupported platforms
+        go_project = self.create_project(organization=self.organization, platform="go")
+        ruby_project = self.create_project(organization=self.organization, platform="ruby")
+        java_project = self.create_project(organization=self.organization, platform="java")
+
+        # Create code mappings for all projects
+        self._create_code_mapping(python_project, "python-repo")
+        self._create_code_mapping(node_project, "node-repo")
+        self._create_code_mapping(js_project, "js-repo")
+        self._create_code_mapping(js_react_project, "js-react-repo")
+        self._create_code_mapping(python_django_project, "python-django-repo")
+        self._create_code_mapping(node_express_project, "node-express-repo")
+        self._create_code_mapping(go_project, "go-repo")
+        self._create_code_mapping(ruby_project, "ruby-repo")
+        self._create_code_mapping(java_project, "java-repo")
+
+        run_missing_sdk_integration_detector_for_organization(self.organization)
+
+        # Only supported platforms should have tasks spawned
+        assert mock_apply_async.call_count == 6
+
+        # Collect all project IDs that had tasks spawned
+        spawned_project_ids = {call[1]["args"][1] for call in mock_apply_async.call_args_list}
+
+        # Supported platforms should be included
+        assert python_project.id in spawned_project_ids
+        assert node_project.id in spawned_project_ids
+        assert js_project.id in spawned_project_ids
+        assert js_react_project.id in spawned_project_ids
+        assert python_django_project.id in spawned_project_ids
+        assert node_express_project.id in spawned_project_ids
+
+        # Unsupported platforms should NOT be included
+        assert go_project.id not in spawned_project_ids
+        assert ruby_project.id not in spawned_project_ids
+        assert java_project.id not in spawned_project_ids
 
 
 class TestRunMissingSdkIntegrationDetectorForProject(TestCase):

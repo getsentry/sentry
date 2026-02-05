@@ -21,7 +21,13 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeMetrics,
+)
+from sentry.preprod.producer import PreprodFeature
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -397,10 +403,41 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 build_number=build_number,
             )
 
+        # Determine which features can run based on quota and filters
+        requested_features: list[PreprodFeature] = []
+
+        can_run_size, size_skip_reason = should_run_size(head_artifact)
+        if can_run_size:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        else:
+            # Update size metrics record to NOT_RAN with appropriate error code
+            if size_skip_reason == "quota":
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+                error_message = "Size analysis quota exceeded"
+            else:
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+                error_message = "Size analysis filtered out by project settings"
+
+            PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "identifier": None,
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                    "error_code": error_code,
+                    "error_message": error_message,
+                },
+            )
+
+        can_run_distro, _ = should_run_distribution(head_artifact)
+        if can_run_distro:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
+
         return Response(
             {
                 "success": True,
                 "artifactId": head_artifact_id,
                 "updatedFields": updated_fields,
+                "requestedFeatures": [feature.value for feature in requested_features],
             }
         )

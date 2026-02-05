@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

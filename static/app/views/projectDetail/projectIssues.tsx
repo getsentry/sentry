@@ -5,12 +5,11 @@ import pick from 'lodash/pick';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

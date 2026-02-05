@@ -2,13 +2,11 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Text} from 'sentry/components/core/text';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   useCodingAgentIntegrations,

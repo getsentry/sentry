@@ -7,14 +7,15 @@ import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 import {SliderThumb} from './thumb';
 
 export interface SliderProps
-  extends Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
+  extends
+    Omit<AriaSliderProps, 'minValue' | 'maxValue' | 'isDisabled'>,
     Pick<AriaSliderThumbOptions, 'autoFocus' | 'onFocus' | 'onBlur' | 'onFocusChange'> {
   /**
    * (This prop is now deprecated - slider ranges need to have consistent, evenly
@@ -359,11 +360,11 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   position: absolute;
   height: inherit;
   border-radius: inherit;
-  background: ${p => p.theme.tokens.interactive.link.accent.active};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.tokens.content.danger};`}
-  ${p => p.disabled && `background: ${p.theme.tokens.content.disabled};`}
+  ${p => p.error && `background: ${p.theme.tokens.background.danger.vibrant};`}
+  ${p => p.disabled && `background: ${p.theme.tokens.background.secondary};`}
 `;
 
 const SliderTick = styled('div')<{

@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
-import {Radio} from 'sentry/components/core/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';

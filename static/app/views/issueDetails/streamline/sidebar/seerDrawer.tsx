@@ -2,15 +2,14 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import Feature from 'sentry/components/acl/feature';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -528,10 +527,12 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
+      drawerCss: isExplorerVersion
+        ? undefined
+        : css`
+            height: fit-content;
+            max-height: 100%;
+          `,
       resizable: !isExplorerVersion,
       drawerWidth: isExplorerVersion ? '50%' : undefined,
       shouldCloseOnInteractOutside: () => {
@@ -603,6 +604,9 @@ const SeerDrawerBody = styled(DrawerBody)`
   scroll-behavior: smooth;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
   direction: rtl;
   * {
     direction: ltr;

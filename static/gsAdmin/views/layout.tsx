@@ -3,8 +3,9 @@ import {Outlet} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import ListLink from 'sentry/components/links/listLink';
@@ -188,7 +189,8 @@ const NavLink = styled(ListLink)`
     height: ${space(3)};
     position: relative;
     top: -1px;
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: currentColor;
   }
 
   &:hover {

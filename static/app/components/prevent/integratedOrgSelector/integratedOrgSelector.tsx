@@ -1,21 +1,22 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
@@ -35,7 +36,11 @@ function OrgFooterMessage() {
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(
       [
-        `/organizations/${organization.slug}/config/integrations/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+          },
+        }),
         {
           query: {
             provider_key: 'github',

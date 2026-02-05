@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,12 +31,12 @@ type VisualizeGhostFieldProps = {
   aggregates: Array<SelectValue<FieldValue>>;
   fields: QueryFieldValue[];
   isBigNumberWidget: boolean;
-  isChartWidget: boolean;
+  isTimeSeriesWidget: boolean;
   stringFields: string[];
 };
 
 function VisualizeGhostField({
-  isChartWidget,
+  isTimeSeriesWidget,
   isBigNumberWidget,
   fields,
   activeId,
@@ -193,8 +194,8 @@ function VisualizeGhostField({
             </Fragment>
           )}
         </FieldBar>
-        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-          {!isChartWidget && !isBigNumberWidget && (
+        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
+          {!isTimeSeriesWidget && !isBigNumberWidget && (
             <LegendAliasInput
               type="text"
               name="name"

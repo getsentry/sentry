@@ -2,13 +2,12 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, ButtonBar} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
@@ -431,7 +430,7 @@ export function ExplorerSeerDrawer({
 const DrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;
@@ -458,8 +457,11 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scroll-margin: 0 ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: column;
   direction: rtl;
-  * {
+
+  > * {
     direction: ltr;
   }
 `;

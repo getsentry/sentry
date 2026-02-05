@@ -2,10 +2,11 @@ import {createContext, Fragment, useContext, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,6 +20,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   fetchMutation,
@@ -34,8 +36,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const IsPrimaryUserContext = createContext<boolean>(false);
 
-const ENDPOINT = '/auth-v2/merge-accounts/';
-const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
+const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
+const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
 
 interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   lastActive: string;

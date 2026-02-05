@@ -4,9 +4,10 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';

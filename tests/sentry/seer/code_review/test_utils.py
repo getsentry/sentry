@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import orjson
@@ -19,11 +20,13 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
     extract_github_info,
+    is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.users.models.user import User
+from sentry.utils import json
 
 
 class TestGetTriggerMetadata:
@@ -32,6 +35,7 @@ class TestGetTriggerMetadata:
             "comment": {
                 "id": 12345,
                 "user": {"login": "test-user", "id": 99999},
+                "updated_at": "2024-01-15T10:30:00Z",
             }
         }
         result = _get_trigger_metadata_for_issue_comment(event_payload)
@@ -39,34 +43,71 @@ class TestGetTriggerMetadata:
         assert result["trigger_user"] == "test-user"
         assert result["trigger_user_id"] == 99999
         assert result["trigger_comment_type"] == "issue_comment"
+        assert result["trigger_at"] == "2024-01-15T10:30:00Z"
+
+    def test_extracts_issue_comment_trigger_at_defaults_to_now_when_missing(self) -> None:
+        event_payload = {
+            "comment": {
+                "id": 12345,
+                "user": {"login": "test-user", "id": 99999},
+            }
+        }
+        result = _get_trigger_metadata_for_issue_comment(event_payload)
+        # Returns ISO string for Celery serialization
+        assert isinstance(result["trigger_at"], str)
+        # Verify it's a valid ISO datetime string
+        datetime.fromisoformat(result["trigger_at"])
+
+    def test_issue_comment_falls_back_to_created_at(self) -> None:
+        event_payload = {
+            "comment": {
+                "id": 12345,
+                "user": {"login": "test-user", "id": 99999},
+                "created_at": "2024-01-15T09:00:00Z",
+            }
+        }
+        result = _get_trigger_metadata_for_issue_comment(event_payload)
+        assert result["trigger_at"] == "2024-01-15T09:00:00Z"
 
     def test_pull_request_uses_sender_rather_than_pr_author(self) -> None:
         event_payload = {
             "sender": {"login": "sender-user", "id": 12345},
-            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
+            "pull_request": {
+                "user": {"login": "pr-author", "id": 67890},
+                "updated_at": "2024-01-15T11:00:00Z",
+            },
         }
         result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "sender-user"
         assert result["trigger_user_id"] == 12345
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
+        assert result["trigger_at"] == "2024-01-15T11:00:00Z"
 
     def test_pull_request_falls_back_to_pr_user(self) -> None:
         event_payload = {
-            "pull_request": {"user": {"login": "pr-author", "id": 67890}},
+            "pull_request": {
+                "user": {"login": "pr-author", "id": 67890},
+                "updated_at": "2024-01-15T12:00:00Z",
+            },
         }
         result = _get_trigger_metadata_for_pull_request(event_payload)
         assert result["trigger_user"] == "pr-author"
         assert result["trigger_user_id"] == 67890
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
+        assert result["trigger_at"] == "2024-01-15T12:00:00Z"
 
-    def test_pull_request_no_data_returns_none_values(self) -> None:
+    def test_pull_request_no_data_defaults_trigger_at_to_now(self) -> None:
         result = _get_trigger_metadata_for_pull_request({})
         assert result["trigger_comment_id"] is None
         assert result["trigger_comment_type"] is None
         assert result["trigger_user"] is None
         assert result["trigger_user_id"] is None
+        # Returns ISO string for Celery serialization
+        assert isinstance(result["trigger_at"], str)
+        # Verify it's a valid ISO datetime string
+        datetime.fromisoformat(result["trigger_at"])
 
 
 class GetTargetCommitShaTest(TestCase):
@@ -178,6 +219,7 @@ class TestTransformWebhookToCodegenRequest:
             "pull_request": {
                 "number": 42,
                 "user": {"login": "pr-author"},
+                "updated_at": "2024-01-15T10:30:00Z",
             },
             "sender": {"login": "sender-user"},
         }
@@ -211,10 +253,14 @@ class TestTransformWebhookToCodegenRequest:
             "organization_id": organization.id,
             "organization_slug": organization.slug,
         }
-        assert result["data"]["config"] == {
-            "features": {"bug_prediction": True},
-            "trigger": SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value,
-        } | {k: v for k, v in result["data"]["config"].items() if k not in ("features", "trigger")}
+        assert result["data"]["config"]["features"] == {"bug_prediction": True}
+        assert (
+            result["data"]["config"]["trigger"] == SeerCodeReviewTrigger.ON_READY_FOR_REVIEW.value
+        )
+        assert result["data"]["config"]["trigger_at"] == "2024-01-15T10:30:00Z"
+        # sentry_received_trigger_at is set to current time when transform happens
+        assert isinstance(result["data"]["config"]["sentry_received_trigger_at"], str)
+        datetime.fromisoformat(result["data"]["config"]["sentry_received_trigger_at"])
 
     def test_issue_comment_on_pr(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -231,6 +277,7 @@ class TestTransformWebhookToCodegenRequest:
             "comment": {
                 "id": 12345,
                 "user": {"login": "commenter"},
+                "updated_at": "2024-01-15T14:00:00Z",
             },
         }
         result = transform_webhook_to_codegen_request(
@@ -252,6 +299,10 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
         assert config["trigger_comment_type"] == "issue_comment"
+        assert config["trigger_at"] == "2024-01-15T14:00:00Z"
+        # sentry_received_trigger_at is set to current time when transform happens
+        assert isinstance(config["sentry_received_trigger_at"], str)
+        datetime.fromisoformat(config["sentry_received_trigger_at"])
 
     def test_invalid_repo_name_format_raises(
         self, setup_entities: tuple[User, Organization, Project, Repository]
@@ -306,6 +357,63 @@ class TestTransformWebhookToCodegenRequest:
         assert result is not None
         assert "integration_id" not in result["data"]["repo"]
 
+    def test_pull_request_payload_is_json_serializable(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        """Verify payload can be JSON serialized for Celery task submission."""
+        _, organization, _, repo = setup_entities
+        event_payload = {
+            "action": "opened",
+            "pull_request": {
+                "number": 42,
+                "user": {"login": "pr-author"},
+                "updated_at": "2024-01-15T10:30:00Z",
+            },
+            "sender": {"login": "sender-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        # This would fail if trigger_at is a datetime object instead of string
+        json.dumps(result)  # Should not raise TypeError
+
+    def test_issue_comment_payload_is_json_serializable(
+        self, setup_entities: tuple[User, Organization, Project, Repository]
+    ) -> None:
+        """Verify payload can be JSON serialized for Celery task submission."""
+        _, organization, _, repo = setup_entities
+        event_payload = {
+            "action": "created",
+            "issue": {
+                "number": 42,
+                "pull_request": {
+                    "url": "https://api.github.com/repos/test-owner/test-repo/pulls/42"
+                },
+            },
+            "comment": {
+                "id": 12345,
+                "user": {"login": "commenter"},
+                "updated_at": "2024-01-15T14:00:00Z",
+            },
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT,
+            "created",
+            event_payload,
+            organization,
+            repo,
+            "def456sha",
+        )
+
+        # This would fail if trigger_at is a datetime object instead of string
+        json.dumps(result)  # Should not raise TypeError
+
 
 class TestExtractGithubInfo:
     def test_extract_from_pull_request_event(self) -> None:
@@ -318,6 +426,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/baxterthehacker/public-repo/pull/1"
         assert result["github_event"] == "pull_request"
         assert result["github_event_action"] == "opened"
+        assert result["github_actor_login"] == "baxterthehacker"
+        assert result["github_actor_id"] == "6752317"
 
     def test_extract_from_check_run_event(self) -> None:
         event = orjson.loads(CHECK_RUN_REREQUESTED_ACTION_EVENT_EXAMPLE)
@@ -329,6 +439,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/4"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "rerequested"
+        assert result["github_actor_login"] == "test-user"
+        assert result["github_actor_id"] == "12345678"
 
     def test_extract_from_check_run_completed_event(self) -> None:
         event = orjson.loads(CHECK_RUN_COMPLETED_EVENT_EXAMPLE)
@@ -340,6 +452,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] == "https://github.com/getsentry/sentry/runs/9876543"
         assert result["github_event"] == "check_run"
         assert result["github_event_action"] == "completed"
+        assert result["github_actor_login"] == "test-user"
+        assert result["github_actor_id"] == "12345678"
 
     def test_extract_from_issue_comment_event(self) -> None:
         event = {
@@ -359,6 +473,10 @@ class TestExtractGithubInfo:
                 "html_url": "https://github.com/comment-owner/comment-repo/pull/42#issuecomment-123456",
                 "id": 123456,
             },
+            "sender": {
+                "login": "commenter-user",
+                "id": 98765,
+            },
         }
         result = extract_github_info(event, github_event="issue_comment")
 
@@ -371,6 +489,8 @@ class TestExtractGithubInfo:
         )
         assert result["github_event"] == "issue_comment"
         assert result["github_event_action"] == "created"
+        assert result["github_actor_login"] == "commenter-user"
+        assert result["github_actor_id"] == "98765"
 
     def test_comment_url_takes_precedence_over_pr_url(self) -> None:
         event = {
@@ -424,6 +544,8 @@ class TestExtractGithubInfo:
         assert result["github_event_url"] is None
         assert result["github_event"] is None
         assert result["github_event_action"] is None
+        assert result["github_actor_login"] is None
+        assert result["github_actor_id"] is None
 
     def test_missing_repository_owner_returns_none(self) -> None:
         event = {"repository": {"name": "repo-without-owner"}}
@@ -565,3 +687,15 @@ class TestConvertEnumKeysToStrings:
 
         assert result == {"bug_prediction": True}
         assert isinstance(list(result.keys())[0], str)
+
+
+class CodeReviewExperimentAssignmentTest(TestCase):
+
+    def test_enabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        with self.feature("organizations:code-review-experiments-enabled"):
+            assert is_org_enabled_for_code_review_experiments(org)
+
+    def test_disabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        assert not is_org_enabled_for_code_review_experiments(org)

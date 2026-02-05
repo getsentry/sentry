@@ -1,8 +1,9 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/core/layout';
 import LoadingError from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';

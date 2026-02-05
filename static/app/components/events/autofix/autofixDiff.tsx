@@ -3,12 +3,12 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {diffWords, type Change} from 'diff';
 
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   DiffLineType,

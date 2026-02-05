@@ -1,12 +1,12 @@
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-interface CopyToClipboardButtonProps
-  extends Omit<
-    Extract<ButtonProps, {'aria-label': string}>,
-    'children' | 'onCopy' | 'onError'
-  > {
+interface CopyToClipboardButtonProps extends Omit<
+  Extract<ButtonProps, {'aria-label': string}>,
+  'children' | 'onCopy' | 'onError'
+> {
   text: string;
   children?: never;
   onCopy?: undefined | ((copiedText: string) => void);

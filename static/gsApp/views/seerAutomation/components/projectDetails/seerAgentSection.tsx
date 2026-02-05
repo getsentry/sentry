@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -29,7 +29,7 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
   );
   const isCreatePrEnabled = Boolean(
     preference?.automated_run_stopping_point &&
-      preference.automated_run_stopping_point !== 'code_changes'
+    preference.automated_run_stopping_point !== 'code_changes'
   );
   const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
 

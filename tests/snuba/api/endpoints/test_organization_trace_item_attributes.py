@@ -199,7 +199,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.message.parameter.0": {"bool_value": 1},
                     "sentry.message.parameter.1": {"int_value": 5},
                     "sentry.message.parameter.2": {"double_value": 10},
                     "sentry.message.parameter.value": {"double_value": 15},
@@ -297,14 +296,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                     "source_type": "sentry",
                 },
                 "secondaryAliases": ["log.severity_number"],
-            },
-            {
-                "key": "tags[message.parameter.0,number]",
-                "name": "message.parameter.0",
-                "attributeSource": {
-                    "source_type": "sentry",
-                    "is_transformed_alias": True,
-                },
             },
             {
                 "key": "tags[message.parameter.1,number]",

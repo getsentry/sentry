@@ -5,6 +5,11 @@ import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
+import type {
+  SelectOptionWithKey,
+  SelectSectionWithKey,
+} from '@sentry/scraps/compactSelect';
+
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenFreeText} from 'sentry/components/arithmeticBuilder/token';
 import {
@@ -20,10 +25,6 @@ import {
   nextTokenKeyOfKind,
   tokenizeExpression,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
-import type {
-  SelectOptionWithKey,
-  SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';

@@ -1,7 +1,6 @@
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Stack} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';

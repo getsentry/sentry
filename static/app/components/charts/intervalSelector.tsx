@@ -1,9 +1,9 @@
 import {useState} from 'react';
 
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,

@@ -31,12 +31,12 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1022_add_event_id_to_groupopenperiodactivity
+sentry: 1024_delete_never_active_users_without_emails_self_hosted
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0003_use_encrypted_char_field
 
-uptime: 0053_add_response_capture_enabled
+uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0106_migrate_actions_sentry_app_data
+workflow_engine: 0107_fix_email_action_fallthrough_type

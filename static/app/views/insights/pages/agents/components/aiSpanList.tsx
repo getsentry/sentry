@@ -2,9 +2,10 @@ import {Fragment, memo, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Count from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -14,6 +15,7 @@ import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getGenAiOpType,
   getIsAiAgentNode,
+  hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
@@ -503,23 +505,6 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   }
 
   return nodeInfo;
-}
-
-function hasError(node: AITraceSpanNode) {
-  if (node.errors.size > 0) {
-    return true;
-  }
-
-  const spanStatus = node.attributes?.[SpanFields.SPAN_STATUS] as string | undefined;
-  if (!!spanStatus && typeof spanStatus === 'string') {
-    return spanStatus.includes('error');
-  }
-  const status = node.attributes?.status;
-  if (!!status && typeof status === 'string') {
-    return status.includes('error');
-  }
-
-  return false;
 }
 
 const ListItemContainer = styled('div')<{

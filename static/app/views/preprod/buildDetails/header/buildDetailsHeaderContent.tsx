@@ -1,14 +1,13 @@
 import React from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {Button} from '@sentry/scraps/button';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -137,7 +136,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_type: projectType,
-      project_slug: projectId,
+      project_slug: project?.slug,
     });
     router.push(
       getCompareBuildPath({
@@ -154,7 +153,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
-      project_slug: projectId,
+      project_slug: project?.slug,
       project_type: projectType,
     });
   };
@@ -164,7 +163,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Layout.Title>
           <Flex align="center" gap="sm" minHeight="1lh">
@@ -199,12 +198,14 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             {t('Compare Build')}
           </Button>
           <Feature features="organizations:preprod-frontend-routes">
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
-            />
+            {project && (
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${project?.slug}/mobile-builds/`}
+              />
+            )}
           </Feature>
           <ConfirmDelete
             message={t(

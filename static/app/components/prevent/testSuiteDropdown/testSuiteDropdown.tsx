@@ -3,10 +3,10 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {Badge} from '@sentry/scraps/badge';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Badge} from 'sentry/components/core/badge';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import {useTestSuites} from 'sentry/components/prevent/testSuiteDropdown/useTestSuites';
 import {t} from 'sentry/locale';

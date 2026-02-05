@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   ContentBlock,
   DocsParams,
@@ -12,10 +13,12 @@ import {
   getInstallStep,
   getManualConfigureStep,
   mastraOnboarding,
+  MIN_REQUIRED_VERSION,
   agentMonitoring as nodeAgentMonitoring,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 // Meta-frameworks currently have a technical limitation: our server-side integrations do not work,
@@ -349,25 +352,40 @@ const response = await client.responses.create({
 }
 
 /**
- * Browser instructions for agent monitoring configuration.
+ * This function is primarily intended for browser-only instructions.
+ * However, due to current technical limitations under investigation,
+ * some meta frameworks also rely on it.
+ *
+ * Since these frameworks support Vercel AI / Mastra options,
+ * we return server-side instructions from the Node.js agent
+ * monitoring function as well.
  */
 export function agentMonitoring({
   packageName = '@sentry/browser',
   clientConfigFileName,
   serverConfigFileName,
+  minVersion = MIN_REQUIRED_VERSION,
 }: {
   clientConfigFileName?: string;
+  minVersion?: string;
   packageName?: `@sentry/${string}`;
   serverConfigFileName?: string;
 } = {}): OnboardingConfig {
   return {
+    introduction: params => (
+      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+    ),
     install: params =>
       getInstallStep(params, {
         packageName,
+        minVersion,
       }),
     configure: params => {
       const selected = getAgentIntegration(params);
 
+      // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
+      // Therefore, Node.js instructions is returned for this option.
+      // This option is only available in meta frameworks.
       if (selected === AgentIntegration.VERCEL_AI) {
         return nodeAgentMonitoring({
           packageName,
@@ -404,6 +422,9 @@ export function agentMonitoring({
     verify: params => {
       const selected = getAgentIntegration(params);
 
+      // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
+      // Therefore, Node.js instructions is returned for this option.
+      // This option is only available in meta frameworks.
       if (selected === AgentIntegration.VERCEL_AI) {
         return nodeAgentMonitoring({
           packageName,

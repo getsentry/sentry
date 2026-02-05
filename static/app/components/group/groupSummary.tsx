@@ -2,12 +2,11 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -23,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -52,7 +52,12 @@ const makeGroupSummaryQueryKey = (
   groupId: string,
   eventId?: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
+  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/summarize/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      issueId: groupId,
+    },
+  }),
   {
     method: 'POST',
     data: eventId ? {event_id: eventId} : undefined,

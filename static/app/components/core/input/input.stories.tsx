@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
-import documentation from '!!type-loader!sentry/components/core/input';
+import documentation from '!!type-loader!@sentry/scraps/input';
 import styled from '@emotion/styled';
 
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Input, useAutosizeInput} from 'sentry/components/core/input';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 

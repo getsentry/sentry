@@ -3,12 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -52,6 +53,7 @@ import {
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
 import MetricChart from './metricChart';
+import {MetricAlertOngoingIssues} from './ongoingIssues';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
@@ -253,6 +255,10 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <Stack flex="1" width="100%">
+              {organization.features.includes('workflow-engine-metric-issues-ui') && (
+                <MetricAlertOngoingIssues project={project} rule={rule} />
+              )}
+              <SectionHeading>{t('Alert History')}</SectionHeading>
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues

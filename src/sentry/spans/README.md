@@ -57,14 +57,14 @@ So, in order to assemble a segment from spans, we need to:
     the segment.
 
 The logic we use to assemble segments is divided between [`buffer.py`](buffer.py)
-and [`add-buffer.lua`](add-buffer.lua). The first contains some additional
+and [`add-buffer.lua`](../scripts/spans/add-buffer.lua). The first contains some additional
 docs.
 
 ## Spans and buffer data model
 
 This section explains the relationship between concepts and how data is stored
 in Redis when assembling segments. This specifically addresses how these entities
-are defined in [`buffer.py`](buffer.py) and [`add-buffer.lua`](add-buffer.lua).
+are defined in [`buffer.py`](buffer.py) and [`add-buffer.lua`](../scripts/spans/add-buffer.lua).
 
 ```mermaid
 erDiagram
@@ -99,7 +99,7 @@ erDiagram
 
 - This represents the Span data structure in the buffer.py module
 - Most of the time it only identifies its direct parent via `parent_span_id`
-- See the code in [`factory.py`](factory.py) to see how the fields are populated
+- See the code in [`factory.py`](consumers/process/factory.py) to see how the fields are populated
 - There are some scenarios where it can identify the segment:
   - is_segment_span: Tells us the span is the root of the segment. It is
     True if the Span does not have a parent (`parent_span_id` is None) or
@@ -136,7 +136,7 @@ erDiagram
 
 ## Redis data model
 
-The redis code that is used to assemble segments is in [`add-buffer.lua`](add-buffer.lua).
+The redis code that is used to assemble segments is in [`add-buffer.lua`](../scripts/spans/add-buffer.lua).
 Redis keeps the content of a segment and its structure in a few keys described
 later. The script receives a set of spans that represent a `Subsegment` from
 the python code and:

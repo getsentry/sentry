@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 interface TokenReferenceProps {

@@ -3,13 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Link, type LinkProps} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';

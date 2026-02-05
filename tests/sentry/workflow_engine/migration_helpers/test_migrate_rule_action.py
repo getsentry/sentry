@@ -1103,11 +1103,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.config.get("target_identifier") == install.uuid
-            assert (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            )
+            assert action.config.get("target_identifier") == str(install.sentry_app.id)
+            assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     def test_dry_run_flag(self) -> None:
         """Test that the dry_run flag prevents database writes."""

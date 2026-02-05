@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-interface BaseProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    'type' | 'value' | 'onChange' | 'defaultValue'
-  > {
+interface BaseProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'value' | 'onChange' | 'defaultValue'
+> {
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -198,7 +197,7 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.tokens.content.onVibrant.light};
+    background: ${p => p.theme.colors.white};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
     border-bottom: 2px solid
       ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
@@ -221,7 +220,7 @@ const StyledSlider = styled('input')`
     appearance: none;
     width: 16px;
     height: 16px;
-    background: ${p => p.theme.tokens.content.onVibrant.light};
+    background: ${p => p.theme.colors.white};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};
     border-bottom: 2px solid
       ${p => p.theme.tokens.interactive.chonky.debossed.accent.background};

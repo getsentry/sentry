@@ -1,7 +1,8 @@
 import {useCallback, useState} from 'react';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -19,12 +20,12 @@ import {useFeatureFilter} from './useFeatureFilter';
 
 const EXAMPLE_BUILDS_COUNT = 5;
 const FEATURE_FILTER_ALLOWED_KEYS = [
-  // 'app_id',
-  // 'app_name',
+  'app_id',
+  'app_name',
   'build_configuration_name',
-  // 'platform_name',
-  // 'build_number',
-  // 'build_version',
+  'platform_name',
+  'build_number',
+  'build_version',
   'git_head_ref',
   'git_base_ref',
   'git_head_sha',

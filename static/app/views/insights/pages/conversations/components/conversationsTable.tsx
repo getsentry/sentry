@@ -1,13 +1,13 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -174,7 +174,12 @@ const BodyCell = memo(function BodyCell({
       return (
         <ConversationIdButton
           priority="link"
-          onClick={() => openConversationViewDrawer(dataRow)}
+          onClick={() =>
+            openConversationViewDrawer({
+              conversation: dataRow,
+              source: 'table_conversation_id',
+            })
+          }
         >
           {dataRow.conversationId.slice(0, 8)}
         </ConversationIdButton>
@@ -209,7 +214,9 @@ const BodyCell = memo(function BodyCell({
         <Stack width="100%">
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_input'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">
@@ -233,7 +240,9 @@ const BodyCell = memo(function BodyCell({
           </InputOutputRow>
           <InputOutputRow
             type="button"
-            onClick={() => openConversationViewDrawer(dataRow)}
+            onClick={() =>
+              openConversationViewDrawer({conversation: dataRow, source: 'table_output'})
+            }
           >
             <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
             <Flex flex="1" minWidth="0">

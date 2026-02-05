@@ -1,7 +1,7 @@
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';

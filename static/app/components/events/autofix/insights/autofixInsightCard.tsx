@@ -2,11 +2,10 @@ import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
