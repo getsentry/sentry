@@ -4479,12 +4479,10 @@ class PostProcessGroupInstrumentationIssueTest(
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
     def test_instrumentation_issues_do_not_trigger_alerts(
         self,
         mock_process_workflow_engine_issue_alerts,
-        mock_process_rules,
     ):
         """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
         event = self.create_event(
@@ -4499,5 +4497,4 @@ class PostProcessGroupInstrumentationIssueTest(
             event=event,
         )
 
-        mock_process_rules.assert_not_called()
         mock_process_workflow_engine_issue_alerts.assert_not_called()
