@@ -219,7 +219,7 @@ function VisualizationWidgetContent({
                 linkedDashboard,
                 organizationSlug: organization.slug,
                 field: firstColumn,
-                value: timeSeries.yAxis, // TODO: when we migrate to the new time series data, we should grab this from `timeSeries.groupBy` instead
+                value: timeSeries.yAxis, // TODO: when we migrate to the new time series data, we should grab this from `timeSeries.groupBy` instead, otherwise this will be incorrect
                 widgetType: widget.widgetType,
                 dashboardFilters,
                 locationQuery: location.query,
