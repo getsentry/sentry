@@ -6,22 +6,26 @@ from sentry_seer_types.v1.code_review import (
     CommentSeverity,
     SeerCodeReviewConfig,
     SeerCodeReviewFeature,
+    SeerCodeReviewRequestForPrClosed,
     SeerCodeReviewRequestForPrReview,
     SeerCodeReviewRequestType,
+    SeerCodeReviewTaskRequestForPrClosed,
     SeerCodeReviewTaskRequestForPrReview,
     SeerCodeReviewTrigger,
 )
 
 # Re-export for backward compatibility
 __all__ = [
-    "CommentSeverity",
-    "SeerCodeReviewFeature",
-    "SeerCodeReviewTrigger",
-    "SeerCodeReviewRequestType",
-    "SeerCodeReviewConfig",
     "BugPredictionSpecificInformation",
+    "CommentSeverity",
+    "SeerCodeReviewConfig",
+    "SeerCodeReviewFeature",
+    "SeerCodeReviewRequestForPrClosed",
     "SeerCodeReviewRequestForPrReview",
+    "SeerCodeReviewRequestType",
+    "SeerCodeReviewTaskRequestForPrClosed",
     "SeerCodeReviewTaskRequestForPrReview",
+    "SeerCodeReviewTrigger",
 ]
 
 
