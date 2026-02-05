@@ -52,14 +52,14 @@ For the issue detail UI, we can potentially reuse or adapt the wizard experience
 
 When Sentry processes a JavaScript error, symbolicator attempts to apply source maps to convert minified stack traces back to original source code. When this fails, symbolicator returns specific error types that tell us what went wrong:
 
-| symbolicator_type | meaning |
-|-------------------|---------|
-| `missing_sourcemap` | Can't find the `.map` file for a minified JS file. The sourcemap URL may be specified in the file (via `//# sourceMappingURL=`) or inferred, but the file isn't available. |
-| `missing_source` | Found the sourcemap, but it references original source files (via `sources: ["src/app.js", ...]`) that aren't available. Happens when sourcemap doesn't include `sourcesContent` and source files weren't uploaded separately. |
-| `missing_source_content` | Found the sourcemap, but its `sourcesContent` array is empty or missing. Similar to `missing_source` - the sourcemap exists but we can't show original code. |
-| `scraping_disabled` | Project has source map scraping disabled, so we can't fetch sourcemaps from the web. User must upload sourcemaps directly. |
-| `malformed_sourcemap` | Sourcemap exists but is invalid or not parseable. User uploaded a broken sourcemap. |
-| `invalid_location` | Sourcemap has invalid line/column mappings. The sourcemap doesn't correctly map to the minified code. |
+| symbolicator_type | `EventError` type | meaning |
+|-------------------|-------------------|---------|
+| `missing_sourcemap` | `js_no_source` | Can't find the `.map` file for a minified JS file. The sourcemap URL may be specified in the file (via `//# sourceMappingURL=`) or inferred, but the file isn't available. |
+| `missing_source` | `js_no_source` | Found the sourcemap, but it references original source files (via `sources: ["src/app.js", ...]`) that aren't available. Happens when sourcemap doesn't include `sourcesContent` and source files weren't uploaded separately. |
+| `missing_source_content` | `js_missing_sources_content` | Found the sourcemap, but its `sourcesContent` array is empty or missing. Similar to `missing_source` - the sourcemap exists but we can't show original code. |
+| `scraping_disabled` | `js_scraping_disabled` | Project has source map scraping disabled, so we can't fetch sourcemaps from the web. User must upload sourcemaps directly. |
+| `malformed_sourcemap` | `js_invalid_source` | Sourcemap exists but is invalid or not parseable. User uploaded a broken sourcemap. |
+| `invalid_location` | `js_invalid_sourcemap_location` | Sourcemap has invalid line/column mappings. The sourcemap doesn't correctly map to the minified code. |
 
 **Deferred - transient/fetch errors (TODO for future):**
 These errors may be transient (server issues) rather than configuration problems. Consider handling separately:
