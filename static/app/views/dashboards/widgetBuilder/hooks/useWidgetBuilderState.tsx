@@ -495,8 +495,8 @@ function useWidgetBuilderState(): {
             } else {
               setSort([], options);
             }
-            // Fetch more rows than displayed to ensure accurate data
-            setLimit(25, options);
+            // Categorical bars have 1 query and 1 aggregate, so max limit is 10
+            setLimit(getResultsLimit(1, 1), options);
           } else if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(
