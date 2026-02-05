@@ -77,7 +77,6 @@ function getStoppingPointOptions(organization: Organization) {
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const organization = useOrganization();
-  organization.enableSeerCoding = false;
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
