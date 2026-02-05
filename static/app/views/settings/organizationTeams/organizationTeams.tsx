@@ -55,7 +55,11 @@ export default function OrganizationTeams({
       priority="primary"
       size="sm"
       disabled={!canCreateTeams}
-      title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
+      tooltipProps={{
+        title: canCreateTeams
+          ? undefined
+          : t('You do not have permission to create teams'),
+      }}
       onClick={() =>
         openCreateTeamModal({
           organization,

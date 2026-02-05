@@ -94,9 +94,11 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
 
   return (
     <MarkdownButton
-      title={tct('Copies [numLines] lines of Markdown', {
-        numLines: <strong>{markdownLines}</strong>,
-      })}
+      tooltipProps={{
+        title: tct('Copies [numLines] lines of Markdown', {
+          numLines: <strong>{markdownLines}</strong>,
+        }),
+      }}
       priority="link"
       onClick={handleCopyMarkdown}
     >
@@ -151,7 +153,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </span>
             <Button
               aria-label={t('Copy Event ID')}
-              title={t('Copy Event ID')}
+              tooltipProps={{title: t('Copy Event ID')}}
               onClick={handleCopyEventId}
               size="zero"
               priority="transparent"
@@ -186,9 +188,11 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             <Fragment>
               <Divider />
               <ProcessingErrorButton
-                title={t(
-                  'Sentry has detected configuration issues with this event. Click for more info.'
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Sentry has detected configuration issues with this event. Click for more info.'
+                  ),
+                }}
                 priority="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}

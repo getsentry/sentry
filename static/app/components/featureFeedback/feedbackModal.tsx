@@ -228,13 +228,14 @@ export function FeedbackModal<T extends Data>({
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
-              title={
-                props.children === undefined
-                  ? defined(state.subject)
-                    ? undefined
-                    : t('Required fields must be filled out')
-                  : primaryDisabledReason
-              }
+              tooltipProps={{
+                title:
+                  props.children === undefined
+                    ? defined(state.subject)
+                      ? undefined
+                      : t('Required fields must be filled out')
+                    : primaryDisabledReason,
+              }}
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
               disabled={
                 props.children === undefined

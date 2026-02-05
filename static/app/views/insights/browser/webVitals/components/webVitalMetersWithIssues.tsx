@@ -167,23 +167,25 @@ function VitalMeter({
               event.stopPropagation();
             }}
             disabled={!hasIssues}
-            title={
-              issues &&
-              issues.length > 0 &&
-              (issues.length === 1
-                ? tct('There is 1 performance issue potentially affecting [webVital].', {
-                    webVital: webVital.toUpperCase(),
-                  })
-                : tct(
-                    'There are [count] performance issues potentially affecting [webVital].',
-                    {
-                      count: issues.length > 5 ? '5+' : issues.length,
-                      webVital: webVital.toUpperCase(),
-                    }
-                  ))
-            }
             tooltipProps={{
               isHoverable: true,
+              title:
+                issues &&
+                issues.length > 0 &&
+                (issues.length === 1
+                  ? tct(
+                      'There is 1 performance issue potentially affecting [webVital].',
+                      {
+                        webVital: webVital.toUpperCase(),
+                      }
+                    )
+                  : tct(
+                      'There are [count] performance issues potentially affecting [webVital].',
+                      {
+                        count: issues.length > 5 ? '5+' : issues.length,
+                        webVital: webVital.toUpperCase(),
+                      }
+                    )),
             }}
           >
             {hasIssues ? (issues.length > 5 ? '5+' : issues.length) : '—'}

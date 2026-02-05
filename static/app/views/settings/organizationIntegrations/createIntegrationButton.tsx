@@ -28,7 +28,7 @@ function CreateIntegrationButton({analyticsView}: CreateIntegrationButtonProps) 
           size="sm"
           priority="primary"
           disabled={!hasAccess}
-          title={hasAccess ? undefined : permissionTooltipText}
+          tooltipProps={{title: hasAccess ? undefined : permissionTooltipText}}
           onClick={() => {
             openCreateNewIntegrationModal();
             trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {

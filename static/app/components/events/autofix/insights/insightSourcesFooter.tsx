@@ -160,7 +160,7 @@ export function InsightSourcesFooter({
                 type="submit"
                 size="zero"
                 priority="transparent"
-                title={t('Give feedback and rethink the answer')}
+                tooltipProps={{title: t('Give feedback and rethink the answer')}}
                 disabled={!newInsightText.trim()}
               >
                 <FlippedReturnIcon />

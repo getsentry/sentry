@@ -138,7 +138,7 @@ class UsageTable extends Component<Props> {
         <ButtonBar>
           <Button
             icon={<IconGraph type="bar" />}
-            title="Go to project level stats"
+            tooltipProps={{title: 'Go to project level stats'}}
             data-test-id={project.slug}
             size="xs"
             onClick={() => {
@@ -151,7 +151,7 @@ class UsageTable extends Component<Props> {
             icon={<IconSettings />}
             size="xs"
             aria-label={t('Project Settings')}
-            title={t('Go to project settings')}
+            tooltipProps={{title: t('Go to project settings')}}
             to={stat.projectSettingsLink}
           />
         </ButtonBar>

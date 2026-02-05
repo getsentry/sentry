@@ -100,11 +100,11 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
             <Button
               type="button"
               aria-label={t('Undiscard')}
-              title={
-                disabled
+              tooltipProps={{
+                title: disabled
                   ? t('You do not have permission to perform this action')
-                  : t('Undiscard')
-              }
+                  : t('Undiscard'),
+              }}
               size="sm"
               icon={<IconDelete />}
               disabled={disabled}
@@ -144,11 +144,11 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
           <Button
             type="button"
             aria-label={t('Undiscard')}
-            title={
-              disabled
+            tooltipProps={{
+              title: disabled
                 ? t('You do not have permission to perform this action')
-                : t('Undiscard')
-            }
+                : t('Undiscard'),
+            }}
             size="xs"
             icon={<IconDelete />}
             disabled={disabled}

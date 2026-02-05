@@ -42,7 +42,7 @@ function ActionButtons({
   const publishRequestButton = showPublish ? (
     <Button
       disabled={!!disablePublishReason}
-      title={disablePublishReason}
+      tooltipProps={{title: disablePublishReason}}
       icon={<IconUpgrade />}
       size="sm"
       onClick={onPublish}
@@ -59,7 +59,7 @@ function ActionButtons({
     disableDeleteReason ? (
       <Button
         disabled
-        title={disableDeleteReason}
+        tooltipProps={{title: disableDeleteReason}}
         size="sm"
         icon={<IconDelete />}
         aria-label={t('Delete')}

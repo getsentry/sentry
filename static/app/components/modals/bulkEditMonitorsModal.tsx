@@ -136,10 +136,11 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                   size="sm"
                   onClick={() => handleBulkEdit(operation)}
                   disabled={isUpdating || selectedMonitors.length === 0}
-                  title={
-                    selectedMonitors.length === 0 &&
-                    tct('Please select monitors to [actionText]', {actionText})
-                  }
+                  tooltipProps={{
+                    title:
+                      selectedMonitors.length === 0 &&
+                      tct('Please select monitors to [actionText]', {actionText}),
+                  }}
                   aria-label={actionText}
                   {...analyticsProps}
                 >

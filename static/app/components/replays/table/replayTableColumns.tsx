@@ -419,7 +419,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
           }}
           priority="default"
           size="sm"
-          title={t('Play')}
+          tooltipProps={{title: t('Play')}}
         />
       </PlayPauseButtonContainer>
     );

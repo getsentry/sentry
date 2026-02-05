@@ -269,7 +269,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    tooltipProps={{title: getSubmitButtonTitle(formModel)}}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={

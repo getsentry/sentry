@@ -282,7 +282,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
           size="xs"
           onClick={toggleDrawer}
           disabled={!canEditWorkflowConnections}
-          title={permissionTooltipText}
+          tooltipProps={{title: permissionTooltipText}}
         >
           {t('Edit Connected Alerts')}
         </Button>
@@ -299,7 +299,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   onClick={toggleDrawer}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
@@ -311,7 +311,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                   size="sm"
                   icon={<IconAdd />}
                   disabled={!canEditWorkflowConnections}
-                  title={permissionTooltipText}
+                  tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Create a New Alert')}
                 </LinkButton>

@@ -64,13 +64,13 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       onClick={onClick}
       data-test-id="grid-download-csv"
       icon={<IconDownload />}
-      title={
-        disabled
+      tooltipProps={{
+        title: disabled
           ? undefined
           : t(
               "There aren't that many results, start your export and it'll download immediately."
-            )
-      }
+            ),
+      }}
     >
       {t('Export All')}
     </Button>

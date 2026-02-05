@@ -103,7 +103,7 @@ function CrossEventQueryingDropdown() {
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,
-            title: tooltipTitle,
+            tooltipProps: {title: tooltipTitle},
             size: 'md',
             showChevron: false,
             icon: <IconAdd />,

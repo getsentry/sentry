@@ -238,7 +238,7 @@ function CopyRootCauseButton({
   return (
     <Button
       size="sm"
-      title="Copy analysis as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy analysis as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
@@ -301,7 +301,7 @@ function SolutionActionButton({
         priority={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
-        title={findSolutionTitle}
+        tooltipProps={{title: findSolutionTitle}}
       >
         {t('Find Solution')}
       </Button>
@@ -601,7 +601,7 @@ function AutofixRootCauseDisplay({
           <Button
             size="zero"
             priority="transparent"
-            title={t('Chat with Seer')}
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"

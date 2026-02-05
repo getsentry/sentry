@@ -223,7 +223,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleLeaveTeam}
               disabled={isDisabled}
-              title={buttonHelpText}
+              tooltipProps={{title: buttonHelpText}}
             >
               {t('Leave Team')}
             </Button>
@@ -231,9 +231,11 @@ class AllTeamsRow extends Component<Props, State> {
             <Button
               size="sm"
               disabled
-              title={t(
-                'Your request to join this team is being reviewed by organization owners'
-              )}
+              tooltipProps={{
+                title: t(
+                  'Your request to join this team is being reviewed by organization owners'
+                ),
+              }}
             >
               {t('Request Pending')}
             </Button>
@@ -242,7 +244,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleJoinTeam}
               disabled={isDisabled}
-              title={buttonHelpText}
+              tooltipProps={{title: buttonHelpText}}
             >
               {t('Join Team')}
             </Button>
@@ -251,7 +253,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleRequestAccess}
               disabled={isDisabled}
-              title={buttonHelpText}
+              tooltipProps={{title: buttonHelpText}}
             >
               {t('Request Access')}
             </Button>

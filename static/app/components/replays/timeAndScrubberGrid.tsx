@@ -54,7 +54,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
     <ButtonBar gap="0">
       <Button
         size="xs"
-        title={t('Zoom out')}
+        tooltipProps={{title: t('Zoom out')}}
         icon={<IconSubtract />}
         priority="transparent"
         onClick={handleZoomOut}
@@ -67,7 +67,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
       </span>
       <Button
         size="xs"
-        title={t('Zoom in')}
+        tooltipProps={{title: t('Zoom in')}}
         icon={<IconAdd />}
         priority="transparent"
         onClick={handleZoomIn}

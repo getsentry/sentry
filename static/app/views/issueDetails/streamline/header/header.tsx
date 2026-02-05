@@ -139,7 +139,7 @@ export default function StreamlinedGroupHeader({
               <LinkButton
                 size="xs"
                 external
-                title={t('Learn more about the new UI')}
+                tooltipProps={{title: t('Learn more about the new UI')}}
                 href="https://docs.sentry.io/product/issues/issue-details/"
                 aria-label={t('Learn more about the new UI')}
                 icon={<IconInfo />}

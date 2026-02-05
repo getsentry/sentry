@@ -132,7 +132,7 @@ export default function TempestSettings() {
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
-                  title={t('Dismiss Alert')}
+                  tooltipProps={{title: t('Dismiss Alert')}}
                   size="zero"
                 />
               }

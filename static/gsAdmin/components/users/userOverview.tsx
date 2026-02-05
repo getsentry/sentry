@@ -111,7 +111,7 @@ function UserOverview({
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Disconnect Identity"
+                    tooltipProps={{title: 'Disconnect Identity'}}
                     onClick={() => onIdentityDisconnect(identity)}
                     aria-label="Disconnect Identity"
                     disabled={
@@ -151,7 +151,7 @@ function UserOverview({
                     icon={<IconNot />}
                     priority="danger"
                     size="xs"
-                    title="Remove Authenticator"
+                    tooltipProps={{title: 'Remove Authenticator'}}
                     onClick={() => onAuthenticatorRemove(auth)}
                     aria-label="Remove Authenticator"
                   />

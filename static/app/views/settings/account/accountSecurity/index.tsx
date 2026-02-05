@@ -203,14 +203,14 @@ export default function AccountSecurity() {
                           size="sm"
                           aria-label={t('Delete')}
                           icon={<IconDelete />}
-                          title={
-                            deleteDisabled
+                          tooltipProps={{
+                            title: deleteDisabled
                               ? t(
                                   `Two-factor authentication is required for organization(s): %s.`,
                                   formatOrgSlugs()
                                 )
-                              : undefined
-                          }
+                              : undefined,
+                          }}
                         />
                       </RemoveConfirm>
                     )}

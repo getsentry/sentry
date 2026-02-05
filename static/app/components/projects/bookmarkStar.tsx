@@ -46,7 +46,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
 
   return (
     <BookmarkStarButton
-      title={label}
+      tooltipProps={{title: label}}
       aria-label={label}
       aria-pressed={isBookmarked}
       busy={isBookmarking}

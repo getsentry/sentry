@@ -246,7 +246,7 @@ function EventDisplay({
               )}
             />
             <LinkButton
-              title={t('Full Event Details')}
+              tooltipProps={{title: t('Full Event Details')}}
               size={BUTTON_SIZE}
               to={fullEventTarget}
               aria-label={t('Full Event Details')}

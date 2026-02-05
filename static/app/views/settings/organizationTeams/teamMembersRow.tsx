@@ -80,7 +80,9 @@ function RemoveButton(props: {
         disabled
         icon={<IconSubtract />}
         aria-label={t('Remove')}
-        title={t('You do not have permission to remove a member from this team.')}
+        tooltipProps={{
+          title: t('You do not have permission to remove a member from this team.'),
+        }}
       >
         {t('Remove')}
       </Button>
@@ -99,7 +101,7 @@ function RemoveButton(props: {
       icon={<IconSubtract />}
       onClick={onClick}
       aria-label={buttonRemoveText}
-      title={buttonHelpText}
+      tooltipProps={{title: buttonHelpText}}
     >
       {buttonRemoveText}
     </Button>

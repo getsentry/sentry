@@ -140,7 +140,7 @@ function RequestUpdateAlert({
           onClick={handleClick}
           busy={loading}
           disabled={requestSent}
-          title={requestSent ? t('Request sent!') : undefined}
+          tooltipProps={{title: requestSent ? t('Request sent!') : undefined}}
         >
           {t('Request Update')}
         </Button>

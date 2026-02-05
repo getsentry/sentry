@@ -291,7 +291,7 @@ function InputSection({
           size="sm"
           priority="transparent"
           aria-label={t('Interrupt')}
-          title={t('Press Esc to interrupt')}
+          tooltipProps={{title: t('Press Esc to interrupt')}}
         />
       );
     }

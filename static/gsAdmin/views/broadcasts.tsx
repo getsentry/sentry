@@ -51,9 +51,11 @@ export default function Broadcasts() {
       <PageHeader title="Broadcasts">
         <Button
           disabled={!hasPermission}
-          title={
-            hasPermission ? undefined : "You don't have the broadcasts.admin permission"
-          }
+          tooltipProps={{
+            title: hasPermission
+              ? undefined
+              : "You don't have the broadcasts.admin permission",
+          }}
           onClick={handleNewBroadcast}
           priority="primary"
           size="sm"

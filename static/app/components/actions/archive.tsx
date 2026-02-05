@@ -276,7 +276,7 @@ function ArchiveActions({
       <Button
         priority="primary"
         size="xs"
-        title={t('Change status to unresolved')}
+        tooltipProps={{title: t('Change status to unresolved')}}
         onClick={() =>
           onUpdate({
             status: GroupStatus.UNRESOLVED,
@@ -302,15 +302,19 @@ function ArchiveActions({
       <ArchiveButton
         size={size}
         className={className}
-        tooltipProps={{delay: 1000, disabled, isHoverable: true}}
-        title={tct(
-          'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
-          {
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
-            ),
-          }
-        )}
+        tooltipProps={{
+          delay: 1000,
+          disabled,
+          isHoverable: true,
+          title: tct(
+            'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
+              ),
+            }
+          ),
+        }}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >

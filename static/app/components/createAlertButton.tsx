@@ -223,10 +223,10 @@ export default function CreateAlertButton({
   const renderButton = (hasAccess: boolean) => (
     <LinkButton
       disabled={!hasAccess}
-      title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
+        title: hasAccess ? undefined : permissionTooltipText,
         isHoverable: true,
         position: 'top',
         overlayStyle: {

@@ -131,15 +131,15 @@ function DetailsHeader({
             icon={<IconCopy />}
             to={duplicateLink}
             disabled={deprecateTransactionsAlerts}
-            title={
-              deprecateTransactionsAlerts
+            tooltipProps={{
+              title: deprecateTransactionsAlerts
                 ? hasEAPAlerts(organization)
                   ? t(
                       'Transaction alerts are being deprecated. Please create Span alerts instead.'
                     )
                   : t('Transaction alerts are being deprecated.')
-                : undefined
-            }
+                : undefined,
+            }}
           >
             {t('Duplicate')}
           </LinkButton>

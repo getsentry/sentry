@@ -105,8 +105,8 @@ export function TraceLinkNavigationButton({
         position: 'top',
         delay: 400,
         isHoverable: true,
+        title,
       }}
-      title={title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({

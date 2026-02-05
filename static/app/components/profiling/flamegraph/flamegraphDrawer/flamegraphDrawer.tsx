@@ -225,7 +225,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableLeftClick}
-                title={t('Table left')}
+                tooltipProps={{title: t('Table left')}}
                 aria-label={t('Table left')}
                 size="xs"
                 icon={<IconPanel direction="left" />}
@@ -235,7 +235,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableBottomClick}
-                title={t('Table bottom')}
+                tooltipProps={{title: t('Table bottom')}}
                 aria-label={t('Table bottom')}
                 size="xs"
                 icon={<IconPanel direction="down" />}
@@ -245,7 +245,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               <StyledButton
                 priority="transparent"
                 onClick={onTableRightClick}
-                title={t('Table right')}
+                tooltipProps={{title: t('Table right')}}
                 aria-label={t('Table right')}
                 size="xs"
                 icon={<IconPanel direction="right" />}

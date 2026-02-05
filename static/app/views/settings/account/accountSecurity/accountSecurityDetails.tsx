@@ -166,13 +166,13 @@ export default function AccountSecurityDetails() {
             {authenticator.isEnrolled && authenticator.removeButton && (
               <RemoveConfirm onConfirm={handleRemove} disabled={deleteDisabled}>
                 <Button
-                  title={
-                    deleteDisabled
+                  tooltipProps={{
+                    title: deleteDisabled
                       ? t(
                           "Two-factor authentication is required for at least one organization you're a member of."
                         )
-                      : undefined
-                  }
+                      : undefined,
+                  }}
                   priority="danger"
                 >
                   {authenticator.removeButton}

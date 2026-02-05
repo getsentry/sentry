@@ -342,7 +342,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
       />
       {xlargeViewport && (
         <Button
-          title={t('Copy link to this issue event')}
+          tooltipProps={{title: t('Copy link to this issue event')}}
           size={BUTTON_SIZE}
           onClick={handleCopyLink}
           aria-label={t('Copy Link')}
@@ -351,7 +351,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
       )}
       {xlargeViewport && (
         <Button
-          title={t('View JSON')}
+          tooltipProps={{title: t('View JSON')}}
           size={BUTTON_SIZE}
           onClick={downloadJson}
           aria-label={t('View JSON')}
@@ -397,8 +397,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   })
                 }
                 size="zero"
-                title={event.id}
-                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
+                tooltipProps={{title: event.id, overlayStyle: {maxWidth: 'max-content'}}}
               >
                 <EventId>
                   {getShortEventId(event.id)}

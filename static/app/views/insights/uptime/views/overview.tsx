@@ -86,7 +86,7 @@ export default function UptimeOverview() {
               to={makeAlertsPathname({path: `/new/uptime/`, organization})}
               icon={<IconAdd />}
               disabled={!canCreateAlert}
-              title={canCreateAlert ? undefined : permissionTooltipText}
+              tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
             >
               {t('Add Uptime Monitor')}
             </LinkButton>

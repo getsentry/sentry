@@ -207,11 +207,11 @@ function PaygCard({
                   <Button
                     size="xs"
                     disabled={!hasPaymentSource}
-                    title={
-                      hasPaymentSource
+                    tooltipProps={{
+                      title: hasPaymentSource
                         ? undefined
-                        : t('You must add a payment method to edit the limit')
-                    }
+                        : t('You must add a payment method to edit the limit'),
+                    }}
                     onClick={() => {
                       handleEditPayg(false);
                     }}

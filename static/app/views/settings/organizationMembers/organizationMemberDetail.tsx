@@ -278,7 +278,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               size="xs"
               priority="primary"
               icon={<IconRefresh />}
-              title={t('Generate a new invite link and send a new email.')}
+              tooltipProps={{
+                title: t('Generate a new invite link and send a new email.'),
+              }}
               busy={isInviting}
               onClick={() => inviteMember()}
             >

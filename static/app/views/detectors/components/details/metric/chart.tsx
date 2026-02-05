@@ -480,7 +480,7 @@ function OpenInButton({detector}: OpenInButtonProps) {
         size="xs"
         to={destination.to}
         disabled={isUsingMigratedExtrapolationMode}
-        title={disabledTooltip}
+        tooltipProps={{title: disabledTooltip}}
       >
         {destination.buttonText}
       </LinkButton>

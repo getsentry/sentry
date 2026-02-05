@@ -480,13 +480,13 @@ export function TraceEventDataSection({
               icon={<IconCopy />}
               onClick={handleCopyRawStacktrace}
               aria-label={t('Copy Raw Stacktrace')}
-              title={t('Copy raw stacktrace to clipboard')}
+              tooltipProps={{title: t('Copy raw stacktrace to clipboard')}}
             />
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
-                title={t('Download raw stack trace file')}
+                tooltipProps={{title: t('Download raw stack trace file')}}
                 onClick={() => {
                   trackAnalytics('stack-trace.download_clicked', {
                     organization,
@@ -505,7 +505,7 @@ export function TraceEventDataSection({
                   {...triggerProps}
                   icon={<IconSort />}
                   size="xs"
-                  title={sortByTooltip}
+                  tooltipProps={{title: sortByTooltip}}
                 />
               )}
               disabled={!!sortByTooltip}

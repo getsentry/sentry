@@ -288,9 +288,11 @@ export default function FiltersBar({
         !isPrebuiltDashboard && (
           <ButtonBar>
             <Button
-              title={
-                !hasEditAccess && t('You do not have permission to edit this dashboard')
-              }
+              tooltipProps={{
+                title:
+                  !hasEditAccess &&
+                  t('You do not have permission to edit this dashboard'),
+              }}
               priority="primary"
               onClick={async () => {
                 await onSave?.();

@@ -259,7 +259,7 @@ export function AssertionOpGroup({
               priority: 'transparent',
               size: 'zero',
               icon: <IconAdd size="xs" />,
-              title: t('Add assertion to group'),
+              tooltipProps: {title: t('Add assertion to group')},
               'aria-label': t('Add assertion to group'),
             }}
             triggerLabel={t('Add Assertion')}

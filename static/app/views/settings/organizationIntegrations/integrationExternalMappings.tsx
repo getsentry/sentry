@@ -167,13 +167,13 @@ function IntegrationExternalMappings(props: Props) {
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}
-          title={
-            canDelete
+          tooltipProps={{
+            title: canDelete
               ? t('Remove user mapping')
               : t(
                   'You must be an organization owner, manager or admin to delete an external user mapping.'
-                )
-          }
+                ),
+          }}
         />
       </Confirm>
     ) : (

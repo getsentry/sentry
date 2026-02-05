@@ -53,7 +53,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}
-        title={setupDisabled ? setupDisabledTooltip : undefined}
+        tooltipProps={{title: setupDisabled ? setupDisabledTooltip : undefined}}
       >
         {t('Start Setup')}
       </LinkButton>

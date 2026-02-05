@@ -178,11 +178,11 @@ export function EventDetailsContent({
                   size="xs"
                   icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
                   onClick={showFeedback ? dismissPrompt : showPrompt}
-                  title={
-                    showFeedback
+                  tooltipProps={{
+                    title: showFeedback
                       ? t('Hide feedback on all issue details')
-                      : t('Unhide feedback on all issue details')
-                  }
+                      : t('Unhide feedback on all issue details'),
+                  }}
                   disabled={promptError}
                   busy={promptLoading}
                 >

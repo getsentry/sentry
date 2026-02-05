@@ -56,7 +56,7 @@ export function MetricCard(props: MetricCardProps) {
             priority="link"
             icon={action.icon}
             aria-label={action.ariaLabel}
-            title={action.tooltip}
+            tooltipProps={{title: action.tooltip}}
             onClick={action.onClick}
           />
         )}

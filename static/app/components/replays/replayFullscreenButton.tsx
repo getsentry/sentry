@@ -42,7 +42,9 @@ export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   return (
     <Button
       size="sm"
-      title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
+      tooltipProps={{
+        title: isFullscreen ? t('Exit full screen') : t('Enter full screen'),
+      }}
       aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
       icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
       onClick={handleFullscreenToggle}

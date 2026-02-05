@@ -24,7 +24,7 @@ export function PanelPositionSelector({
         priority="transparent"
         onClick={() => setOrientation('bottom')}
         disabled={disabled || orientation === 'bottom'}
-        title={t('Table bottom')}
+        tooltipProps={{title: t('Table bottom')}}
       />
       <Button
         size="zero"
@@ -33,7 +33,7 @@ export function PanelPositionSelector({
         priority="transparent"
         onClick={() => setOrientation('right')}
         disabled={disabled || orientation === 'right'}
-        title={t('Table right')}
+        tooltipProps={{title: t('Table right')}}
       />
     </Fragment>
   );

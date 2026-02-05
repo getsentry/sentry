@@ -216,13 +216,13 @@ export function PolicyRow({
               priority="primary"
               onClick={showModal}
               disabled={activeSuperUser || !hasBillingAccess}
-              title={
-                activeSuperUser
+              tooltipProps={{
+                title: activeSuperUser
                   ? t("Superusers can't consent to policies")
                   : hasBillingAccess
                     ? undefined
-                    : t("You don't have access to accept policies.")
-              }
+                    : t("You don't have access to accept policies."),
+              }}
             >
               {t('Review and Accept')}
             </Button>

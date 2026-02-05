@@ -353,8 +353,11 @@ function ResolveActions({
         <ResolveButton
           priority={priority}
           size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
-          tooltipProps={{delay: 1000, disabled}}
+          tooltipProps={{
+            delay: 1000,
+            disabled,
+            title: t("We'll nag you with a notification if another event is seen."),
+          }}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,

@@ -73,7 +73,7 @@ export function DebugNotificationsExample({
                   <InlineButton
                     key={index}
                     onClick={() => {}}
-                    title={action.link}
+                    tooltipProps={{title: action.link}}
                     size="sm"
                   >
                     {action.label}

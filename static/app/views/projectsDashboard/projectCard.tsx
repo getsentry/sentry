@@ -129,7 +129,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
               priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
-              title={t('Settings')}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
             />

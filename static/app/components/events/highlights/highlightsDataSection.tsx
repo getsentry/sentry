@@ -101,7 +101,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       size="xs"
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
-      title={editProps.title}
+      tooltipProps={{title: editProps.title}}
       disabled={isPending || editProps.disabled}
     >
       {t('Edit')}

@@ -67,9 +67,11 @@ function BaseFooter({className}: Props) {
             priority="transparent"
             size="xs"
             onClick={() => window.location.reload()}
-            title={t(
-              "An improved version of Sentry's Frontend Application is now available. Click to update now."
-            )}
+            tooltipProps={{
+              title: t(
+                "An improved version of Sentry's Frontend Application is now available. Click to update now."
+              ),
+            }}
             aria-label={t('Reload frontend')}
           >
             <WaitingIndicator />

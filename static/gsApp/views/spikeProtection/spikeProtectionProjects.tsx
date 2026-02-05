@@ -215,14 +215,14 @@ function SpikeProtectionProjects({subscription}: Props) {
           disabled={!hasOrgWrite}
           priority={isEnabling ? 'primary' : 'default'}
           data-test-id={`sp-${action.toLowerCase()}-all`}
-          title={
-            hasOrgWrite
+          tooltipProps={{
+            title: hasOrgWrite
               ? undefined
               : tct(
                   `You do not have permission to [action] spike protection for all projects.`,
                   {action: action.toLowerCase()}
-                )
-          }
+                ),
+          }}
         >
           {tct('[action] All', {action})}
         </Button>

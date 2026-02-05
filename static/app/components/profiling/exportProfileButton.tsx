@@ -43,7 +43,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   ) : (
     <LinkButton
       icon={<IconDownload />}
-      title={title}
+      tooltipProps={{title: title ?? undefined}}
       href={href}
       download={download}
       size="xs"

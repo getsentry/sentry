@@ -45,13 +45,14 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   size?: 'zero' | 'xs' | 'sm' | 'md';
   /**
-   * Display a tooltip for the button.
+   * Button Tooltip Props
    */
+  tooltipProps?: ButtonTooltipProps;
+}
+
+interface ButtonTooltipProps
+  extends Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'> {
   title?: TooltipProps['title'];
-  /**
-   * Additional properties for the Tooltip when `title` is set.
-   */
-  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
 }
 
 type ButtonElementProps = Omit<

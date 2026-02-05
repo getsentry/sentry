@@ -106,7 +106,7 @@ function DrawerNavigator({
             external
             href={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
             size="xs"
-            title={t('Configure Seer settings for this project')}
+            tooltipProps={{title: t('Configure Seer settings for this project')}}
             aria-label={t('Configure Seer settings for this project')}
             icon={<IconSettings />}
           />
@@ -114,7 +114,7 @@ function DrawerNavigator({
         <Button
           size="xs"
           onClick={onCopyMarkdown}
-          title={t('Copy analysis as Markdown / LLM prompt')}
+          tooltipProps={{title: t('Copy analysis as Markdown / LLM prompt')}}
           aria-label={t('Copy analysis as Markdown')}
           icon={<IconCopy />}
           disabled={copyButtonDisabled}
@@ -124,7 +124,7 @@ function DrawerNavigator({
           onClick={onReset}
           icon={<IconAdd />}
           aria-label={t('Start a new analysis from scratch')}
-          title={t('Start a new analysis from scratch')}
+          tooltipProps={{title: t('Start a new analysis from scratch')}}
           disabled={!onReset}
         />
       </ButtonWrapper>

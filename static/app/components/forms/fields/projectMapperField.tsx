@@ -289,8 +289,8 @@ export class RenderField extends Component<RenderProps, State> {
                 icon={<IconOpen />}
                 disabled={!existingValues.length}
                 href={nextUrl}
-                title={DISABLED_TOOLTIP_TEXT}
                 tooltipProps={{
+                  title: DISABLED_TOOLTIP_TEXT,
                   disabled: !!existingValues.length,
                 }}
               >

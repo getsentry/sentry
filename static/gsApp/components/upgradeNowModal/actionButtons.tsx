@@ -152,7 +152,11 @@ function ActionButtons({
     <ButtonRow>
       <Button
         priority="primary"
-        title={t('Notify an owner by email to update to the latest version of your plan')}
+        tooltipProps={{
+          title: t(
+            'Notify an owner by email to update to the latest version of your plan'
+          ),
+        }}
         onClick={onEmailOwner}
         disabled={isActionDisabled === true}
       >
@@ -160,9 +164,11 @@ function ActionButtons({
       </Button>
       <Button
         disabled
-        title={t(
-          'Only members with the role “Owner” or “Billing” can manage subscriptions'
-        )}
+        tooltipProps={{
+          title: t(
+            'Only members with the role "Owner" or "Billing" can manage subscriptions'
+          ),
+        }}
       >
         {t('Manage Subscription')}
       </Button>

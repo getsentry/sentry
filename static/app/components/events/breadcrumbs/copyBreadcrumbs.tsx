@@ -100,7 +100,7 @@ export function CopyBreadcrumbsDropdown({breadcrumbs}: CopyBreadcrumbsDropdownPr
       size="xs"
       triggerLabel={t('Copy')}
       triggerProps={{
-        title: t('Copy Breadcrumbs'),
+        tooltipProps: {title: t('Copy Breadcrumbs')},
         icon: <IconCopy />,
         size: 'xs',
       }}

@@ -213,11 +213,11 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
           disabled={disabled}
-          title={
-            disabled
+          tooltipProps={{
+            title: disabled
               ? t('You cannot manually update the priority of a metric issue.')
-              : t('Update the priority of this issue.')
-          }
+              : t('Update the priority of this issue.'),
+          }}
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
             <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />

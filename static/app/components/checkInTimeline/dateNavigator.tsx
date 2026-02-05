@@ -31,7 +31,7 @@ export function DateNavigator({direction, dateNavigation, ...props}: Props) {
   return (
     <Button
       icon={<IconChevron direction={iconDirection} />}
-      title={!disabled && title}
+      tooltipProps={{title: !disabled && title}}
       aria-label={title}
       onClick={action}
       disabled={disabled}

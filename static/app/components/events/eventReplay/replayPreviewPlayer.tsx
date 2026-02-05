@@ -156,7 +156,7 @@ export default function ReplayPreviewPlayer({
               {showNextAndPrevious && (
                 <Button
                   size="sm"
-                  title={t('Previous Clip')}
+                  tooltipProps={{title: t('Previous Clip')}}
                   icon={<IconPrevious />}
                   onClick={() => handleBackClick?.()}
                   aria-label={t('Previous Clip')}
@@ -175,7 +175,7 @@ export default function ReplayPreviewPlayer({
               {showNextAndPrevious && (
                 <Button
                   size="sm"
-                  title={t('Next Clip')}
+                  tooltipProps={{title: t('Next Clip')}}
                   icon={<IconNext />}
                   onClick={() => handleForwardClick?.()}
                   aria-label={t('Next Clip')}

@@ -530,7 +530,7 @@ class ColumnEditCollection extends Component<Props, State> {
               <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
-                title={t('Remove column')}
+                tooltipProps={{title: t('Remove column')}}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
                 priority="transparent"
@@ -643,7 +643,7 @@ class ColumnEditCollection extends Component<Props, State> {
               size="sm"
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
-              title={title}
+              tooltipProps={{title}}
               disabled={!canAdd}
               icon={<IconAdd />}
             >
@@ -654,7 +654,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 size="sm"
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
-                title={title}
+                tooltipProps={{title}}
                 disabled={!canAdd}
                 icon={<IconAdd />}
               >

@@ -600,7 +600,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
                       <Button
                         priority="primary"
                         busy={!traceId}
-                        title={traceId ? undefined : t('Processing trace\u2026')}
+                        tooltipProps={{
+                          title: traceId ? undefined : t('Processing trace\u2026'),
+                        }}
                         onClick={() => {
                           const params = new URLSearchParams(window.location.search);
                           params.set('table', Tab.TRACE);

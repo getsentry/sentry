@@ -234,7 +234,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         }}
         size="zero"
         priority="transparent"
-        title={t('Dismiss')}
+        tooltipProps={{title: t('Dismiss')}}
         aria-label={t('Dismiss trial notice')}
       />
     </ButtonBar>

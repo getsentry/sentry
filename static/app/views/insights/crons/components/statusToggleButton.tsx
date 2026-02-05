@@ -33,7 +33,7 @@ export function StatusToggleButton({
     <Button
       icon={<Icon />}
       aria-label={label}
-      title={label}
+      tooltipProps={{title: label}}
       onClick={async () => {
         await onToggleStatus(isDisabled ? 'active' : 'disabled');
         // TODO(epurkhiser): This hook is probably too specialized and could

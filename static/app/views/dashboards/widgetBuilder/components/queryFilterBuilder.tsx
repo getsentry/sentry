@@ -285,7 +285,7 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
       priority="transparent"
       onClick={onDelete}
       icon={<IconDelete />}
-      title={t('Remove this filter')}
+      tooltipProps={{title: t('Remove this filter')}}
       aria-label={t('Remove this filter')}
       name="filter-delete-button"
     />
