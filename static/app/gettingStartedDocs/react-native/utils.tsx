@@ -10,7 +10,7 @@ export const installCodeBlock: ContentBlock = {
     {
       label: 'npm',
       language: 'bash',
-      code: `npm install @sentry/react-native --save`,
+      code: `npm install @sentry/react-native@latest`,
     },
     {
       label: 'yarn',
