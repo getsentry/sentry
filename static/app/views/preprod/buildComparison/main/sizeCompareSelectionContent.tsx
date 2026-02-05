@@ -75,13 +75,13 @@ export function SizeCompareSelectionContent({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Build structured query string for the new builds endpoint
-  const filterParts = ['state:processed'];
+  const filterParts: string[] = [];
   if (headBuildDetails.app_info?.app_id) {
     filterParts.push(`app_id:${headBuildDetails.app_info.app_id}`);
   }
   if (headBuildDetails.app_info?.build_configuration) {
     filterParts.push(
-      `build_configuration:${headBuildDetails.app_info.build_configuration}`
+      `build_configuration_name:${headBuildDetails.app_info.build_configuration}`
     );
   }
   if (searchQuery) {
