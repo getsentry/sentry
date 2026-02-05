@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
 @region_silo_model
@@ -23,9 +23,8 @@ class NotificationRecord(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     # Thread association - always populated when threading is enabled
-    thread = models.ForeignKey(
+    thread = FlexibleForeignKey(
         "notifications.NotificationThread",
-        on_delete=models.CASCADE,
         related_name="records",
     )
 
