@@ -48,6 +48,17 @@ class _WorkflowsByDetector(NamedTuple):
         return result
 
 
+class _SplitWorkflowsByDetector(NamedTuple):
+    """
+    Workflows split by environment: global (env_id=None) vs env-specific.
+    This enables storing each environment's workflows in separate cache entries,
+    so invalidation of global workflows doesn't require invalidating env-specific caches.
+    """
+
+    global_workflows: _WorkflowsByDetector  # env_id=None workflows
+    env_workflows: _WorkflowsByDetector  # env_id=X workflows (may be empty)
+
+
 class _WorkflowCacheAccess(CacheAccess[set[Workflow]]):
     """
     To reduce look-ups, this uses id's instead of requiring the full model for types
@@ -140,16 +151,19 @@ def _check_caches_for_detectors(
 
 def _query_workflows_by_detector_ids(
     detector_ids: Collection[int], env_id: int | None
-) -> _WorkflowsByDetector:
+) -> _SplitWorkflowsByDetector:
     """
-    Query DB for workflows and group by detector ID.
+    Query DB for workflows and split by actual environment_id.
+
+    Returns separate mappings for global (env_id=None) vs env-specific workflows.
+    This enables storing each in separate cache entries for targeted invalidation.
 
     Args:
         detector_ids: Collection of detector IDs to query for
-        env_id: Environment ID to filter by (or None for all environment)
+        env_id: Environment ID to filter by (or None for global-only)
 
     Returns:
-        _WorkflowsByDetector with mapping of detector_id to set of Workflows
+        _SplitWorkflowsByDetector with global_workflows and env_workflows
     """
     environment_filter = (
         (Q(workflow__environment_id=None) | Q(workflow__environment_id=env_id))
@@ -163,26 +177,43 @@ def _query_workflows_by_detector_ids(
         workflow__enabled=True,
     ).select_related("workflow", "workflow__environment")
 
-    workflows_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}
+    # Split results by actual environment_id
+    global_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}
+    env_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}
 
     for dw in detector_workflow_mappings:
-        workflows_by_detector[dw.detector_id].add(dw.workflow)
+        if dw.workflow.environment_id is None:
+            global_by_detector[dw.detector_id].add(dw.workflow)
+        else:
+            env_by_detector[dw.detector_id].add(dw.workflow)
 
-    return _WorkflowsByDetector(workflows_by_detector)
+    return _SplitWorkflowsByDetector(
+        _WorkflowsByDetector(global_by_detector),
+        _WorkflowsByDetector(env_by_detector),
+    )
 
 
 def _populate_detector_caches(
-    workflows_by_detector: _WorkflowsByDetector, env_id: int | None
+    split_workflows: _SplitWorkflowsByDetector, env_id: int | None
 ) -> None:
     """
-    Populate cache entries for each detector.
+    Populate cache entries for each detector, storing global and env-specific separately.
+
+    Global workflows (env_id=None) are stored in the global cache key.
+    Env-specific workflows are stored in the env-specific cache key (only if env_id was specified).
 
     Args:
-        workflows_by_detector: WorkflowsByDetector containing detector_id to Workflow mappings
-        env_id: Environment ID
+        split_workflows: SplitWorkflowsByDetector with global and env-specific workflows
+        env_id: Environment ID for the env-specific cache (None for global-only query)
     """
-    for detector_id, detector_workflows in workflows_by_detector.mapping.items():
-        _WorkflowCacheAccess(detector_id, env_id).set(detector_workflows, CACHE_TTL)
+    # Always store global workflows in env_id=None cache
+    for detector_id, workflows in split_workflows.global_workflows.mapping.items():
+        _WorkflowCacheAccess(detector_id, None).set(workflows, CACHE_TTL)
+
+    # Store env-specific workflows in env_id=X cache (only if env_id was specified)
+    if env_id is not None:
+        for detector_id, workflows in split_workflows.env_workflows.mapping.items():
+            _WorkflowCacheAccess(detector_id, env_id).set(workflows, CACHE_TTL)
 
 
 @scopedstats.timer()
@@ -193,20 +224,37 @@ def get_workflows_by_detectors(
     """
     Get workflows for multiple detectors, using per-detector caching.
 
-    Cache misses are batched into a single DB query for efficiency then merge results.
+    Workflows are stored in separate cache entries by their actual environment_id:
+    - Global workflows (env_id=None) are always checked
+    - Env-specific workflows are checked when an environment is specified
+
+    Cache misses are batched into a single DB query for efficiency then results
+    are split by environment and stored in separate cache entries for efficient
+    cache interactions.
     """
     if not detectors:
         return set()
 
     env_id = environment.id if environment is not None else None
-    cache_result = _check_caches_for_detectors(detectors, env_id)
+    workflows: set[Workflow] = set()
 
-    if cache_result.all_hits:
-        return cache_result.cached_workflows
+    global_result = _check_caches_for_detectors(detectors, env_id=None)
+    workflows |= global_result.cached_workflows
 
-    uncached_workflows_by_detector = _query_workflows_by_detector_ids(
-        cache_result.missed_detector_ids, env_id
-    )
+    env_result = None
+    if env_id is not None:
+        env_result = _check_caches_for_detectors(detectors, env_id)
+        workflows |= env_result.cached_workflows
 
-    _populate_detector_caches(uncached_workflows_by_detector, env_id)
-    return cache_result.cached_workflows | uncached_workflows_by_detector.all_workflows
+    missed_detector_ids = set(global_result.missed_detector_ids)
+    if env_result:
+        missed_detector_ids |= set(env_result.missed_detector_ids)
+
+    if missed_detector_ids:
+        workflow_query_results = _query_workflows_by_detector_ids(list(missed_detector_ids), env_id)
+        _populate_detector_caches(workflow_query_results, env_id)
+
+        workflows |= workflow_query_results.global_workflows.all_workflows
+        workflows |= workflow_query_results.env_workflows.all_workflows
+
+    return workflows
