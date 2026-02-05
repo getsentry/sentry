@@ -35,34 +35,18 @@ interface MobileBuildsChartProps {
   organizationSlug: string;
 }
 
-interface SeriesKey {
-  appId: string | null;
-  buildConfiguration: string | null;
-  platform: string | null;
-}
-
 function getSeriesKey(build: BuildDetailsApiResponse): string {
   const {app_id, platform, build_configuration} = build.app_info;
   return `${app_id ?? 'unknown'}|${platform ?? 'unknown'}|${build_configuration ?? 'unknown'}`;
 }
 
-function getSeriesLabel(key: SeriesKey): string {
-  const parts = [
-    key.appId ?? 'Unknown App',
-    key.platform ?? 'Unknown',
-    key.buildConfiguration ?? 'Unknown',
-  ];
-  return parts.join(' | ');
-}
-
-function parseSeriesKey(key: string): SeriesKey {
-  const [appId, platform, buildConfiguration] = key.split('|');
-  return {
-    appId: !appId || appId === 'unknown' ? null : appId,
-    platform: !platform || platform === 'unknown' ? null : platform,
-    buildConfiguration:
-      !buildConfiguration || buildConfiguration === 'unknown' ? null : buildConfiguration,
-  };
+function getSeriesLabel(build: BuildDetailsApiResponse): string {
+  const {app_id, platform, build_configuration} = build.app_info;
+  return [
+    app_id ?? 'Unknown App',
+    platform ?? 'Unknown',
+    build_configuration ?? 'Unknown',
+  ].join(' | ');
 }
 
 export function MobileBuildsChart({
@@ -126,7 +110,7 @@ export function MobileBuildsChart({
 
       return {
         id: key,
-        seriesName: getSeriesLabel(parseSeriesKey(key)),
+        seriesName: getSeriesLabel(groupBuilds[0]!),
         data,
         symbol: 'circle',
         showSymbol: true,
