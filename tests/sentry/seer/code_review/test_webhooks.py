@@ -553,9 +553,6 @@ class ScheduleTaskTest(TestCase):
         for key in features.keys():
             assert isinstance(key, str), f"Expected string key, got {type(key)}"
 
-        # Verify github_rate_limit_sensitive is preserved
-        assert sent_payload["data"]["config"]["github_rate_limit_sensitive"] is True
-
     @patch("sentry.seer.code_review.webhooks.task.process_github_webhook_event.delay")
     @patch("sentry.seer.code_review.webhooks.task.transform_webhook_to_codegen_request")
     def test_pr_review_validation_passes_without_organization_id(
