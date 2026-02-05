@@ -147,13 +147,26 @@ function VisualizationWidgetContent({
   const organization = useOrganization();
   const location = useLocation();
 
+  const widgetQuery = widget.queries[0];
+  const aggregates = widgetQuery?.aggregates ?? [];
+  const columns = widgetQuery?.columns ?? [];
+
   const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
     .map(series => {
+      let yAxis = aggregates[0];
+      if (aggregates.length > 1) {
+        yAxis =
+          aggregates.find(aggregate => series.seriesName.includes(aggregate)) ??
+          aggregates[0];
+      }
       const timeSeries = transformLegacySeriesToTimeSeries(
         series,
         timeseriesResultsTypes,
-        timeseriesResultsUnits
+        timeseriesResultsUnits,
+        columns,
+        yAxis
       );
+
       if (!timeSeries) {
         return null;
       }
@@ -184,9 +197,6 @@ function VisualizationWidgetContent({
     tableResults.length > 0;
 
   const tableDataRows = tableResults?.[0]?.data;
-  const widgetQuery = widget.queries[0];
-  const aggregates = widgetQuery?.aggregates ?? [];
-  const columns = widgetQuery?.columns ?? [];
 
   // We only support one column for legend breakdown right now
   const firstColumn = columns[0];
@@ -200,37 +210,47 @@ function VisualizationWidgetContent({
         }
 
         let value: number | null = null;
+        const yAxis = timeSeries.yAxis;
+
         if (tableDataRows) {
-          // If the there is one column and one aggregate, the table results will an array with multiple elemtents
+          // If the there is one column, the table results will an array with multiple elemtents
           // [{column: 'value', aggregate: 123}, {column: 'value', aggregate: 123}]
-          if (columns.length === 1 && aggregates.length === 1) {
-            const aggregate = aggregates[0];
-            const row = tableDataRows[index];
-            // TODO: We should ideally match row[columns[0]] with the series, however series can have aliases
-            if (aggregate && row?.[aggregate] !== undefined) {
-              value = row[aggregate] as number;
+          if (columns.length === 1) {
+            const groupByValue = timeSeries.groupBy?.find(
+              groupBy => groupBy.key === firstColumn
+            )?.value;
+            if (groupByValue && firstColumn) {
+              // for a limit of 20, this is only 20 x 20 lookups, which is negligible and worth it for code readability
+              value = tableDataRows.find(row => row[firstColumn] === groupByValue)?.[
+                yAxis
+              ] as number;
             }
           }
           // If there is no columns, and only aggregates, the table result will be an array with a single element
           // [{aggregate1: 123}, {aggregate2: 345}]
           else if (columns.length === 0 && aggregates.length > 1) {
-            const aggregate = aggregates[index];
             const row = tableDataRows[0];
-            if (aggregate && row?.[aggregate] !== undefined) {
-              value = row[aggregate] as number;
+            if (row) {
+              value = row[yAxis] as number;
             }
           }
         }
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
+        const groupValue = timeSeries.groupBy?.find(
+          groupBy => groupBy.key === firstColumn
+        )?.value;
         const linkedUrl =
-          linkedDashboard && firstColumn && widget.widgetType
+          linkedDashboard &&
+          firstColumn &&
+          widget.widgetType &&
+          typeof groupValue === 'string'
             ? getLinkedDashboardUrl({
                 linkedDashboard,
                 organizationSlug: organization.slug,
                 field: firstColumn,
-                value: timeSeries.yAxis, // TODO: when we migrate to the new time series data, we should grab this from `timeSeries.groupBy` instead, otherwise this will be incorrect
+                value: groupValue,
                 widgetType: widget.widgetType,
                 dashboardFilters,
                 locationQuery: location.query,

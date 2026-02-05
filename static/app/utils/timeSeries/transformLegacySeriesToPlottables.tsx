@@ -6,6 +6,7 @@ import {
   type AggregationOutputType,
   type DataUnit,
 } from 'sentry/utils/discover/fields';
+import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -18,7 +19,9 @@ import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/q
 export function transformLegacySeriesToTimeSeries(
   timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
-  timeseriesResultsUnits: Record<string, DataUnit> | undefined
+  timeseriesResultsUnits: Record<string, DataUnit> | undefined,
+  fields: string[] = [],
+  yAxis = ''
 ): TimeSeries | null {
   if (!timeseriesResult) {
     return null;
@@ -44,13 +47,17 @@ export function transformLegacySeriesToTimeSeries(
     timeseriesResult.seriesName === 'Other' ||
     timeseriesResult.seriesName?.endsWith(' : Other');
 
+  const groupBy =
+    fields.length > 0 ? parseGroupBy(timeseriesResult.seriesName, fields) : null;
+
   const timeSeries = convertEventsStatsToTimeSeriesData(
-    timeseriesResult.seriesName,
+    yAxis,
     createEventsStatsFromSeries(timeseriesResult, valueType, valueUnit)
   )[1];
 
   return {
     ...timeSeries,
+    groupBy,
     meta: {
       ...timeSeries.meta,
       isOther,

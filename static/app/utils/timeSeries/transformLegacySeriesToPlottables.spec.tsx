@@ -75,6 +75,49 @@ describe('transformLegacySeriesToTimeSeries', () => {
     ).toBe(false);
   });
 
+  it('parses groupBy from series name when groupByFields provided', () => {
+    const series = {
+      seriesName: 'count() : /api/users,db',
+      data: [{name: 1729796400000, value: 100}],
+    };
+
+    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined, [
+      'transaction',
+      'span.op',
+    ]);
+
+    expect(timeSeries!.yAxis).toBe('count()');
+    expect(timeSeries!.groupBy).toEqual([
+      {key: 'transaction', value: '/api/users'},
+      {key: 'span.op', value: 'db'},
+    ]);
+  });
+
+  it('returns null groupBy for "Other" series', () => {
+    const series = {
+      seriesName: 'count() : Other',
+      data: [{name: 1729796400000, value: 100}],
+    };
+
+    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined, [
+      'transaction',
+    ]);
+
+    expect(timeSeries!.groupBy).toBeNull();
+    expect(timeSeries!.meta.isOther).toBe(true);
+  });
+
+  it('returns null groupBy when no groupByFields provided', () => {
+    const series = {
+      seriesName: 'count()',
+      data: [{name: 1729796400000, value: 100}],
+    };
+
+    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
+
+    expect(timeSeries!.groupBy).toBeNull();
+  });
+
   it('transforms session series data correctly', () => {
     const erroredRateSeries = {
       seriesName: 'errored_rate(session)',
