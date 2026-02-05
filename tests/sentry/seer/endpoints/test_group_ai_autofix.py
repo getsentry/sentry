@@ -1,6 +1,8 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import requests
+
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixStatus
@@ -1030,3 +1032,144 @@ class GroupAutofixEndpointLegacyRoutingTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.data
         mock_get_autofix_state.assert_called_once()
+
+
+@with_feature("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
+class GroupAutofixEndpointHTTPErrorTest(APITestCase, SnubaTestCase):
+    """Tests for handling HTTP errors from Seer API (e.g., GitHub IP allowlist issues)."""
+
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_handles_http_403_error(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """Test that GET endpoint handles 403 Forbidden errors gracefully (e.g., GitHub IP allowlist)."""
+
+        group = self.create_group()
+
+        # Create a mock response with 403 status code
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden: IP not in allowlist"
+
+        # Setup mock to raise HTTPError with 403
+        http_error = requests.HTTPError("403 Forbidden")
+        http_error.response = mock_response
+        mock_get_autofix_state.side_effect = http_error
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to fetch autofix state"
+
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_handles_http_500_error(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """Test that GET endpoint handles 500 Internal Server Error gracefully."""
+
+        group = self.create_group()
+
+        # Create a mock response with 500 status code
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+
+        # Setup mock to raise HTTPError with 500
+        http_error = requests.HTTPError("500 Internal Server Error")
+        http_error.response = mock_response
+        mock_get_autofix_state.side_effect = http_error
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to fetch autofix state"
+
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_state")
+    def test_get_handles_http_error_without_response(
+        self, mock_get_autofix_state, mock_get_seer_org_acknowledgement
+    ):
+        """Test that GET endpoint handles HTTPError even when response is None."""
+
+        group = self.create_group()
+
+        # Setup mock to raise HTTPError without response
+        http_error = requests.HTTPError("Connection error")
+        http_error.response = None
+        mock_get_autofix_state.side_effect = http_error
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to fetch autofix state"
+
+        mock_get_autofix_state.assert_called_once_with(
+            group_id=group.id,
+            check_repo_access=True,
+            is_user_fetching=False,
+            organization_id=group.organization.id,
+        )
+
+
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
+class GroupAutofixEndpointExplorerHTTPErrorTest(APITestCase, SnubaTestCase):
+    """Tests for handling HTTP errors from Seer API in Explorer mode."""
+
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/?mode=explorer"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_explorer_state")
+    def test_get_explorer_handles_http_error(
+        self, mock_get_explorer_state, mock_get_seer_org_acknowledgement
+    ):
+        """Test that GET endpoint in explorer mode handles HTTP errors gracefully."""
+
+        group = self.create_group()
+
+        # Create a mock response with 403 status code
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.text = "Forbidden: IP not in allowlist"
+
+        # Setup mock to raise HTTPError
+        http_error = requests.HTTPError("403 Forbidden")
+        http_error.response = mock_response
+        mock_get_explorer_state.side_effect = http_error
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to fetch autofix state"
+
+        mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
