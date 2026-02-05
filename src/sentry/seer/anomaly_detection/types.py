@@ -28,14 +28,17 @@ class AlertInSeer(TypedDict):
     cur_window: NotRequired[TimeSeriesPoint]
 
 
+class AggregateType(StrEnum):
+    COUNT = "count"  # for applying static threshold to count metrics
+    OTHER = "other"
+
+
 class AnomalyDetectionConfig(TypedDict):
     time_period: int
     sensitivity: str
     direction: str
     expected_seasonality: str
-    aggregate: NotRequired[
-        str
-    ]  # only "count" or "other" - for applying static threshold to count metrics
+    aggregate: NotRequired[AggregateType]
 
 
 class StoreDataRequest(TypedDict):

@@ -14,7 +14,7 @@ from sentry.models.project import Project
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.types import TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import AggregateType, TimeSeriesPoint
 from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -47,19 +47,19 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
-def get_aggregate_type(aggregate: str | None) -> str | None:
+def get_aggregate_type(aggregate: str | None) -> AggregateType | None:
     """
     Determine aggregate type for static threshold application.
 
-    Returns "count" for count-based aggregates (count(), count_unique(), etc.)
-    and "other" for all other aggregate types. Returns None if no aggregate provided.
+    Returns AggregateType.COUNT for count-based aggregates (count(), count_unique(), etc.)
+    and AggregateType.OTHER for all other aggregate types. Returns None if no aggregate provided.
     """
     if not aggregate:
         return None
     aggregate_lower = aggregate.lower()
     if aggregate_lower.startswith("count"):
-        return "count"
-    return "other"
+        return AggregateType.COUNT
+    return AggregateType.OTHER
 
 
 def get_event_types(

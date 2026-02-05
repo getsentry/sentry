@@ -1,3 +1,4 @@
+from sentry.seer.anomaly_detection.types import AggregateType
 from sentry.seer.anomaly_detection.utils import get_aggregate_type
 
 
@@ -13,7 +14,9 @@ class TestGetAggregateType:
             "count_if(transaction.duration,greater,300)",
         ]
         for aggregate in count_aggregates:
-            assert get_aggregate_type(aggregate) == "count", f"Expected 'count' for {aggregate}"
+            assert (
+                get_aggregate_type(aggregate) == AggregateType.COUNT
+            ), f"Expected AggregateType.COUNT for {aggregate}"
 
     def test_non_count_aggregates_return_other(self) -> None:
         other_aggregates = [
@@ -28,7 +31,9 @@ class TestGetAggregateType:
             "apdex(300)",
         ]
         for aggregate in other_aggregates:
-            assert get_aggregate_type(aggregate) == "other", f"Expected 'other' for {aggregate}"
+            assert (
+                get_aggregate_type(aggregate) == AggregateType.OTHER
+            ), f"Expected AggregateType.OTHER for {aggregate}"
 
     def test_none_aggregate_returns_none(self) -> None:
         assert get_aggregate_type(None) is None
