@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -653,6 +654,11 @@ module.exports = withSentryConfig(
           'Monitors will be automatically created for each cron job in your vercel.json configuration.'
         )}
       </div>
+      <Alert variant="info">
+        {t(
+          'This option only works when using Webpack. If you are using Turbopack, this option will have no effect.'
+        )}
+      </Alert>
     </Fragment>
   );
 }
