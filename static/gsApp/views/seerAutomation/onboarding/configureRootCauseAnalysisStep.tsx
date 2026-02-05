@@ -157,6 +157,7 @@ export function ConfigureRootCauseAnalysisStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(new Error('Seer Onboarding: Unable to update autofix'));
           addErrorMessage(t('Failed to save settings'));
         },
       }
