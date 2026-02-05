@@ -93,14 +93,11 @@ Sentry.logger.fmt(
         },
         {
           type: 'text',
-          text: tct(
-            'For more detailed information, see the [link:logs documentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/logs/" />
-              ),
-            }
-          ),
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/react-native/logs/" />
+            ),
+          }),
         },
       ],
     },
