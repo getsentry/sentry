@@ -70,7 +70,8 @@ export const ControlContext = createContext<ControlContextValue>({
 });
 
 export interface ControlProps
-  extends Omit<
+  extends
+    Omit<
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'grid' | 'label'>

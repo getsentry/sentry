@@ -1,9 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
-import {Button} from '@sentry/scraps/button';
-import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';

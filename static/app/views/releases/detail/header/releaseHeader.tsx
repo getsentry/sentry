@@ -83,7 +83,7 @@ function ReleaseHeader({
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
           <React.Fragment>
@@ -91,7 +91,7 @@ function ReleaseHeader({
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </BadgeWrapper>
           </React.Fragment>
         ),

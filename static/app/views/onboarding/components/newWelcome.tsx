@@ -1,10 +1,10 @@
 import {motion, type MotionProps} from 'framer-motion';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
 import {
   IconBot,
   IconBusiness,

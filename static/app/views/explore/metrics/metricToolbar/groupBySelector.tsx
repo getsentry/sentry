@@ -5,6 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -32,6 +33,10 @@ interface GroupBySelectorProps {
 export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const organization = useOrganization();
+  const hasBooleanFilters = organization.features.includes(
+    'search-query-builder-explicit-boolean-filters'
+  );
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -47,6 +52,13 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
       enabled: Boolean(traceMetricFilter),
+      query: traceMetricFilter,
+    });
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} =
+    useTraceItemAttributeKeys({
+      traceItemType: TraceItemDataset.TRACEMETRICS,
+      type: 'boolean',
+      enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
       query: traceMetricFilter,
     });
 
@@ -66,15 +78,24 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     );
   }, [stringTags]);
 
+  const visibleBooleanTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(booleanTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+  }, [booleanTags]);
+
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},
+    booleanTags: visibleBooleanTags ?? {},
     traceItemType: TraceItemDataset.TRACEMETRICS,
     hideEmptyOption: true,
   });
 
-  const isLoading = numberTagsLoading || stringTagsLoading;
+  const isLoading = numberTagsLoading || stringTagsLoading || booleanTagsLoading;
 
   const handleChange = useCallback(
     (selectedOptions: Array<SelectOption<string>>) => {

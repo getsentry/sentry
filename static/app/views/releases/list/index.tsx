@@ -388,10 +388,10 @@ export default function ReleasesList() {
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
     selectedProject &&
-      // Has not set up releases
-      !selectedProject?.features.includes('releases') &&
-      // Has no releases
-      !releases?.length
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
   );
   const releasesPageLinks = getReleasesResponseHeader?.('Link');
 
@@ -473,7 +473,7 @@ export default function ReleasesList() {
                   >
                     <Flex align="center" gap="sm">
                       {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
+                      <FeatureBadge type="new" />
                     </Flex>
                   </TabList.Item>
                 </TabList>
@@ -541,18 +541,22 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

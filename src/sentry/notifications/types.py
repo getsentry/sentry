@@ -35,7 +35,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     QUOTA_LOG_BYTES = "quotaLogBytes"
     QUOTA_SEER_USERS = "quotaSeerUsers"
-    QUOTA_SIZE_ANALYSIS = "quotaSizeAnalysis"
+    QUOTA_SIZE_ANALYSIS = "quotaSizeAnalyses"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"

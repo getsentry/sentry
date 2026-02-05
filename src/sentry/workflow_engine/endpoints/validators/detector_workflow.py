@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -141,7 +141,7 @@ def perform_bulk_detector_workflow_operations(
     detector_workflows_to_remove: Sequence[DetectorWorkflow],
     request: Request,
     organization: Organization,
-):
+) -> list[DetectorWorkflow]:
     created_detector_workflows: list[DetectorWorkflow] = []
 
     with transaction.atomic(router.db_for_write(DetectorWorkflow)):
@@ -178,8 +178,10 @@ def perform_bulk_detector_workflow_operations(
             data=detector_workflow.get_audit_log_data(),
         )
 
+    return created_detector_workflows
 
-class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
+
+class BulkDetectorWorkflowsValidator(CamelSnakeSerializer[Any]):
     """
     Connect/disconnect multiple workflows to a single detector all at once.
     """
@@ -187,7 +189,7 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
     detector_id = serializers.IntegerField(required=True)
     workflow_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> list[DetectorWorkflow]:
         validate_workflows_exist(validated_data["workflow_ids"], self.context["organization"])
         validate_detectors_exist_and_have_permissions(
             [validated_data["detector_id"]], self.context["organization"], self.context["request"]
@@ -222,7 +224,7 @@ class BulkDetectorWorkflowsValidator(CamelSnakeSerializer):
         return list(DetectorWorkflow.objects.filter(detector_id=validated_data["detector_id"]))
 
 
-class BulkWorkflowDetectorsValidator(CamelSnakeSerializer):
+class BulkWorkflowDetectorsValidator(CamelSnakeSerializer[Any]):
     """
     Connect/disconnect multiple detectors to a single workflow all at once.
     """
@@ -230,7 +232,7 @@ class BulkWorkflowDetectorsValidator(CamelSnakeSerializer):
     workflow_id = serializers.IntegerField(required=True)
     detector_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> list[DetectorWorkflow]:
         validate_workflows_exist([validated_data["workflow_id"]], self.context["organization"])
         validate_detectors_exist_and_have_permissions(
             validated_data["detector_ids"], self.context["organization"], self.context["request"]

@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';

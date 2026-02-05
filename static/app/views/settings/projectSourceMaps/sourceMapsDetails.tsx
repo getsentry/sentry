@@ -21,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -121,12 +122,26 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const cursor = decodeScalar(location.query.cursor);
 
   // endpoints
-  const artifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/releases/${encodeURIComponent(bundleId)}/files/`;
-  const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/artifact-bundles/${encodeURIComponent(bundleId)}/files/`;
+  const artifactsEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        version: bundleId,
+      },
+    }
+  );
+  const debugIdBundlesArtifactsEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        bundleId,
+      },
+    }
+  );
 
   const isDebugIdBundle = isUUID(bundleId);
 
@@ -172,7 +187,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
 
   const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
     [
-      `/organizations/${organization.slug}/releases/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/releases/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           project: [project.id],

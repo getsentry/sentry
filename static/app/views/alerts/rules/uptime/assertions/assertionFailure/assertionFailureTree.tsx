@@ -144,5 +144,6 @@ const ConnectorLine = styled('div')<{
   top: ${p => p.top}px;
   width: ${p => p.width}px;
   height: ${p => p.height}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.content.primary};
 `;

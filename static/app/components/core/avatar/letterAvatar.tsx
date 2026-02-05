@@ -7,8 +7,7 @@ import type {Theme} from 'sentry/utils/theme';
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
 
 interface LetterAvatarProps
-  extends React.HTMLAttributes<SVGSVGElement>,
-    BaseAvatarStyleProps {
+  extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
   identifier: string | undefined;
   displayName?: string;
   ref?: React.Ref<SVGSVGElement>;

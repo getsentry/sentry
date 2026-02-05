@@ -39,6 +39,7 @@ import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -433,6 +434,7 @@ function AutofixRootCauseDisplay({
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const organization = useOrganization();
+  const user = useUser();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [solutionText, setSolutionText] = useState('');
@@ -527,6 +529,13 @@ function AutofixRootCauseDisplay({
     trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
       organization,
       group_id: groupId,
+    });
+    trackAnalytics('coding_integration.send_to_agent_clicked', {
+      organization,
+      group_id: groupId,
+      provider: integration.provider,
+      source: 'autofix',
+      user_id: user.id,
     });
   };
 
