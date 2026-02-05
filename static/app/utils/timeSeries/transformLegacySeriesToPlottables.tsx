@@ -39,21 +39,18 @@ export function transformLegacySeriesToTimeSeries(
   // Prefer results types and units from the config if available
   // Fallback to the default mapping logic if not available
   const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
+  const seriesName = timeseriesResult.seriesName ?? yAxis;
   const valueType =
-    timeseriesResultsTypes?.[timeseriesResult.seriesName] ??
-    (mapped.valueType as AggregationOutputType);
-  const valueUnit =
-    timeseriesResultsUnits?.[timeseriesResult.seriesName] ?? mapped.valueUnit;
+    timeseriesResultsTypes?.[seriesName] ?? (mapped.valueType as AggregationOutputType);
+  const valueUnit = timeseriesResultsUnits?.[seriesName] ?? mapped.valueUnit;
 
-  const splitSeriesName = timeseriesResult.seriesName.split(SERIES_NAME_PART_DELIMITER);
+  const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
 
   const isOther = splitSeriesName.includes('Other');
 
   // Extract group values by filtering out alias and yAxis from the series name
   // Series name format: "alias : groupValue1,groupValue2 : yAxis" or "groupValue1,groupValue2" or "groupValue1,groupValue2 : yAxis"
-  const groupValuesPart = timeseriesResult.seriesName
-    .split(SERIES_NAME_PART_DELIMITER)
-    .find(name => name !== alias && name !== yAxis);
+  const groupValuesPart = splitSeriesName.find(name => name !== alias && name !== yAxis);
 
   const groupBy =
     fields.length > 0 && groupValuesPart ? parseGroupBy(groupValuesPart, fields) : null;

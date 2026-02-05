@@ -155,7 +155,8 @@ function VisualizationWidgetContent({
 
   const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
     .map(series => {
-      const splitSeriesName = series.seriesName.split(SERIES_NAME_PART_DELIMITER);
+      const seriesName = series.seriesName ?? aggregates[0] ?? '';
+      const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
 
       const yAxis =
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
@@ -187,7 +188,7 @@ function VisualizationWidgetContent({
         timeSeries,
         widget,
         labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
-        series.seriesName
+        seriesName
       );
       if (!plottable) {
         return null;
