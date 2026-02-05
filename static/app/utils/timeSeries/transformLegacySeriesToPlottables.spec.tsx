@@ -24,7 +24,13 @@ describe('transformLegacySeriesToTimeSeries', () => {
       ],
     };
 
-    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
+    const timeSeries = transformLegacySeriesToTimeSeries(
+      series,
+      undefined,
+      undefined,
+      [],
+      'count()'
+    );
 
     expect(timeSeries).not.toBeNull();
     expect(timeSeries!.yAxis).toBe('count()');
@@ -43,7 +49,13 @@ describe('transformLegacySeriesToTimeSeries', () => {
       ],
     };
 
-    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
+    const timeSeries = transformLegacySeriesToTimeSeries(
+      series,
+      undefined,
+      undefined,
+      [],
+      'epm()'
+    );
 
     expect(timeSeries).not.toBeNull();
     expect(timeSeries!.meta.valueUnit).toBe('1/minute');
@@ -64,14 +76,26 @@ describe('transformLegacySeriesToTimeSeries', () => {
     };
 
     expect(
-      transformLegacySeriesToTimeSeries(otherSeries, undefined, undefined)!.meta.isOther
+      transformLegacySeriesToTimeSeries(otherSeries, undefined, undefined, [], 'count()')!
+        .meta.isOther
     ).toBe(true);
     expect(
-      transformLegacySeriesToTimeSeries(aliasedOtherSeries, undefined, undefined)!.meta
-        .isOther
+      transformLegacySeriesToTimeSeries(
+        aliasedOtherSeries,
+        undefined,
+        undefined,
+        [],
+        'count()'
+      )!.meta.isOther
     ).toBe(true);
     expect(
-      transformLegacySeriesToTimeSeries(regularSeries, undefined, undefined)!.meta.isOther
+      transformLegacySeriesToTimeSeries(
+        regularSeries,
+        undefined,
+        undefined,
+        [],
+        'count()'
+      )!.meta.isOther
     ).toBe(false);
   });
 
@@ -81,10 +105,13 @@ describe('transformLegacySeriesToTimeSeries', () => {
       data: [{name: 1729796400000, value: 100}],
     };
 
-    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined, [
-      'transaction',
-      'span.op',
-    ]);
+    const timeSeries = transformLegacySeriesToTimeSeries(
+      series,
+      undefined,
+      undefined,
+      ['transaction', 'span.op'],
+      'count()'
+    );
 
     expect(timeSeries!.yAxis).toBe('count()');
     expect(timeSeries!.groupBy).toEqual([
@@ -99,9 +126,13 @@ describe('transformLegacySeriesToTimeSeries', () => {
       data: [{name: 1729796400000, value: 100}],
     };
 
-    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined, [
-      'transaction',
-    ]);
+    const timeSeries = transformLegacySeriesToTimeSeries(
+      series,
+      undefined,
+      undefined,
+      ['transaction'],
+      'count()'
+    );
 
     expect(timeSeries!.groupBy).toBeNull();
     expect(timeSeries!.meta.isOther).toBe(true);
@@ -113,7 +144,13 @@ describe('transformLegacySeriesToTimeSeries', () => {
       data: [{name: 1729796400000, value: 100}],
     };
 
-    const timeSeries = transformLegacySeriesToTimeSeries(series, undefined, undefined);
+    const timeSeries = transformLegacySeriesToTimeSeries(
+      series,
+      undefined,
+      undefined,
+      [],
+      'count()'
+    );
 
     expect(timeSeries!.groupBy).toBeNull();
   });
@@ -137,12 +174,16 @@ describe('transformLegacySeriesToTimeSeries', () => {
     const erroredRateTimeSeries = transformLegacySeriesToTimeSeries(
       erroredRateSeries,
       undefined,
-      undefined
+      undefined,
+      [],
+      'errored_rate(session)'
     );
     const sumSessionTimeSeries = transformLegacySeriesToTimeSeries(
       sumSessionSeries,
       undefined,
-      undefined
+      undefined,
+      [],
+      'sum(session)'
     );
 
     expect(erroredRateTimeSeries!.yAxis).toBe('errored_rate(session)');

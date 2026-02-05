@@ -22,6 +22,11 @@ export type ContinuousTimeSeriesConfig = {
    */
   color?: string;
   /**
+   * Optional name override. If not provided, the name will be computed from the `TimeSeries` yAxis and groupBy.
+   * This is used for ECharts series identification and tooltip display.
+   */
+  name?: string;
+  /**
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
   onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
@@ -61,9 +66,10 @@ export abstract class ContinuousTimeSeries<
 
   /**
    * Continuous time series names need to be unique to disambiguate them from other series. We use both the `yAxis` and the `groupBy` to create the name. This makes it possible to pass in two different time series with the same `yAxis` as long as they have different `groupBy` information.
+   * For cases where we have multiple time series with the same `yAxis` and no`groupBy` (for example dashboards with multiple filters), we can manually set the name.
    */
   get name(): string {
-    return formatTimeSeriesName(this.timeSeries);
+    return this.config?.name ?? formatTimeSeriesName(this.timeSeries);
   }
 
   get label(): string {

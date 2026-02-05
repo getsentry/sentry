@@ -28,6 +28,7 @@ import type {
   TabularColumn,
   TimeSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -152,26 +153,35 @@ function VisualizationWidgetContent({
   const columns = widgetQuery?.columns ?? [];
 
   const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
-    .map(series => {
+    .map((series, index) => {
       let yAxis = aggregates[0];
+      const alias = widget?.queries[index]?.name || undefined;
       if (aggregates.length > 1) {
         const splitSeriesName = series.seriesName.split(' : ');
         yAxis =
           aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
           aggregates[0];
       }
+
       const timeSeries = transformLegacySeriesToTimeSeries(
         series,
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         columns,
-        yAxis
+        yAxis,
+        alias
       );
 
       if (!timeSeries) {
         return null;
       }
-      const plottable = createPlottableFromTimeSeries(timeSeries, widget);
+      // Use the original series name as the unique identifier for ECharts
+      const plottable = createPlottableFromTimeSeries(
+        timeSeries,
+        widget,
+        alias ? `${alias} : ${formatTimeSeriesLabel(timeSeries)}` : undefined,
+        series.seriesName
+      );
       if (!plottable) {
         return null;
       }

@@ -21,7 +21,8 @@ export function transformLegacySeriesToTimeSeries(
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
   timeseriesResultsUnits: Record<string, DataUnit> | undefined,
   fields: string[] = [],
-  yAxis = ''
+  yAxis = '',
+  alias?: string
 ): TimeSeries | null {
   if (!timeseriesResult) {
     return null;
@@ -42,8 +43,14 @@ export function transformLegacySeriesToTimeSeries(
     timeseriesResult.seriesName === 'Other' ||
     timeseriesResult.seriesName?.endsWith(' : Other');
 
+  // Extract group values by filtering out alias and yAxis from the series name
+  // Series name format: "alias : yAxis : groupValue1,groupValue2" or "yAxis : groupValue1,groupValue2"
+  const groupValuesPart = timeseriesResult.seriesName
+    .split(' : ')
+    .find(name => name !== alias && name !== yAxis);
+
   const groupBy =
-    fields.length > 0 ? parseGroupBy(timeseriesResult.seriesName, fields) : null;
+    fields.length > 0 && groupValuesPart ? parseGroupBy(groupValuesPart, fields) : null;
 
   const timeSeries = convertEventsStatsToTimeSeriesData(
     yAxis,
@@ -91,18 +98,20 @@ function createEventsStatsFromSeries(
 
 export function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
-  widget: Widget
+  widget: Widget,
+  alias?: string,
+  name?: string
 ): Plottable | null {
   const shouldStack = widget.queries[0]?.columns.length! > 0;
 
   const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
-      return new Line(timeSeries);
+      return new Line(timeSeries, {alias, name});
     case DisplayType.AREA:
-      return new Area(timeSeries);
+      return new Area(timeSeries, {alias, name});
     case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: shouldStack ? title : undefined});
+      return new Bars(timeSeries, {stack: shouldStack ? title : undefined, alias, name});
     default:
       return null;
   }

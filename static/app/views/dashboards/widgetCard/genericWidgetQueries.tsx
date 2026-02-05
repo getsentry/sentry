@@ -62,6 +62,7 @@ export type GenericWidgetQueriesResult = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
+  timeSeriesResults?: SeriesMap[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
