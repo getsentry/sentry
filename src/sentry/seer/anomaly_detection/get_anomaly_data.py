@@ -91,11 +91,22 @@ def get_anomaly_data_from_seer(
     timestamp = subscription_update.get("timestamp")
     assert timestamp
 
+    # Determine aggregate type for static threshold application (count metrics only)
+    aggregate_type = None
+    if snuba_query.aggregate:
+        aggregate_lower = snuba_query.aggregate.lower()
+        # Count-based aggregates: count(), count_unique(), etc.
+        if aggregate_lower.startswith("count"):
+            aggregate_type = "count"
+        else:
+            aggregate_type = "other"
+
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=int(snuba_query.time_window / 60),
         sensitivity=sensitivity,
         direction=translate_direction(threshold_type),
         expected_seasonality=seasonality,
+        aggregate=aggregate_type,
     )
     context = AlertInSeer(
         id=None,
