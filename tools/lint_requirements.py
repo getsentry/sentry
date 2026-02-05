@@ -23,9 +23,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     continue
 
                 # non-specifier requirements won't have registry as a source
-                if (
-                    package["source"].get("registry", "")
-                    != "https://pypi.devinfra.sentry.io/simple"
+                package_registry = package["source"].get("registry", "")
+
+                if package_registry not in (
+                    "https://pypi.org/simple",
+                    "https://pypi.devinfra.sentry.io/simple",
                 ):
                     raise SystemExit(
                         f"""

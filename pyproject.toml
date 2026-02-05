@@ -125,13 +125,50 @@ dependencies = [
     # [end] getsentry
 ]
 
-[tool.uv]
-environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
-
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.
 # Otherwise, you need to define a build system (uv_build)
 # and console scripts here, and call uv sync then uv pip install -e .
+
+[tool.uv]
+environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
+no-build-package = [
+    "avalara",
+    "fido2",
+    "google-crc32c",
+    "hiredis",
+    "maxminddb",
+    "mmh3",
+    "petname",
+    "pycountry",
+    "python-rapidjson",
+    "python-u2flib-server",
+    "simplejson",
+    "xmlsec",
+    "zstandard",
+]
+
+[[tool.uv.index]]
+name = "sentry-pypi"
+url = "https://pypi.devinfra.sentry.io/simple"
+explicit = true
+
+# These dependencies don't yet have wheels in upstream PyPI,
+# so we get those wheels from internal PyPI.
+[tool.uv.sources]
+avalara = { index = "sentry-pypi" }
+fido2 = { index = "sentry-pypi" }
+google-crc32c = { index = "sentry-pypi" }
+hiredis = { index = "sentry-pypi" }
+maxminddb = { index = "sentry-pypi" }
+mmh3 = { index = "sentry-pypi" }
+petname = { index = "sentry-pypi" }
+pycountry = { index = "sentry-pypi" }
+python-rapidjson = { index = "sentry-pypi" }
+python-u2flib-server = { index = "sentry-pypi" }
+simplejson = { index = "sentry-pypi" }
+xmlsec = { index = "sentry-pypi" }
+zstandard = { index = "sentry-pypi" }
 
 [dependency-groups]
 dev = [
