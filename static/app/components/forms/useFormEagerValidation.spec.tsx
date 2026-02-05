@@ -10,6 +10,11 @@ describe('useFormEagerValidation', () => {
   beforeEach(() => {
     formModel = new FormModel();
     jest.spyOn(formModel, 'validateForm');
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('does not validate during initial render', () => {
@@ -22,6 +27,7 @@ describe('useFormEagerValidation', () => {
     const {result} = renderHook(() => useFormEagerValidation(formModel));
 
     act(() => result.current.onBlur());
+    act(() => jest.runAllTimers());
 
     expect(formModel.validateForm).toHaveBeenCalledTimes(1);
   });
@@ -30,8 +36,11 @@ describe('useFormEagerValidation', () => {
     const {result} = renderHook(() => useFormEagerValidation(formModel));
 
     act(() => result.current.onBlur());
+    act(() => jest.runAllTimers());
     act(() => result.current.onBlur());
+    act(() => jest.runAllTimers());
     act(() => result.current.onBlur());
+    act(() => jest.runAllTimers());
 
     expect(formModel.validateForm).toHaveBeenCalledTimes(3);
   });
