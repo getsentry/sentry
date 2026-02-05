@@ -153,7 +153,7 @@ dev = [
     "isort>=6",
     "lxml-stubs>=0.4.0",
     "msgpack-types>=0.2.0",
-    "mypy>=1.17.1",
+    "mypy>=1.19.1",
     "mypy-extensions>=1.0.0",
     "openapi-core>=0.18.2",
     "openapi-pydantic>=0.4.0",
@@ -176,8 +176,8 @@ dev = [
     "sentry-cli>=2.16.0",
     "sentry-covdefaults-disable-branch-coverage>=1.0.2",
     "sentry-devenv>=1.22.0",
-    "sentry-forked-django-stubs>=5.2.2.post2",
-    "sentry-forked-djangorestframework-stubs>=3.16.3.post1",
+    "django-stubs>=5.2.9",
+    "djangorestframework-stubs>=3.16.8",
     "time-machine>=2.16.0",
     "types-beautifulsoup4>=4.11.6",
     "types-cachetools>=5.3.0.5",
@@ -273,6 +273,7 @@ local_partial_types = true                                    # compat with dmyp
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
+strict_model_abstract_attrs = false
 
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
