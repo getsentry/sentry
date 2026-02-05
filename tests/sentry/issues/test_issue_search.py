@@ -135,19 +135,21 @@ class ParseSearchQueryTest(unittest.TestCase):
             with pytest.raises(InvalidSearchQuery, match="Invalid number"):
                 parse_search_query(invalid_query)
 
-    def test_boolean_operators_not_allowed(self) -> None:
-        invalid_queries = [
-            "user.email:foo@example.com OR user.email:bar@example.com",
-            "user.email:foo@example.com AND user.email:bar@example.com",
-            "user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com",
-            "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com",
-        ]
-        for invalid_query in invalid_queries:
-            with pytest.raises(
-                InvalidSearchQuery,
-                match='Boolean statements containing "OR" or "AND" are not supported in this search',
-            ):
-                parse_search_query(invalid_query)
+    def test_boolean_operators_allowed(self) -> None:
+        # Test that boolean operators are now supported
+        result = parse_search_query("user.email:foo@example.com OR user.email:bar@example.com")
+        assert len(result) == 3  # Two filters + one OR operator
+        
+        result = parse_search_query("user.email:foo@example.com AND user.email:bar@example.com")
+        assert len(result) == 3  # Two filters + one AND operator
+    
+    def test_first_release_with_or_operator(self) -> None:
+        # Test that OR operator works with firstRelease
+        result = parse_search_query("firstRelease:1.0.0 OR firstRelease:1.0.1")
+        assert len(result) == 3  # Two filters + one OR operator
+        
+        result = parse_search_query("first-release:1.0.0 OR first-release:1.0.1")
+        assert len(result) == 3  # Two filters + one OR operator
 
     def test_parens_in_query(self) -> None:
         assert parse_search_query(

@@ -57,7 +57,7 @@ for substatus_key, substatus_value in SUBSTATUS_UPDATE_CHOICES.items():
 
 issue_search_config = SearchConfig.create_from(
     default_config,
-    allow_boolean=False,
+    allow_boolean=True,
     is_filter_translation=is_filter_translation,
     numeric_keys=default_config.numeric_keys | {"times_seen"},
     date_keys=default_config.date_keys | {"date", "first_seen", "last_seen", "issue.seer_last_run"},

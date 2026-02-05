@@ -134,28 +134,65 @@ def linked_filter(linked: bool, projects: Sequence[Project]) -> Q:
     return query
 
 
+def _has_wildcard(version: str) -> bool:
+    """Check if a version string contains wildcard characters."""
+    return "*" in version
+
+
+def _wildcard_to_regex(pattern: str) -> str:
+    """Convert a wildcard pattern to a regex pattern for database queries."""
+    # Escape special regex characters except *
+    import re
+    escaped = re.escape(pattern)
+    # Replace escaped \* with .* for regex matching
+    regex_pattern = escaped.replace(r"\*", ".*")
+    return f"^{regex_pattern}$"
+
+
 def first_release_all_environments_filter(
     versions: Sequence[str], projects: Sequence[Project]
 ) -> Q:
-    releases: dict[str | None, int] = {
-        id_: version
-        for id_, version in Release.objects.filter(
-            organization=projects[0].organization_id, version__in=versions
-        ).values_list("version", "id")
-    }
-    for version in versions:
-        if version not in releases:
-            # TODO: This is mostly around for legacy reasons - we should probably just
-            # raise a validation here an inform the user that they passed an invalid
-            # release
-            releases[None] = -1
-            # We only need to find the first non-existent release here
-            break
+    # Separate exact matches from wildcard patterns
+    exact_versions = [v for v in versions if not _has_wildcard(v)]
+    wildcard_patterns = [v for v in versions if _has_wildcard(v)]
+    
+    query = Q()
+    
+    # Handle exact version matches
+    if exact_versions:
+        releases: dict[str | None, int] = {
+            id_: version
+            for id_, version in Release.objects.filter(
+                organization=projects[0].organization_id, version__in=exact_versions
+            ).values_list("version", "id")
+        }
+        for version in exact_versions:
+            if version not in releases:
+                # TODO: This is mostly around for legacy reasons - we should probably just
+                # raise a validation here an inform the user that they passed an invalid
+                # release
+                releases[None] = -1
+                # We only need to find the first non-existent release here
+                break
 
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-    return Q(first_release_id__in=list(releases.values()))
+        query |= Q(first_release_id__in=list(releases.values()))
+    
+    # Handle wildcard patterns
+    if wildcard_patterns:
+        wildcard_query = Q()
+        for pattern in wildcard_patterns:
+            regex_pattern = _wildcard_to_regex(pattern)
+            matching_releases = Release.objects.filter(
+                organization=projects[0].organization_id,
+                version__iregex=regex_pattern
+            ).values_list("id", flat=True)
+            wildcard_query |= Q(first_release_id__in=list(matching_releases))
+        query |= wildcard_query
+    
+    return query
 
 
 def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
@@ -614,19 +651,41 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
-            queryset_conditions.update(
-                {
-                    "first_release": QCallbackCondition(
-                        lambda versions: Q(
-                            # if environment(s) are selected, we just filter on the group
-                            # environment's first_release attribute.
+            
+            def first_release_with_env_filter(versions: Sequence[str]) -> Q:
+                # Separate exact matches from wildcard patterns
+                exact_versions = [v for v in versions if not _has_wildcard(v)]
+                wildcard_patterns = [v for v in versions if _has_wildcard(v)]
+                
+                query = Q()
+                
+                # Handle exact version matches
+                if exact_versions:
+                    query |= Q(
+                        id__in=GroupEnvironment.objects.filter(
+                            first_release__organization_id=projects[0].organization_id,
+                            first_release__version__in=exact_versions,
+                            environment_id__in=environment_ids,
+                        ).values_list("group_id")
+                    )
+                
+                # Handle wildcard patterns
+                if wildcard_patterns:
+                    for pattern in wildcard_patterns:
+                        regex_pattern = _wildcard_to_regex(pattern)
+                        query |= Q(
                             id__in=GroupEnvironment.objects.filter(
                                 first_release__organization_id=projects[0].organization_id,
-                                first_release__version__in=versions,
+                                first_release__version__iregex=regex_pattern,
                                 environment_id__in=environment_ids,
-                            ).values_list("group_id"),
+                            ).values_list("group_id")
                         )
-                    ),
+                
+                return query
+            
+            queryset_conditions.update(
+                {
+                    "first_release": QCallbackCondition(first_release_with_env_filter),
                     "first_seen": ScalarCondition(
                         "groupenvironment__first_seen",
                         {"groupenvironment__environment_id__in": environment_ids},

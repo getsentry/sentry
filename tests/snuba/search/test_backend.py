@@ -2182,6 +2182,118 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             environments=[self.environments["production"], self.environments["staging"]],
         )
 
+    def test_first_release_wildcard(self) -> None:
+        # Test wildcard support for first_release
+        release_1 = self.create_release(self.project, version="com.example@1.2.0")
+        release_2 = self.create_release(self.project, version="com.example@1.2.1")
+        release_3 = self.create_release(self.project, version="com.example@1.3.0")
+        
+        # Create groups for different releases
+        group_1 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-group-1"],
+                "event_id": "c" * 32,
+                "message": "wildcard test 1",
+                "environment": "production",
+                "release": release_1.version,
+                "stacktrace": {"frames": [{"module": "wildcard1"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        group_2 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-group-2"],
+                "event_id": "d" * 32,
+                "message": "wildcard test 2",
+                "environment": "production",
+                "release": release_2.version,
+                "stacktrace": {"frames": [{"module": "wildcard2"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        group_3 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-group-3"],
+                "event_id": "e" * 32,
+                "message": "wildcard test 3",
+                "environment": "production",
+                "release": release_3.version,
+                "stacktrace": {"frames": [{"module": "wildcard3"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        # Test wildcard matching com.example@1.2.*
+        results = self.make_query(search_filter_query="first_release:com.example@1.2.*")
+        assert set(results) == {group_1, group_2}
+        
+        # Test wildcard matching all com.example@*
+        results = self.make_query(search_filter_query="first_release:com.example@*")
+        assert set(results) == {group_1, group_2, group_3}
+        
+        # Test wildcard matching com.example@1.*.0
+        results = self.make_query(search_filter_query="first_release:com.example@1.*.0")
+        assert set(results) == {group_1, group_3}
+
+    def test_first_release_wildcard_with_environments(self) -> None:
+        # Test wildcard support for first_release with specific environments
+        release_1 = self.create_release(self.project, version="app@2.0.0")
+        release_2 = self.create_release(self.project, version="app@2.0.1")
+        release_3 = self.create_release(self.project, version="app@3.0.0")
+        
+        # Create groups for different releases in production environment
+        group_1 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-env-group-1"],
+                "event_id": "f" * 32,
+                "message": "wildcard env test 1",
+                "environment": "production",
+                "release": release_1.version,
+                "stacktrace": {"frames": [{"module": "wildcard_env1"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        group_2 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-env-group-2"],
+                "event_id": "1" * 32,
+                "message": "wildcard env test 2",
+                "environment": "production",
+                "release": release_2.version,
+                "stacktrace": {"frames": [{"module": "wildcard_env2"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        group_3 = self.store_event(
+            data={
+                "fingerprint": ["wildcard-env-group-3"],
+                "event_id": "2" * 32,
+                "message": "wildcard env test 3",
+                "environment": "production",
+                "release": release_3.version,
+                "stacktrace": {"frames": [{"module": "wildcard_env3"}]},
+            },
+            project_id=self.project.id,
+        ).group
+        
+        # Test wildcard matching app@2.0.* in production environment
+        results = self.make_query(
+            environments=[self.environments["production"]],
+            search_filter_query="first_release:app@2.0.*"
+        )
+        assert set(results) == {group_1, group_2}
+        
+        # Test wildcard matching all app@* in production environment
+        results = self.make_query(
+            environments=[self.environments["production"]],
+            search_filter_query="first_release:app@*"
+        )
+        assert set(results) == {group_1, group_2, group_3}
+
     def test_query_enclosed_in_quotes(self) -> None:
         results = self.make_query(search_filter_query='"foo"')
         assert set(results) == {self.group1}
