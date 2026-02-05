@@ -68,6 +68,7 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 
     task_state = current_task()
     if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.generate_summary_and_run_automation", sample_rate=1.0)
         analytics.record(
             AiAutofixAutomationEvent(
                 organization_id=organization.id,
@@ -107,6 +108,7 @@ def generate_issue_summary_only(group_id: int) -> None:
 
     task_state = current_task()
     if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.generate_issue_summary_only", sample_rate=1.0)
         analytics.record(
             AiAutofixAutomationEvent(
                 organization_id=organization.id,
@@ -155,6 +157,7 @@ def run_automation_only_task(group_id: int) -> None:
 
     task_state = current_task()
     if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.run_automation_only_task", sample_rate=1.0)
         analytics.record(
             AiAutofixAutomationEvent(
                 organization_id=organization.id,
