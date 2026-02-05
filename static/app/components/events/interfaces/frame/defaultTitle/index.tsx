@@ -270,7 +270,4 @@ const StyledGroupingIndicator = styled(GroupingIndicator)`
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   margin-left: ${space(0.5)};
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
 `;
