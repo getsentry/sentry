@@ -22,9 +22,9 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         super().setUp()
         self.add_warning_trigger()
         self.add_incident_data()
-        self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
+        self.incident_identifier = str(get_fake_id_from_object_id(self.group_open_period.id))
         self.incident_expected = {
-            "id": str(self.incident_group_open_period.incident_id),
+            "id": self.incident_identifier,
             "identifier": self.incident_identifier,
             "organizationId": str(self.group_open_period.project.organization_id),
             "projects": [self.project.slug],
@@ -57,7 +57,6 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         """
         Assert that nothing breaks if the legacy models do not exist.
         """
-        self.incident_group_open_period.delete()
         ard = AlertRuleDetector.objects.filter(detector_id=self.detector.id)
         dcart = DataConditionAlertRuleTrigger.objects.filter(
             data_condition_id=self.critical_detector_trigger.id

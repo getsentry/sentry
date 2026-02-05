@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -10,7 +9,6 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
@@ -52,14 +50,6 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         migrate_resolve_threshold_data_condition(other_alert_rule)
 
         self.add_incident_data()
-        past_incident = self.create_incident(
-            alert_rule=self.alert_rule, date_started=self.now - timedelta(days=1)
-        )
-        IncidentTrigger.objects.create(
-            incident=past_incident,
-            alert_rule_trigger=self.critical_trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
 
         serialized_detector = serialize(
             self.detector,
@@ -67,7 +57,10 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             WorkflowEngineDetectorSerializer(expand=["latestIncident"]),
         )
         assert serialized_detector["latestIncident"] is not None
-        assert serialized_detector["latestIncident"]["dateStarted"] == self.incident.date_started
+        assert (
+            serialized_detector["latestIncident"]["dateStarted"]
+            == self.group_open_period.date_started
+        )
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app(self, mock_sentry_app_components_preparer: Any) -> None:

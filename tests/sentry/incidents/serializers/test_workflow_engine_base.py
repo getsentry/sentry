@@ -13,7 +13,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -31,7 +30,6 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 
@@ -150,13 +148,6 @@ class TestWorkflowEngineSerializer(TestCase):
         dual_update_resolve_condition(self.alert_rule)
 
     def add_incident_data(self) -> None:
-        self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
-        IncidentTrigger.objects.create(
-            incident=self.incident,
-            alert_rule_trigger=self.warning_trigger,
-            status=TriggerStatus.ACTIVE.value,
-        )
-
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
 
@@ -166,12 +157,6 @@ class TestWorkflowEngineSerializer(TestCase):
         )
         self.group_open_period = GroupOpenPeriod.objects.get(
             group=self.group, project=self.detector.project
-        )
-        self.group_open_period.update(date_started=self.incident.date_started)
-        self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
-            group_open_period=self.group_open_period,
-            incident_id=self.incident.id,
-            incident_identifier=self.incident.identifier,
         )
         Activity.objects.create_group_activity(
             group=self.group_open_period.group,
