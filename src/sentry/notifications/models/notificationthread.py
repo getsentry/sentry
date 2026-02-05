@@ -40,6 +40,7 @@ class NotificationThread(Model):
     provider_data = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "notifications"

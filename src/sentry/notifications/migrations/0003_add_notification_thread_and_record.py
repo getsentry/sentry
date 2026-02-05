@@ -30,6 +30,7 @@ class Migration(migrations.Migration):
                 ("key_data", models.JSONField()),
                 ("provider_data", models.JSONField(default=dict)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                ("date_updated", models.DateTimeField(auto_now=True)),
             ],
             options={
                 "db_table": "sentry_notificationthread",
@@ -59,6 +60,7 @@ class Migration(migrations.Migration):
                 ("message_id", models.CharField(max_length=255)),
                 ("error_details", models.JSONField(null=True)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                ("date_updated", models.DateTimeField(auto_now=True)),
                 (
                     "thread",
                     models.ForeignKey(
@@ -76,7 +78,7 @@ class Migration(migrations.Migration):
             model_name="notificationrecord",
             index=models.Index(
                 fields=["thread", "date_added"],
-                name="idx_notificationrecord_thread_date",
+                name="idx_notifrecord_thread_date",
             ),
         ),
     ]

@@ -40,6 +40,7 @@ class NotificationRecord(Model):
     error_details = models.JSONField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
+    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "notifications"
@@ -48,7 +49,7 @@ class NotificationRecord(Model):
             # For looking up messages by thread
             models.Index(
                 fields=["thread", "date_added"],
-                name="idx_notificationrecord_thread_date",
+                name="idx_notifrecord_thread_date",
             ),
         ]
 
