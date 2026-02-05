@@ -50,36 +50,57 @@ describe('computeCommonSuffix', () => {
 });
 
 describe('trimCommonAffixes', () => {
-  it('returns value unchanged when prefix and suffix are too short', () => {
-    expect(trimCommonAffixes('hello', 'he', 'lo')).toBe('hello');
-    expect(trimCommonAffixes('hello', '', '')).toBe('hello');
+  it('returns empty array for empty input', () => {
+    expect(trimCommonAffixes([])).toEqual([]);
   });
 
-  it('trims prefix longer than 3 characters', () => {
-    expect(trimCommonAffixes('/api/v2/users', '/api/v2/', '')).toBe('\u2026users');
+  it('returns values unchanged when no common affixes', () => {
+    expect(trimCommonAffixes(['Chrome', 'Firefox', 'Safari'])).toEqual([
+      'Chrome',
+      'Firefox',
+      'Safari',
+    ]);
   });
 
-  it('trims suffix longer than 3 characters', () => {
-    expect(trimCommonAffixes('users_count', '', '_count')).toBe('users\u2026');
+  it('returns values unchanged when common affixes are too short', () => {
+    // Common prefix 'abc' is exactly 3 chars, not over the threshold
+    expect(trimCommonAffixes(['abcfoo', 'abcbar'])).toEqual(['abcfoo', 'abcbar']);
   });
 
-  it('trims both prefix and suffix', () => {
-    expect(trimCommonAffixes('/api/v2/users_count', '/api/v2/', '_count')).toBe(
-      '\u2026users\u2026'
-    );
+  it('trims common prefix longer than 3 characters', () => {
+    expect(trimCommonAffixes(['/api/v2/users', '/api/v2/teams'])).toEqual([
+      '…users',
+      '…teams',
+    ]);
   });
 
-  it('handles overlapping prefix and suffix by only trimming prefix', () => {
-    // When prefix + suffix >= value length, only prefix is trimmed
-    expect(trimCommonAffixes('abcdef', 'abcdef', 'abcdef')).toBe('\u2026');
-    expect(trimCommonAffixes('abcdefgh', 'abcde', 'defgh')).toBe('\u2026fgh');
+  it('trims common suffix longer than 3 characters', () => {
+    // Common suffix is 's_count' (7 chars)
+    expect(trimCommonAffixes(['users_count', 'teams_count'])).toEqual(['user…', 'team…']);
   });
 
-  it('does not trim affixes of exactly 3 characters', () => {
-    expect(trimCommonAffixes('abcusers', 'abc', 'ers')).toBe('abcusers');
+  it('trims both common prefix and suffix', () => {
+    // Common prefix '/api/v2/' (8 chars), common suffix 's_count' (7 chars)
+    expect(trimCommonAffixes(['/api/v2/users_count', '/api/v2/teams_count'])).toEqual([
+      '…user…',
+      '…team…',
+    ]);
   });
 
   it('trims affixes of 4 characters (just over threshold)', () => {
-    expect(trimCommonAffixes('/api/users', '/api', '')).toBe('\u2026/users');
+    // Common prefix 'abcd' (4 chars > 3 threshold)
+    expect(trimCommonAffixes(['abcdusers', 'abcdteams'])).toEqual(['…users', '…teams']);
+  });
+
+  it('handles overlapping prefix and suffix by only trimming prefix', () => {
+    // Identical strings: prefix = suffix = whole string, overlap detected
+    expect(trimCommonAffixes(['abcdef', 'abcdef'])).toEqual(['…', '…']);
+  });
+
+  it('respects custom minAffixLength', () => {
+    // With default (3), 'abc' prefix wouldn't be trimmed
+    expect(trimCommonAffixes(['abcfoo', 'abcbar'])).toEqual(['abcfoo', 'abcbar']);
+    // With minAffixLength 0, it should be trimmed
+    expect(trimCommonAffixes(['abcfoo', 'abcbar'], 0)).toEqual(['…foo', '…bar']);
   });
 });

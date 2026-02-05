@@ -22,11 +22,7 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
-import {
-  computeCommonPrefix,
-  computeCommonSuffix,
-  trimCommonAffixes,
-} from 'sentry/utils/string/trimCommonAffixes';
+import {trimCommonAffixes} from 'sentry/utils/string/trimCommonAffixes';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -40,6 +36,8 @@ import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
 const TOTAL_CHARACTER_THRESHOLD = 40;
+const TRUNCATED_LABEL_MAX_LENGTH = 15;
+const ROTATED_LABEL_ANGLE = 45;
 
 export interface CategoricalSeriesWidgetVisualizationProps {
   /**
@@ -123,30 +121,28 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
-  const {commonPrefix, commonSuffix, shouldTruncate, shouldRotate} = useMemo(() => {
-    // Step 1: If total label length exceeds threshold, trim common affixes
+  const shouldRotate = allCategories.length > 10;
+
+  const formattedLabels = useMemo(() => {
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
     const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
 
-    const prefix = shouldTrimAffixes ? computeCommonPrefix(allCategories) : '';
-    const suffix = shouldTrimAffixes ? computeCommonSuffix(allCategories) : '';
+    const trimmed = shouldTrimAffixes ? trimCommonAffixes(allCategories) : allCategories;
 
-    // Step 2: After affix trimming, check if labels are still too long and need end truncation
-    const trimmedLengths = allCategories.reduce(
-      (sum, c) => sum + trimCommonAffixes(c, prefix, suffix).length,
-      0
+    const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
+    const truncateLength =
+      trimmedTotal > TOTAL_CHARACTER_THRESHOLD
+        ? TRUNCATED_LABEL_MAX_LENGTH
+        : (props.truncateCategoryLabels ?? true);
+
+    return new Map(
+      allCategories.map((cat, i) => [
+        cat,
+        truncationFormatter(trimmed[i]!, truncateLength, false),
+      ])
     );
-
-    return {
-      commonPrefix: prefix,
-      commonSuffix: suffix,
-      // Step 2 result
-      shouldTruncate: trimmedLengths > TOTAL_CHARACTER_THRESHOLD,
-      // Step 3: Rotate when there are many categories
-      shouldRotate: allCategories.length > 10,
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allCategories.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allCategories.join(','), props.truncateCategoryLabels]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
@@ -159,15 +155,9 @@ export function CategoricalSeriesWidgetVisualization(
       showMaxLabel: null,
       // @ts-expect-error: ECharts types `showMaxLabel` incorrect as a boolean, the documentation also allows `null`
       showMinLabel: null,
-      rotate: shouldRotate ? 45 : 0,
+      rotate: shouldRotate ? ROTATED_LABEL_ANGLE : 0,
       ...(shouldRotate ? {interval: 0, hideOverlap: false} : {}),
-      formatter: (value: string) => {
-        const trimmed = trimCommonAffixes(value, commonPrefix, commonSuffix);
-        const truncateLength = shouldTruncate
-          ? 15
-          : (props.truncateCategoryLabels ?? true);
-        return truncationFormatter(trimmed, truncateLength, false);
-      },
+      formatter: (value: string) => formattedLabels.get(value) ?? value,
     },
     axisLine: {
       lineStyle: {
