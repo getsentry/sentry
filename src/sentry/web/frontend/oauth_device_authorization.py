@@ -195,9 +195,7 @@ class OAuthDeviceAuthorizationView(View):
 
         # Build the verification URIs
         verification_uri = absolute_uri("/oauth/device/")
-        verification_uri_complete = (
-            f"{verification_uri}?user_code={device_code.user_code}"
-        )
+        verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
 
         # Calculate expires_in from the expiration time
         expires_in = int(DEFAULT_EXPIRATION.total_seconds())

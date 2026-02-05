@@ -13,9 +13,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.models.sentry_app_installation_token import (
-    SentryAppInstallationToken,
-)
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -65,19 +63,13 @@ class ApiTokenTest(TestCase):
             org_id = token.organization_id
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id
-                == org_id
-            )
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
 
         with outbox_runner():
             install.delete()
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id
-                is None
-            )
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
 
         assert token.organization_id is None
 
@@ -97,9 +89,7 @@ class ApiTokenTest(TestCase):
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         assert token.hashed_token is not None
         assert len(token.hashed_token) == 64  # sha256 hash
-        assert (
-            token.hashed_refresh_token is None
-        )  # user auth tokens don't have refresh tokens
+        assert token.hashed_refresh_token is None  # user auth tokens don't have refresh tokens
 
     def test_plaintext_values_only_available_immediately_after_create(self) -> None:
         user = self.create_user()
@@ -138,9 +128,7 @@ class ApiTokenTest(TestCase):
     def test_hash_updated_when_calling_update(self) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
-        initial_expected_hash = hashlib.sha256(
-            token.plaintext_token.encode()
-        ).hexdigest()
+        initial_expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
         assert initial_expected_hash == token.hashed_token
 
         new_token = "abc1234"
@@ -177,9 +165,7 @@ class ApiTokenTest(TestCase):
         user = self.create_user()
 
         with outbox_runner():
-            token = ApiToken.objects.create(
-                user_id=user.id, token_type=AuthTokenType.USER
-            )
+            token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
             token.save()
 
         # Verify replica exists
@@ -196,9 +182,7 @@ class ApiTokenTest(TestCase):
     @mock.patch(
         "sentry.hybridcloud.services.replica.region_replica_service.delete_replicated_api_token"
     )
-    def test_handle_async_deletion_called(
-        self, mock_delete_replica: mock.MagicMock
-    ) -> None:
+    def test_handle_async_deletion_called(self, mock_delete_replica: mock.MagicMock) -> None:
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
         token_id = token.id
@@ -281,9 +265,7 @@ class ApiTokenTest(TestCase):
         updated_expires_at = timezone.now() + timedelta(days=30)
 
         with self.tasks():
-            token = ApiToken.objects.create(
-                user_id=user.id, expires_at=initial_expires_at
-            )
+            token = ApiToken.objects.create(user_id=user.id, expires_at=initial_expires_at)
 
         with assume_test_silo_mode(SiloMode.REGION):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
@@ -309,9 +291,7 @@ class ApiTokenTest(TestCase):
         # simulate having in-flight outboxes when the resharding PR lands.
         #
         # Please never, ever do this in actual production code.
-        original_query.update(
-            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user.id
-        )
+        original_query.update(shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user.id)
 
         assert (
             ControlOutbox.objects.filter(
@@ -377,19 +357,12 @@ class ApiTokenTest(TestCase):
                 assert new_outbox.count() == 2
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token.id).expires_at is not None
-            )
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).expires_at is not None
             assert ApiTokenReplica.objects.get(
                 apitoken_id=token.id
             ).expires_at == expiration_base + timedelta(days=60)
 
-        assert (
-            ControlOutbox.objects.filter(
-                category=OutboxCategory.API_TOKEN_UPDATE
-            ).count()
-            == 0
-        )
+        assert ControlOutbox.objects.filter(category=OutboxCategory.API_TOKEN_UPDATE).count() == 0
 
     def test_get_allowed_origins_no_application(self) -> None:
         """Tokens without an application should return empty list."""
@@ -465,24 +438,18 @@ class ApiTokenInternalIntegrationTest(TestCase):
     def test_multiple_tokens_have_correct_organization_id(self) -> None:
         # First token is no longer created automatically with the application, so we must manually
         # create multiple tokens that aren't directly linked from the SentryAppInstallation model.
-        token_1 = self.create_internal_integration_token(
-            install=self.install, user=self.user
-        )
-        token_2 = self.create_internal_integration_token(
-            install=self.install, user=self.user
-        )
+        token_1 = self.create_internal_integration_token(install=self.install, user=self.user)
+        token_2 = self.create_internal_integration_token(install=self.install, user=self.user)
 
         assert token_1.organization_id == self.org.id
         assert token_2.organization_id == self.org.id
 
         with assume_test_silo_mode(SiloMode.REGION):
             assert (
-                ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id
-                == self.org.id
+                ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id == self.org.id
             )
             assert (
-                ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id
-                == self.org.id
+                ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id == self.org.id
             )
 
         with outbox_runner():
@@ -490,19 +457,11 @@ class ApiTokenInternalIntegrationTest(TestCase):
                 install_token.delete()
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id
-                is None
-            )
-            assert (
-                ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id
-                is None
-            )
+            assert ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id is None
+            assert ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id is None
 
     @override_options({"api-token-async-flush": True})
-    @mock.patch(
-        "sentry.hybridcloud.tasks.deliver_from_outbox.drain_outbox_shards_control.delay"
-    )
+    @mock.patch("sentry.hybridcloud.tasks.deliver_from_outbox.drain_outbox_shards_control.delay")
     def test_async_replication_schedules_drain_task(self, mock_drain_task) -> None:
         user = self.create_user()
 

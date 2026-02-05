@@ -23,10 +23,7 @@ from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.hybridcloud.outbox.base import (
-    ControlOutboxProducingManager,
-    ReplicatedControlModel,
-)
+from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplicationStatus
@@ -93,9 +90,7 @@ def validate_pkce_challenge(
     # RFC 7636 §4.6: BASE64URL(SHA256(ASCII(code_verifier)))
     verifier_hash = hashlib.sha256(code_verifier.encode("ascii")).digest()
     # Base64url encoding without padding
-    computed_challenge = (
-        base64.urlsafe_b64encode(verifier_hash).decode("ascii").rstrip("=")
-    )
+    computed_challenge = base64.urlsafe_b64encode(verifier_hash).decode("ascii").rstrip("=")
 
     # Use constant-time comparison to prevent timing attacks (RFC 7636 security considerations)
     if not constant_time_compare(computed_challenge, code_challenge):
@@ -150,9 +145,7 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 
         if token_type == AuthTokenType.USER:
             plaintext_token = generate_token(token_type=AuthTokenType.USER)
-            plaintext_refresh_token = (
-                None  # user auth tokens do not have refresh tokens
-            )
+            plaintext_refresh_token = None  # user auth tokens do not have refresh tokens
         else:
             # to maintain compatibility with current
             # code that currently calls create with token= specified
@@ -203,13 +196,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=71, unique=True, default=generate_token)
     hashed_token = models.CharField(max_length=128, unique=True, null=True)
-    token_type = models.CharField(
-        max_length=7, choices=AuthTokenType.choices(), null=True
-    )
+    token_type = models.CharField(max_length=7, choices=AuthTokenType.choices(), null=True)
     token_last_characters = models.CharField(max_length=4, null=True)
-    refresh_token = models.CharField(
-        max_length=71, unique=True, null=True, default=generate_token
-    )
+    refresh_token = models.CharField(max_length=71, unique=True, null=True, default=generate_token)
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
@@ -305,9 +294,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
 
         if self.refresh_token:
-            self.hashed_refresh_token = hashlib.sha256(
-                self.refresh_token.encode()
-            ).hexdigest()
+            self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
         else:
             # The backup tests create a token with a refresh_token and then clear it out.
             # So if the refresh_token is None, wipe out any hashed value that may exist too.
@@ -323,9 +310,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         # if the token or refresh_token was updated, we need to
         # re-calculate the hashed values
         if "token" in kwargs:
-            kwargs["hashed_token"] = hashlib.sha256(
-                kwargs["token"].encode()
-            ).hexdigest()
+            kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
 
         if "refresh_token" in kwargs:
             kwargs["hashed_refresh_token"] = hashlib.sha256(
@@ -405,9 +390,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 # Re-fetch grant inside lock to prevent TOCTOU race condition
                 # Another request may have already deleted the grant before we acquired the lock
                 try:
-                    grant = ApiGrant.objects.select_related("application").get(
-                        id=grant.id
-                    )
+                    grant = ApiGrant.objects.select_related("application").get(id=grant.id)
                 except ApiGrant.DoesNotExist:
                     raise InvalidGrantError("grant no longer exists")
 
@@ -502,9 +485,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         new_token = generate_token(token_type=self.token_type)
         new_refresh_token = generate_token(token_type=self.token_type)
 
-        self.update(
-            token=new_token, refresh_token=new_refresh_token, expires_at=expires_at
-        )
+        self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
 
     def get_relocation_scope(self) -> RelocationScope:
         if self.application_id is not None:
@@ -546,9 +527,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         refresh_token = generate_token()
         hashed_refresh_token = hashlib.sha256(refresh_token.encode()).hexdigest()
 
-        sanitizer.set_string(
-            json, SanitizableField(model_name, "token"), lambda _: token
-        )
+        sanitizer.set_string(json, SanitizableField(model_name, "token"), lambda _: token)
         sanitizer.set_string(
             json,
             SanitizableField(model_name, "token_last_characters"),
@@ -568,9 +547,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @property
     def organization_id(self) -> int | None:
-        from sentry.sentry_apps.models.sentry_app_installation import (
-            SentryAppInstallation,
-        )
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
         from sentry.sentry_apps.models.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
@@ -583,10 +560,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             installation = None
 
         # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
-        if (
-            not installation
-            or installation.sentry_app.status == SentryAppStatus.INTERNAL
-        ):
+        if not installation or installation.sentry_app.status == SentryAppStatus.INTERNAL:
             try:
                 install_token = SentryAppInstallationToken.objects.select_related(
                     "sentry_app_installation"
