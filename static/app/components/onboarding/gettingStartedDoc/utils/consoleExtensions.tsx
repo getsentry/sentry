@@ -63,7 +63,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
         {
           projectSettingsLink: (
             <ExternalLink
-              href={`/settings/projects/${params.project.slug}/playstation/`}
+              href={`/settings/${params.organization.slug}/projects/${params.project.slug}/playstation/`}
             />
           ),
         }
