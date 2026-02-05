@@ -55,7 +55,7 @@ def parse_check_run_event(event: SubscriptionEvent):
 # \______| \______/  \______/  \______/ \________|       \______/  \______/ \__|     \__|\__|     \__|\________|\__|  \__|   \__|
 
 
-class IssueCommentEvent(msgspec.Struct, gc=False):
+class GitHubIssueCommentEvent(msgspec.Struct, gc=False):
     action: str
     comment: "IssueComment"
     issue: "Issue"
@@ -74,7 +74,7 @@ class Issue(msgspec.Struct, gc=False):
 class IssueCommentPullRequest(msgspec.Struct, gc=False): ...
 
 
-issue_comment_decoder = msgspec.json.Decoder(IssueCommentEvent)
+issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 
 
 def parse_issue_comment_event(event: SubscriptionEvent):
@@ -92,7 +92,7 @@ def parse_issue_comment_event(event: SubscriptionEvent):
 #                                                                        \___|
 
 
-class PullRequestEvent(msgspec.Struct, gc=False):
+class GitHubPullRequestEvent(msgspec.Struct, gc=False):
     action: str
     number: int
     pull_request: "PullRequest"
@@ -101,6 +101,7 @@ class PullRequestEvent(msgspec.Struct, gc=False):
 class PullRequest(msgspec.Struct, gc=False):
     body: str | None
     head: "PullRequestHead"
+    base: "PullRequestHead"
     merge_commit_sha: str | None
     merged: bool | None = None
     title: str
@@ -108,14 +109,16 @@ class PullRequest(msgspec.Struct, gc=False):
 
 
 class PullRequestHead(msgspec.Struct, gc=False):
+    name: str
     repo: "PullRequestHeadRepo"
+    sha: str
 
 
 class PullRequestHeadRepo(msgspec.Struct, gc=False):
     private: bool
 
 
-pull_request_decoder = msgspec.json.Decoder(PullRequestEvent)
+pull_request_decoder = msgspec.json.Decoder(GitHubPullRequestEvent)
 
 
 def parse_pull_request_event(event: SubscriptionEvent):

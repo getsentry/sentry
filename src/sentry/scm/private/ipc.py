@@ -9,6 +9,7 @@ Exposing the msgspec type is not preferred. It is an internal implementation det
 optimization and a convenient, typed deserialization library.
 """
 
+import time
 from collections.abc import Callable
 
 import msgspec
@@ -172,6 +173,8 @@ def run_webhook_handler(
     *,
     get_handler: Callable[[str], Callable[[SubscriptionEvent], None]],
     report_exception: Callable[[Exception], None],
+    record_metric: Callable[[str, int, dict[str, str]], None],
+    get_current_time: Callable[[], float] = time.time,
 ):
     event = deserialize_event(event_bytes, report_exception=report_exception)
     if event:
