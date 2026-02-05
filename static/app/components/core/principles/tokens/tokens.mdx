@@ -15,7 +15,7 @@ import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
@@ -237,11 +237,20 @@ export function FontSize() {
     <Storybook.TokenReference
       scale="font.size"
       tokens={theme.font.size}
-      renderToken={({token}) => (
-        <Text size={token} variant="accent">
-          Aa
-        </Text>
-      )}
+      renderToken={({token}) => {
+        if (['3xl', '4xl'].includes(token)) {
+          return (
+            <Heading size={token} variant="accent">
+              Aa
+            </Heading>
+          );
+        }
+        return (
+          <Text size={token} variant="accent">
+            Aa
+          </Text>
+        );
+      }}
     />
   );
 }

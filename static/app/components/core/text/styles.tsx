@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import type {FontSize} from 'sentry/utils/theme';
+import type {HeadingSize, TextSize} from 'sentry/utils/theme';
 
 import type {HeadingProps} from './heading';
 import type {TextProps} from './text';
@@ -39,7 +39,7 @@ export function getLineHeight(
 }
 
 export function getFontSize(
-  size: FontSize | undefined,
+  size: TextSize | HeadingSize | undefined,
   theme: Theme
 ): string | undefined {
   if (size === undefined) {
