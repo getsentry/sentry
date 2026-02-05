@@ -33,6 +33,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+import {useOpenTraceViewDrawerFromUrl} from 'sentry/views/insights/pages/agents/components/drawer';
 import {IssuesWidget} from 'sentry/views/insights/pages/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
@@ -68,6 +69,7 @@ function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
 
   useOverviewPageTrackPageload();
   useAgentMonitoringTrackPageView();
+  useOpenTraceViewDrawerFromUrl();
 
   // Fire a request to check if there are any agent runs
   // If there are, we show the count/duration of agent runs
