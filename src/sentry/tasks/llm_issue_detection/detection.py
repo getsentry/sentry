@@ -90,6 +90,9 @@ class DetectedIssue(BaseModel):
     # context fields, not LLM generated
     trace_id: str
     transaction_name: str
+    # Langfuse trace ID/URL for linking Seer reasoning to the issue in Sentry
+    langfuse_id: str | None = None
+    langfuse_url: str | None = None
 
 
 class IssueDetectionRequest(BaseModel):
@@ -146,6 +149,8 @@ def create_issue_occurrence_from_detection(
         "evidence": detected_issue.evidence,
         "missing_telemetry": detected_issue.missing_telemetry,
         "offender_span_ids": detected_issue.offender_span_ids,
+        "langfuse_id": detected_issue.langfuse_id,
+        "langfuse_url": detected_issue.langfuse_url,
     }
 
     evidence_display = [
