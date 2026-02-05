@@ -123,7 +123,7 @@ export function ConfigureRootCauseAnalysisStep() {
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
           owner,
-          provider: repo.provider?.id,
+          provider: repo.provider?.name?.toLowerCase(),
           name,
         });
       }
