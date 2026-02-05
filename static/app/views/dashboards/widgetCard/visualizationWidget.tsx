@@ -278,7 +278,7 @@ function VisualizationWidgetContent({
           />
         </Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
-          <Container flex={1} width="100%" overflowY="auto">
+          <Container flex={1} width="100%">
             {footerTable}
           </Container>
         </Flex>
