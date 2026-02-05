@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import dompurify from 'dompurify';
@@ -123,22 +123,30 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
-  // Step 1: If total label length exceeds threshold, trim common affixes
-  const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
-  const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
+  const {commonPrefix, commonSuffix, shouldTruncate, shouldRotate} = useMemo(() => {
+    // Step 1: If total label length exceeds threshold, trim common affixes
+    const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
+    const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
 
-  const commonPrefix = shouldTrimAffixes ? computeCommonPrefix(allCategories) : '';
-  const commonSuffix = shouldTrimAffixes ? computeCommonSuffix(allCategories) : '';
+    const prefix = shouldTrimAffixes ? computeCommonPrefix(allCategories) : '';
+    const suffix = shouldTrimAffixes ? computeCommonSuffix(allCategories) : '';
 
-  // Step 2: After affix trimming, check if labels are still too long and need end truncation
-  const trimmedLengths = allCategories.reduce(
-    (sum, c) => sum + trimCommonAffixes(c, commonPrefix, commonSuffix).length,
-    0
-  );
-  const shouldTruncate = trimmedLengths > TOTAL_CHARACTER_THRESHOLD;
+    // Step 2: After affix trimming, check if labels are still too long and need end truncation
+    const trimmedLengths = allCategories.reduce(
+      (sum, c) => sum + trimCommonAffixes(c, prefix, suffix).length,
+      0
+    );
 
-  // Step 3: Rotate when there are many categories
-  const shouldRotate = allCategories.length > 10;
+    return {
+      commonPrefix: prefix,
+      commonSuffix: suffix,
+      // Step 2 result
+      shouldTruncate: trimmedLengths > TOTAL_CHARACTER_THRESHOLD,
+      // Step 3: Rotate when there are many categories
+      shouldRotate: allCategories.length > 10,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCategories.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
