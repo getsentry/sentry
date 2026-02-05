@@ -46,6 +46,7 @@ class DatabaseBackedActionService(ActionService):
                 dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
         installation_uuid_actions = Action.objects.filter(
+            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
             config__target_identifier=sentry_app_install_uuid,
             type=Action.Type.SENTRY_APP,
             dataconditiongroupaction__condition_group__organization_id=organization_id,
