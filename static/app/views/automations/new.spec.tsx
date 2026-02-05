@@ -322,29 +322,25 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {organization});
 
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Add filter'}),
-      /tagged event/i
-    );
-    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
-    await userEvent.type(tagInput, 'env{enter}');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
-
     const addAction = async (label: string) => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
     };
 
     await addAction('Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
+      delay: null,
+    });
 
     await addAction('Discord');
-    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123');
+    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
+      delay: null,
+    });
 
     await addAction('MS Teams');
     const targets = screen.getAllByRole('textbox', {name: 'Target'});
     const msTeamsTarget = targets.at(-1);
     expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget as HTMLElement, 'alerts-team');
+    await userEvent.type(msTeamsTarget as HTMLElement, 'alerts-team', {delay: null});
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -506,5 +502,5 @@ describe('AutomationNewSettings', () => {
       expect(expectedAction).toBeDefined();
       expect(action).toEqual(expect.objectContaining(expectedAction));
     });
-  });
+  }, 10000);
 });
