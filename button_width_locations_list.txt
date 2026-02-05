@@ -1,0 +1,18 @@
+# Locations of styled(Button) and styled(LinkButton) with width-expanding rules
+# Excludes rules using fixed units like 100px, 200px, etc.
+# Format: file:line:column
+
+static/app/components/core/disclosure/disclosure.tsx:113:1
+static/app/components/events/autofix/v2/autofixSidebarCtaButton.tsx:147:1
+static/app/components/group/tagFacets/tagFacetsDistributionMeter.tsx:397:1
+static/app/components/onboarding/gettingStartedDoc/step.tsx:102:1
+static/app/stories/view/storyFooter.tsx:82:1
+static/app/views/dashboards/globalFilter/numericFilterSelector.tsx:390:1
+static/app/views/dashboards/manage/templateCard.tsx:83:1
+static/app/views/discover/savedQuery/index.tsx:733:1
+static/app/views/explore/toolbar/toolbarSaveAs.tsx:356:1
+static/app/views/issueDetails/streamline/sidebar/seerSectionCtaButton.tsx:247:1
+static/app/views/onboarding/welcome.tsx:178:1
+static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx:141:1
+static/gsApp/views/amCheckout/components/cart.tsx:1004:1
+static/gsApp/views/seerAutomation/components/projectDetails/autofixRepositoriesItem.tsx:225:1
