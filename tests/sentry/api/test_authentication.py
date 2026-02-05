@@ -450,11 +450,11 @@ def test_registered_relay(internal) -> None:
         authenticator.authenticate(request)
 
     # now the request should contain a relay
-    relay = request.relay
+    relay = request.relay  # type: ignore[attr-defined]
     assert relay.is_internal == internal
     assert relay.public_key == str(pk)
     # data should be deserialized in request.relay_request_data
-    assert request.relay_request_data == data
+    assert request.relay_request_data == data  # type: ignore[attr-defined]
 
 
 @django_db_all
@@ -479,11 +479,11 @@ def test_statically_configured_relay(settings, internal) -> None:
     authenticator.authenticate(request)
 
     # now the request should contain a relay
-    relay = request.relay
+    relay = request.relay  # type: ignore[attr-defined]
     assert relay.is_internal == internal
     assert relay.public_key == str(pk)
     # data should be deserialized in request.relay_request_data
-    assert request.relay_request_data == data
+    assert request.relay_request_data == data  # type: ignore[attr-defined]
 
 
 @control_silo_test

@@ -20,8 +20,8 @@ class RelayPublicKeysEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
 
     def post(self, request: Request) -> Response:
-        calling_relay = request.relay
-        relay_ids = request.relay_request_data.get("relay_ids") or ()
+        calling_relay = request.relay  # type: ignore[attr-defined]
+        relay_ids = request.relay_request_data.get("relay_ids") or ()  # type: ignore[attr-defined]
 
         legacy_public_keys = dict.fromkeys(relay_ids)
         public_keys = dict.fromkeys(relay_ids)

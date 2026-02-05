@@ -1021,7 +1021,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            snuba_params = self.get_snuba_params(self.request, self.request.organization)
+            snuba_params = self.get_snuba_params(self.request, self.request.organization)  # type: ignore[attr-defined]
             if current_generation is None:
                 for root in roots:
                     # We might not be necessarily connected to the root if we're on an orphan event
@@ -1173,7 +1173,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        snuba_params = self.get_snuba_params(self.request, self.request.organization)
+        snuba_params = self.get_snuba_params(self.request, self.request.organization)  # type: ignore[attr-defined]
         # The root of the orphan tree we're currently navigating through
         orphan_root: SnubaTransaction | None = None
         if roots:

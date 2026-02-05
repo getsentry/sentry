@@ -71,7 +71,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def post(
         self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
     ) -> Response:
-        if not request.user_from_signed_request:
+        if not request.user_from_signed_request:  # type: ignore[attr-defined]
             raise NotFound()
         instance = self.fetch_instance(request, organization_id_or_slug, id)
 
