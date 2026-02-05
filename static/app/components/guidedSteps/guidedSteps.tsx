@@ -270,7 +270,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
       ? p.theme.tokens.graphics.accent.vibrant
       : p.theme.tokens.graphics.neutral.moderate};
   color: ${p => p.theme.colors.white};
-  border: 4px solid ${p => p.theme.tokens.background.primary};
+  border: 4px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const StepHeading = styled('h4')<{isActive: boolean}>`

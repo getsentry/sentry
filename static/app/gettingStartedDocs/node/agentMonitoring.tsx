@@ -9,11 +9,14 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+
+export const MIN_REQUIRED_VERSION = '10.28.0';
 
 export function getAgentIntegration(params: DocsParams): AgentIntegration {
   return (params.platformOptions?.integration ??
@@ -199,7 +202,7 @@ export function getInstallStep(
   params: DocsParams,
   {
     packageName = '@sentry/node',
-    minVersion = '10.28.0',
+    minVersion = MIN_REQUIRED_VERSION,
   }: {
     minVersion?: string;
     packageName?: `@sentry/${string}`;
@@ -466,13 +469,19 @@ const text = lastMessage.content;`,
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
+  minVersion = MIN_REQUIRED_VERSION,
 }: {
   configFileName?: string;
+  minVersion?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
+  introduction: params => (
+    <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+  ),
   install: params =>
     getInstallStep(params, {
       packageName,
+      minVersion,
     }),
   configure: params => {
     const selected = getAgentIntegration(params);

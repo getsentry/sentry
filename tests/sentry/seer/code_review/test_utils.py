@@ -20,10 +20,12 @@ from sentry.seer.code_review.utils import (
     _get_trigger_metadata_for_pull_request,
     convert_enum_keys_to_strings,
     extract_github_info,
+    is_org_enabled_for_code_review_experiments,
     transform_webhook_to_codegen_request,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
 from sentry.utils import json
 
@@ -413,6 +415,100 @@ class TestTransformWebhookToCodegenRequest:
         # This would fail if trigger_at is a datetime object instead of string
         json.dumps(result)  # Should not raise TypeError
 
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_pr_closed_does_not_include_experiment_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "closed",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert "experiment_enabled" not in result["data"]
+
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_issue_comment_includes_experiment_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "issue": {"number": 42},
+            "comment": {
+                "id": 12345,
+                "user": {"login": "commenter", "id": 99999},
+            },
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.ISSUE_COMMENT,
+            "created",
+            event_payload,
+            organization,
+            repo,
+            "def456sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is True
+
+    @with_feature("organizations:code-review-experiments-enabled")
+    def test_pr_review_includes_experiment_enabled_when_feature_enabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is True
+
+    def test_pr_review_includes_experiment_enabled_false_when_feature_disabled(
+        self,
+        setup_entities: tuple[User, Organization, Project, Repository],
+    ) -> None:
+        _, organization, _, repo = setup_entities
+
+        event_payload = {
+            "pull_request": {"number": 42},
+            "sender": {"login": "test-user"},
+        }
+        result = transform_webhook_to_codegen_request(
+            GithubWebhookType.PULL_REQUEST,
+            "opened",
+            event_payload,
+            organization,
+            repo,
+            "abc123sha",
+        )
+
+        assert result is not None
+        assert result["data"]["experiment_enabled"] is False
+
 
 class TestExtractGithubInfo:
     def test_extract_from_pull_request_event(self) -> None:
@@ -686,3 +782,15 @@ class TestConvertEnumKeysToStrings:
 
         assert result == {"bug_prediction": True}
         assert isinstance(list(result.keys())[0], str)
+
+
+class CodeReviewExperimentAssignmentTest(TestCase):
+
+    def test_enabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        with self.feature("organizations:code-review-experiments-enabled"):
+            assert is_org_enabled_for_code_review_experiments(org)
+
+    def test_disabled(self) -> None:
+        org = self.create_organization(slug="test-org")
+        assert not is_org_enabled_for_code_review_experiments(org)

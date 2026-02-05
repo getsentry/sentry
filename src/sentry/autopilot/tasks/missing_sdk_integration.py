@@ -1,29 +1,16 @@
 import logging
-import uuid
-from datetime import timedelta
 from enum import StrEnum
-from itertools import chain, groupby
-from typing import Any
 
-from django.db.models import Q
-from django.utils import timezone
-from packaging import version
 from pydantic import BaseModel
 
 from sentry import options
-from sentry.api.utils import handle_query_errors
-from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
+from sentry.autopilot.tasks.common import AutopilotDetectorName, create_instrumentation_issue
 from sentry.constants import INTEGRATION_ID_TO_PLATFORM_DATA, ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sdk_updates import get_sdk_versions
-from sentry.search.events.types import SnubaParams
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerPermissionError
-from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import autopilot_tasks
 from sentry.utils import metrics
@@ -37,85 +24,10 @@ class SupportedPlatformPrefix(StrEnum):
     PYTHON = "python"
 
 
-class AutopilotDetectorName(StrEnum):
-    SDK_UPDATE = "sdk-update"
-    MISSING_SDK_INTEGRATION = "missing-sdk-integration"
-
-
 class MissingSdkIntegrationFinishReason(StrEnum):
     SUCCESS = "success"
     MISSING_SENTRY_INIT = "missing_sentry_init"
     MISSING_DEPENDENCY_FILE = "missing_dependency_file"
-
-
-def create_instrumentation_issue(
-    project_id: int,
-    detector_name: str,
-    title: str,
-    subtitle: str,
-    description: str | None = None,
-    repository_name: str | None = None,
-) -> None:
-    detection_time = timezone.now()
-    event_id = uuid.uuid4().hex
-
-    # Fetch the project to get its platform
-    project = Project.objects.get_from_cache(id=project_id)
-
-    evidence_data: dict[str, Any] = {}
-    evidence_display: list[IssueEvidence] = []
-
-    if description:
-        evidence_data["description"] = description
-        evidence_display.append(
-            IssueEvidence(name="Description", value=description, important=True)
-        )
-
-    if repository_name:
-        evidence_data["repository_name"] = repository_name
-        evidence_display.append(
-            IssueEvidence(name="Repository", value=repository_name, important=False)
-        )
-
-    occurrence = IssueOccurrence(
-        id=uuid.uuid4().hex,
-        project_id=project_id,
-        event_id=event_id,
-        fingerprint=[f"{detector_name}:{title}"],
-        issue_title=title,
-        subtitle=subtitle,
-        resource_id=None,
-        evidence_data=evidence_data,
-        evidence_display=evidence_display,
-        type=InstrumentationIssueExperimentalGroupType,
-        detection_time=detection_time,
-        culprit=detector_name,
-        level="info",
-    )
-
-    event_data: dict[str, Any] = {
-        "event_id": occurrence.event_id,
-        "project_id": occurrence.project_id,
-        "platform": project.platform or "other",
-        "received": detection_time.isoformat(),
-        "timestamp": detection_time.isoformat(),
-        "tags": {},
-    }
-
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE,
-        occurrence=occurrence,
-        event_data=event_data,
-    )
-
-    logger.warning(
-        "autopilot.instrumentation_issue.created",
-        extra={
-            "project_id": project_id,
-            "detector_name": detector_name,
-            "title": title,
-        },
-    )
 
 
 class MissingSdkIntegrationsResult(BaseModel):
@@ -126,177 +38,57 @@ class MissingSdkIntegrationsResult(BaseModel):
 
 
 @instrumented_task(
-    name="sentry.autopilot.tasks.run_sdk_update_detector",
-    namespace=autopilot_tasks,
-    processing_deadline_duration=60,
-)
-def run_sdk_update_detector() -> None:
-    organization_allowlist = options.get("autopilot.organization-allowlist")
-    if not organization_allowlist:
-        return
-
-    organizations = Organization.objects.filter(slug__in=organization_allowlist).all()
-
-    for organization in organizations:
-        run_sdk_update_detector_for_organization(organization)
-
-
-def strip_patch_version(sdk_version: str) -> str:
-    return ".".join(sdk_version.split(".")[:2])
-
-
-def run_sdk_update_detector_for_organization(organization: Organization):
-    projects = Project.objects.filter(organization=organization).all()
-
-    if len(projects) == 0:
-        return
-
-    metrics.incr("autopilot.sdk_update_detector.projects_found", len(projects))
-
-    with handle_query_errors():
-        result: Any = discover.query(
-            query="has:sdk.version",
-            selected_columns=[
-                "project.id",
-                "sdk.name",
-                "sdk.version",
-                "count()",
-            ],
-            orderby=["project.id", "sdk.name", "sdk.version"],
-            limit=1000,
-            snuba_params=SnubaParams(
-                start=timezone.now() - timedelta(hours=1),
-                end=timezone.now(),
-                organization=organization,
-                projects=list(projects),
-            ),
-            referrer="autopilot.sdk-update-detector",
-        )
-
-    # Filter out SDKs with empty sdk.name or sdk.version or invalid version
-    nonempty_sdks = []
-    for sdk in result["data"]:
-        if not sdk["sdk.name"] or not sdk["sdk.version"]:
-            continue
-
-        try:
-            version.parse(sdk["sdk.version"])
-        except version.InvalidVersion:
-            continue
-
-        nonempty_sdks.append(sdk)
-
-    # Sort by project.id to ensure groupby works correctly (groups consecutive elements)
-    nonempty_sdks.sort(key=lambda x: x["project.id"])
-
-    # Build datastructure of the latest version of each SDK in use for each
-    # project we have events for.
-    latest_sdks = list(
-        chain.from_iterable(
-            [
-                {
-                    "projectId": str(project_id),
-                    "sdkName": sdk_name,
-                    "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
-                }
-                for sdk_name, sdks in groupby(
-                    sorted(sdks_used, key=lambda x: x["sdk.name"]), key=lambda x: x["sdk.name"]
-                )
-            ]
-            for project_id, sdks_used in groupby(nonempty_sdks, key=lambda x: x["project.id"])
-        )
-    )
-
-    # Determine if each SDK needs an update for each project
-    sdk_versions = get_sdk_versions()
-
-    def needs_update(sdk_name, sdk_version):
-        if sdk_name not in sdk_versions:
-            # Unknown SDK, we can't determine if it needs an update
-            return False
-
-        # Ignore patch versions
-        try:
-            return version.Version(strip_patch_version(sdk_version)) < version.Version(
-                strip_patch_version(sdk_versions.get(sdk_name))
-            )
-        except version.InvalidVersion:
-            return False
-
-    updates_list = [
-        dict(
-            **latest,
-            newestSdkVersion=sdk_versions.get(latest["sdkName"]),
-            needsUpdate=needs_update(latest["sdkName"], latest["sdkVersion"]),
-        )
-        for latest in latest_sdks
-    ]
-
-    updates_list = [update for update in updates_list if update["needsUpdate"]]
-
-    logger.warning("updates_list: %s", updates_list)
-    metrics.incr("autopilot.sdk_update_detector.updates_found", len(updates_list))
-
-    for update in updates_list:
-        project_id = int(update["projectId"])
-        sdk_name = update["sdkName"]
-        current_version = update["sdkVersion"]
-        newest_version = update["newestSdkVersion"]
-
-        create_instrumentation_issue(
-            project_id=project_id,
-            detector_name=AutopilotDetectorName.SDK_UPDATE,
-            title=f"SDK Update Available: {sdk_name}",
-            subtitle=f"Update from {current_version} to {newest_version}",
-            description=f"A newer version of {sdk_name} is available. "
-            f"Consider updating from version {current_version} to {newest_version} "
-            f"to gain access to bug fixes, performance improvements, and new features.",
-        )
-
-    return updates_list
-
-
-@instrumented_task(
     name="sentry.autopilot.tasks.run_missing_sdk_integration_detector",
     namespace=autopilot_tasks,
     processing_deadline_duration=300,
 )
 def run_missing_sdk_integration_detector() -> None:
-    organization_allowlist = options.get("autopilot.organization-allowlist")
-    if not organization_allowlist:
+    project_ids = options.get("autopilot.missing-sdk-integration.projects-allowlist")
+    if not project_ids:
         return
 
-    organizations = Organization.objects.filter(slug__in=organization_allowlist).all()
+    for project_id in project_ids:
+        try:
+            project = Project.objects.select_related("organization").get(id=project_id)
+        except Project.DoesNotExist:
+            logger.warning(
+                "missing_sdk_integration_detector.project_not_found",
+                extra={"project_id": project_id},
+            )
+            continue
 
-    for organization in organizations:
-        run_missing_sdk_integration_detector_for_organization(organization)
-
-
-def run_missing_sdk_integration_detector_for_organization(organization: Organization) -> None:
-    platform_filter = Q()
-    for prefix in SupportedPlatformPrefix:
-        platform_filter |= Q(project__platform__startswith=prefix)
-
-    repo_configs = (
-        RepositoryProjectPathConfig.objects.filter(
-            platform_filter,
-            project__organization=organization,
-            repository__status=ObjectStatus.ACTIVE,
+        # Check platform support
+        platform_supported = any(
+            project.platform and project.platform.startswith(prefix)
+            for prefix in SupportedPlatformPrefix
         )
-        .select_related("repository")
-        .values("project_id", "repository__name", "source_root")
-    )
+        if not platform_supported:
+            logger.info(
+                "missing_sdk_integration_detector.unsupported_platform",
+                extra={"project_id": project_id, "platform": project.platform},
+            )
+            continue
 
-    for config in repo_configs:
-        run_missing_sdk_integration_detector_for_project_task.apply_async(
-            args=(
-                organization.id,
-                config["project_id"],
-                config["repository__name"],
-                config["source_root"],
-            ),
-            headers={"sentry-propagate-traces": False},
+        # Get repo configs for this project
+        repo_configs = (
+            RepositoryProjectPathConfig.objects.filter(
+                project=project,
+                repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("repository")
+            .values("repository__name", "source_root")
         )
+
+        for config in repo_configs:
+            run_missing_sdk_integration_detector_for_project_task.apply_async(
+                args=(
+                    project.organization_id,
+                    project.id,
+                    config["repository__name"],
+                    config["source_root"],
+                ),
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
@@ -313,6 +105,22 @@ def run_missing_sdk_integration_detector_for_project_task(
     Returns:
         List of missing integration names, or None if detection failed.
     """
+    metrics.incr(
+        "autopilot.missing_sdk_integration_detector.run",
+        tags={"project_id": str(project_id)},
+        sample_rate=1.0,
+    )
+
+    logger.info(
+        "missing_sdk_integration_detector.run_started",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project_id,
+            "repo_name": repo_name,
+            "source_root": source_root,
+        },
+    )
+
     try:
         organization = Organization.objects.get(id=organization_id)
         project = Project.objects.get(id=project_id)
@@ -348,7 +156,7 @@ def run_missing_sdk_integration_detector_for_project_task(
 
     # Get docs URL from platform data
     platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(project.platform or "", {})
-    docs_url = platform_data.get("link", None)
+    docs_url = platform_data.get("link")
     if project.platform and project.platform.startswith(SupportedPlatformPrefix.PYTHON):
         integration_docs_url = "https://docs.sentry.io/platforms/python/integrations/"
     elif docs_url:
@@ -464,6 +272,24 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         # Only create issues if the detection was successful
         if finish_reason == MissingSdkIntegrationFinishReason.SUCCESS:
             for integration in missing_integrations:
+                logger.info(
+                    "missing_sdk_integration_detector.issue_would_be_created",
+                    extra={
+                        "project_id": project.id,
+                        "project_slug": project.slug,
+                        "integration": integration,
+                        "title": f"Missing SDK Integration: {integration}",
+                        "subtitle": "Get better insights by enabling this integration",
+                        "description": f"The {integration} SDK integration is available...",
+                        "repository_name": repo_name,
+                        "integration_docs_url": integration_docs_url,
+                    },
+                )
+                metrics.incr(
+                    "autopilot.missing_sdk_integration_detector.issue_created",
+                    tags={"project_id": str(project.id), "integration": integration},
+                    sample_rate=1.0,
+                )
                 create_instrumentation_issue(
                     project_id=project.id,
                     detector_name=AutopilotDetectorName.MISSING_SDK_INTEGRATION,
@@ -479,6 +305,11 @@ Example no init: `{{"missing_integrations": [], "finish_reason": "{MissingSdkInt
         return missing_integrations
 
     except Exception as e:
+        metrics.incr(
+            "autopilot.missing_sdk_integration_detector.error",
+            tags={"project_id": str(project.id), "error_type": type(e).__name__},
+            sample_rate=1.0,
+        )
         logger.exception(
             "autopilot.missing_sdk_integration_detector.error",
             extra={

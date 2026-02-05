@@ -1,4 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   TourAction,
@@ -38,38 +38,6 @@ describe('Tour Components', () => {
         </TourContextProvider>
       );
       expect(screen.getByText('Child Content')).toBeInTheDocument();
-    });
-
-    it('does render blur based on omitBlur', () => {
-      mockUseTourReducer.mockReturnValue({
-        ...emptyTourContext,
-        isRegistered: true,
-        currentStepId: TestTour.NAME,
-      });
-      const {container: blurContainer} = render(
-        <TourContextProvider<TestTour>
-          isCompleted={false}
-          orderedStepIds={ORDERED_TEST_TOUR}
-          TourContext={TestTourContext}
-        >
-          <div>Child Content</div>
-        </TourContextProvider>
-      );
-      expect(within(blurContainer).getByTestId('tour-blur-window')).toBeInTheDocument();
-
-      const {container: noBlurContainer} = render(
-        <TourContextProvider<TestTour>
-          isCompleted={false}
-          orderedStepIds={ORDERED_TEST_TOUR}
-          TourContext={TestTourContext}
-          omitBlur
-        >
-          <div>Child Content</div>
-        </TourContextProvider>
-      );
-      expect(
-        within(noBlurContainer).queryByTestId('tour-blur-window')
-      ).not.toBeInTheDocument();
     });
 
     it('just updates the assistant when opened', async () => {
@@ -118,7 +86,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -143,7 +111,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -170,7 +138,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -204,7 +172,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -234,7 +202,7 @@ describe('Tour Components', () => {
             description="Test Description"
             tourContext={TestTourContext}
           >
-            <div>Child Element</div>
+            {props => <div {...props}>Child Element</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -263,7 +231,7 @@ describe('Tour Components', () => {
             title="Name"
             description="The name"
           >
-            Name
+            {props => <div {...props}>Name</div>}
           </TourElement>
           <TourElement<TestTour>
             tourContext={TestTourContext}
@@ -271,7 +239,7 @@ describe('Tour Components', () => {
             title="Email"
             description="The email"
           >
-            Email
+            {props => <div {...props}>Email</div>}
           </TourElement>
           <TourElement<TestTour>
             tourContext={TestTourContext}
@@ -279,7 +247,7 @@ describe('Tour Components', () => {
             title="Password"
             description="The password"
           >
-            Password
+            {props => <div {...props}>Password</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -314,7 +282,7 @@ describe('Tour Components', () => {
             title="Name"
             description="The name"
           >
-            Name
+            {props => <div {...props}>Name</div>}
           </TourElement>
         </TourContextProvider>
       );
@@ -343,7 +311,7 @@ describe('Tour Components', () => {
           stepTotal={100}
           id="test-id"
         >
-          <div>Child Element</div>
+          {props => <div {...props}>Child Element</div>}
         </TourGuide>
       );
 
@@ -368,7 +336,7 @@ describe('Tour Components', () => {
           stepTotal={100}
           id="test-id"
         >
-          <div>Child Element</div>
+          {props => <div {...props}>Child Element</div>}
         </TourGuide>
       );
 

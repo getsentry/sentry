@@ -11,7 +11,8 @@ import type FormModel from 'sentry/components/forms/model';
 import type {InputFieldProps} from './inputField';
 
 export interface TextareaFieldProps
-  extends Omit<InputFieldProps, 'field'>,
+  extends
+    Omit<InputFieldProps, 'field'>,
     Pick<TextAreaProps, 'monospace' | 'autosize' | 'rows' | 'maxRows'> {}
 
 function TextareaField({

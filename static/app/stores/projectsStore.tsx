@@ -24,8 +24,7 @@ type InternalDefinition = {
 };
 
 interface ProjectsStoreDefinition
-  extends InternalDefinition,
-    StrictStoreDefinition<State> {
+  extends InternalDefinition, StrictStoreDefinition<State> {
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
   isLoading(): boolean;

@@ -17,21 +17,18 @@ interface BaseAggregateFlamegraphQueryParameters {
   projects?: PageFilters['projects'];
 }
 
-interface FunctionsAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface FunctionsAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   query: string;
   dataSource?: 'functions';
   fingerprint?: string;
 }
 
-interface TransactionsAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface TransactionsAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   query: string;
   dataSource?: 'transactions';
 }
 
-interface ProfilesAggregateFlamegraphQueryParameters
-  extends BaseAggregateFlamegraphQueryParameters {
+interface ProfilesAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
   // query is not supported when querying from profiles
   dataSource: 'profiles';
 }

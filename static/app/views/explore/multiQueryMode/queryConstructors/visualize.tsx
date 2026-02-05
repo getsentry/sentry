@@ -32,12 +32,14 @@ type Props = {
 export function VisualizeSection({query, index}: Props) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const parsedFunction = findFirstFunction(query.yAxes);
 
   const options: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
