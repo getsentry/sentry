@@ -82,8 +82,10 @@ def _get_test_tier(item: Item) -> str:
                 return "tier2"
 
     # Check class inheritance
-    if item.cls is not None:
-        for cls in item.cls.__mro__:
+    # item.cls is available on Function items (test methods/functions)
+    item_cls = getattr(item, "cls", None)
+    if item_cls is not None:
+        for cls in item_cls.__mro__:
             if cls.__name__ in SNUBA_BASE_CLASSES:
                 return "tier2"
 
