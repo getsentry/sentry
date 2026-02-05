@@ -13,7 +13,7 @@ from sentry.search.eap.validator import literal_validator
 
 VALID_METRIC_UNITS = [
     "",
-    "-",
+    "-",  # Explicit null unit indicating the unit should be ignored
     *constants.DURATION_TYPE,
     *constants.SIZE_TYPE,
 ]

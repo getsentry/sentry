@@ -194,6 +194,45 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
+                "yAxis": "count(value,request_duration,distribution,millisecond)",
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+
+        assert timeseries["yAxis"] == "count(value,request_duration,distribution,millisecond)"
+
+        # The valueType should be "integer" since count aggregates return integer
+        assert timeseries["meta"]["valueType"] == "integer"
+        assert timeseries["meta"]["valueUnit"] is None
+
+    def test_timeseries_count_aggregates_return_integer_in_meta(self) -> None:
+        """Test that count aggregates return integer in the timeseries meta."""
+        metric_values = [100, 0, 200, 150, 0, 50]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            if value > 0:
+                trace_metrics.append(
+                    self.create_trace_metric(
+                        "request_duration",
+                        value,
+                        "distribution",
+                        metric_unit="millisecond",
+                        timestamp=self.start + timedelta(hours=hour),
+                    )
+                )
+        self.store_trace_metrics(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
                 "yAxis": "avg(value,request_duration,distribution,millisecond)",
                 "project": self.project.id,
                 "dataset": "tracemetrics",

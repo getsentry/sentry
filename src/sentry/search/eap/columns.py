@@ -420,12 +420,13 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         if (
             trace_metric
             and trace_metric.metric_unit
-            and (
+            and self.internal_function not in [Function.FUNCTION_COUNT, Function.FUNCTION_UNIQ]
+        ):
+            if (
                 trace_metric.metric_unit in constants.DURATION_TYPE
                 or trace_metric.metric_unit in constants.SIZE_TYPE
-            )
-        ):
-            resolved_search_type = cast(constants.SearchType, trace_metric.metric_unit)
+            ):
+                resolved_search_type = cast(constants.SearchType, trace_metric.metric_unit)
 
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
