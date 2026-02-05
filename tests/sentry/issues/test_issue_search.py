@@ -139,15 +139,15 @@ class ParseSearchQueryTest(unittest.TestCase):
         # Test that boolean operators are now supported
         result = parse_search_query("user.email:foo@example.com OR user.email:bar@example.com")
         assert len(result) == 3  # Two filters + one OR operator
-        
+
         result = parse_search_query("user.email:foo@example.com AND user.email:bar@example.com")
         assert len(result) == 3  # Two filters + one AND operator
-    
+
     def test_first_release_with_or_operator(self) -> None:
         # Test that OR operator works with firstRelease
         result = parse_search_query("firstRelease:1.0.0 OR firstRelease:1.0.1")
         assert len(result) == 3  # Two filters + one OR operator
-        
+
         result = parse_search_query("first-release:1.0.0 OR first-release:1.0.1")
         assert len(result) == 3  # Two filters + one OR operator
 

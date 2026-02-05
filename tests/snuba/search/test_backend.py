@@ -2187,7 +2187,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         release_1 = self.create_release(self.project, version="com.example@1.2.0")
         release_2 = self.create_release(self.project, version="com.example@1.2.1")
         release_3 = self.create_release(self.project, version="com.example@1.3.0")
-        
+
         # Create groups for different releases
         group_1 = self.store_event(
             data={
@@ -2200,7 +2200,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         group_2 = self.store_event(
             data={
                 "fingerprint": ["wildcard-group-2"],
@@ -2212,7 +2212,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         group_3 = self.store_event(
             data={
                 "fingerprint": ["wildcard-group-3"],
@@ -2224,15 +2224,15 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         # Test wildcard matching com.example@1.2.*
         results = self.make_query(search_filter_query="first_release:com.example@1.2.*")
         assert set(results) == {group_1, group_2}
-        
+
         # Test wildcard matching all com.example@*
         results = self.make_query(search_filter_query="first_release:com.example@*")
         assert set(results) == {group_1, group_2, group_3}
-        
+
         # Test wildcard matching com.example@1.*.0
         results = self.make_query(search_filter_query="first_release:com.example@1.*.0")
         assert set(results) == {group_1, group_3}
@@ -2242,7 +2242,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         release_1 = self.create_release(self.project, version="app@2.0.0")
         release_2 = self.create_release(self.project, version="app@2.0.1")
         release_3 = self.create_release(self.project, version="app@3.0.0")
-        
+
         # Create groups for different releases in production environment
         group_1 = self.store_event(
             data={
@@ -2255,7 +2255,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         group_2 = self.store_event(
             data={
                 "fingerprint": ["wildcard-env-group-2"],
@@ -2267,7 +2267,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         group_3 = self.store_event(
             data={
                 "fingerprint": ["wildcard-env-group-3"],
@@ -2279,18 +2279,18 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             },
             project_id=self.project.id,
         ).group
-        
+
         # Test wildcard matching app@2.0.* in production environment
         results = self.make_query(
             environments=[self.environments["production"]],
-            search_filter_query="first_release:app@2.0.*"
+            search_filter_query="first_release:app@2.0.*",
         )
         assert set(results) == {group_1, group_2}
-        
+
         # Test wildcard matching all app@* in production environment
         results = self.make_query(
             environments=[self.environments["production"]],
-            search_filter_query="first_release:app@*"
+            search_filter_query="first_release:app@*",
         )
         assert set(results) == {group_1, group_2, group_3}
 
