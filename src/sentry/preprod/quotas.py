@@ -18,9 +18,9 @@ from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
-SIZE_ENABLED_KEY = "sentry:preprod_size_enabled"
+SIZE_ENABLED_KEY = "sentry:preprod_size_enabled_by_customer"
 SIZE_ENABLED_QUERY_KEY = "sentry:preprod_size_enabled_query"
-DISTRIBUTION_ENABLED_KEY = "sentry:preprod_distribution_enabled"
+DISTRIBUTION_ENABLED_KEY = "sentry:preprod_distribution_enabled_by_customer"
 DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 
