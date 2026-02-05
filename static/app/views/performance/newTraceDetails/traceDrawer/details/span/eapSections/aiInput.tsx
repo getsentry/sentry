@@ -50,7 +50,7 @@ function normalizeContent(content: any): any {
 
 function extractTextFromContentParts(parts: any[]): string {
   return parts
-    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
     .map((part: any) => {
       if (FILE_CONTENT_PARTS.includes(part.type)) {
         return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
