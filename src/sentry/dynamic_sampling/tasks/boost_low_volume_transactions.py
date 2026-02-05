@@ -116,6 +116,11 @@ def boost_low_volume_transactions() -> None:
         ):
             # Filter to only orgs in the segments option
             segment_orgs = [org_id for org_id in orgs if org_id in segments_org_ids]
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+                tags={"metric_type": "segment"},
+                amount=len(segment_orgs),
+            )
             if segment_orgs:
                 _process_orgs_for_boost_low_volume_transactions(
                     segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
@@ -129,6 +134,11 @@ def boost_low_volume_transactions() -> None:
     ):
         # Filter out orgs that use segment metrics
         transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+            tags={"metric_type": "transaction"},
+            amount=len(transaction_orgs),
+        )
         if transaction_orgs:
             _process_orgs_for_boost_low_volume_transactions(
                 transaction_orgs,
