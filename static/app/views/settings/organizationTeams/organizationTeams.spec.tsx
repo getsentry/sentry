@@ -368,6 +368,31 @@ describe('OrganizationTeams', () => {
 
       expect(await screen.findByText(/You're a member of all teams/)).toBeInTheDocument();
     });
+
+    it('does not show create team link without permission', async () => {
+      const {organization} = initializeOrg();
+      const team = TeamFixture({isMember: true});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [team],
+      });
+      TeamStore.loadInitialData([team], false, null);
+
+      render(
+        <OrganizationTeams
+          organization={organization}
+          access={new Set([])}
+          features={new Set([])}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
+        />
+      );
+
+      expect(await screen.findByText(/You're a member of all teams/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create another team'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Team Roles', () => {

@@ -24,6 +24,7 @@ import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface OtherTeamsTableProps {
   allTeamsCount: number;
+  canCreateTeams: boolean;
   hasSearch: boolean;
   openMembership: boolean;
   teams: Team[];
@@ -32,6 +33,7 @@ interface OtherTeamsTableProps {
 export function OtherTeamsTable({
   teams,
   openMembership,
+  canCreateTeams,
   hasSearch,
   allTeamsCount,
 }: OtherTeamsTableProps) {
@@ -53,9 +55,11 @@ export function OtherTeamsTable({
       <SimpleTable.Empty>
         <div>
           {t("You're a member of all teams.")}{' '}
-          <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
-            {t('Create another team')}
-          </Button>
+          {canCreateTeams && (
+            <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
+              {t('Create another team')}
+            </Button>
+          )}
         </div>
       </SimpleTable.Empty>
     );
@@ -181,7 +185,7 @@ function TeamAction({
 }: TeamActionProps) {
   if (isLoading) {
     return (
-      <Button size="sm" disabled>
+      <Button size={actionSize} disabled>
         {'\u2026'}
       </Button>
     );

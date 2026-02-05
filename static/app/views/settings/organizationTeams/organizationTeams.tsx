@@ -72,7 +72,6 @@ export default function OrganizationTeams({
     `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
   );
   const [userTeams, otherTeams] = partition(filteredTeams, team => team.isMember);
-  const filteredUserTeams = userTeams.filter(team => team.slug.includes(teamQuery));
 
   return (
     <div data-test-id="team-list">
@@ -90,7 +89,7 @@ export default function OrganizationTeams({
         query={teamQuery}
       />
       <YourTeamsTable
-        teams={filteredUserTeams}
+        teams={userTeams}
         isLoading={!initiallyLoaded}
         canCreateTeams={canCreateTeams}
         hasSearch={teamQuery.length > 0}
@@ -99,6 +98,7 @@ export default function OrganizationTeams({
       <OtherTeamsTable
         teams={otherTeams}
         openMembership={openMembership}
+        canCreateTeams={canCreateTeams}
         hasSearch={teamQuery.length > 0}
         allTeamsCount={teams.length}
       />

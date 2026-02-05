@@ -189,7 +189,7 @@ function YourTeamRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
-          <Button size="sm" disabled>
+          <Button size={isMobile ? 'xs' : 'sm'} disabled>
             {'\u2026'}
           </Button>
         ) : (
