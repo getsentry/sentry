@@ -240,7 +240,7 @@ export function MobileBuildsChart({
 
                 const rows = params
                   .map(param => {
-                    const value = (param.value as number[])[1];
+                    const value = (param.value as number[])[1]!;
                     const marker = typeof param.marker === 'string' ? param.marker : '';
                     return `<div><span class="tooltip-label">${marker}<strong>${param.seriesName}</strong></span> ${formatBytesBase10(value)}</div>`;
                   })
