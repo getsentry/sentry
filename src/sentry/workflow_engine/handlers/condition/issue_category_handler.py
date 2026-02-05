@@ -17,7 +17,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
             "value": {"type": "integer", "enum": [*GroupCategory]},
             "include": {"type": "boolean"},
         },
-        "required": ["value"],  # if type is not present, then default to True
+        "required": ["value"],  # if include is not present, then default to True
         "additionalProperties": False,
     }
 
