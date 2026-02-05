@@ -2,16 +2,20 @@
 
 ## Overview
 
-Detect JavaScript source map configuration issues from processing errors and create trackable issues in the Issues stream. This enables:
-- Proactive notification of misconfigured source maps
+**Problem:** When users have misconfigured source maps, their stack traces show minified code instead of original source. Today, users only discover this when they navigate to an event and notice the problem - our existing tools (processing errors banner, source maps debugger wizard) are **reactive**.
+
+**Solution:** Proactively detect source map configuration issues from processing errors and create trackable issues in the Issues stream. This enables:
+- Proactive notification - users learn about the problem without stumbling on it
 - Seer/LLM assistance for resolution
 - Trackable progress on fixing configuration problems
 
 ## Existing Systems for Processing Errors
 
-### ActionableItems Banner
+These are the current tools users have for discovering and debugging source map issues:
 
-**Location:** Alert banner at the top of event detail pages
+### Processing Errors Banner (on Event Details)
+
+Alert banner at the top of event detail pages that shows processing errors.
 
 **API:** `GET /projects/{org}/{project}/events/{event_id}/actionable-items/`
 
@@ -19,11 +23,11 @@ Detect JavaScript source map configuration issues from processing errors and cre
 - Fetches processing errors from event data and filters/prioritizes them
 - Shows expandable list of errors with metadata
 
-**Note:** Most JS/sourcemap errors are hidden from this banner. `JS_SCRAPING_DISABLED` was explicitly hidden ([PR #54494](https://github.com/getsentry/sentry/pull/54494)) because "since a user has to manually turn scraping off, we shouldn't show an error just to tell them that it's off after they turned it off."
+**Note:** Most JS/sourcemap errors are hidden from this banner, so users often don't see them.
 
-### Source Maps Debugger Wizard
+### Source Maps Debugger Wizard (on Event Details)
 
-**Location:** Modal that opens when clicking on a minified stack frame
+Modal that opens when clicking on a minified stack frame.
 
 **API:** `GET /projects/{org}/{project}/events/{event_id}/source-map-debug-blue-thunder-edition/`
 
@@ -38,10 +42,6 @@ Detect JavaScript source map configuration issues from processing errors and cre
 
 **Frontend:** `static/app/components/events/interfaces/sourceMapsDebuggerModal.tsx`
 
-### How Our Feature Relates
-
-Both existing systems are **reactive** - users must navigate to an event and notice the problem. Our feature is **proactive** - creating Issues that appear in the issue stream and can trigger notifications.
-
 For the issue detail UI, we can potentially reuse or adapt the wizard experience, linking to a representative event that demonstrates the problem.
 
 ---
@@ -50,7 +50,7 @@ For the issue detail UI, we can potentially reuse or adapt the wizard experience
 
 ### Symbolicator Error Types
 
-These are the error types returned by symbolicator when source map processing fails:
+When Sentry processes a JavaScript error, symbolicator attempts to apply source maps to convert minified stack traces back to original source code. When this fails, symbolicator returns specific error types that tell us what went wrong:
 
 | symbolicator_type | meaning |
 |-------------------|---------|
@@ -111,8 +111,9 @@ Example: `123:sourcemap:app.example.com` groups ALL sourcemap configuration erro
 
 - Create new GroupType(s) for sourcemap configuration issues
 - Add detection logic in `post_process_group` pipeline, triggered for ERROR category events
-- Filter out `chrome-extension:` URLs (browser extensions are outside user control)
-- Store event_id in evidence data so the issue detail UI can link to the existing sourcemap debugger wizard
+- Filter out `chrome-extension:` URLs (users can't control browser extension sourcemaps)
+- Store event_id in evidence data so the issue detail UI can link to the existing wizard
+- For the issue detail UI, we can potentially reuse or adapt the existing wizard experience
 - Feature flag: `organizations:processing-issues-detection`
 
 The detection function should be generic and extensible - sourcemap issues are the first case, but the architecture should support adding handlers for other processing error types in the future.
@@ -153,7 +154,9 @@ The occurrence model is designed for "a specific thing happened at a specific ti
 
 ### Should we create issues for `scraping_disabled`?
 
-The ActionableItems banner hides `JS_SCRAPING_DISABLED` because users consciously turn scraping off ([PR #54494](https://github.com/getsentry/sentry/pull/54494)). Should we follow the same logic for issue creation?
+The processing errors banner hides most JS/sourcemap errors from users. `JS_SCRAPING_DISABLED` was explicitly hidden ([PR #54494](https://github.com/getsentry/sentry/pull/54494)) with this rationale: "since a user has to manually turn scraping off, we shouldn't show an error just to tell them that it's off after they turned it off."
+
+Should we follow the same logic for issue creation?
 
 **Arguments for including it:**
 - If user disabled scraping but isn't uploading sourcemaps, they may not realize their stack traces are broken
@@ -169,7 +172,7 @@ The ActionableItems banner hides `JS_SCRAPING_DISABLED` because users consciousl
 
 These issues are fundamentally different from error issues - they're configuration/setup problems rather than runtime errors. The default issue UI, emails, and Slack notifications may not be well-suited for them.
 
-**Existing wizard:** The current issue details UI has a sourcemap debugger wizard (`SourceMapsDebuggerModal`) that appears when clicking on minified stack frames. It provides a checklist-style troubleshooting flow with progress indicators. This wizard requires an event ID to call `/source-map-debug-blue-thunder-edition/` API.
+**Existing wizard:** The source maps debugger wizard (on event details) appears when clicking on minified stack frames. It provides a checklist-style troubleshooting flow with progress indicators. This wizard requires an event ID.
 
 **Questions:**
 - Should we reuse/adapt the existing wizard for these issues? (It's per-frame; we'd need per-issue adaptation)
