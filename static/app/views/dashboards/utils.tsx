@@ -632,6 +632,7 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
   }
   return ![
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.DETAILS,
     DisplayType.TABLE,
     DisplayType.WHEEL,
