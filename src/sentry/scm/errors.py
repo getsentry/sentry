@@ -31,3 +31,7 @@ class SCMCodedError(SCMError):
 
 class SCMUnhandledException(SCMError):
     pass
+
+
+class SCMProviderException(SCMError):
+    pass
