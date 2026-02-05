@@ -783,11 +783,22 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 }
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        if event not in servicehook.events:
+        # Check if the resource type is subscribed, not the exact event.
+        # This allows new events (like issue.unresolved) to work with ServiceHooks
+        # that were created before the event was added to the expansion.
+        # For example, if a ServiceHook has "issue.created", it should accept all
+        # issue events (issue.assigned, issue.resolved, issue.unresolved, etc.)
+        event_resource = event.split(".")[0]
+        from sentry.sentry_apps.logic import consolidate_events
+
+        subscribed_resources = consolidate_events(servicehook.events)
+        if event_resource not in subscribed_resources:
             lifecycle.add_extras(
                 {
                     "events": servicehook.events,
                     "event": event,
+                    "event_resource": event_resource,
+                    "subscribed_resources": list(subscribed_resources),
                     "installation_id": installation.id,
                     "sentry_app_id": installation.sentry_app.id,
                     "sentry_app_events": installation.sentry_app.events,

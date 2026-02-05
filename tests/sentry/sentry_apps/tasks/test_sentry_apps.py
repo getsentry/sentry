@@ -1677,6 +1677,39 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_webhook_for_new_events_in_subscribed_resource(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        """Test that new events (e.g., issue.unresolved) work with ServiceHooks
+        that were created before the event was added to the expansion.
+        This simulates the scenario where a ServiceHook has issue.created but
+        should still receive issue.unresolved because both are in the 'issue' resource.
+        """
+        # Create an app with only some issue events (simulating old ServiceHook)
+        sentry_app = self.create_sentry_app(
+            name="Old App",
+            organization=self.project.organization,
+            events=["issue.created", "issue.assigned"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        # Manually update the ServiceHook to only have old events
+        # (simulating a ServiceHook created before issue.unresolved was added)
+        with assume_test_silo_mode(SiloMode.REGION):
+            hook = ServiceHook.objects.get(installation_id=install.id)
+            hook.events = ["issue.created", "issue.assigned"]
+            hook.save()
+
+        # Send issue.unresolved webhook
+        workflow_notification(install.id, self.issue.id, "unresolved", self.user.id)
+
+        # Should succeed because 'issue' resource is subscribed
+        assert safe_urlopen.called
+        assert_success_metric(mock_record)
+
 
 class TestWebhookRequests(TestCase):
     def setUp(self) -> None:
