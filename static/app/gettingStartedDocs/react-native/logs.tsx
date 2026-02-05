@@ -81,12 +81,10 @@ Sentry.logger.warn('This is a warning log', {
 Sentry.logger.error('This is an error log');
 
 // Using formatted messages with dynamic values
-Sentry.logger.fmt(
-  'User {user} performed {action}',
-  {
-    user: 'john_doe',
-    action: 'login',
-  }
+const user = 'john_doe';
+const action = 'login';
+Sentry.logger.info(
+  Sentry.logger.fmt`User '${user}' performed '${action}'`
 );`,
             },
           ],
