@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import requests
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -296,6 +297,19 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             state = get_autofix_explorer_state(group.organization, group.id)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
+        except requests.HTTPError as e:
+            logger.exception(
+                "group_ai_autofix.get_explorer.http_error",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                    "status_code": e.response.status_code if e.response is not None else None,
+                },
+            )
+            return Response(
+                {"detail": "Failed to fetch autofix state"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         if state is None:
             return Response({"autofix": None})
@@ -346,6 +360,19 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             )
 
             raise PermissionDenied("You are not authorized to access this autofix state")
+        except requests.HTTPError as e:
+            logger.exception(
+                "group_ai_autofix.get.http_error",
+                extra={
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                    "status_code": e.response.status_code if e.response is not None else None,
+                },
+            )
+            return Response(
+                {"detail": "Failed to fetch autofix state"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         if autofix_state and autofix_state.coding_agents and request.user.id:
             poll_github_copilot_agents(autofix_state, user_id=request.user.id)
