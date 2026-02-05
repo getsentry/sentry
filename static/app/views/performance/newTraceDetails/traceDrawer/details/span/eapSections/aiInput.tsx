@@ -34,15 +34,6 @@ const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function normalizeContent(content: any): any {
-  const parsed = tryParseJson(content);
-  // Check for content parts format: non-empty array where elements have a `type` property
-  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.type) {
-    return parsed;
-  }
-  return content;
-}
-
 function extractTextFromContentParts(parts: any[]): string {
   return parts
     .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
@@ -112,13 +103,13 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         if (!message.role || !message.content) {
           return null;
         }
-        const normalizedContent = normalizeContent(message.content);
+        const parsedContent = tryParseJson(message.content);
         return {
           role: message.role,
           content:
             message.role === 'tool'
-              ? renderToolMessage(normalizedContent)
-              : renderTextMessages(normalizedContent),
+              ? renderToolMessage(parsedContent)
+              : renderTextMessages(parsedContent),
         };
       })
       .filter(
