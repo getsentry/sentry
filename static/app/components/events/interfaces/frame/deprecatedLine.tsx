@@ -6,7 +6,6 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -224,7 +223,7 @@ function DeprecatedLine({
               </div>
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
-          <Flex align="center" gap="md">
+          <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -331,7 +330,7 @@ function DeprecatedLine({
             ) : (
               <div style={{width: 26, height: 20}} />
             )}
-          </Flex>
+          </FrameActions>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -382,6 +381,8 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
+  flex: 1;
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
@@ -389,10 +390,19 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  min-width: 0;
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+`;
+
+const FrameActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  flex-shrink: 0;
+  margin-left: auto;
 `;
 
 const DefaultLine = styled('div')<{
@@ -416,6 +426,24 @@ const DefaultLine = styled('div')<{
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
     font-family: ${p => p.theme.font.family.sans};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    &:has([data-has-setup]) {
+      flex-wrap: wrap;
+      row-gap: ${p => p.theme.space.xs};
+
+      > ${DefaultLineTitleWrapper} {
+        flex-basis: 100%;
+      }
+
+      > ${FrameActions} {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        row-gap: ${p => p.theme.space.xs};
+      }
+    }
   }
 `;
 

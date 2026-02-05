@@ -278,7 +278,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
       scmProviders.includes(integration.provider?.key)
     );
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper data-has-setup="true">
         <CopyFrameLink event={event} frame={frame} />
         <Button
           size={DEFAULT_BUTTON_SIZE}
@@ -457,9 +457,14 @@ const FadeInStacktraceLinkWrapper = styled(Flex)`
   }
 `;
 
-function StacktraceLinkWrapper({children}: {children: React.ReactNode}) {
+function StacktraceLinkWrapper({
+  children,
+  ...props
+}: {children: React.ReactNode} & React.ComponentPropsWithoutRef<typeof Flex>) {
   return (
-    <FadeInStacktraceLinkWrapper align="center">{children}</FadeInStacktraceLinkWrapper>
+    <FadeInStacktraceLinkWrapper align="center" {...props}>
+      {children}
+    </FadeInStacktraceLinkWrapper>
   );
 }
 
