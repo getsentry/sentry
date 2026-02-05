@@ -51,14 +51,33 @@ function ConversationsOverviewPage({
   datePageFilterProps,
 }: ConversationsOverviewPageProps) {
   const organization = useOrganization();
+
+  return (
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <Feature
+        features="gen-ai-conversations"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <ConversationsContent datePageFilterProps={datePageFilterProps} />
+      </Feature>
+    </Feature>
+  );
+}
+
+function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
+  const organization = useOrganization();
   useDefaultToAllProjects();
-  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [urlState] = useConversationDrawerQueryState();
   // Start fetching data and open drawer without
   // waiting for table to finish loading
   useConversation({conversationId: urlState.conversationId ?? ''});
-  useConversationViewDrawer();
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -112,66 +131,52 @@ function ConversationsOverviewPage({
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <Feature
-          features="gen-ai-conversations"
-          organization={organization}
-          renderDisabled={NoAccess}
-        >
-          <Layout.Body>
-            <Layout.Main width="full">
-              <ModuleLayout.Layout>
-                <ModuleLayout.Full>
-                  <Stack gap="md">
-                    <ToolRibbon>
-                      <PageFilterBar condensed>
-                        <InsightsProjectSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <InsightsEnvironmentSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <DatePageFilter
-                          {...datePageFilterProps}
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                      </PageFilterBar>
-                      <AgentSelector
-                        storageKeyPrefix="conversations:agent-filter"
-                        referrer="api.insights.conversations.get-agent-names"
-                      />
-                      <Flex flex={2}>
-                        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                      </Flex>
-                    </ToolRibbon>
-                    <SchemaHintsList
-                      supportedAggregates={DISABLE_AGGREGATES}
-                      booleanTags={booleanTags as TagCollection}
-                      numberTags={numberTags as TagCollection}
-                      stringTags={stringTags as TagCollection}
-                      isLoading={
-                        numberTagsLoading || stringTagsLoading || booleanTagsLoading
-                      }
-                      exploreQuery={searchQuery ?? ''}
-                      source={SchemaHintsSources.CONVERSATIONS}
+      <Layout.Body>
+        <Layout.Main width="full">
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <Stack gap="md">
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
-                  </Stack>
-                </ModuleLayout.Full>
-
-                <ModuleLayout.Full>
-                  <ConversationsTable
-                    openConversationViewDrawer={openConversationViewDrawer}
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                  </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="conversations:agent-filter"
+                    referrer="api.insights.conversations.get-agent-names"
                   />
-                </ModuleLayout.Full>
-              </ModuleLayout.Layout>
-            </Layout.Main>
-          </Layout.Body>
-        </Feature>
-      </Feature>
+                  <Flex flex={2}>
+                    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                  </Flex>
+                </ToolRibbon>
+                <SchemaHintsList
+                  supportedAggregates={DISABLE_AGGREGATES}
+                  booleanTags={booleanTags as TagCollection}
+                  numberTags={numberTags as TagCollection}
+                  stringTags={stringTags as TagCollection}
+                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                  exploreQuery={searchQuery ?? ''}
+                  source={SchemaHintsSources.CONVERSATIONS}
+                />
+              </Stack>
+            </ModuleLayout.Full>
+
+            <ModuleLayout.Full>
+              <ConversationsTable
+                openConversationViewDrawer={openConversationViewDrawer}
+              />
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </Layout.Main>
+      </Layout.Body>
     </SearchQueryBuilderProvider>
   );
 }
