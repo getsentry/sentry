@@ -1,5 +1,5 @@
 // Only import and test functions that don't have circular dependencies
-const {dotnetMetrics} = jest.requireActual('sentry/gettingStartedDocs/dotnet/metrics');
+const {metrics} = jest.requireActual('sentry/gettingStartedDocs/dotnet/metrics');
 
 describe('metrics', () => {
   const mockParams = {
@@ -12,7 +12,7 @@ describe('metrics', () => {
   };
 
   it('generates metrics onboarding config with default parameters', () => {
-    const result = dotnetMetrics();
+    const result = metrics();
 
     // Test install step
     const installSteps = result.install(mockParams);
