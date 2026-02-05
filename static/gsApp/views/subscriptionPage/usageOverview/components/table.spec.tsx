@@ -458,4 +458,44 @@ describe('UsageOverviewTable', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('product-row-profileDurationUI')).not.toBeInTheDocument();
   });
+
+  it('renders disabled products after enabled products', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 0,
+      onDemandSpendUsed: 0,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const allRows = document.querySelectorAll('[data-test-id^="product-row"]');
+    const rowTestIds = Array.from(allRows).map(row => row.getAttribute('data-test-id')!);
+
+    const enabledRows = rowTestIds.filter(id => !id.startsWith('product-row-disabled-'));
+    const disabledRows = rowTestIds.filter(id => id.startsWith('product-row-disabled-'));
+
+    // Ensure the test is meaningful: there should be at least one of each
+    expect(enabledRows.length).toBeGreaterThan(0);
+    expect(disabledRows.length).toBeGreaterThan(0);
+
+    // Find the index of the last enabled row and the first disabled row
+    const lastEnabledIndex = rowTestIds.lastIndexOf(enabledRows[enabledRows.length - 1]!);
+    const firstDisabledIndex = rowTestIds.indexOf(disabledRows[0]!);
+
+    // All disabled rows must appear after all enabled rows
+    expect(lastEnabledIndex).toBeLessThan(firstDisabledIndex);
+  });
 });
