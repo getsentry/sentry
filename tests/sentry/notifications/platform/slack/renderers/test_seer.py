@@ -104,8 +104,8 @@ class SeerSlackRendererTest(TestCase):
         text = SeerSlackRenderer.render_status_text(group=self.group)
         assert ":hourglass: Seer is running a root cause analysis..." in text
         assert "seerDrawer=true" in text
-        assert text.startswith("_<")
-        assert text.endswith(">_")
+        assert text.startswith("<")
+        assert text.endswith(">")
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",

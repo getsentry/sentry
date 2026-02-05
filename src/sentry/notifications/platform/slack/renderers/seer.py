@@ -246,4 +246,4 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 
         group_link = SlackEntrypoint.get_group_link(group)
-        return f"_<{group_link}|:hourglass: Seer is running a root cause analysis...>_"
+        return f"<{group_link}|:hourglass: Seer is running a root cause analysis...>"
