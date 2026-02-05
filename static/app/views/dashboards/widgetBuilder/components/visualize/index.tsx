@@ -542,7 +542,8 @@ function Visualize({error, setError}: VisualizeProps) {
   }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    if (isTimeSeriesWidget || isBigNumberWidget) {
+    // Categorical bars only allow aggregates, no field columns
+    if (isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -575,6 +576,7 @@ function Visualize({error, setError}: VisualizeProps) {
   }, [
     isTimeSeriesWidget,
     isBigNumberWidget,
+    isCategoricalBarWidget,
     state.dataset,
     baseAggregateOptions,
     traceItemColumnOptions,
