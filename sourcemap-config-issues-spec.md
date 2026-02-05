@@ -140,11 +140,20 @@ Sourcemap issues are closer to metric/uptime/crons style because:
 
 **Auto-resolution trigger options:**
 
-| Trigger | Pros | Cons |
-|---------|------|------|
-| X successful events processed | Clear positive signal | May take time if low traffic |
-| 0 failures in time window | Catches edge cases | Could resolve prematurely during low traffic |
-| Both: X successes AND 0 failures | Most robust | More complex |
+**Option A: X successful events processed**
+- Auto-resolve after seeing N events with successful sourcemap processing
+- Pros: Clear positive signal that sourcemaps are working
+- Cons: May take time to resolve if project has low traffic
+
+**Option B: 0 failures in time window**
+- Auto-resolve if no sourcemap failures occur within a time window (e.g., 24 hours)
+- Pros: Catches edge cases, doesn't require positive signal
+- Cons: Could resolve prematurely during low traffic periods
+
+**Option C: X successes AND 0 failures (Recommended)**
+- Auto-resolve after N successful events AND no failures in a time window
+- Pros: Most robust—requires positive evidence while avoiding premature resolution
+- Cons: More complex to implement
 
 **Error type transitions**
 
