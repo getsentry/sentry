@@ -1119,10 +1119,19 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         ) as transaction:
             transaction.set_tag("github_event", github_event.value)
 
+            github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
+            if github_delivery_id is not None:
+                github_delivery_id = str(github_delivery_id)
+            sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
+
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, github_event=github_event)
+                event_handler(
+                    event,
+                    github_event=github_event,
+                    github_delivery_id=github_delivery_id,
+                )
         return HttpResponse(status=204)

@@ -721,6 +721,67 @@ class PullRequestEventWebhook(APITestCase):
         assert response.status_code == 204
         return integration
 
+    @patch("sentry.integrations.github.webhook.code_review_handle_webhook_event")
+    def test_github_delivery_id_extracted_and_passed_to_processors(
+        self, mock_code_review_handle: MagicMock
+    ) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            ).add_organization(self.project.organization.id, self.user)
+
+        body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
+        delivery_id = "test-delivery-id-abc123"
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=delivery_id,
+        )
+
+        assert response.status_code == 204
+        mock_code_review_handle.assert_called()
+        call_kwargs = mock_code_review_handle.call_args[1]
+        assert call_kwargs["github_delivery_id"] == delivery_id
+
+    @patch("sentry.integrations.github.webhook.code_review_handle_webhook_event")
+    def test_github_delivery_id_missing_passed_as_none(
+        self, mock_code_review_handle: MagicMock
+    ) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            ).add_organization(self.project.organization.id, self.user)
+
+        body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            # Omit HTTP_X_GITHUB_DELIVERY so request.META.get returns None
+        )
+
+        assert response.status_code == 204
+        mock_code_review_handle.assert_called()
+        call_kwargs = mock_code_review_handle.call_args[1]
+        assert call_kwargs["github_delivery_id"] is None
+
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")

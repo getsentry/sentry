@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
+from contextlib import nullcontext
 from typing import Any
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.utils.locking import UnableToAcquireLock
 
 from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
@@ -18,6 +21,8 @@ from .issue_comment import handle_issue_comment_event
 from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
+
+DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS = 30
 
 
 EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, Callable[..., None]] = {
@@ -30,6 +35,7 @@ EVENT_TYPE_TO_HANDLER: dict[GithubWebhookType, Callable[..., None]] = {
 def handle_webhook_event(
     *,
     github_event: GithubWebhookType,
+    github_delivery_id: str | None = None,
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
@@ -41,6 +47,7 @@ def handle_webhook_event(
 
     Args:
         github_event: The GitHub webhook event type (e.g., GithubWebhookType.CHECK_RUN)
+        github_delivery_id: The GitHub delivery ID (unique identifier for the webhook event)
         event: The webhook event payload
         organization: The Sentry organization that the webhook event belongs to
         repo: The repository that the webhook event is for
@@ -54,6 +61,7 @@ def handle_webhook_event(
     # The extracted important key values are used for debugging with logs
     extra = extract_github_info(event, github_event=github_event.value)
     extra["organization_slug"] = organization.slug
+    extra["github_delivery_id"] = github_delivery_id
 
     handler = EVENT_TYPE_TO_HANDLER.get(github_event)
     if handler is None:
@@ -78,12 +86,28 @@ def handle_webhook_event(
             )
         return
 
-    handler(
-        github_event=github_event,
-        event=event,
-        organization=organization,
-        repo=repo,
-        integration=integration,
-        org_code_review_settings=preflight.settings,
-        extra=extra,
-    )
+    # Dedupe concurrent deliveries with the same webhook event X-GitHub-Delivery ID
+    if github_delivery_id:
+        lock = locks.get(
+            f"github:code_review:webhook:{github_delivery_id}",
+            duration=DEDUPE_WEBHOOK_EVENT_LOCK_SECONDS,
+            name="github_code_review_webhook_id",
+        )
+        try:
+            lock_ctx = lock.acquire()
+        except UnableToAcquireLock:
+            logger.warning("github.webhook.code_review.webhook_dupe_skipped", extra=extra)
+            return
+    else:
+        lock_ctx = nullcontext()
+
+    with lock_ctx:
+        handler(
+            github_event=github_event,
+            event=event,
+            organization=organization,
+            repo=repo,
+            integration=integration,
+            org_code_review_settings=preflight.settings,
+            extra=extra,
+        )
