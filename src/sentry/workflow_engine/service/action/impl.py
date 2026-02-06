@@ -78,6 +78,7 @@ class DatabaseBackedActionService(ActionService):
             config__target_identifier=sentry_app_install_uuid,
             type=Action.Type.SENTRY_APP,
             config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+            dataconditiongroupaction__condition_group__organization_id=organization_id,
         )
 
         actions = sentry_app_id_actions | installation_uuid_actions
