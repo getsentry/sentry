@@ -19,21 +19,10 @@ import {
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
-
-function getSubmitButtonTitle(form: FormModel): string | undefined {
-  if (form.isFormIncomplete) {
-    return t('Required fields must be filled out');
-  }
-
-  if (form.isError) {
-    return t('Form contains errors');
-  }
-
-  return undefined;
-}
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;

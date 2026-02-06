@@ -100,4 +100,18 @@ describe('mapAssertionFormErrors', () => {
       assertion: ['Already formatted error'],
     });
   });
+
+  it('preserves plain assertion validation errors in dataSources', () => {
+    const response = {
+      dataSources: {
+        assertion: ['This field is required.'],
+        url: ['Enter a valid URL.'],
+      },
+    };
+
+    expect(mapAssertionFormErrors(response)).toEqual({
+      assertion: ['This field is required.'],
+      url: ['Enter a valid URL.'],
+    });
+  });
 });

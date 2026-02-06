@@ -3,30 +3,11 @@ import {Observer} from 'mobx-react-lite';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-
-function getSubmitButtonTitle(
-  form: FormModel,
-  disabledCreate?: string
-): string | undefined {
-  if (disabledCreate) {
-    return disabledCreate;
-  }
-
-  if (form.isFormIncomplete) {
-    return t('Required fields must be filled out');
-  }
-
-  if (form.isError) {
-    return t('Form contains errors');
-  }
-
-  return undefined;
-}
 
 interface NewDetectorFooterProps {
   disabledCreate?: string;
