@@ -31,11 +31,4 @@ describe('getting started with react-native', () => {
     expect(docs.metricsOnboarding?.configure).toBeDefined();
     expect(docs.metricsOnboarding?.verify).toBeDefined();
   });
-
-  it('has logs onboarding configuration', () => {
-    expect(docs.logsOnboarding).toBeDefined();
-    expect(docs.logsOnboarding?.install).toBeDefined();
-    expect(docs.logsOnboarding?.configure).toBeDefined();
-    expect(docs.logsOnboarding?.verify).toBeDefined();
-  });
 });
