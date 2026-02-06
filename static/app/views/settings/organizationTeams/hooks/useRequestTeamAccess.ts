@@ -1,7 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -27,10 +26,6 @@ export function useRequestTeamAccess({organization, team}: UseRequestTeamAccessO
     },
     onSuccess: () => {
       addSuccessMessage(t('You have requested access to %s', `#${team.slug}`));
-      TeamStore.onUpdateSuccess(team.slug, {
-        ...team,
-        isPending: true,
-      });
     },
     onError: () => {
       addErrorMessage(t('Unable to request access to %s', `#${team.slug}`));
