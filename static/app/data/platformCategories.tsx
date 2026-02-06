@@ -386,6 +386,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'react-native',
   'ruby',
   'ruby-rack',
   'ruby-rails',
