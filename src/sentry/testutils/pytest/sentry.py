@@ -408,40 +408,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     When SELECTED_TESTS_FILE is set, only tests from files listed in that file are kept.
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
-
-    Also marks TransactionTestCase tests with @pytest.mark.transaction_test for xdist filtering.
     """
-    from django.test import TransactionTestCase
-
-    # Mark TransactionTestCase tests for xdist filtering
-    # These tests are NOT safe to run in parallel with xdist because they
-    # flush the database between tests instead of using transaction rollback
-    transaction_marker = pytest.mark.transaction_test
-    transaction_count = 0
-    regular_count = 0
-
-    for item in items:
-        test_class = getattr(item, "cls", None)
-        if test_class is not None:
-            try:
-                if issubclass(test_class, TransactionTestCase):
-                    item.add_marker(transaction_marker)
-                    transaction_count += 1
-                else:
-                    regular_count += 1
-            except TypeError:
-                regular_count += 1
-        else:
-            regular_count += 1
-
-    # Log summary for visibility
-    if config.option.verbose >= 0 and (transaction_count > 0 or regular_count > 0):
-        terminal = config.pluginmanager.get_plugin("terminalreporter")
-        if terminal:
-            terminal.write_line(
-                f"[xdist] Marked {transaction_count} TransactionTestCase tests, "
-                f"{regular_count} regular tests (xdist-safe)"
-            )
 
     keep, discard = [], []
 
