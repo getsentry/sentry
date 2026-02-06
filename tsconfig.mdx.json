@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Volar needs react-jsx to process JSX in MDX files (base uses "preserve")
+    "jsx": "react-jsx"
+  },
+  "mdx": {
+    "checkMdx": true
+  },
+  "include": [
+    // MDX files to typecheck
+    "static/**/*.mdx",
+    // Include the app source so transitive imports resolve correctly
+    "static/app"
+  ],
+  "exclude": [
+    "node_modules",
+    // Exclude test files — not needed for MDX type resolution
+    "**/*.spec.*",
+    "**/*.stories.tsx",
+    "tests"
+  ]
+}
