@@ -11,7 +11,11 @@ from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
-from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
+from sentry.incidents.utils.types import (
+    AnomalyDetectionUpdate,
+    AnomalyDetectionValues,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
@@ -45,7 +49,7 @@ QUERY_AGGREGATION_DISPLAY = {
 
 
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
-MetricResult = float | dict
+MetricResult = float | AnomalyDetectionValues
 
 
 @dataclass
@@ -241,11 +245,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         return int(data_packet.packet.timestamp.timestamp())
 
     def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
-        # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
-        values = data_packet.packet.values
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            return {None: values}
-        return values.get("value")
+            return data_packet.packet.values
+        return data_packet.packet.values["value"]
 
     def construct_title(
         self,

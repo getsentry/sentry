@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -212,7 +213,7 @@ class MetricIssueContext:
     snuba_query: SnubaQuery
     new_status: IncidentStatus
     subscription: QuerySubscription | None
-    metric_value: float | dict | None
+    metric_value: float | None
     group: Group | None
 
     @classmethod
@@ -246,11 +247,15 @@ class MetricIssueContext:
 
         subscription = cls._get_subscription(evidence_data)
         snuba_query = subscription.snuba_query
-        metric_value = (
-            evidence_data.value["value"]
-            if type(evidence_data.value) is dict
-            else evidence_data.value
-        )
+        # evidence_data.value can be a dict when deserialized from JSON (e.g., from Activity.data)
+        value: float | AnomalyDetectionValues | dict[str, Any] = evidence_data.value
+        metric_value: float | None
+        if isinstance(value, AnomalyDetectionValues):
+            metric_value = value.value
+        elif isinstance(value, dict):
+            metric_value = value.get("value")
+        else:
+            metric_value = value
 
         return cls(
             id=group.id,

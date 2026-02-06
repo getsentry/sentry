@@ -8,7 +8,7 @@ from sentry.conf.server import (
     SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
     SEER_ANOMALY_DETECTION_ENDPOINT_URL,
 )
-from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -68,10 +68,10 @@ def get_anomaly_data_from_seer(
     seasonality: AnomalyDetectionSeasonality,
     threshold_type: AnomalyDetectionThresholdType,
     subscription: QuerySubscription,
-    subscription_update: AnomalyDetectionUpdate,
+    subscription_update: AnomalyDetectionValues,
 ) -> list[TimeSeriesPoint] | None:
     snuba_query: SnubaQuery = subscription.snuba_query
-    aggregation_value = subscription_update.get("value")
+    aggregation_value = subscription_update.value
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
 
@@ -88,8 +88,7 @@ def get_anomaly_data_from_seer(
         "source_id": source_id,
         "source_type": source_type,
     }
-    timestamp = subscription_update.get("timestamp")
-    assert timestamp
+    timestamp = subscription_update.timestamp
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=int(snuba_query.time_window / 60),

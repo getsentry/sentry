@@ -4,10 +4,26 @@ from enum import Enum
 from typing import Any, TypedDict
 
 
+@dataclass
+class AnomalyDetectionValues:
+    value: float
+    source_id: str
+    subscription_id: str
+    timestamp: datetime
+
+
+class SubscriptionUpdateValues(TypedDict):
+    value: float
+
+
+class QuerySubscriptionUpdateValues(TypedDict):
+    data: list[dict[str, Any]]
+
+
 class QuerySubscriptionUpdate(TypedDict):
     entity: str
     subscription_id: str
-    values: Any
+    values: QuerySubscriptionUpdateValues
     timestamp: datetime
 
 
@@ -15,25 +31,15 @@ class QuerySubscriptionUpdate(TypedDict):
 class ProcessedSubscriptionUpdate:
     entity: str
     subscription_id: str
-    values: Any
+    values: SubscriptionUpdateValues
     timestamp: datetime
 
 
 @dataclass
 class AnomalyDetectionUpdate:
-    """
-    values has format:
-    {
-        "value": float,
-        "source_id": str,
-        "subscription_id": str,
-        "timestamp": datetime,
-    }
-    """
-
     entity: str
     subscription_id: str
-    values: Any
+    values: AnomalyDetectionValues
     timestamp: datetime
 
 

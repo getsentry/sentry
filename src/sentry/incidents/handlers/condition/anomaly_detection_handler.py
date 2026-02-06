@@ -1,9 +1,9 @@
 import logging
-from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 from django.conf import settings
 
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -31,15 +31,8 @@ SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
 }
 
 
-class AnomalyDetectionUpdate(TypedDict):
-    value: int
-    source_id: int
-    subscription_id: int
-    timestamp: datetime
-
-
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
-class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionUpdate]):
+class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionValues]):
     group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {
         "type": "object",
@@ -62,15 +55,14 @@ class AnomalyDetectionHandler(DataConditionHandler[AnomalyDetectionUpdate]):
     }
 
     @staticmethod
-    def evaluate_value(update: AnomalyDetectionUpdate, comparison: Any) -> DetectorPriorityLevel:
+    def evaluate_value(update: AnomalyDetectionValues, comparison: Any) -> DetectorPriorityLevel:
         from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 
         sensitivity = comparison["sensitivity"]
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
 
-        source_id = update.get("source_id")
-        assert source_id
+        source_id = update.source_id
 
         subscription: QuerySubscription = QuerySubscription.objects.get(id=int(source_id))
 

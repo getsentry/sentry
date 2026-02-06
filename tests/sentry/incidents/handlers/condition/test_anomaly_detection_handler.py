@@ -6,7 +6,7 @@ import orjson
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.incidents.utils.types import AnomalyDetectionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, AnomalyDetectionValues
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -38,12 +38,12 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
 
         packet = AnomalyDetectionUpdate(
             subscription_id=str(self.subscription.id),
-            values={
-                "value": 1,
-                "source_id": str(self.subscription.id),
-                "subscription_id": str(self.subscription.id),
-                "timestamp": datetime.now(UTC),
-            },
+            values=AnomalyDetectionValues(
+                value=1,
+                source_id=str(self.subscription.id),
+                subscription_id=str(self.subscription.id),
+                timestamp=datetime.now(UTC),
+            ),
             timestamp=datetime.now(UTC),
             entity="test-entity",
         )
@@ -77,7 +77,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                         "anomaly_type": AnomalyType.HIGH_CONFIDENCE,
                     },
                     "timestamp": 1,
-                    "value": self.data_packet.packet.values["value"],
+                    "value": self.data_packet.packet.values.value,
                 }
             ],
         }
@@ -90,7 +90,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
                         "anomaly_type": AnomalyType.LOW_CONFIDENCE,
                     },
                     "timestamp": 1,
-                    "value": self.data_packet.packet.values["value"],
+                    "value": self.data_packet.packet.values.value,
                 }
             ],
         }
@@ -113,7 +113,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         )
         assert (
             deserialized_body["context"]["cur_window"]["value"]
-            == self.data_packet.packet.values["value"]
+            == self.data_packet.packet.values.value
         )
 
     @mock.patch(
@@ -190,12 +190,12 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
 
         packet = AnomalyDetectionUpdate(
             subscription_id=str(self.subscription.id),
-            values={
-                "value": float("nan"),
-                "source_id": str(self.subscription.id),
-                "subscription_id": str(self.subscription.id),
-                "timestamp": datetime.now(UTC),
-            },
+            values=AnomalyDetectionValues(
+                value=float("nan"),
+                source_id=str(self.subscription.id),
+                subscription_id=str(self.subscription.id),
+                timestamp=datetime.now(UTC),
+            ),
             timestamp=datetime.now(UTC),
             entity="test-entity",
         )
