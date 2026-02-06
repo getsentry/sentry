@@ -44,6 +44,7 @@ class SeerCodeReviewRequestType(StrEnum):
 
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
+    github_rate_limit_sensitive: bool = False
     trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
@@ -136,6 +137,7 @@ class SeerCodeReviewRequestForPrReview(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
+    experiment_enabled: bool = False
 
 
 class SeerCodeReviewRequestForPrClosed(BaseModel):

@@ -237,21 +237,27 @@ def _common_codegen_request_payload(
     target_commit_sha: str,
     organization: Organization,
 ) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "repo": _build_repo_definition(repo, target_commit_sha),
+        "bug_prediction_specific_information": {
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+        },
+        "config": {
+            "features": {"bug_prediction": True},
+            "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization.slug),
+        },
+    }
+
+    # Add experiment_enabled flag ONLY for pr-review requests
+    if request_type == SeerCodeReviewRequestType.PR_REVIEW:
+        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+
     return {
         # In Seer,src/seer/routes/automation_request.py:overwatch_request_endpoint
         "request_type": request_type.value,
         "external_owner_id": repo.external_id,
-        "data": {
-            "repo": _build_repo_definition(repo, target_commit_sha),
-            "bug_prediction_specific_information": {
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
-            "config": {
-                "features": {"bug_prediction": True},
-                "github_rate_limit_sensitive": is_github_rate_limit_sensitive(organization),
-            },
-        },
+        "data": data,
     }
 
 

@@ -291,8 +291,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.tokens.background.transparent.neutral.muted};
-          border-left-color: ${theme.tokens.background.accent.vibrant};
+          border-color: ${theme.tokens.border.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.border.accent.vibrant};
         }
 
         .pattern-bg {
@@ -401,12 +401,14 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
             border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-top-color: ${theme.tokens.background.primary};
           }
         }

@@ -4,6 +4,7 @@ name = "sentry"
 # which we intend to use for dependency management, not packaging
 version = "0.0.0"
 dependencies = [
+    "backports-zstd>=1.3.0",
     "beautifulsoup4>=4.7.1",
     "boto3>=1.34.128",
     "botocore>=1.34.128",
@@ -708,16 +709,7 @@ module = [
     "sentry.web.frontend.csv",
     "sentry.web.frontend.debug.charts.*",
     "sentry.web.frontend.mixins.*",
-    "sentry.workflow_engine.buffer.*",
-    "sentry.workflow_engine.endpoints.utils.*",
-    "sentry.workflow_engine.handlers.condition.*",
-    "sentry.workflow_engine.handlers.workflow.*",
-    "sentry.workflow_engine.migrations.*",
-    "sentry.workflow_engine.processors.*",
-    "sentry.workflow_engine.service.*",
-    "sentry.workflow_engine.tasks.*",
-    "sentry.workflow_engine.typings.*",
-    "sentry.workflow_engine.utils.*",
+    "sentry.workflow_engine.*",
     "sentry_plugins.base",
     "social_auth.admin",
     "social_auth.migrations.*",

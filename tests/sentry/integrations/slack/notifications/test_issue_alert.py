@@ -4,7 +4,6 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
-import pytest
 import responses
 
 import sentry
@@ -32,7 +31,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -60,15 +58,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [1],
-            }
-        ):
-            yield
 
     def test_issue_alert_user_block(self) -> None:
         """
