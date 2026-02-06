@@ -122,6 +122,7 @@ class SnubaQueryEventType(Model):
         TRACE_ITEM_SPAN = 3
         TRACE_ITEM_LOG = 4
         TRACE_ITEM_METRIC = 5
+        TRACE_ITEM_PREPROD = 6
 
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
     type = models.SmallIntegerField()
