@@ -105,7 +105,7 @@ export default function SeerAutomationSettings() {
                     </Stack>
                   ),
                   type: 'boolean',
-                  disabled: organization.enableSeerCoding === false,
+                  disabled: !canWrite || organization.enableSeerCoding === false,
                   setValue: (value: boolean): boolean =>
                     organization.enableSeerCoding === false ? false : value,
                 },

@@ -40,7 +40,14 @@ export default function SeerAgentSection({canWrite, project, preference}: Props)
     isBackgroundAgentEnabled;
 
   let disabledReason: string | null = null;
-  if (!isAutoFixEnabled) {
+  if (organization.enableSeerCoding === false) {
+    disabledReason = t(
+      'Turn on [settings:"Enable Code Generation"] to use this feature.',
+      {
+        settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+      }
+    );
+  } else if (!isAutoFixEnabled) {
     disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
   } else if (isBackgroundAgentEnabled) {
     disabledReason = t('This setting is not available when using background agents.');
