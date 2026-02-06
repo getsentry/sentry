@@ -112,11 +112,8 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         )
 
     @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
-    @patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     def test_valid_payload_resolved_open_period_activity(
-        self, mock_update_igop: MagicMock, mock_kick_off_status_syncs: MagicMock
+        self, mock_kick_off_status_syncs: MagicMock
     ) -> None:
         self.group.type = MetricIssue.type_id
         self.group.save()

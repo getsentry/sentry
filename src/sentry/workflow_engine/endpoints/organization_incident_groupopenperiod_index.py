@@ -8,7 +8,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -25,7 +24,6 @@ from sentry.workflow_engine.endpoints.serializers.incident_groupopenperiod_seria
 from sentry.workflow_engine.endpoints.validators.incident_groupopenperiod import (
     IncidentGroupOpenPeriodValidator,
 )
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 
 @region_silo_endpoint
@@ -63,27 +61,6 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
         incident_identifier = validator.validated_data.get("incident_identifier")
         group_id = validator.validated_data.get("group_id")
         open_period_id = validator.validated_data.get("open_period_id")
-
-        queryset = IncidentGroupOpenPeriod.objects.filter(
-            group_open_period__project__organization=organization
-        )
-
-        if incident_id:
-            queryset = queryset.filter(incident_id=incident_id)
-
-        if incident_identifier:
-            queryset = queryset.filter(incident_identifier=incident_identifier)
-
-        if group_id:
-            queryset = queryset.filter(group_open_period__group_id=group_id)
-
-        if open_period_id:
-            queryset = queryset.filter(group_open_period_id=open_period_id)
-
-        incident_groupopenperiod = queryset.first()
-
-        if incident_groupopenperiod:
-            return Response(serialize(incident_groupopenperiod, request.user))
 
         # Fallback: if incident_identifier or incident_id was provided but no IGOP found,
         # try looking up GroupOpenPeriod directly using calculated open_period_id

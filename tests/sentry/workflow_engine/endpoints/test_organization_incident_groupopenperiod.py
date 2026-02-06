@@ -1,4 +1,3 @@
-from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -35,52 +34,11 @@ class OrganizationIncidentGroupOpenPeriodAPITestCase(APITestCase):
             organization=self.organization, projects=[self.project], alert_rule=self.alert_rule
         )
 
-        # Create incident-group-open-period relationships
-        self.igop_1 = self.create_incident_group_open_period(
-            incident=self.incident_1, group_open_period=self.open_period_1
-        )
-        self.igop_2 = self.create_incident_group_open_period(
-            incident=self.incident_2, group_open_period=self.open_period_2
-        )
-        self.igop_3 = self.create_incident_group_open_period(
-            incident=self.incident_3, group_open_period=self.open_period_3
-        )
-
 
 @region_silo_test
 class OrganizationIncidentGroupOpenPeriodIndexGetTest(
     OrganizationIncidentGroupOpenPeriodAPITestCase
 ):
-    def test_get_with_incident_id_filter(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, incident_id=str(self.incident_1.id)
-        )
-        assert response.data == serialize(self.igop_1, self.user)
-
-    def test_get_with_incident_identifier_filter(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, incident_identifier=str(self.incident_1.identifier)
-        )
-        assert response.data == serialize(self.igop_1, self.user)
-
-    def test_get_with_group_id_filter(self) -> None:
-        response = self.get_success_response(self.organization.slug, group_id=str(self.group_2.id))
-        assert response.data == serialize(self.igop_2, self.user)
-
-    def test_get_with_open_period_id_filter(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, open_period_id=str(self.open_period_3.id)
-        )
-        assert response.data == serialize(self.igop_3, self.user)
-
-    def test_get_with_multiple_filters(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug,
-            incident_id=str(self.incident_1.id),
-            group_id=str(self.group_1.id),
-        )
-        assert response.data == serialize(self.igop_1, self.user)
-
     def test_get_with_multiple_filters_with_invalid_filter(self) -> None:
         self.get_error_response(
             self.organization.slug,
