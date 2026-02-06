@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,6 +18,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -49,7 +50,14 @@ function SentryApplicationDashboard() {
     data: app,
     isPending: isAppPending,
     isError: isAppError,
-  } = useApiQuery<SentryApp>([`/sentry-apps/${appSlug}/`], {staleTime: 0});
+  } = useApiQuery<SentryApp>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
+    ],
+    {staleTime: 0}
+  );
 
   const {
     data: interactions,
@@ -57,7 +65,9 @@ function SentryApplicationDashboard() {
     isError: isInteractionsError,
   } = useApiQuery<Interactions>(
     [
-      `/sentry-apps/${appSlug}/interaction/`,
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/interaction/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
     {staleTime: 0}
@@ -69,7 +79,9 @@ function SentryApplicationDashboard() {
     isError: isStatsError,
   } = useApiQuery<Stats>(
     [
-      `/sentry-apps/${appSlug}/stats/`,
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/stats/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
     {staleTime: 0}
@@ -269,7 +281,7 @@ const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: 12px;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledFooter = styled('div')`

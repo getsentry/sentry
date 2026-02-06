@@ -1,0 +1,301 @@
+{
+  "platform": "python",
+  "message": "Error creating HTTP client: cannot import name 'create_http_client' from 'app.utils.http' (D:\\engine\\app\\utils\\http.py)",
+  "threads": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<module>",
+              "module": "__main__",
+              "filename": "<string>",
+              "abs_path": "D:\\engine\\<string>",
+              "context_line": "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11, pipe_handle=32)"
+            },
+            {
+              "function": "spawn_main",
+              "module": "multiprocessing.spawn",
+              "filename": "multiprocessing\\spawn.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\multiprocessing\\spawn.py",
+              "context_line": "exitcode = _main(fd, parent_sentinel)"
+            },
+            {
+              "function": "_main",
+              "module": "multiprocessing.spawn",
+              "filename": "multiprocessing\\spawn.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\multiprocessing\\spawn.py",
+              "context_line": "return self._bootstrap(parent_sentinel)"
+            },
+            {
+              "function": "_bootstrap",
+              "module": "multiprocessing.process",
+              "filename": "multiprocessing\\process.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\multiprocessing\\process.py",
+              "context_line": "self.run()"
+            },
+            {
+              "function": "run",
+              "module": "multiprocessing.process",
+              "filename": "multiprocessing\\process.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\multiprocessing\\process.py",
+              "context_line": "self._target(*self._args, **self._kwargs)"
+            },
+            {
+              "function": "subprocess_started",
+              "module": "uvicorn._subprocess",
+              "filename": "uvicorn\\_subprocess.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\uvicorn\\_subprocess.py",
+              "context_line": "target(sockets=sockets)"
+            },
+            {
+              "function": "run",
+              "module": "uvicorn.server",
+              "filename": "uvicorn\\server.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\uvicorn\\server.py",
+              "context_line": "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
+            },
+            {
+              "function": "run",
+              "module": "asyncio.runners",
+              "filename": "asyncio\\runners.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\runners.py",
+              "context_line": "return runner.run(main)"
+            },
+            {
+              "function": "run",
+              "module": "asyncio.runners",
+              "filename": "asyncio\\runners.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\runners.py",
+              "context_line": "return self._loop.run_until_complete(task)"
+            },
+            {
+              "function": "run_until_complete",
+              "module": "asyncio.base_events",
+              "filename": "asyncio\\base_events.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\base_events.py",
+              "context_line": "self.run_forever()"
+            },
+            {
+              "function": "run_forever",
+              "module": "asyncio.base_events",
+              "filename": "asyncio\\base_events.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\base_events.py",
+              "context_line": "self._run_once()"
+            },
+            {
+              "function": "_run_once",
+              "module": "asyncio.base_events",
+              "filename": "asyncio\\base_events.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\base_events.py",
+              "context_line": "handle._run()"
+            },
+            {
+              "function": "_run",
+              "module": "asyncio.events",
+              "filename": "asyncio\\events.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\asyncio\\events.py",
+              "context_line": "self._context.run(self._callback, *self._args)"
+            },
+            {
+              "function": "main",
+              "module": "uvicorn.lifespan.on",
+              "filename": "uvicorn\\lifespan\\on.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\uvicorn\\lifespan\\on.py",
+              "context_line": "await app(scope, self.receive, self.send)"
+            },
+            {
+              "function": "__call__",
+              "module": "uvicorn.middleware.proxy_headers",
+              "filename": "uvicorn\\middleware\\proxy_headers.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\uvicorn\\middleware\\proxy_headers.py",
+              "context_line": "return await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "fastapi.applications",
+              "filename": "fastapi\\applications.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\applications.py",
+              "context_line": "await super().__call__(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.applications",
+              "filename": "starlette\\applications.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\applications.py",
+              "context_line": "await self.middleware_stack(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.middleware.errors",
+              "filename": "starlette\\middleware\\errors.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\middleware\\errors.py",
+              "context_line": "await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.middleware.base",
+              "filename": "starlette\\middleware\\base.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\middleware\\base.py",
+              "context_line": "await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.middleware.cors",
+              "filename": "starlette\\middleware\\cors.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\middleware\\cors.py",
+              "context_line": "await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.middleware.exceptions",
+              "filename": "starlette\\middleware\\exceptions.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\middleware\\exceptions.py",
+              "context_line": "await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "fastapi.middleware.asyncexitstack",
+              "filename": "fastapi\\middleware\\asyncexitstack.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\middleware\\asyncexitstack.py",
+              "context_line": "await self.app(scope, receive, send)"
+            },
+            {
+              "function": "__call__",
+              "module": "starlette.routing",
+              "filename": "starlette\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\routing.py",
+              "context_line": "await self.middleware_stack(scope, receive, send)"
+            },
+            {
+              "function": "app",
+              "module": "starlette.routing",
+              "filename": "starlette\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\routing.py",
+              "context_line": "await self.lifespan(scope, receive, send)"
+            },
+            {
+              "function": "lifespan",
+              "module": "starlette.routing",
+              "filename": "starlette\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\starlette\\routing.py",
+              "context_line": "async with self.lifespan_context(app) as maybe_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "merged_lifespan",
+              "module": "fastapi.routing",
+              "filename": "fastapi\\routing.py",
+              "abs_path": "D:\\engine\\.venv\\Lib\\site-packages\\fastapi\\routing.py",
+              "context_line": "async with original_context(app) as maybe_original_state:"
+            },
+            {
+              "function": "run_app",
+              "module": "app.main",
+              "filename": "app\\main.py",
+              "abs_path": "D:\\engine\\app\\main.py",
+              "context_line": "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+            },
+            {
+              "function": "do_log",
+              "module": "app.main",
+              "filename": "app\\main.py",
+              "abs_path": "D:\\engine\\app\\main.py",
+              "context_line": "getattr(logger, level)(msg, *args, **kwargs)"
+            },
+            {
+              "function": "error",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\logging\\__init__.py",
+              "context_line": "self._log(ERROR, msg, args, **kwargs)"
+            },
+            {
+              "function": "_log",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\logging\\__init__.py",
+              "context_line": "self.handle(record)"
+            },
+            {
+              "function": "handle",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\logging\\__init__.py",
+              "context_line": "self.callHandlers(record)"
+            },
+            {
+              "function": "callHandlers",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\logging\\__init__.py",
+              "context_line": "hdlr.handle(record)"
+            },
+            {
+              "function": "handle",
+              "module": "logging",
+              "filename": "__init__.py",
+              "abs_path": "C:\\Users\\maisey\\AppData\\Fetch\\uv\\python\\cpython-3.13.1-windows-x86_64-none\\Lib\\logging\\__init__.py",
+              "context_line": "self.emit(record)"
+            }
+          ]
+        },
+        "crashed": false,
+        "current": true
+      }
+    ]
+  },
+  "logentry": {
+    "formatted": "Error creating HTTP client: cannot import name 'create_http_client' from 'app.utils.http' (D:\\engine\\app\\utils\\http.py)",
+    "params": []
+  },
+  "logger": "app.main"
+}

@@ -30,7 +30,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
     process_data_condition_group,
 )
-from sentry.workflow_engine.processors.detector import get_detectors_for_event
+from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
     WorkflowEvaluation,
@@ -386,6 +386,13 @@ def _get_associated_workflows(
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
     """
+    detector_ids = []
+    detector_types = []
+
+    for detector in detectors:
+        detector_ids.append(detector.id)
+        detector_types.append(detector.type)
+
     environment_filter = (
         (Q(environment_id=None) | Q(environment_id=environment.id))
         if environment
@@ -394,7 +401,7 @@ def _get_associated_workflows(
     workflows = set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
+            detectorworkflow__detector_id__in=detector_ids,
             enabled=True,
         )
         .select_related("environment")
@@ -421,7 +428,7 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_types": [detector.type for detector in detectors],
+                "detector_types": detector_types,
             },
         )
 
@@ -442,7 +449,6 @@ def process_workflows(
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.action import (
         filter_recently_fired_workflow_actions,
         fire_actions,
@@ -454,7 +460,7 @@ def process_workflows(
     )
 
     try:
-        event_detectors = get_detectors_for_event(event_data, detector)
+        event_detectors = get_detectors_for_event_data(event_data, detector)
 
         if not event_detectors:
             raise Detector.DoesNotExist("No Detectors associated with the issue were found")
@@ -546,11 +552,9 @@ def process_workflows(
             data=workflow_evaluation_data,
         )
 
-    should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     fire_histories = create_workflow_fire_histories(
         actions,
         event_data,
-        should_trigger_actions,
         is_delayed=False,
         start_timestamp=event_start_time,
     )

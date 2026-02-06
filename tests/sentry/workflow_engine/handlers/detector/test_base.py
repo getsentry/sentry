@@ -27,7 +27,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 def build_mock_occurrence_and_event(
-    handler: DetectorHandler,
+    handler: DetectorHandler[Any, Any],
     value: DataPacketEvaluationType,
     priority: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -44,7 +44,7 @@ def build_mock_occurrence_and_event(
     )
 
 
-def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessage):
+def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessage) -> bool:
     return (
         isinstance(other, StatusChangeMessage)
         and self.fingerprint == other.fingerprint
@@ -54,14 +54,14 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
     )
 
 
-class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
-    def test_get_empty_counter_state(self):
+class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | None]):
+    def test_get_empty_counter_state(self) -> dict[Any, int | None]:
         return {name: None for name in self.state_manager.counter_names}
 
-    def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def extract_value(self, data_packet: DataPacket[dict]) -> int:
+    def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
         if data_packet.packet.get("value"):
             return data_packet.packet["value"]
 
@@ -70,7 +70,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
-        data_packet: DataPacket[dict],
+        data_packet: DataPacket[dict[str, Any]],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         value = self.extract_value(data_packet)
@@ -99,33 +99,33 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC_ALERT.value
 
-        class MockDetectorHandler(DetectorHandler[dict, int]):
+        class MockDetectorHandler(DetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
-                self, data_packet: DataPacket[dict]
+                self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
                     result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
                     tainted=False,
                 )
 
-            def extract_value(self, data_packet: DataPacket[dict]) -> int:
+            def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("value", 0)
 
             def create_occurrence(
                 self,
                 evaluation_result: ProcessedDataConditionGroup,
-                data_packet: DataPacket[dict],
+                data_packet: DataPacket[dict[str, Any]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
-        class MockDetectorWithUpdateHandler(DetectorHandler[dict, int]):
+        class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
-                self, data_packet: DataPacket[dict]
+                self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 status_change = StatusChangeMessage(
                     "test_update",
@@ -146,16 +146,16 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             def create_occurrence(
                 self,
                 evaluation_result: ProcessedDataConditionGroup,
-                data_packet: DataPacket[dict],
+                data_packet: DataPacket[dict[str, Any]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
 
-            def extract_value(self, data_packet: DataPacket[dict]) -> int:
+            def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("value", 0)
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+            def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
         class HandlerGroupType(GroupType):
@@ -192,7 +192,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.uuid_patcher.stop()
         self.sm_comp_patcher.stop()
 
-    def create_detector_and_condition(self, type: str | None = None):
+    def create_detector_and_condition(self, type: str | None = None) -> tuple[Detector, Any]:
         if type is None:
             type = "handler_with_state"
         self.project = self.create_project()
@@ -218,7 +218,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         return detector, data_condition
 
     def build_handler(
-        self, detector: Detector | None = None, detector_type=None
+        self, detector: Detector | None = None, detector_type: str | None = None
     ) -> MockDetectorStateHandler:
         if detector is None:
             detector, _ = self.create_detector_and_condition(detector_type)
@@ -226,13 +226,13 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def assert_updates(
         self,
-        handler: StatefulDetectorHandler,
+        handler: StatefulDetectorHandler[Any, Any],
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
         counter_updates: DetectorCounters | None,
         is_triggered: bool | None,
         priority: DetectorPriorityLevel | None,
-    ):
+    ) -> None:
         """
         Use this method when testing state updates that have been executed by evaluate
         """

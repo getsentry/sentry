@@ -8,7 +8,7 @@ import {useListState} from '@react-stately/list';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from './control';
+import {ControlContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import type {
@@ -30,7 +30,8 @@ import {
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
-  extends Omit<ListProps<any>, 'disallowEmptySelection'>,
+  extends
+    Omit<ListProps<any>, 'disallowEmptySelection'>,
     Omit<
       AriaListBoxOptions<any>,
       | 'disallowEmptySelection'
@@ -124,8 +125,9 @@ export type SingleListProps<Value extends SelectKey> =
   | SingleClearableListProps<Value>
   | SingleUnclearableListProps<Value>;
 
-interface SingleUnclearableListProps<Value extends SelectKey>
-  extends BaseListProps<Value> {
+interface SingleUnclearableListProps<
+  Value extends SelectKey,
+> extends BaseListProps<Value> {
   onChange: (selectedOption: SelectOption<Value>) => void;
   value: Value | undefined;
   clearable?: false;
@@ -172,7 +174,7 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, overlayIsOpen} = useContext(SelectContext);
+  const {overlayState, search, overlayIsOpen} = useContext(ControlContext);
 
   const hiddenOptions = useMemo(
     () => getHiddenOptions(items, search, sizeLimit),

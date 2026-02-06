@@ -9,8 +9,9 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react-lite';
 
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import FormContext from 'sentry/components/forms/formContext';
@@ -115,6 +116,12 @@ interface BaseProps {
    */
   getData?: (value: any) => any;
   /**
+   * Transform field value for form submission via getTransformedData().
+   * Unlike getData (which only works for save-on-blur), this is used
+   * when the full form is submitted via saveForm().
+   */
+  getValue?: (value: any) => any;
+  /**
    * Should hide error message?
    */
   hideErrorMessage?: boolean;
@@ -166,7 +173,8 @@ interface BaseProps {
 }
 
 export interface FormFieldProps
-  extends BaseProps,
+  extends
+    BaseProps,
     ObservableProps,
     Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 

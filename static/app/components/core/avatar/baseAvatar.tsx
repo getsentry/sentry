@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
 
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
 import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
@@ -153,7 +154,8 @@ const AvatarContainer = styled('span')<{
 }>`
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
-  border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
+  border: ${p =>
+    p.suggested ? `1px dashed ${p.theme.tokens.border.neutral.vibrant}` : 'none'};
   background-color: ${p => (p.suggested ? p.theme.tokens.background.primary : 'none')};
 `;
 

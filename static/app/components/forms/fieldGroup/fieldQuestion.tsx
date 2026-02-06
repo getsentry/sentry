@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export const FieldQuestion = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+export function FieldQuestion(props: FlexProps<'div'>) {
+  return <Flex align="center" {...props} />;
+}

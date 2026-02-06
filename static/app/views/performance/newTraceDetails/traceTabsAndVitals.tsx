@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Flex} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
@@ -114,5 +115,5 @@ export function TraceTabsAndVitals({
 }
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
-  background-color: ${p => p.theme.colors.blue100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;

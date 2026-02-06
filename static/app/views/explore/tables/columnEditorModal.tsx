@@ -3,12 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -25,6 +25,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
+  booleanTags: TagCollection;
   columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
@@ -43,6 +44,7 @@ export function ColumnEditorModal({
   columns,
   onColumnsChange,
   requiredTags,
+  booleanTags,
   numberTags,
   stringTags,
   hiddenKeys,
@@ -52,7 +54,10 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(column => !(column in stringTags) && !(column in numberTags))
+        .filter(
+          column =>
+            !(column in stringTags) && !(column in numberTags) && !(column in booleanTags)
+        )
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);
@@ -109,6 +114,24 @@ export function ColumnEditorModal({
           ),
         };
       }),
+      ...Object.values(booleanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.BOOLEAN} />,
+          key: `${tag.key}-${FieldKind.BOOLEAN}`,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={tag.key}
+              kind={FieldKind.BOOLEAN}
+              label={tag.name}
+              traceItemType={TraceItemDataset.SPANS}
+            />
+          ),
+        };
+      }),
     ];
     allTags = allTags
       .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
@@ -124,7 +147,7 @@ export function ColumnEditorModal({
         return 0;
       });
     return allTags;
-  }, [columns, stringTags, numberTags, hiddenKeys]);
+  }, [booleanTags, columns, hiddenKeys, numberTags, stringTags]);
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
@@ -261,7 +284,7 @@ function ColumnEditorRow({
     >
       <StyledButton
         aria-label={t('Drag to reorder')}
-        borderless
+        priority="transparent"
         size="sm"
         icon={<IconGrabbable size="sm" />}
         {...listeners}
@@ -273,17 +296,21 @@ function ColumnEditorRow({
         onChange={handleColumnChange}
         disabled={required}
         searchable
-        triggerProps={{
-          children: label,
-          prefix: t('Column'),
-          style: {
-            width: '100%',
-          },
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            prefix={t('Column')}
+            style={{
+              width: '100%',
+            }}
+          >
+            {label}
+          </OverlayTrigger.Button>
+        )}
       />
       <StyledButton
         aria-label={t('Remove Column')}
-        borderless
+        priority="transparent"
         disabled={!canDelete || required}
         size="sm"
         icon={<IconDelete size="sm" />}
@@ -324,5 +351,9 @@ const TriggerLabel = styled('span')`
 `;
 
 const TriggerLabelText = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

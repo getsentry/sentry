@@ -1,4 +1,5 @@
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import List from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';

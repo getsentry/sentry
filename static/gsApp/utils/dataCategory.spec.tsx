@@ -23,6 +23,7 @@ import {
   getSingularCategoryName,
   hasCategoryFeature,
   isByteCategory,
+  isEmergeCategory,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
@@ -173,6 +174,18 @@ describe('sortCategories', () => {
         prepaid: 0,
         order: 16,
       }),
+      MetricHistoryFixture({
+        category: DataCategory.SIZE_ANALYSIS,
+        reserved: 100,
+        prepaid: 100,
+        order: 17,
+      }),
+      MetricHistoryFixture({
+        category: DataCategory.INSTALLABLE_BUILD,
+        reserved: 25000,
+        prepaid: 25000,
+        order: 18,
+      }),
     ]);
   });
 
@@ -258,6 +271,24 @@ describe('sortCategories', () => {
           reserved: 0,
           prepaid: 0,
           order: 16,
+        }),
+      ],
+      [
+        'sizeAnalyses',
+        MetricHistoryFixture({
+          category: DataCategory.SIZE_ANALYSIS,
+          reserved: 100,
+          prepaid: 100,
+          order: 17,
+        }),
+      ],
+      [
+        'installableBuilds',
+        MetricHistoryFixture({
+          category: DataCategory.INSTALLABLE_BUILD,
+          reserved: 25000,
+          prepaid: 25000,
+          order: 18,
         }),
       ],
     ]);
@@ -454,7 +485,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, spans, uptime monitors, and logs'
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, logs, size analysis builds, and build distribution installs'
     );
   });
 
@@ -466,7 +497,7 @@ describe('listDisplayNames', () => {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, size analysis builds, build distribution installs, and stored spans'
     );
   });
 });
@@ -477,6 +508,20 @@ describe('isByteCategory', () => {
     expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
     expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
     expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
+  });
+});
+
+describe('isEmergeCategory', () => {
+  it('returns true for SIZE_ANALYSIS and INSTALLABLE_BUILD', () => {
+    expect(isEmergeCategory(DataCategory.SIZE_ANALYSIS)).toBe(true);
+    expect(isEmergeCategory(DataCategory.INSTALLABLE_BUILD)).toBe(true);
+  });
+
+  it('returns false for other categories', () => {
+    expect(isEmergeCategory(DataCategory.ERRORS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.TRANSACTIONS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.ATTACHMENTS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.REPLAYS)).toBe(false);
   });
 });
 

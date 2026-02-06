@@ -228,6 +228,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     expect(screen.getByText('Available Products')).toBeInTheDocument(); // will always show if any product is launched and available for an org
 
@@ -265,6 +273,14 @@ describe('ChangePlanAction', () => {
       '1'
     );
     await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      '100'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      '-1'
+    );
 
     // XXX: irl we would not have both versions of Seer available, but doing this for testing multiple addons
     expect(screen.getByText('Available Products')).toBeInTheDocument();
@@ -539,6 +555,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
@@ -591,6 +615,14 @@ describe('ChangePlanAction', () => {
         '1'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        '100'
+      );
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        '-1'
+      );
 
       // Submit the form
       expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();

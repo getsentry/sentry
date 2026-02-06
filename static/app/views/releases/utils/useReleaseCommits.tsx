@@ -1,4 +1,5 @@
 import type {Commit, Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -12,13 +13,12 @@ type PageFilterUrlParams =
   | 'environment';
 type OtherUrlParams = 'cursor' | 'perPage';
 
-interface UseReleaseCommitsParams
-  extends Partial<
-    Record<
-      PageFilterUrlParams | OtherUrlParams,
-      string | string[] | number | null | undefined
-    >
-  > {
+interface UseReleaseCommitsParams extends Partial<
+  Record<
+    PageFilterUrlParams | OtherUrlParams,
+    string | string[] | number | null | undefined
+  >
+> {
   projectSlug: string;
   release: string;
   activeRepository?: Repository;
@@ -37,9 +37,16 @@ export function useReleaseCommits(
   const organization = useOrganization();
   return useApiQuery<Commit[]>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        release
-      )}/commits/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            version: release,
+          },
+        }
+      ),
       {
         query: {
           ...query,

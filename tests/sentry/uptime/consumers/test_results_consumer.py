@@ -1,7 +1,9 @@
 import abc
+import base64
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+from io import BytesIO
 from typing import Literal
 from unittest import mock
 from unittest.mock import MagicMock, call
@@ -26,7 +28,8 @@ from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
@@ -42,7 +45,7 @@ from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     disable_uptime_detector,
@@ -52,7 +55,7 @@ from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.uptime.utils import (
     build_backlog_key,
     build_detector_fingerprint_component,
-    build_last_seen_interval_key,
+    build_last_interval_change_timestamp_key,
     build_last_update_key,
     get_cluster,
 )
@@ -313,16 +316,19 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update (between last check and now)
+        interval_change_ms = last_update_ms + (1000 * 1000)  # 1000 seconds after last check
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -331,24 +337,31 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
     def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
-        # has an interval of 300 seconds, which we're going to say was just recently
-        # changed.  Verify we don't emit any metrics recording of a missed check
+        # has an interval of 300 seconds. The interval was changed AFTER the last check,
+        # so this gap should be skipped (it's the interval transition).
+        last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
-            int(result["scheduled_check_time_ms"]) - (3500 * 1000),
+            last_update_ms,
         )
 
+        # Set interval change timestamp to be AFTER the last update
+        interval_change_ms = last_update_ms + (1000 * 1000)
         get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            3600 * 1000,
+            build_last_interval_change_timestamp_key(self.detector),
+            interval_change_ms,
         )
 
         with (
@@ -357,11 +370,16 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             self.send_result(result)
             logger.info.assert_any_call(
-                "uptime.result_processor.false_num_missing_check",
-                extra={**result},
+                "uptime.result_processor.skipping_backfill_interval_changed",
+                extra={
+                    "last_update_ms": last_update_ms,
+                    "interval_change_ms": interval_change_ms,
+                    **result,
+                },
             )
 
-        # Send another check that should now be classified as a miss
+        # Send another check that should now be classified as a miss because the last
+        # update is now AFTER the interval change timestamp
         result = self.create_uptime_result(self.subscription.subscription_id)
         result["scheduled_check_time_ms"] = int(result["scheduled_check_time_ms"]) + (600 * 1000)
         result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
@@ -387,11 +405,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             last_update_time,
         )
 
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
-        )
-
         # Enabling and disabling should clear the last_update_time, and we
         # will not produce any synthetic checks
         disable_uptime_detector(self.detector)
@@ -412,15 +425,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         # Pretend we got a result 900 seconds ago; the subscription
         # has an interval of 300 seconds.  We've missed two checks.
+        # No interval change timestamp is set, so backfill should run.
         last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
         get_cluster().set(
             build_last_update_key(self.detector),
             last_update_time,
-        )
-
-        get_cluster().set(
-            build_last_seen_interval_key(self.detector),
-            300 * 1000,
         )
 
         with (
@@ -672,8 +681,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category, seat_object):
-                remove_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category=None, seat_object=None):
+                remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
 
@@ -712,7 +721,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert remove_call_vals == [(DataCategory.UPTIME, self.detector.id)]
+        assert remove_call_vals == [self.detector.id]
 
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
@@ -1284,14 +1293,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             37,
         )
 
-        five_min_sub = self.create_uptime_subscription(
+        # Test that region check does NOT run at non-matching minutes
+        five_min_sub_no_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=6).hex,
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
-        self.create_uptime_detector(uptime_subscription=five_min_sub)
+        self.create_uptime_detector(uptime_subscription=five_min_sub_no_update)
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1300,7 +1310,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=6,
         )
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1309,7 +1319,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=35,
         )
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_no_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1317,8 +1327,17 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             [],
             current_minute=49,
         )
+
+        # Test that region check DOES run at matching minute (fresh subscription to avoid dedup)
+        # Uses int=18 because 18 % 12 = 6, same as int=6, so it triggers at the same minute
+        five_min_sub_with_update = self.create_uptime_subscription(
+            subscription_id=uuid.UUID(int=18).hex,
+            region_slugs=["region1"],
+            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+        )
+        self.create_uptime_detector(uptime_subscription=five_min_sub_with_update)
         self.run_check_and_update_region_test(
-            five_min_sub,
+            five_min_sub_with_update,
             ["region1", "region2"],
             {},
             {"region1": UptimeSubscriptionRegion.RegionMode.ACTIVE},
@@ -1480,6 +1499,242 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             # Verify both results were queued
             backlog_key = build_backlog_key(str(self.subscription.id))
             assert cluster.zcard(backlog_key) == 2
+
+    def test_response_capture_created_on_failure(self) -> None:
+        """
+        Test that a response capture is created when a failure result contains response data.
+        """
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [
+                    ["Content-Type", "text/html"],
+                    ["X-Custom-Header", "value"],
+                ],
+            }
+        ]
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_any_call(
+                "uptime.response_capture.created",
+                sample_rate=1.0,
+            )
+
+        captures = UptimeResponseCapture.objects.filter(uptime_subscription_id=self.subscription.id)
+        assert captures.count() == 1
+
+        capture = captures.first()
+        assert capture is not None
+        assert capture.scheduled_check_time_ms == result["scheduled_check_time_ms"]
+
+        file = File.objects.get(id=capture.file_id)
+        file_content = file.getfile().read()
+        assert b"Content-Type: text/html" in file_content
+        assert b"X-Custom-Header: value" in file_content
+        assert b"---BODY---" in file_content
+        assert response_body in file_content
+
+    def test_response_capture_skipped_without_response_data(self) -> None:
+        """
+        Test that no capture is created when the result doesn't contain response data.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [{**request_info, "response_body": None}]
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+
+    def test_response_capture_skipped_when_already_exists(self) -> None:
+        """
+        Test that no duplicate capture is created when one already exists for
+        the same scheduled check time (e.g., on retry).
+        """
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [["Content-Type", "text/html"]],
+            }
+        ]
+
+        # Pre-create a capture for the same scheduled check time
+        existing_file = File.objects.create(name="existing-response", type="uptime.response")
+        existing_file.putfile(BytesIO(b"existing content"))
+        UptimeResponseCapture.objects.create(
+            uptime_subscription=self.subscription,
+            file_id=existing_file.id,
+            scheduled_check_time_ms=result["scheduled_check_time_ms"],
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            # Should not have created a new capture
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        # Still only one capture
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 1
+        )
+        # And only one file (the original)
+        assert File.objects.filter(type="uptime.response").count() == 1
+
+    def test_response_capture_toggle_disabled_on_failure(self) -> None:
+        """
+        Test that response capture is disabled on failure.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        assert self.subscription.capture_response_on_failure is True
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert self.subscription.capture_response_on_failure is False
+
+    def test_response_capture_toggle_enabled_on_success(self) -> None:
+        """
+        Test that response capture is re-enabled on success.
+        """
+        self.subscription.update(capture_response_on_failure=False)
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert self.subscription.capture_response_on_failure is True
+
+    def test_response_capture_not_reenabled_when_user_disabled(self) -> None:
+        """
+        Test that capture_response_on_failure is not re-enabled on success when the user
+        has disabled response capture entirely via response_capture_enabled=False.
+        """
+        self.subscription.update(
+            response_capture_enabled=False,
+            capture_response_on_failure=False,
+        )
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert not self.subscription.capture_response_on_failure
+
+    def test_response_capture_skipped_when_disabled_by_user(self) -> None:
+        """
+        Test that response capture is skipped when response_capture_enabled is False.
+        """
+        self.subscription.update(response_capture_enabled=False)
+
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [
+                    ["Content-Type", "text/html"],
+                ],
+            }
+        ]
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+        assert File.objects.filter(type="uptime.response").count() == 0
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)

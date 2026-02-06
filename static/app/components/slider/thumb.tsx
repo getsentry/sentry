@@ -70,33 +70,33 @@ const SliderThumbWrap = styled('div')<{
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
-  background: ${p => p.theme.active};
-  color: ${p => p.theme.activeText};
-  border: solid 2px ${p => p.theme.tokens.background.primary};
+  background: ${p => p.theme.tokens.background.accent.vibrant};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  border: solid 2px ${p => p.theme.tokens.border.primary};
   cursor: pointer;
   transition:
     box-shadow 0.1s,
     background 0.1s;
 
   &:hover {
-    background: ${p => p.theme.activeHover};
+    background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
   }
 
   ${p =>
     p.error &&
     css`
-      background: ${p.theme.error};
-      color: ${p.theme.errorText};
+      background: ${p.theme.tokens.background.danger.vibrant};
+      color: ${p.theme.tokens.content.danger};
 
       &:hover {
-        background: ${p.theme.error};
+        background: ${p.theme.tokens.background.danger.vibrant};
       }
     `}
 
   ${p =>
     p.isFocused &&
     css`
-      box-shadow: 0 0 0 2px ${p.error ? p.theme.tokens.border.danger : p.theme.focus};
+      box-shadow: 0 0 0 2px ${p.theme.tokens.focus[p.error ? 'invalid' : 'default']};
       z-index: 1;
     `}
 
@@ -104,11 +104,11 @@ const SliderThumbWrap = styled('div')<{
     p.isDisabled &&
     css`
       cursor: initial;
-      background: ${p.theme.subText};
-      color: ${p.theme.subText};
+      background: ${p.theme.tokens.background.secondary};
+      color: ${p.theme.tokens.content.disabled};
 
       &:hover {
-        background: ${p.theme.subText};
+        background: ${p.theme.tokens.background.secondary};
       }
     `};
 
@@ -129,7 +129,7 @@ const SliderThumbLabel = styled('span')`
   position: absolute;
   bottom: calc(100% + ${space(0.25)});
 
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-variant-numeric: tabular-nums;
 `;

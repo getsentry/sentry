@@ -1,4 +1,4 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+// import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Relocations from 'admin/views/relocations';
@@ -135,8 +135,7 @@ describe('Relocations', () => {
   });
 
   it('renders', async () => {
-    const {routerProps} = initializeOrg();
-    render(<Relocations {...routerProps} />);
+    render(<Relocations />);
 
     expect(await screen.findByRole('heading', {name: 'Relocations'})).toBeInTheDocument();
 

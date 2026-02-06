@@ -2,8 +2,9 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import Accordion from 'sentry/components/container/accordion';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -32,7 +33,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Dead Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -42,7 +43,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -54,7 +55,7 @@ export default function DeadRageSelectorCards() {
         header={
           <div>
             <StyledWidgetHeader>
-              <TitleTooltipContainer>
+              <Flex align="center" gap="md">
                 {t('Most Rage Clicks')}
                 <QuestionTooltip
                   size="xs"
@@ -64,7 +65,7 @@ export default function DeadRageSelectorCards() {
                   )}
                   isHoverable
                 />
-              </TitleTooltipContainer>
+              </Flex>
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -226,12 +227,6 @@ const StyledAccordionHeader = styled('div')`
   align-items: center;
 `;
 
-const TitleTooltipContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const StyledWidgetHeader = styled(HeaderTitleLegend)`
   display: grid;
   justify-content: space-between;
@@ -253,7 +248,7 @@ export const RightAlignedCell = styled('div')`
 `;
 
 const EmptySubtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.6em;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
@@ -273,7 +268,7 @@ const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${space(1.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

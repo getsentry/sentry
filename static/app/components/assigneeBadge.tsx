@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tag} from 'sentry/components/core/badge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -144,7 +145,11 @@ const TooltipWrapper = styled('div')`
 const StyledText = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   max-width: 114px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`
@@ -152,7 +157,7 @@ const StyledTag = styled(Tag)`
   height: 24px;
   padding: ${space(0.5)};
   padding-right: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const UnassignedTag = styled(StyledTag)`
@@ -161,14 +166,14 @@ const UnassignedTag = styled(StyledTag)`
 `;
 
 const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;

@@ -389,7 +389,7 @@ function UsageChartBody({
             tooltip: {show: false},
             itemStyle: {
               decal: {
-                color: theme.subText,
+                color: theme.tokens.content.secondary,
                 dashArrayX: [1, 0],
                 dashArrayY: [3, 5],
                 rotation: -Math.PI / 4,
@@ -468,7 +468,7 @@ function UsageChartBody({
         minInterval: yAxisMinInterval,
         axisLabel: {
           formatter: yAxisLabelFormatter,
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
         },
       }}
       series={series}
@@ -518,5 +518,5 @@ const ErrorMessages = styled('div')`
   flex-direction: column;
 
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

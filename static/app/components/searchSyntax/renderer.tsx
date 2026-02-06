@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, keyframes, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import modifyColor from 'color';
 import {useReducedMotion} from 'framer-motion';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 
 import type {ParseResult, TokenResult} from './parser';
@@ -229,6 +231,7 @@ function KeyToken({
     | Token.KEY_SIMPLE
     | Token.KEY_AGGREGATE
     | Token.KEY_EXPLICIT_TAG
+    | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
     | Token.KEY_EXPLICIT_FLAG
@@ -294,20 +297,32 @@ const colorType = (p: TokenGroupProps) =>
 function makeSearchTokenVariants(theme: Theme) {
   return {
     searchTokenBorder: {
-      valid: theme.colors.blue200,
-      validActive: modifyColor(theme.colors.blue200).opaquer(1).string(),
-      invalid: theme.colors.red200,
-      invalidActive: modifyColor(theme.colors.red200).opaquer(1).string(),
-      warning: theme.colors.yellow200,
-      warningActive: modifyColor(theme.colors.yellow200).opaquer(1).string(),
+      valid: theme.tokens.border.transparent.accent.muted,
+      validActive: modifyColor(theme.tokens.border.transparent.accent.moderate)
+        .opaquer(1)
+        .string(),
+      invalid: theme.tokens.border.transparent.danger.muted,
+      invalidActive: modifyColor(theme.tokens.border.transparent.danger.moderate)
+        .opaquer(1)
+        .string(),
+      warning: theme.tokens.border.transparent.warning.muted,
+      warningActive: modifyColor(theme.tokens.border.transparent.warning.moderate)
+        .opaquer(1)
+        .string(),
     },
     searchTokenBackground: {
-      valid: theme.colors.blue100,
-      validActive: modifyColor(theme.colors.blue100).opaquer(1.0).string(),
-      invalid: theme.colors.red100,
-      invalidActive: modifyColor(theme.colors.red100).opaquer(0.8).string(),
-      warning: theme.colors.yellow100,
-      warningActive: modifyColor(theme.colors.yellow100).opaquer(0.8).string(),
+      valid: theme.tokens.background.transparent.accent.muted,
+      validActive: modifyColor(theme.tokens.background.transparent.accent.muted)
+        .opaquer(1.0)
+        .string(),
+      invalid: theme.tokens.background.transparent.danger.muted,
+      invalidActive: modifyColor(theme.tokens.background.transparent.danger.muted)
+        .opaquer(0.8)
+        .string(),
+      warning: theme.tokens.background.transparent.warning.muted,
+      warningActive: modifyColor(theme.tokens.background.transparent.warning.muted)
+        .opaquer(0.8)
+        .string(),
     },
   };
 }
@@ -349,7 +364,7 @@ const Negation = styled('span')`
   border-right: none;
   padding-left: 1px;
   margin-left: -1px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   border-radius: 2px 0 0 2px;
   color: ${p => p.theme.colors.red500};
 `;
@@ -357,8 +372,8 @@ const Negation = styled('span')`
 const Key = styled('span')<{negated: boolean}>`
   ${filterCss};
   border-right: none;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.negated
       ? css`
@@ -375,7 +390,7 @@ const Key = styled('span')<{negated: boolean}>`
 const ExplicitKey = styled('span')<{prefix: string}>`
   &:before,
   &:after {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
   &:before {
     content: '${p => p.prefix}[';
@@ -412,13 +427,13 @@ const FreeText = styled('span')`
 `;
 
 const Unit = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.green500};
 `;
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
@@ -431,27 +446,27 @@ const DateTime = styled('span')`
 `;
 
 const ListComma = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Paren = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InList = styled('span')`
   &:before {
     content: '[';
-    font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+    color: ${p => p.theme.tokens.content.accent};
   }
   &:after {
     content: ']';
-    font-weight: ${p => p.theme.fontWeight.bold};
-    color: ${p => p.theme.colors.blue500};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+    color: ${p => p.theme.tokens.content.accent};
   }
 
   ${Value} {
-    color: ${p => p.theme.colors.blue500};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 
@@ -472,7 +487,7 @@ const LogicGroup = styled(({children, ...props}: any) => (
       top: -5px;
       color: ${p => p.theme.colors.pink500};
       font-size: 16px;
-      font-weight: ${p => p.theme.fontWeight.bold};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 

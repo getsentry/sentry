@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {space} from 'sentry/styles/space';
 

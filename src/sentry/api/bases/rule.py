@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 class RuleEndpoint(ProjectEndpoint):
@@ -20,6 +21,9 @@ class RuleEndpoint(ProjectEndpoint):
 
         if not rule_id.isdigit():
             raise ResourceDoesNotExist
+
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
 
         try:
             kwargs["rule"] = Rule.objects.get(

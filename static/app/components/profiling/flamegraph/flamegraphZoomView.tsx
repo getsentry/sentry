@@ -3,6 +3,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
@@ -789,7 +791,7 @@ function FlamegraphZoomView({
   }, []);
 
   return (
-    <CanvasContainer ref={canvasContainerRef}>
+    <Stack width="100%" height="100%" position="relative" ref={canvasContainerRef}>
       <Canvas
         ref={setFlamegraphCanvasRef}
         onMouseDown={onCanvasMouseDown}
@@ -829,17 +831,9 @@ function FlamegraphZoomView({
           platform={profileGroup.metadata.platform}
         />
       ) : null}
-    </CanvasContainer>
+    </Stack>
   );
 }
-
-const CanvasContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: relative;
-`;
 
 const Canvas = styled('canvas')<{
   cursor?: CSSProperties['cursor'];

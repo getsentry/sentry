@@ -23,7 +23,7 @@ const StepperIndicator = styled('span')<{clickable?: boolean}>`
 const StepperTransitionIndicator = styled(motion.span)`
   height: 8px;
   width: 80px;
-  background-color: ${p => p.theme.colors.chonk.blue400};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   position: absolute;
 `;
 

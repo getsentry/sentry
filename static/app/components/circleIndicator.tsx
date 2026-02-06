@@ -26,8 +26,8 @@ const CircleIndicator = styled('div')<Props>`
   background: ${p =>
     p.color ??
     ((p.enabled ?? defaultProps.enabled)
-      ? p.theme.tokens.content.success
-      : p.theme.error)};
+      ? p.theme.tokens.background.success.vibrant
+      : p.theme.tokens.background.danger.vibrant)};
 `;
 
 export default CircleIndicator;

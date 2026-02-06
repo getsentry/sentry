@@ -280,6 +280,7 @@ const storeConfig: GroupingStoreDefinition = {
             },
             error: err => {
               const error = err.responseJSON?.detail || true;
+              // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
               reject(error);
             },
           });

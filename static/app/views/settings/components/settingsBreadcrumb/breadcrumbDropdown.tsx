@@ -5,23 +5,21 @@ import {type OverlayTriggerState} from '@react-stately/overlays';
 
 import {Button} from '@sentry/scraps/button';
 import {
-  SelectTrigger,
-  type SelectTriggerProps,
-} from '@sentry/scraps/compactSelect/trigger';
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-
-import {
   CompactSelect,
+  ControlContext,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {SelectContext} from 'sentry/components/core/compactSelect/control';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import Divider from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'clearable'> {
+interface BreadcrumbDropdownProps extends Omit<
+  SingleSelectProps<string>,
+  'onChange' | 'clearable'
+> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
@@ -78,7 +76,7 @@ function BreadcrumbDropdown({
   );
 }
 
-type MenuCrumbProps = SelectTriggerProps & {
+type MenuCrumbProps = TriggerProps & {
   crumbLabel: React.ReactNode;
   menuHasHover: boolean;
   isLast?: boolean;
@@ -99,7 +97,7 @@ const activeCrumbStates = new Set<OverlayTriggerState | undefined>();
 const CLOSE_MENU_TIMEOUT = 250;
 
 function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps) {
-  const {overlayState, overlayIsOpen} = useContext(SelectContext);
+  const {overlayState, overlayIsOpen} = useContext(ControlContext);
   const {open, close} = overlayState ?? {};
 
   const closeTimeoutRef = useRef<number>(undefined);
@@ -131,7 +129,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
   return (
     <Flex alignSelf="center">
       {flexProps => (
-        <SelectTrigger.Button
+        <OverlayTrigger.Button
           {...mergeProps(props, flexProps)}
           priority="link"
           showChevron={false}
@@ -142,7 +140,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
             <Text bold={false}>{crumbLabel} </Text>
             {isLast ? null : <Divider isHover={overlayIsOpen} />}
           </Flex>
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     </Flex>
   );

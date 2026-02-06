@@ -1,13 +1,20 @@
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
-from sentry.db.models.fields.node import NodeData
-from sentry.grouping.api import get_default_grouping_config_dict
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
+from sentry.grouping.api import (
+    _apply_custom_title_if_needed,
+    get_default_grouping_config_dict,
+    get_grouping_variants_for_event,
+    load_grouping_config,
+)
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.grouping.utils import resolve_fingerprint_values
+from sentry.grouping.fingerprinting.utils import resolve_fingerprint_values
 from sentry.grouping.variants import BaseVariant
+from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
 
@@ -263,16 +270,88 @@ release:foo                                     -> release-foo
 def test_variable_resolution() -> None:
     # TODO: This should be fleshed out to test way more cases, at which point we'll need to add some
     # actual data here
-    event_data = NodeData(id="11211231")
+    event = Event(project_id=908415, event_id="11211231", data={})
 
     for fingerprint_entry, expected_resolved_value in [
         ("{{ default }}", "{{ default }}"),
         ("{{default}}", "{{ default }}"),
         ("{{  default }}", "{{ default }}"),
+        ("{{ dog }}", "<unrecognized-variable-dog>"),
     ]:
-        assert resolve_fingerprint_values([fingerprint_entry], event_data) == [
+        assert resolve_fingerprint_values([fingerprint_entry], event) == [
             expected_resolved_value
         ], f"Entry {fingerprint_entry} resolved incorrectly"
+
+
+# TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we can
+# remove this test entirely, as the new behavior is also tested in `test_variable_resolution` above
+@django_db_all
+def test_resolves_unknown_variables_correctly_given_config_value() -> None:
+    fingerprint = ["{{ dog }}"]
+    event_data = {"message": "Dogs are great!", "fingerprint": fingerprint}
+    event = Event(event_id="11212012123120120415201309082013", project_id=908415, data=event_data)
+    winter_2023_config = load_grouping_config(
+        get_default_grouping_config_dict(WINTER_2023_GROUPING_CONFIG)
+    )
+    fall_2025_config = load_grouping_config(
+        get_default_grouping_config_dict(FALL_2025_GROUPING_CONFIG)
+    )
+
+    # Under the current config, we ask for legacy behavior, and as a result the unknown fingerprint
+    # variable is returned as is
+    with (
+        patch(
+            "sentry.grouping.api.resolve_fingerprint_values", wraps=resolve_fingerprint_values
+        ) as mock_resolve_fingerprint_values,
+        patch(
+            "sentry.grouping.api._apply_custom_title_if_needed", wraps=_apply_custom_title_if_needed
+        ) as mock_apply_custom_title_if_needed,
+    ):
+        get_grouping_variants_for_event(event, winter_2023_config)
+
+        assert mock_resolve_fingerprint_values.call_count == 1
+        assert mock_apply_custom_title_if_needed.call_count == 1
+        assert (
+            mock_resolve_fingerprint_values.call_args.kwargs["use_legacy_unknown_variable_handling"]
+            is True
+        )
+        assert (
+            mock_apply_custom_title_if_needed.call_args.kwargs[
+                "use_legacy_unknown_variable_handling"
+            ]
+            is True
+        )
+        assert resolve_fingerprint_values(
+            fingerprint, event, use_legacy_unknown_variable_handling=True
+        ) == ["{{ dog }}"]
+
+    # Under the new config, we ask for non-legacy behavior, and as a result the unknown fingerprint
+    # variable is replaced by a string flagging the problem
+    with (
+        patch(
+            "sentry.grouping.api.resolve_fingerprint_values", wraps=resolve_fingerprint_values
+        ) as mock_resolve_fingerprint_values,
+        patch(
+            "sentry.grouping.api._apply_custom_title_if_needed", wraps=_apply_custom_title_if_needed
+        ) as mock_apply_custom_title_if_needed,
+    ):
+        get_grouping_variants_for_event(event, fall_2025_config)
+
+        assert mock_resolve_fingerprint_values.call_count == 1
+        assert mock_apply_custom_title_if_needed.call_count == 1
+        assert (
+            mock_resolve_fingerprint_values.call_args.kwargs["use_legacy_unknown_variable_handling"]
+            is False
+        )
+        assert (
+            mock_apply_custom_title_if_needed.call_args.kwargs[
+                "use_legacy_unknown_variable_handling"
+            ]
+            is False
+        )
+        assert resolve_fingerprint_values(
+            fingerprint, event, use_legacy_unknown_variable_handling=False
+        ) == ["<unrecognized-variable-dog>"]
 
 
 @with_fingerprint_input("input")

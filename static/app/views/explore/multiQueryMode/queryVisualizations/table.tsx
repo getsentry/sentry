@@ -2,8 +2,10 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
@@ -12,7 +14,6 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -97,6 +98,7 @@ function AggregatesTable({
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(fields, tableRef, {
@@ -114,7 +116,7 @@ function AggregatesTable({
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <Flex align="center" gap="xs" />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -126,7 +128,8 @@ function AggregatesTable({
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              const tag =
+                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
               if (tag) {
                 label = tag.name;
               }
@@ -140,7 +143,7 @@ function AggregatesTable({
 
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
+                  <Flex align="center" gap="xs">
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
@@ -156,7 +159,7 @@ function AggregatesTable({
                         }
                       />
                     )}
-                  </TableHeadCellContent>
+                  </Flex>
                 </TableHeadCell>
               );
             })}
@@ -233,6 +236,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
@@ -252,14 +256,15 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              const tag =
+                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
 
               const direction = sortBys.find(s => s.field === field)?.kind;
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent>
+                  <Flex align="center" gap="xs">
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
@@ -275,7 +280,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                         }
                       />
                     )}
-                  </TableHeadCellContent>
+                  </Flex>
                 </TableHeadCell>
               );
             })}
@@ -336,18 +341,12 @@ const StyledLink = styled(Link)`
 `;
 
 const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   min-height: 12px;
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   height: 33px;
-`;
-
-const TableHeadCellContent = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

@@ -7,12 +7,9 @@ import useRouter from 'sentry/utils/useRouter';
 
 import {DesyncedFilterMessage} from './pageFilters/desyncedFilter';
 
-export interface DatePageFilterProps
-  extends Partial<
-    Partial<
-      Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>
-    >
-  > {
+export interface DatePageFilterProps extends Partial<
+  Partial<Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
+> {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -25,7 +22,6 @@ export function DatePageFilter({
   disabled,
   menuTitle,
   menuWidth,
-  triggerProps = {},
   resetParamsOnChange,
   ...selectProps
 }: DatePageFilterProps) {
@@ -57,7 +53,6 @@ export function DatePageFilter({
       menuTitle={menuTitle ?? t('Filter Time Range')}
       menuWidth={(menuWidth ?? desynced) ? '22em' : undefined}
       menuBody={desynced && <DesyncedFilterMessage />}
-      triggerProps={triggerProps}
     />
   );
 }

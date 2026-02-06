@@ -1,10 +1,10 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -135,11 +135,11 @@ const HovercardRow = styled(Link)`
 
 const AutomationActionWrapper = styled('div')`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const MoreText = styled('p')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
   padding: ${space(1)} ${space(2)};

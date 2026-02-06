@@ -1,5 +1,4 @@
 import {DocIntegrationFixture} from 'getsentry-test/fixtures/docIntegration';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -15,15 +14,13 @@ import DocIntegrations from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
   it('renders', () => {
-    const {routerProps} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: '/doc-integrations/',
       method: 'GET',
       body: [],
     });
 
-    render(<DocIntegrations {...routerProps} />);
+    render(<DocIntegrations />);
 
     expect(
       screen.getByRole('heading', {name: 'Document Integrations'})

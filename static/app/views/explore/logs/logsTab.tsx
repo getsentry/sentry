@@ -1,15 +1,19 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -17,6 +21,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -49,6 +54,7 @@ import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   LogsFilterSection,
@@ -84,14 +90,29 @@ import {
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
 
+interface LogsSearchBarProps {
+  tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
+}
+
+function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
+  const {displayAskSeer} = useSearchQueryBuilder();
+
+  if (displayAskSeer) {
+    return <LogsTabSeerComboBox />;
+  }
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
+}
+
 export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
@@ -105,6 +126,12 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
+
+  // AI search is gated behind the gen-ai-search-agent-translate feature flag
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
@@ -151,6 +178,11 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
   } = useTraceItemAttributes('number', HiddenLogSearchFields);
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useTraceItemAttributes('boolean', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -169,8 +201,10 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
     });
@@ -217,6 +251,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           onColumnsChange={onColumnsChange}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
+          booleanTags={booleanAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
           handleReset={() => {
             onColumnsChange(defaultLogFields());
@@ -226,7 +261,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, onColumnsChange, stringAttributes, numberAttributes]);
+  }, [booleanAttributes, fields, numberAttributes, onColumnsChange, stringAttributes]);
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
@@ -275,7 +310,11 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      enableAISearch={areAiFeaturesAllowed}
+      aiSearchBadgeType="alpha"
+      {...searchQueryBuilderProviderProps}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <LogsFilterSection>
@@ -287,7 +326,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
                 searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>
-            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+            <LogsSearchBar
+              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+            />
             {saveAsItems.length > 0 && (
               <DropdownMenu
                 items={saveAsItems}
@@ -312,9 +353,14 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={supportedAggregates}
+              booleanTags={booleanAttributes}
               numberTags={numberAttributes}
               stringTags={stringAttributes}
-              isLoading={numberAttributesLoading || stringAttributesLoading}
+              isLoading={
+                numberAttributesLoading ||
+                stringAttributesLoading ||
+                booleanAttributesLoading
+              }
               exploreQuery={logsSearch.formatString()}
               source={SchemaHintsSources.LOGS}
               searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
@@ -325,11 +371,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
 
       <ExploreBodyContent>
         <ExploreControlSection expanded={sidebarOpen}>
-          {sidebarOpen && (
-            <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
-          )}
+          {sidebarOpen ? <LogsToolbar /> : null}
         </ExploreControlSection>
-        <ExploreContentSection expanded={sidebarOpen}>
+        <ExploreContentSection>
           <OverChartButtonGroup>
             <LogsSidebarCollapseButton
               sidebarOpen={sidebarOpen}

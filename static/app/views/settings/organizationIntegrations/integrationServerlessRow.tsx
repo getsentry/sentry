@@ -1,13 +1,15 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -120,13 +122,13 @@ export function IntegrationServerlessRow({
   return (
     <Item>
       <NameWrapper>
-        <NameRuntimeVersionWrapper>
+        <Stack>
           <Name>{serverlessFunction.name}</Name>
           <RuntimeAndVersion>
             <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
             <DetailWrapper>{versionText}</DetailWrapper>
           </RuntimeAndVersion>
-        </NameRuntimeVersionWrapper>
+        </Stack>
       </NameWrapper>
       <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
       <StyledSwitch
@@ -174,11 +176,6 @@ const StyledSwitch = styled(Switch)`
 
 const UpdateButton = styled(Button)``;
 
-const NameRuntimeVersionWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Name = styled(`span`)`
   padding-bottom: ${space(1)};
 `;
@@ -186,7 +183,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DetailWrapper = styled('div')`

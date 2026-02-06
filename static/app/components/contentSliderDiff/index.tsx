@@ -127,13 +127,13 @@ const Header = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
 
   & > *:first-child {
-    color: ${p => p.theme.error};
+    color: ${p => p.theme.tokens.content.danger};
   }
 
   & > *:last-child {
@@ -186,7 +186,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 50%;
     transform: translateX(-50%);
   }
@@ -206,7 +206,7 @@ const DragHandle = styled('div')`
   &:hover,
   &:active {
     &::after {
-      background: ${p => p.theme.colors.blue500};
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
     }
   }
 
@@ -219,7 +219,7 @@ const DragHandle = styled('div')`
   }
 
   &[data-resizing]::after {
-    background: ${p => p.theme.colors.blue500};
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -232,11 +232,11 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.tokens.content.success};
+  border-color: ${p => p.theme.tokens.border.success.moderate};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.error};
+    border-color: ${p => p.theme.tokens.border.danger.moderate};
     border-right-width: 0;
   }
 `;

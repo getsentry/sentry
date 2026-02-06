@@ -56,7 +56,7 @@ const Meter = styled('div')`
   height: 100%;
   width: 100%;
   pointer-events: none;
-  background: ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const RangeWrapper = styled('div')`
@@ -140,7 +140,7 @@ export const TimelineScrubber = styled(Scrubber)`
    */
   ${PlaybackTimeValue},
   ${MouseTrackingValue} {
-    border-right: ${space(0.25)} solid ${p => p.theme.colors.blue400};
+    border-right: ${space(0.25)} solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -149,7 +149,6 @@ export const PlayerScrubber = styled(Scrubber)`
 
   ${Meter} {
     border-radius: ${p => p.theme.radius.md};
-    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   ${RangeWrapper} {
@@ -165,7 +164,7 @@ export const PlayerScrubber = styled(Scrubber)`
   }
 
   ${PlaybackTimeValue} {
-    background: ${p => p.theme.colors.blue200};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     border-radius: ${p => p.theme.radius.md};
 
     /**
@@ -175,12 +174,12 @@ export const PlayerScrubber = styled(Scrubber)`
      *           PlaybackTimeValue @ 20s
      */
     :after {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 
   ${MouseTrackingValue} {
-    background: ${p => p.theme.translucentBorder};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-radius: ${p => p.theme.radius.md};
 
     /**
@@ -191,7 +190,7 @@ export const PlayerScrubber = styled(Scrubber)`
      *      MouseTrackingValue @ 10s
      */
     :after {
-      background: ${p => p.theme.colors.gray500};
+      background: ${p => p.theme.tokens.background.overlay};
     }
   }
 
@@ -206,7 +205,7 @@ export const PlayerScrubber = styled(Scrubber)`
     pointer-events: none;
     box-sizing: content-box;
     border-radius: var(--size);
-    border: solid ${p => p.theme.white};
+    border: solid ${p => p.theme.tokens.border.onVibrant.light};
     border-width: var(--borderWidth);
     position: absolute;
     top: 0;

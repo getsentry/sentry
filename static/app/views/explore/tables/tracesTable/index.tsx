@@ -2,11 +2,11 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -196,6 +196,9 @@ function TraceRow({
     return [...leadingProjects, ...trailingProjects];
   }, [selectedProjects, trace]);
 
+  const projectSlugs =
+    traceProjects.length > 0 ? traceProjects : trace.project ? [trace.project] : [];
+
   return (
     <Fragment>
       <StyledPanelItem align="center" center onClick={onClickExpand}>
@@ -204,7 +207,7 @@ function TraceRow({
           aria-label={t('Toggle trace details')}
           aria-expanded={expanded}
           size="zero"
-          borderless
+          priority="transparent"
           onClick={() =>
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
@@ -214,7 +217,9 @@ function TraceRow({
           }
         />
         <TraceIdRenderer
+          projectSlugs={projectSlugs}
           traceId={trace.trace}
+          traceName={trace.name}
           timestamp={trace.end}
           onClick={event => {
             event.stopPropagation();
@@ -230,15 +235,7 @@ function TraceRow({
         <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
           <Description>
             <ProjectBadgeWrapper>
-              <ProjectsRenderer
-                projectSlugs={
-                  traceProjects.length > 0
-                    ? traceProjects
-                    : trace.project
-                      ? [trace.project]
-                      : []
-                }
-              />
+              <ProjectsRenderer projectSlugs={projectSlugs} />
             </ProjectBadgeWrapper>
             {trace.name ? (
               <WrappingText>{trace.name}</WrappingText>

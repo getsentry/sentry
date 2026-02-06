@@ -13,9 +13,10 @@ resources:
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
-import {Text} from 'sentry/components/core/text';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 // eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
 import {size} from 'sentry/utils/theme/scraps/tokens/size';
@@ -236,11 +237,20 @@ export function FontSize() {
     <Storybook.TokenReference
       scale="font.size"
       tokens={theme.font.size}
-      renderToken={({token}) => (
-        <Text size={token} variant="accent">
-          Aa
-        </Text>
-      )}
+      renderToken={({token}) => {
+        if (['3xl', '4xl'].includes(token)) {
+          return (
+            <Heading as="h4" size={token} variant="accent">
+              Aa
+            </Heading>
+          );
+        }
+        return (
+          <Text size={token} variant="accent">
+            Aa
+          </Text>
+        );
+      }}
     />
   );
 }
@@ -349,7 +359,7 @@ export function ShadowOffset() {
   return (
     <Storybook.TokenReference
       scale="shadow"
-      tokens={sortByValue(size.shadow)}
+      tokens={theme.shadow}
       renderToken={({value}) => (
         <Container
           as="div"
@@ -358,7 +368,7 @@ export function ShadowOffset() {
             width: '32px',
             height: '32px',
             background: theme.tokens.background.primary,
-            boxShadow: `0 ${value} 0 0 ${theme.tokens.border.accent.vibrant}`,
+            boxShadow: `${value}`,
           }}
           border="accent"
           radius="xs"
@@ -515,9 +525,8 @@ export function BorderColors() {
           radius="sm"
         />
       )}
-     />
-
-);
+    />
+  );
 }
 
 export function GraphicsColors() {
@@ -554,13 +563,13 @@ export function GraphicsColors() {
 
 export function ShadowColors() {
   const theme = useTheme();
-  const sh = theme.tokens.shadow;
   const groups = [
     {
       label: 'elevation',
       tokens: {
-        elevationLow: sh.elevationLow,
-        elevationMedium: sh.elevationMedium,
+        low: theme.shadow.low,
+        medium: theme.shadow.medium,
+        high: theme.shadow.high,
       },
     },
   ];
@@ -575,11 +584,11 @@ export function ShadowColors() {
             boxSizing: 'border-box',
             width: '40px',
             height: '40px',
-            background: theme.tokens.background.primary,
-            boxShadow: `0 4px 8px ${value}`,
+            background: theme.tokens.background.overlay,
+            boxShadow: value,
           }}
-          border="muted"
-          radius="sm"
+          border="primary"
+          radius="md"
         />
       )}
     />

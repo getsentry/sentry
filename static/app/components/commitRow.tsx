@@ -2,12 +2,14 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -79,7 +81,7 @@ function CommitRow({
   const firstRelease = commit.releases?.[0];
 
   return hasStreamlinedUI ? (
-    <StreamlinedCommitRow data-test-id="commit-row">
+    <Stack padding="0 lg lg" data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
         <StyledExternalLink
           href={commit.pullRequest?.externalUrl}
@@ -159,7 +161,7 @@ function CommitRow({
           </Fragment>
         )}
       </MetaWrapper>
-    </StreamlinedCommitRow>
+    </Stack>
   ) : (
     <StyledPanelItem key={commit.id} data-test-id="commit-row">
       {customAvatar ? (
@@ -255,7 +257,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4;
   margin: -4px;
 `;
@@ -267,7 +269,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -280,7 +282,7 @@ const EmailWarningIcon = styled('span')`
   right: -7px;
   line-height: 12px;
   border-radius: 50%;
-  border: 1px solid ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.yellow200};
   padding: 1px 2px 3px 2px;
 `;
@@ -293,18 +295,18 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.font.size.md : '13px')};
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   a {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
     text-decoration-style: dotted;
   }
@@ -314,18 +316,12 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
   }
 `;
 
-const StreamlinedCommitRow = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${space(1.5)} ${space(1.5)};
-`;
-
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   padding-top: ${space(0.25)};
 `;
 
@@ -343,7 +339,7 @@ const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.25)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   & svg {
     transition: 120ms opacity;

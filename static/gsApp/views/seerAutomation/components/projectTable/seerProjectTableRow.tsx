@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
-import {Text} from '@sentry/scraps/text/text';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
@@ -19,6 +20,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -47,18 +49,17 @@ export default function SeerProjectTableRow({
 
   // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
   // If any other value is set, we treat it as 'medium'.
-  const hasAutoFixEnabled =
-    autofixSettings.autofixAutomationTuning !== undefined &&
-    autofixSettings.autofixAutomationTuning !== 'off';
+  const isAutoFixEnabled = Boolean(
+    autofixSettings.autofixAutomationTuning &&
+    autofixSettings.autofixAutomationTuning !== 'off'
+  );
 
   // We used to have multiple stopping points for PR Creation.
   // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.
   // `open_pr` means seer will take those changes and push a PR for you.
-  // `background_agent` is a special value that indicates that the PR creation is delegated to a background agent.
   // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
-  const hasCreatePREnabled = autofixSettings.automatedRunStoppingPoint === 'open_pr';
-  const hasDelegationEnabled =
-    autofixSettings.automatedRunStoppingPoint === 'background_agent';
+  const isCreatePrEnabled = autofixSettings.automatedRunStoppingPoint !== 'code_changes';
+  const isBackgroundAgentEnabled = Boolean(autofixSettings.automationHandoff);
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -83,12 +84,14 @@ export default function SeerProjectTableRow({
         ) : (
           <Switch
             disabled={!canWrite}
-            checked={hasAutoFixEnabled}
+            checked={isAutoFixEnabled}
             onChange={e => {
-              const autofixAutomationTuning = e.target.checked ? 'medium' : 'off';
               addLoadingMessage(t('Updating Auto-Fix for %s', project.name));
               updateBulkAutofixAutomationSettings(
-                {projectIds: [project.id], autofixAutomationTuning},
+                {
+                  projectIds: [project.id],
+                  autofixAutomationTuning: e.target.checked ? 'medium' : 'off',
+                },
                 {
                   onError: () =>
                     addErrorMessage(t('Problem updating Auto-Fix for %s', project.name)),
@@ -101,7 +104,7 @@ export default function SeerProjectTableRow({
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        {hasDelegationEnabled ? (
+        {isBackgroundAgentEnabled ? (
           <Flex align="center" gap="sm">
             {'n/a'}
             <QuestionTooltip
@@ -113,8 +116,10 @@ export default function SeerProjectTableRow({
           <Placeholder height="20px" width="36px" />
         ) : (
           <Switch
-            disabled={!canWrite}
-            checked={hasCreatePREnabled}
+            disabled={
+              organization.enableSeerCoding === false || !canWrite || !isAutoFixEnabled
+            }
+            checked={organization.enableSeerCoding !== false && isCreatePrEnabled}
             onChange={e => {
               const automatedRunStoppingPoint = e.target.checked
                 ? 'open_pr'
@@ -141,46 +146,30 @@ export default function SeerProjectTableRow({
         ) : (
           <Flex align="center" gap="sm">
             <Switch
-              disabled={!canWrite || !hasDelegationEnabled}
-              checked={hasDelegationEnabled}
+              disabled
+              checked={isBackgroundAgentEnabled}
               onChange={() => {
-                // This preference can only be turned off, not on, from here.
-                // You need to go to the project settings page to turn it on.
-                addLoadingMessage(t('Updating background agent for %s', project.name));
-                updateBulkAutofixAutomationSettings(
-                  {
-                    projectIds: [project.id],
-                    automatedRunStoppingPoint: 'background_agent',
-                  },
-                  {
-                    onError: () =>
-                      addErrorMessage(
-                        t('Failed to update background agent for %s', project.name)
-                      ),
-                    onSuccess: () =>
-                      addSuccessMessage(
-                        t('Updated background agent for %s', project.name)
-                      ),
-                  }
-                );
+                // This preference has complicated configuration, and thus cannot be
+                // turned off or on from here.
               }}
             />
-            {hasDelegationEnabled ? null : (
-              <QuestionTooltip
-                title={t(
-                  'Enable delegation to a background agent on the project settings page.'
-                )}
-                size="xs"
-              />
-            )}
           </Flex>
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {isFetchingSettings ? (
           <Placeholder height="20px" width="36px" />
+        ) : autofixSettings.reposCount === 0 ? (
+          <Tooltip
+            title={t('Seer works best on projects with at least one connected repo.')}
+          >
+            <Flex align="center" gap="sm">
+              <IconWarning variant="warning" />
+              <Text tabular>{0}</Text>
+            </Flex>
+          </Tooltip>
         ) : (
-          <Text tabular>{autofixSettings.reposCount || 0}</Text>
+          <Text tabular>{autofixSettings.reposCount}</Text>
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>

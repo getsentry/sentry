@@ -22,7 +22,7 @@ const Title = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const TaskCard = styled(Card)`

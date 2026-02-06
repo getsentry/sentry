@@ -160,7 +160,7 @@ const Tooltip = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(0.25)} ${space(1)};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 24px;
 `;
 

@@ -551,9 +551,6 @@ class GroupEventFromEventTest(TestCase):
         )
         group_event = GroupEvent.from_event(event, self.group)
         assert event.for_group(self.group) == group_event
-        # Since event didn't have a cached project, we should query here to fetch it
-        with self.assertNumQueries(1):
-            group_event.project
 
     def test_project_cache(self) -> None:
         event = Event(

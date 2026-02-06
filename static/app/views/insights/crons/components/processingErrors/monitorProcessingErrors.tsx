@@ -2,10 +2,12 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -84,16 +86,16 @@ export function MonitorProcessingErrors({
         const errortype = errors[0]!.error.type;
         return (
           <ErrorGroup key={index}>
-            <ErrorHeader>
+            <Flex gap="md">
               <Tag variant="danger">{errors.length}x</Tag>
               <ProcessingErrorTitle type={errortype} />
-              <ErrorHeaderActions>
+              <Flex gap="xs">
                 <Button
                   icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
                 />
                 {onDismiss && (
@@ -102,7 +104,7 @@ export function MonitorProcessingErrors({
                     aria-label={t('Dismiss Errors')}
                     size="zero"
                     title={t('Dismiss Errors')}
-                    borderless
+                    priority="transparent"
                     onClick={() =>
                       openConfirmModal({
                         header: t('Dismiss'),
@@ -116,8 +118,8 @@ export function MonitorProcessingErrors({
                     }
                   />
                 )}
-              </ErrorHeaderActions>
-            </ErrorHeader>
+              </Flex>
+            </Flex>
             {isExpanded && (
               <List symbol="bullet">
                 {errors.map(({error, checkin}, errorIndex) => (
@@ -181,16 +183,6 @@ const ErrorGroup = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const ErrorHeader = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const ErrorHeaderActions = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-`;
-
 const DismissButton = styled(Button)`
   opacity: 0;
 
@@ -213,5 +205,5 @@ const StyledStructuredEventData = styled(StructuredEventData)`
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

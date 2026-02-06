@@ -1,14 +1,15 @@
 import type {ComponentProps} from 'react';
-import styled from '@emotion/styled';
 
 import {
   CompactSelect,
   type SelectOption,
   type SelectProps,
-} from 'sentry/components/core/compactSelect';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -56,19 +57,20 @@ export default function SubregionSelector({size}: Props) {
     <CompactSelect
       size={size}
       searchable
-      triggerProps={{
-        prefix: t('Geo region'),
-        children: value.length === 0 ? t('All') : undefined,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Geo region')}>
+          {value.length === 0 ? t('All') : triggerProps.children}
+        </OverlayTrigger.Button>
+      )}
       multiple
       loading={isPending}
       clearable
       value={value}
       menuTitle={
-        <MenuTitleContainer>
+        <Flex align="center" gap="xs">
           {t('Filter region')}
           <QuestionTooltip title={tooltip} size="xs" />
-        </MenuTitleContainer>
+        </Flex>
       }
       options={options}
       onChange={(selectedOptions: Array<SelectOption<string>>) => {
@@ -89,9 +91,3 @@ export default function SubregionSelector({size}: Props) {
     />
   );
 }
-
-const MenuTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

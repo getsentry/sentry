@@ -23,20 +23,20 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0021_add_preprod_artifact_mobile_app_info
+preprod: 0026_add_initial_snapshot_models
 
-prevent: 0002_alter_integration_id_not_null
+prevent: 0004_delete_prevent_ai_configuration_table
 
 releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-sentry: 1015_backfill_self_hosted_sentry_app_emails
+sentry: 1024_delete_never_active_users_without_emails_self_hosted
 
 social_auth: 0003_social_auth_json_field
 
 tempest: 0003_use_encrypted_char_field
 
-uptime: 0049_cleanup_failed_safe_deletes
+uptime: 0054_delete_bad_assertions
 
-workflow_engine: 0104_action_data_fallthrough_type
+workflow_engine: 0107_fix_email_action_fallthrough_type

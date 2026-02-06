@@ -77,7 +77,7 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       return css`
         background: ${theme.colors.green100};
         border: 1px solid ${theme.colors.green400};
-        font-family: ${theme.text.familyMono};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     case 'error':
@@ -90,13 +90,13 @@ const getPillValueStyle = ({type, theme}: {theme: Theme; type?: PillType}) => {
       return css`
         background: ${theme.colors.red100};
         border: 1px solid ${theme.colors.red400};
-        font-family: ${theme.text.familyMono};
+        font-family: ${theme.font.family.mono};
         margin: -1px;
       `;
     default:
       return css`
-        background: ${theme.backgroundSecondary};
-        font-family: ${theme.text.familyMono};
+        background: ${theme.tokens.background.secondary};
+        font-family: ${theme.font.family.mono};
       `;
   }
 };
@@ -129,7 +129,7 @@ const PillValue = styled(PillName)`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
     &:hover {
       color: ${p => p.theme.tokens.content.primary};
     }

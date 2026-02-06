@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
@@ -55,7 +56,7 @@ const StyledPre = styled('pre')`
   word-break: break-word;
   padding: ${space(2)};
   line-height: 1.6;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Description = styled('p')`

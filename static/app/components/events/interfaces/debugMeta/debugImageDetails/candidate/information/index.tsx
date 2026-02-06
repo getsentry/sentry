@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
-import ProcessingItem from 'sentry/components/events/interfaces/debugMeta/processing/item';
-import ProcessingList from 'sentry/components/events/interfaces/debugMeta/processing/list';
 import FileSize from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
@@ -23,7 +24,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 
 import Divider from './divider';
 import Features from './features';
-import ProcessingIcon from './processingIcon';
+import ProcessingIcon, {getProcessingInfoTooltip} from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
@@ -154,37 +155,32 @@ function Information({
       return null;
     }
 
-    const items: React.ComponentProps<typeof ProcessingList>['items'] = [];
-
     const {debug, unwind} = candidate as ImageCandidateOk;
 
-    if (debug) {
-      items.push(
-        <ProcessingItem
-          key="symbolication"
-          type="symbolication"
-          icon={<ProcessingIcon processingInfo={debug} />}
-        />
-      );
-    }
-
-    if (unwind) {
-      items.push(
-        <ProcessingItem
-          key="stack_unwinding"
-          type="stack_unwinding"
-          icon={<ProcessingIcon processingInfo={unwind} />}
-        />
-      );
-    }
-
-    if (!items.length) {
+    if (!debug && !unwind) {
       return null;
     }
 
     return (
       <Fragment>
-        <StyledProcessingList items={items} />
+        <Flex gap="sm">
+          {debug && (
+            <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
+              <Flex align="center" gap="sm">
+                <ProcessingIcon processingInfo={debug} />
+                <Text size="sm">{t('Symbolication')}</Text>
+              </Flex>
+            </Tooltip>
+          )}
+          {unwind && (
+            <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
+              <Flex align="center" gap="sm">
+                <ProcessingIcon processingInfo={unwind} />
+                <Text size="sm">{t('Stack Unwinding')}</Text>
+              </Flex>
+            </Tooltip>
+          )}
+        </Flex>
         <Divider />
       </Fragment>
     );
@@ -257,7 +253,7 @@ const Wrapper = styled('div')`
 
 const FilenameOrLocation = styled('span')`
   padding-left: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Details = styled('div')`
@@ -266,7 +262,7 @@ const Details = styled('div')`
   grid-auto-columns: max-content;
   gap: ${space(1)};
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TimeSinceWrapper = styled('div')`
@@ -280,11 +276,4 @@ const TimeSinceWrapper = styled('div')`
 const DateTimeWrapper = styled('div')`
   padding-top: ${space(1)};
   font-variant-numeric: tabular-nums;
-`;
-
-const StyledProcessingList = styled(ProcessingList)`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${space(1)};
 `;

@@ -26,23 +26,31 @@ export function getSpanBarColors(
       return {
         primary: '#dedae3',
         alternate: '#f4f2f7',
-        insetTextColor: theme.colors.gray400,
+        insetTextColor: theme.tokens.content.primary,
       };
     case SpanBarType.AFFECTED:
-      return {primary: '#f55459', alternate: '#faa9ac', insetTextColor: theme.white};
+      return {
+        primary: '#f55459',
+        alternate: '#faa9ac',
+        insetTextColor: theme.tokens.content.onVibrant.light,
+      };
     case SpanBarType.AUTOGROUPED:
       return {
-        primary: theme.colors.blue400,
+        primary: theme.tokens.background.accent.vibrant,
         alternate: '#d1dff9',
-        insetTextColor: theme.colors.gray400,
+        insetTextColor: theme.tokens.content.primary,
       };
     case SpanBarType.AUTOGROUPED_AND_AFFECTED:
       return {
         primary: '#f55459',
         alternate: '#faa9ac',
-        insetTextColor: theme.white,
+        insetTextColor: theme.tokens.content.onVibrant.light,
       };
     default:
-      return {primary: '', alternate: '', insetTextColor: theme.white};
+      return {
+        primary: '',
+        alternate: '',
+        insetTextColor: theme.tokens.content.onVibrant.light,
+      };
   }
 }

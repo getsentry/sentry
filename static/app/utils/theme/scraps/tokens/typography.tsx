@@ -28,6 +28,14 @@ export const typography = {
        * A named fontSize value evaluating to “24px”
        */
       '2xl': '24px',
+      /**
+       * A named fontSize value evaluating to “32px”
+       */
+      '3xl': '32px',
+      /**
+       * A named fontSize value evaluating to “40px”
+       */
+      '4xl': '40px',
     },
     weight: {
       sans: {
@@ -46,18 +54,18 @@ export const typography = {
          */
         regular: 425,
         /**
-         * The medium font weight for text using the sans font family.
+         * The medium font weight for text using the mono font family.
          */
         medium: 500,
       },
     },
     family: {
       /**
-       * A named fontFamily value evaluating to “rubik”
+       * Sans-serif font family for headings and body copy
        */
-      sans: "'Rubik', 'Avenir Next', sans-serif",
+      sans: "Rubik, 'Avenir Next', sans-serif",
       /**
-       * A named fontFamily value evaluating to “roboto mono”
+       * Monospace font family for code samples
        */
       mono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     },

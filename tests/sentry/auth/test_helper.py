@@ -97,6 +97,48 @@ class AuthIdentityHandlerTest(TestCase):
 
 
 @control_silo_test
+class UserResolutionTest(AuthIdentityHandlerTest):
+    """Tests for AuthIdentityHandler.user property resolution."""
+
+    def test_resolves_to_org_member_over_primary_email_user(self) -> None:
+        """
+        Regression test for SSO account merge infinite loop.
+
+        When the identity email matches multiple users:
+        - user1: org member, email is verified secondary
+        - user2: NOT org member, email is their primary
+
+        The handler.user property should resolve to user1 (the org member)
+        because org membership takes precedence over primary email.
+
+        Previously, organization context wasn't passed to resolve_email_to_user(),
+        causing user2 to be selected (primary email wins), which led to an infinite
+        loop when user1 was logged in trying to link their SSO identity.
+        """
+        shared_email = "shared@example.com"
+
+        # user1: org member, shared email is verified but NOT primary
+        user1 = self.create_user()
+        self.create_useremail(user=user1, email=shared_email, is_verified=True)
+        self.create_member(organization=self.organization, user=user1)
+
+        # user2: NOT an org member, shared email IS their primary
+        self.create_user(email=shared_email)
+
+        # Create handler with identity using the shared email
+        identity: _Identity = {
+            "id": "sso_id_123",
+            "email": shared_email,
+            "name": "Test User",
+            "data": {},
+        }
+        handler = self._handler_with(identity)
+
+        # Should resolve to user1 (org member) not user2 (primary email)
+        assert handler.user == user1
+
+
+@control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record: mock.MagicMock) -> None:
@@ -590,3 +632,106 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         wrong_user = self.create_user()
         self.create_useremail(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False
+
+
+@control_silo_test
+class ProviderMismatchTest(TestCase):
+    """Tests for provider mismatch detection when user auths with wrong SSO provider."""
+
+    def setUp(self) -> None:
+        self.provider = "dummy"
+        self.auth_provider_inst = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider=self.provider
+        )
+
+        self.auth_key = "test_auth_key"
+        self.request = _set_up_request()
+        self.request.session["auth_key"] = self.auth_key
+
+    def _create_helper_with_state(self, provider_key=None):
+        """Create an AuthHelper with initial state and optional provider key mismatch."""
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_LOGIN,
+            "provider_model_id": self.auth_provider_inst.id,
+            "provider_key": self.provider,
+            "referrer": None,
+            "step_index": 1,
+            "signature": None,
+            "config": {},
+            "data": {"provider_key": provider_key} if provider_key else {},
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
+        return helper
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.metrics")
+    def test_provider_mismatch_redirects_to_correct_sso(
+        self, mock_metrics: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        """Test that authenticating with wrong provider redirects to correct SSO."""
+        helper = self._create_helper_with_state(provider_key="google")
+
+        # Mock the provider to have a build_identity that would fail
+        with mock.patch.object(helper.provider, "build_identity") as mock_build:
+            mock_build.side_effect = Exception("Should not be called")
+
+            response = helper.finish_pipeline()
+
+        # Should redirect to org SSO page
+        assert response.status_code == 302
+        assert f"/auth/login/{self.organization.slug}/" in response.url
+
+        # Should show warning message
+        mock_messages.add_message.assert_called_once()
+        call_args = mock_messages.add_message.call_args
+        assert call_args[0][1] == mock_messages.WARNING
+
+        # Should log metric
+        mock_metrics.incr.assert_called_with(
+            "sso.provider_mismatch",
+            tags={
+                "expected_provider": self.provider,
+                "actual_provider": "google",
+            },
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_provider_match_continues_normally(self, mock_messages: mock.MagicMock) -> None:
+        """Test that matching provider continues with normal flow."""
+        helper = self._create_helper_with_state(provider_key=self.provider)
+
+        # Mock build_identity to return a valid identity
+        with mock.patch.object(
+            helper.provider,
+            "build_identity",
+            return_value={"id": "123", "email": "test@example.com", "name": "Test"},
+        ):
+            # The flow will continue and eventually redirect
+            helper.finish_pipeline()
+
+        # Should not have shown provider mismatch warning
+        for call in mock_messages.add_message.call_args_list:
+            assert "SSO" not in str(call)
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_no_provider_key_continues_normally(self, mock_messages: mock.MagicMock) -> None:
+        """Test that missing provider_key doesn't trigger mismatch (backward compat)."""
+        helper = self._create_helper_with_state(provider_key=None)
+
+        # Mock build_identity to return a valid identity
+        with mock.patch.object(
+            helper.provider,
+            "build_identity",
+            return_value={"id": "123", "email": "test@example.com", "name": "Test"},
+        ):
+            helper.finish_pipeline()
+
+        # Should not have shown provider mismatch warning
+        for call in mock_messages.add_message.call_args_list:
+            if call[0][1] == mock_messages.WARNING:
+                assert "SSO" not in str(call)

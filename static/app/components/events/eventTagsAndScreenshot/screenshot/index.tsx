@@ -3,10 +3,11 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
@@ -101,9 +102,9 @@ function Screenshot({
       )}
       <StyledPanelBody hasHeader={totalScreenshots > 1}>
         {loadingImage && (
-          <StyledLoadingIndicator>
+          <Flex justify="center" align="center" height="100%" position="absolute">
             <LoadingIndicator mini />
-          </StyledLoadingIndicator>
+          </Flex>
         )}
         <AttachmentComponentWrapper
           onClick={() => openVisualizationModal(screenshot, `${downloadUrl}?download=1`)}
@@ -230,14 +231,6 @@ const StyledPanelFooter = styled(PanelFooter)`
   border-top: 0;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
-`;
-
-const StyledLoadingIndicator = styled('div')`
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 `;
 
 const AttachmentComponentWrapper = styled('div')`

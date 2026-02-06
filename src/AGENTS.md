@@ -1,6 +1,6 @@
 # Backend Development Guide
 
-> For critical commands and security guidelines, see `/AGENTS.md` in the repository root.
+> For critical commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## Overview
 
@@ -45,40 +45,6 @@ sentry/
 ├── devenv/               # Development environment config
 ├── migrations/           # Database migrations
 └── config/               # Configuration files
-```
-
-## Command Execution Requirements
-
-**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
-
-### For AI Agents (automated commands)
-
-Use the full relative path to virtualenv executables:
-
-```bash
-cd /path/to/sentry && .venv/bin/pytest tests/...
-cd /path/to/sentry && .venv/bin/python -m mypy ...
-```
-
-Or source the activate script in your command:
-
-```bash
-cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
-```
-
-**Important for AI agents:**
-
-- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
-- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
-
-### For Human Developers (interactive shells)
-
-Run `direnv allow` once to trust the `.envrc` file. After that, direnv will automatically activate the virtual environment when you cd into the directory.
-
-```bash
-cd /path/to/sentry
-direnv allow  # Only needed once, or after .envrc changes
-# Now pytest, python, etc. will automatically use .venv
 ```
 
 ## Security Guidelines
@@ -135,66 +101,6 @@ projects = self.get_projects(
   - Perform cleanup operations
   - Convert one exception type to another with additional information
   - Recover from expected error conditions
-
-## Development Commands
-
-### Setup
-
-```bash
-# Install dependencies and setup development environment
-make develop
-
-# Or use the newer devenv command
-devenv sync
-
-# Activate the Python virtual environment (required for running tests and Python commands)
-direnv allow
-
-# Start dev dependencies
-devservices up
-
-# Start the development server
-devservices serve
-```
-
-> **See "Command Execution Requirements" above** for critical `direnv allow` guidance.
-
-### Linting
-
-```bash
-# Preferred: Run pre-commit hooks on specific files
-pre-commit run --files src/sentry/path/to/file.py
-
-# Run all pre-commit hooks
-pre-commit run --all-files
-```
-
-### Testing
-
-```bash
-# Run Python tests (always use these parameters)
-pytest -svv --reuse-db
-
-# Run specific test file
-pytest tests/sentry/api/test_base.py
-```
-
-### Database Operations
-
-```bash
-# Run migrations
-sentry django migrate
-
-# Create new migration
-sentry django makemigrations
-
-# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
-./bin/update-migration <migration_name_or_number> <app_label>
-# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
-
-# Reset database
-make reset-db
-```
 
 ## Development Services
 

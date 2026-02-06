@@ -2,15 +2,16 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
@@ -28,6 +29,7 @@ import useDeleteReplays, {
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -43,6 +45,7 @@ interface Props {
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
+  const organization = useOrganization();
   const {project: selectedProjectIds} = useLocationQuery({
     fields: {
       project: decodeList,
@@ -70,7 +73,7 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   });
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
-  const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const settingsPath = `/settings/${organization.slug}/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
   const queryKey = useReplayBulkDeleteAuditLogQueryKey({
     projectSlug: project?.slug ?? '',
@@ -244,7 +247,8 @@ function ReplayPreviewTable({
 }
 
 function Title({children, project}: {children: React.ReactNode; project: Project}) {
-  const settingsPath = `/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const organization = useOrganization();
+  const settingsPath = `/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
   return (
     <Fragment>
       <p>
@@ -280,8 +284,11 @@ const SimpleTableWithTwoColumns = styled(SimpleTable)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.tokens.content.secondary};
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
@@ -290,10 +297,14 @@ const SubText = styled('div')`
 
 const DisplayName = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: normal;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const LinkWithUnderline = styled(Link)`

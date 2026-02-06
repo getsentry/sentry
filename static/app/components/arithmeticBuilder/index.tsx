@@ -2,12 +2,13 @@ import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Input} from 'sentry/components/core/input';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -88,22 +89,22 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 
   ${p =>
     p.state === 'valid'
       ? css`
           :focus-within {
-            border: 1px solid ${p.theme.focusBorder};
-            box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+            border: 1px solid ${p.theme.tokens.focus.default};
+            box-shadow: 0 0 0 1px ${p.theme.tokens.focus.default};
           }
         `
       : p.state === 'invalid'
         ? css`
             :focus-within {
-              border: 1px solid ${p.theme.tokens.border.danger};
-              box-shadow: 0 0 0 1px ${p.theme.tokens.border.danger};
+              border: 1px solid ${p.theme.tokens.focus.invalid};
+              box-shadow: 0 0 0 1px ${p.theme.tokens.focus.invalid};
             }
           `
         : ''}

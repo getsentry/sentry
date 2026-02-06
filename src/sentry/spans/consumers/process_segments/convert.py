@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 )
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
 
@@ -79,7 +80,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     try:
         attributes["sentry.duration_ms"] = AnyValue(
-            int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
+            double_value=round(1000.0 * (span["end_timestamp"] - span["start_timestamp"]), 6)
         )
     except Exception:
         sentry_sdk.capture_exception()
@@ -109,7 +110,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         trace_id=span["trace_id"],
-        item_id=int(span["span_id"], 16).to_bytes(16, "little"),
+        item_id=hex_to_item_id(span["span_id"]),
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         timestamp=_timestamp(span["start_timestamp"]),
         attributes=attributes,

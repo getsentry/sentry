@@ -5,9 +5,10 @@ import {useTheme} from '@emotion/react';
 import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Prose, Text} from 'sentry/components/core/text';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Prose, Text} from '@sentry/scraps/text';
+
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,6 +18,7 @@ import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector'
 import {getPreventParamsString} from 'sentry/components/prevent/utils';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,7 +69,9 @@ export default function TestsOnboardingPage() {
     isSuccess: isIntegrationsSuccess,
   } = useApiQuery<OrganizationIntegration[]>(
     [
-      `/organizations/${organization.slug}/integrations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {includeConfig: 0, provider_key: 'github'}},
     ],
     {staleTime: 0}

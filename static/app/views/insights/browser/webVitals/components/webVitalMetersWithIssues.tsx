@@ -3,10 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
@@ -312,8 +313,8 @@ const MeterBarBody = styled('div')`
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   width: 100%;
@@ -325,8 +326,8 @@ const MeterHeader = styled('div')`
 const MeterValueText = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.primary};
   flex: 1;
   text-align: center;
@@ -335,13 +336,13 @@ const MeterValueText = styled('div')`
   height: 30px;
 
   @media (max-width: 1500px) {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
   }
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 function NoValue() {

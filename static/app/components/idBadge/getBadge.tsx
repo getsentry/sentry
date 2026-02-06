@@ -11,32 +11,38 @@ interface AddedBaseBadgeProps {
 }
 
 interface GetOrganizationBadgeProps
-  extends AddedBaseBadgeProps,
+  extends
+    AddedBaseBadgeProps,
     Omit<BaseBadgeProps, 'displayName' | 'organization'>,
     OrganizationBadgeProps {}
 
 interface GetMemberBadgeProps
-  extends Omit<BaseBadgeProps, 'displayName' | 'member'>,
+  extends
+    Omit<BaseBadgeProps, 'displayName' | 'member'>,
     AddedBaseBadgeProps,
     MemberBadgeProps {}
 
 interface GetUserBadgeProps
-  extends Omit<BaseBadgeProps, 'displayName' | 'user'>,
+  extends
+    Omit<BaseBadgeProps, 'displayName' | 'user'>,
     UserBadgeProps,
     AddedBaseBadgeProps {}
 
 interface GetTeamBadgeProps
-  extends Omit<BaseBadgeProps, 'displayName' | 'team'>,
+  extends
+    Omit<BaseBadgeProps, 'displayName' | 'team'>,
     TeamBadgeProps,
     AddedBaseBadgeProps {}
 
 interface GetProjectBadgeProps
-  extends Omit<BaseBadgeProps, 'displayName' | 'project'>,
+  extends
+    Omit<BaseBadgeProps, 'displayName' | 'project'>,
     ProjectBadgeProps,
     AddedBaseBadgeProps {}
 
 interface GetActorBadgeProps
-  extends Omit<BaseBadgeProps, 'displayName' | 'actor'>,
+  extends
+    Omit<BaseBadgeProps, 'displayName' | 'actor'>,
     ActorBadgeProps,
     AddedBaseBadgeProps {}
 

@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
 import {
   GridLineLabels,
@@ -39,21 +41,21 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
     <MonitorListPanel role="region">
       <TimelineWidthTracker ref={elementRef} />
       <Header>
-        <HeaderControlsLeft>
+        <Flex justify="end" padding="lg xl" column="1">
           <DateNavigator
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            borderless
+            priority="transparent"
           />
-        </HeaderControlsLeft>
+        </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
         <HeaderControlsRight>
           <DateNavigator
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </HeaderControlsRight>
       </Header>
@@ -91,7 +93,8 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
-  box-shadow: 0 1px ${p => p.theme.translucentBorder};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
     border-radius: 0;
@@ -113,6 +116,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 2/-1;
@@ -130,13 +134,6 @@ const UptimeAlertRow = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
-`;
-
-const HeaderControlsLeft = styled('div')`
-  grid-column: 1;
-  display: flex;
-  justify-content: flex-end;
-  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderControlsRight = styled('div')`

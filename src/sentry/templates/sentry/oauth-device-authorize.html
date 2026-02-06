@@ -1,0 +1,70 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load sentry_avatars %}
+
+{% block title %}Authorize Device | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <form class="form-stacked" action="." method="post" autocomplete="off">
+    {% csrf_token %}
+    <input type="hidden" name="user_code" value="{{ user_code }}">
+
+    <div>
+      <div class="alert alert-info">
+        <strong>Device Authorization</strong><br>
+        Code: <code style="font-size: 1.2em;">{{ user_code }}</code>
+      </div>
+
+      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}). Granting this access will give {{ application.name }} access to your account details, including:</p>
+      <ul>
+        <li>Your name</li>
+        <li>Your email address</li>
+      </ul>
+      <p>
+        {% if organization_options|length != 1 %}
+          {{ application.name }} will also have the following permissions to your Sentry organizations:
+        {% else %}
+          {{ application.name }} will also have the following permissions to your Sentry organization <strong>{{ organization_options.0.name }}</strong>:
+          <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
+        {% endif %}
+      </p>
+      <ul>
+        {% for permission in permissions %}
+          <li>{{ permission }}</li>
+        {% endfor %}
+      </ul>
+
+      {% if organization_options|length > 1 %}
+        <label for="organization">Select one of your Sentry organizations to grant access to:</label>
+        <select name="selected_organization_id" id="organization_id" class="form-control">
+            {% for organization in organization_options %}
+                <option value="{{ organization.id }}">{{ organization.name }}</option>
+            {% endfor %}
+        </select>
+      {% endif %}
+
+      {% if application.terms_url or application.privacy_url %}
+        <p><small>
+          {% if application.terms_url %}
+            <a href="{{ application.terms_url }}">Terms of Use</a>
+            {% if application.privacy_url %} &mdash; {% endif %}
+          {% endif %}
+          {% if application.privacy_url %}
+            <a href="{{ application.privacy_url }}">Privacy Policy</a>
+          {% endif %}
+        </small></p>
+      {% endif %}
+
+      <div class="alert alert-warning" style="margin-top: 1em;">
+        <strong>Security Notice</strong><br>
+        Only approve this request if you initiated it from a trusted device. If you didn't request this authorization, click Deny.
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      <button type="submit" class="btn btn-primary" name="op" value="approve">Approve</button>
+      <button type="submit" class="btn btn-danger" name="op" value="deny">Deny</button>
+    </div>
+  </form>
+{% endblock %}

@@ -6,14 +6,11 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Button} from '@sentry/scraps/button';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
@@ -40,18 +37,17 @@ interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   setSelectedSection: (section: string) => void;
 }
 
-interface FilterKeyMenuContentProps<T>
-  extends Pick<
-    FilterKeyListBoxProps<T>,
-    | 'hiddenOptions'
-    | 'listBoxProps'
-    | 'listBoxRef'
-    | 'recentFilters'
-    | 'state'
-    | 'selectedSection'
-    | 'setSelectedSection'
-    | 'sections'
-  > {
+interface FilterKeyMenuContentProps<T> extends Pick<
+  FilterKeyListBoxProps<T>,
+  | 'hiddenOptions'
+  | 'listBoxProps'
+  | 'listBoxRef'
+  | 'recentFilters'
+  | 'state'
+  | 'selectedSection'
+  | 'setSelectedSection'
+  | 'sections'
+> {
   fullWidth: boolean;
 }
 
@@ -67,7 +63,7 @@ function ListBoxSectionButton({
   return (
     <SectionButton
       size="zero"
-      borderless
+      priority="transparent"
       aria-selected={selected}
       onClick={onClick}
       tabIndex={-1}
@@ -220,11 +216,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? (
-        <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeer state={state} />
-        </Feature>
-      ) : null}
+      {enableAISearch ? <AskSeer state={state} /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane>
           {recentFilters.map(filter => (
@@ -485,7 +477,7 @@ const RecentFiltersPane = styled('ul')`
   grid-area: recentFilters;
   display: flex;
   flex-wrap: wrap;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} 10px;
   gap: ${p => p.theme.space['2xs']};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -517,10 +509,11 @@ const RecentFilterPill = styled('li')`
   display: flex;
   align-items: center;
   height: 22px;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
@@ -535,31 +528,35 @@ const RecentFilterPill = styled('li')`
     height: 100%;
     background: linear-gradient(
       to left,
-      ${p => p.theme.backgroundSecondary} 0 2px,
+      ${p => p.theme.tokens.background.secondary} 0 2px,
       transparent ${p => p.theme.space.xl} 100%
     );
   }
 `;
 
 const RecentFilterPillLabel = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
 const SectionButton = styled(Button)`
   height: 20px;
   text-align: left;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
   padding: 0 ${p => p.theme.space.lg};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   border: 0;
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.colors.blue100};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.colors.blue100};
-    color: ${p => p.theme.colors.blue400};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
+    color: ${p => p.theme.tokens.content.accent};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 `;
 
@@ -576,7 +573,7 @@ const EmptyState = styled('div')`
   height: 100%;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 
   div {
     max-width: 280px;

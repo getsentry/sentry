@@ -63,10 +63,10 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
       countSeries &&
       new Bars(countSeries, {
         alias: ALIASES['count(span.duration)'],
-        color: theme.chart.neutral,
+        color: theme.tokens.dataviz.semantic.neutral,
       })
     );
-  }, [data, theme.chart.neutral]);
+  }, [data, theme.tokens.dataviz.semantic.neutral]);
 
   const errorRatePlottable = useMemo(() => {
     const timeSeries = data?.timeSeries || [];
@@ -79,10 +79,10 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
       errorRateSeries &&
       new Line(errorRateSeries, {
         alias: ALIASES['trace_status_rate(internal_error)'],
-        color: theme.error,
+        color: theme.tokens.content.danger,
       })
     );
-  }, [data, theme.error]);
+  }, [data, theme.tokens.content.danger]);
 
   const isEmpty = useMemo(
     () =>
@@ -149,7 +149,7 @@ export default function OverviewJobsChartWidget(props: LoadableChartWidgetProps)
         <div>
           <SeriesColorIndicator
             style={{
-              backgroundColor: theme.error,
+              backgroundColor: theme.tokens.background.danger.vibrant,
             }}
           />
         </div>

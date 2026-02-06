@@ -6,6 +6,7 @@ import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDispl
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
+import {getInstallBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 const organization = OrganizationFixture({
   features: ['preprod-build-distribution'],
@@ -19,7 +20,7 @@ const baseBuild = {
   app_info: {
     app_id: 'com.example.app',
     name: 'Example App',
-    platform: 'ios' as Platform,
+    platform: 'apple' as Platform,
     build_number: '1',
     version: '1.0.0',
     date_added: '2024-01-01T00:00:00Z',
@@ -83,7 +84,11 @@ describe('PreprodBuildsTable', () => {
     const rowLink = screen.getByRole('link', {name: /Example App/});
     expect(rowLink).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/preprod/1/build-1/install/`
+      getInstallBuildPath({
+        organizationSlug: organization.slug,
+        projectId: '1',
+        baseArtifactId: 'build-1',
+      })
     );
     expect(
       screen.queryByRole('link', {name: /Non Installable App/})

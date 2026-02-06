@@ -7,6 +7,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,9 +29,15 @@ type OrgDashboardsChildrenProps = {
 
 interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  /**
+   * Initial dashboard state to use for optimistic updates.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
+   */
+  initialDashboard?: DashboardDetails;
 }
 
-function OrgDashboards({children}: OrgDashboardsProps) {
+function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -38,11 +45,14 @@ function OrgDashboards({children}: OrgDashboardsProps) {
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
-  const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
-  // The currently selected dashboard
+  // The currently selected dashboard. Use initialDashboard for optimistic updates
+  // when navigating from widget builder (passed via location.state).
   const [selectedDashboardState, setSelectedDashboardState] =
-    useState<DashboardDetails | null>(null);
+    useState<DashboardDetails | null>(initialDashboard ?? null);
 
   const {
     data: dashboards,
@@ -56,11 +66,18 @@ function OrgDashboards({children}: OrgDashboardsProps) {
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>([`${ENDPOINT}${dashboardId}/`], {
-    staleTime: 0,
-    enabled: !!dashboardId,
-    retry: false,
-  });
+  } = useApiQuery<DashboardDetails>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!dashboardId,
+      retry: false,
+    }
+  );
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 

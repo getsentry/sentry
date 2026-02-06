@@ -603,6 +603,143 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             validator.save()
 
 
+class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
+    def setUp(self) -> None:
+        super().setUp()
+        self.trace_metrics_data = {
+            "name": "Trace Metrics Detector",
+            "type": MetricIssue.slug,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "",
+                    "aggregate": "per_second(value,metric_name_one,counter,-)",
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
+                }
+            ],
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                    },
+                ],
+            },
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+            },
+        }
+
+    @with_feature(
+        {
+            "organizations:performance-view": False,
+            "organizations:tracemetrics-alerts": False,
+            "organizations:tracemetrics-enabled": False,
+        }
+    )
+    def test_create_detector_trace_metrics_feature_flag_disabled(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.trace_metrics_data,
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        data_sources_errors = validator.errors.get("dataSources")
+        assert data_sources_errors is not None
+        assert "You do not have access to the metrics alerts feature." in str(data_sources_errors)
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:tracemetrics-alerts",
+            "organizations:tracemetrics-enabled",
+        ]
+    )
+    def test_create_detector_trace_metrics_invalid_aggregate(self) -> None:
+        data = {
+            **self.trace_metrics_data,
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "count(trace.duration)",
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "Invalid trace metrics aggregate" in str(validator.errors)
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:tracemetrics-alerts",
+            "organizations:tracemetrics-enabled",
+        ]
+    )
+    def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
+        data_per_second = {
+            **self.trace_metrics_data,
+            "name": "Trace Metrics Per Second Detector",
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "per_second(value,metric_name_one,counter,-)",
+                }
+            ],
+        }
+        validator_per_second = MetricIssueDetectorValidator(
+            data=data_per_second, context=self.context
+        )
+        assert validator_per_second.is_valid(), validator_per_second.errors
+
+        with self.tasks():
+            detector_per_second = validator_per_second.save()
+
+        assert detector_per_second.name == "Trace Metrics Per Second Detector"
+        data_source_per_second = DataSource.objects.get(detector=detector_per_second)
+        query_sub_per_second = QuerySubscription.objects.get(id=data_source_per_second.source_id)
+        assert (
+            query_sub_per_second.snuba_query.aggregate
+            == "per_second(value,metric_name_one,counter,-)"
+        )
+
+        data_count = {
+            **self.trace_metrics_data,
+            "name": "Trace Metrics Count Detector",
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "count(metric.name,metric_name_two,distribution,-)",
+                }
+            ],
+        }
+        validator_count = MetricIssueDetectorValidator(data=data_count, context=self.context)
+        assert validator_count.is_valid(), validator_count.errors
+
+        with self.tasks():
+            detector_count = validator_count.save()
+
+        assert detector_count.name == "Trace Metrics Count Detector"
+        data_source_count = DataSource.objects.get(detector=detector_count)
+        query_sub_count = QuerySubscription.objects.get(id=data_source_count.source_id)
+        assert (
+            query_sub_count.snuba_query.aggregate
+            == "count(metric.name,metric_name_two,distribution,-)"
+        )
+
+
 class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
     def test_update_with_valid_data(self) -> None:
         """
@@ -1286,6 +1423,52 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
                     "queryType": SnubaQuery.Type.PERFORMANCE.value,
                     "dataset": Dataset.PerformanceMetrics.value,
                     "query": "updated query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with (
+            self.assertRaisesMessage(
+                ValidationError,
+                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+            ),
+            with_feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            update_validator.save()
+
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                },
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        update_data = {
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
                     "aggregate": "count()",
                     "timeWindow": 3600,
                     "environment": self.environment.name,

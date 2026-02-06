@@ -1,9 +1,9 @@
 """
-Utilities for tracking legacy AlertRule model usage in API endpoints.
+Utilities for tracking legacy AlertRule and Rule model usage in API endpoints.
 
 This module provides a decorator and reporting mechanism to track which endpoints
-are using legacy AlertRule models vs the new workflow engine models. This helps
-with migration progress tracking.
+are using legacy AlertRule and Rule models vs the new workflow engine models. This
+helps with migration progress tracking.
 """
 
 from __future__ import annotations
@@ -25,11 +25,12 @@ T = TypeVar("T", bound=HttpResponseBase)
 
 def report_used_legacy_models() -> None:
     """
-    Mark the current request context as having used legacy AlertRule models.
+    Mark the current request context as having used legacy AlertRule or Rule models.
 
     This should be called from:
-    - Serializers that serialize AlertRule or related models
-    - Endpoint logic that directly uses AlertRule models
+    - Serializers that serialize AlertRule, Rule, or related models
+    - Immediately after ORM queries that fetch AlertRule or Rule objects
+    - When creating or updating AlertRule or Rule instances
 
     The value is tracked in a ContextVar and will be read when the
     track_alert_endpoint_execution decorator exits.

@@ -2,11 +2,10 @@ import type {ComponentProps, ReactNode} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,7 +24,7 @@ function Resource({
   return (
     <StyledLinkButton
       icon={<IconOpen />}
-      borderless
+      priority="transparent"
       external
       href={link}
       analyticsEventKey="learn-more-resource.clicked"
@@ -98,13 +97,13 @@ const ButtonContent = styled('div')`
 `;
 
 const ButtonTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StyledLinkButton = styled(LinkButton)`

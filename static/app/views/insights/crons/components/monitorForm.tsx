@@ -3,10 +3,10 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
-import {Alert} from 'sentry/components/core/alert';
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {Alert, AlertLink} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -358,7 +358,7 @@ function MonitorForm({
                       }
                       css={css`
                         input {
-                          font-family: ${theme.text.familyMono};
+                          font-family: ${theme.font.family.mono};
                         }
                       `}
                       required
@@ -566,19 +566,19 @@ const StyledList = styled(List)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.3;
 `;
 
 const LabelText = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ListItemSubText = styled(Text)`
   padding-left: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InputGroup = styled('div')<{noPadding?: boolean}>`
@@ -602,8 +602,8 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

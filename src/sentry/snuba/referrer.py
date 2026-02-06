@@ -308,9 +308,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
     API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
     API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
-    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
-        "api.insights.mobile-screens-screen-table-metrics"
-    )
     API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
         "api.insights.mobile-screens-screen-table-span-metrics"
     )
@@ -489,6 +486,7 @@ class Referrer(StrEnum):
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
     API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
+    API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -562,6 +560,8 @@ class Referrer(StrEnum):
     API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
     API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
+    API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
+    API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -659,12 +659,6 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
-        "getsentry.promotion.mobile_performance_adoption.check_conditions"
-    )
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
-        "getsentry.promotion.mobile_performance_adoption.check_eligible"
-    )
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
@@ -685,6 +679,9 @@ class Referrer(StrEnum):
     ISSUES_SUSPECT_TAGS_QUERY_BASELINE_SET = "issues.suspect_tags.query_baseline_set"
     ISSUES_SUSPECT_TAGS_QUERY_SELECTION_SET = "issues.suspect_tags.query_selection_set"
     ISSUES_SUSPECT_TAGS_QUERY_ERROR_COUNTS = "issues.suspect_tags.query_error_counts"
+    ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
+    ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
+    ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
@@ -943,6 +940,7 @@ class Referrer(StrEnum):
 
     # Getsentry scripts
     DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+    DELETE_EVENTS_BY_TAG_VALUE = "delete-events-by-tag-value"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

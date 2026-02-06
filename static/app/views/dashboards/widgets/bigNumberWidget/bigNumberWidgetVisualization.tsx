@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Polarity} from 'sentry/components/percentChange';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -202,7 +203,7 @@ const NumberContainerOverride = styled('div')`
 
 const LoadingPlaceholder = styled('span')`
   color: ${p => p.theme.tokens.content[DEEMPHASIS_VARIANT]};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 BigNumberWidgetVisualization.LoadingPlaceholder = function () {

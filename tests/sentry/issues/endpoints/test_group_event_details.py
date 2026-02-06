@@ -56,7 +56,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
 
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -65,7 +65,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] is None
 
     def test_get_simple_oldest(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -74,7 +74,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] == str(self.event_b.event_id)
 
     def test_get_simple_event_id(self) -> None:
-        url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -83,7 +83,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] == str(self.event_c.event_id)
 
     def test_get_with_environment_latest(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content
@@ -92,7 +92,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] is None
 
     def test_get_with_environment_oldest(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content
@@ -101,7 +101,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] is None
 
     def test_collapse_stacktrace_only(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"collapse": ["stacktraceOnly"]})
 
         assert response.status_code == 200, response.content
@@ -110,7 +110,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert "nextEventID" not in response.data
 
     def test_collapse_full_release(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/latest/"
         response_no_collapse = self.client.get(
             url, format="json", data={"environment": ["production"]}
         )
@@ -135,7 +135,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
     def test_prev_filtered(self) -> None:
-        url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
         response = self.client.get(
             url,
             {
@@ -150,7 +150,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] == str(self.event_c.event_id)
 
     def test_next_filtered(self) -> None:
-        url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
         response = self.client.get(
             url,
             {
@@ -187,7 +187,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             },
             project_id=self.project_1.id,
         )
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -223,7 +223,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             },
             project_id=self.project_1.id,
         )
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -271,7 +271,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             project_id=self.project_1.id,
         )
 
-        url = f"/api/0/issues/{self.event_d.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_d.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -280,7 +280,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] == str(self.event_f.event_id)
 
     def test_with_empty_query(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": ""}, format="json")
 
         assert response.status_code == 200, response.content
@@ -289,7 +289,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_issue_filter_query_ignored(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "is:unresolved"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -298,7 +298,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_event_release_query(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f"release:{self.release_version}"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -322,7 +322,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert release.version == "test@1.2.3"
         assert release.is_semver_release
 
-        url = f"/api/0/issues/{event_g.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event_g.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f"{SEMVER_ALIAS}:1.2.3"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -331,7 +331,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_has_environment(self) -> None:
-        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "has:environment"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -374,7 +374,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         group.substatus = None
         group.save(update_fields=["status", "substatus"])
 
-        url = f"/api/0/issues/{group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/recommended/"
         response = self.client.get(url, {"query": "is:unresolved has:environment"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -395,7 +395,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             project_id=self.project_1.id,
         )
 
-        url = f"/api/0/issues/{event_e.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event_e.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f'title:"{title}"'}, format="json")
 
         assert response.status_code == 200, response.content
@@ -415,7 +415,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             project_id=self.project_1.id,
         )
 
-        url = f"/api/0/issues/{event_e.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event_e.group.id}/events/recommended/"
         response = self.client.get(url, {"query": '!title:["*value1*", "*value2*"]'}, format="json")
 
         assert response.status_code == 200, response.content
@@ -429,7 +429,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         )
 
         assert group_info is not None
-        url = f"/api/0/issues/{group_info.group.id}/events/recommended/"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group_info.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f'title:"{issue_title}"'}, format="json")
 
         assert response.status_code == 200, response.content

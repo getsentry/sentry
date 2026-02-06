@@ -29,7 +29,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionType,
     SentryAppIdentifier,
 )
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
 
 
 class OrganizationWorkflowDetailsBaseTest(APITestCase):
@@ -95,6 +95,36 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_add_environment(self) -> None:
+        assert self.workflow.environment_id is None
+
+        self.valid_workflow["environment"] = self.environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == self.environment.name
+        assert updated_workflow.environment_id == self.environment.id
+
+    def test_update_environment(self) -> None:
+        self.workflow.environment_id = self.environment.id
+        self.workflow.save()
+        self.workflow.refresh_from_db()
+        assert self.workflow.environment_id == self.environment.id
+
+        test_environment = self.create_environment(name="test", project=self.project)
+        self.valid_workflow["environment"] = test_environment.name
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert response.data["environment"] == test_environment.name
+        assert updated_workflow.environment_id == test_environment.id
 
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
@@ -409,6 +439,119 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert "Some detectors do not exist" in str(response.data)
 
+    def test_update_detectors_permission_denied_cross_project_idor(self) -> None:
+        """
+        Test that a user cannot connect a detector from a project they don't have access to.
+        This is a regression test for an IDOR vulnerability where users with alerts:write scope
+        in one project could manipulate detector-workflow connections for detectors in other
+        projects they don't have access to.
+        """
+        # Disable Open Membership - this is the key condition
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create two teams: one for Alice, one for Bob
+        team_alice = self.create_team(organization=self.organization, name="team-alice")
+        team_bob = self.create_team(organization=self.organization, name="team-bob")
+
+        # Create two projects, each owned by a different team
+        self.create_project(organization=self.organization, teams=[team_alice], name="proj-alice")
+        project_bob = self.create_project(
+            organization=self.organization, teams=[team_bob], name="proj-bob"
+        )
+
+        # Create user Alice - member of team_alice only (has access to project_alice)
+        alice = self.create_user(is_superuser=False)
+        self.create_member(
+            user=alice,
+            organization=self.organization,
+            role="member",
+            teams=[team_alice],
+        )
+
+        # Create a detector in Bob's project (Alice should NOT have access to this)
+        bob_detector = self.create_detector(project=project_bob, name="Bob's Detector")
+
+        # Create Alice's workflow
+        alice_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        # Login as Alice
+        self.login_as(alice)
+
+        # Alice attempts to connect Bob's detector to her workflow
+        # This should fail because Alice doesn't have access to project_bob
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [bob_detector.id],
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            alice_workflow.id,
+            raw_data=data,
+            status_code=403,  # Should be permission denied
+        )
+
+        # Verify the detector-workflow connection was NOT created
+        assert (
+            DetectorWorkflow.objects.filter(workflow=alice_workflow, detector=bob_detector).count()
+            == 0
+        )
+
+    def test_update_detectors_permission_allowed_when_user_has_project_access(self) -> None:
+        """
+        Test that a user CAN connect a detector from a project they have access to.
+        Companion test to test_update_detectors_permission_denied_cross_project_idor.
+        """
+        # Disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # Create a team and project for the user
+        user_team = self.create_team(organization=self.organization, name="user-team")
+        user_project = self.create_project(
+            organization=self.organization, teams=[user_team], name="user-proj"
+        )
+
+        # Create user with team access
+        user_with_access = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_access,
+            organization=self.organization,
+            role="member",
+            teams=[user_team],
+        )
+
+        # Create a detector in the user's project
+        user_detector = self.create_detector(project=user_project, name="User's Detector")
+
+        # Create the user's workflow
+        user_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        # Login as the user
+        self.login_as(user_with_access)
+
+        # User connects their own detector - this SHOULD succeed
+        data = {
+            **self.valid_workflow,
+            "detectorIds": [user_detector.id],
+        }
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                user_workflow.id,
+                raw_data=data,
+            )
+
+        assert response.status_code == 200
+
+        # Verify the detector-workflow connection WAS created
+        assert (
+            DetectorWorkflow.objects.filter(workflow=user_workflow, detector=user_detector).count()
+            == 1
+        )
+
     def test_update_detectors_transaction_rollback_on_validation_failure(self) -> None:
         """Test that workflow updates are rolled back when detector validation fails"""
         existing_detector = self.create_detector(project=self.project)
@@ -688,3 +831,131 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             response = self.get_error_response(self.organization.slug, workflow.id)
             assert response.status_code == 404
+
+
+@region_silo_test
+class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTestMixin):
+    """
+    Security tests to verify that project-level access is enforced when
+    accessing individual workflows via the details endpoint.
+
+    These tests ensure that users cannot access workflows connected to projects
+    they don't have access to, even when specifying the workflow ID directly.
+    This is a regression test for an IDOR vulnerability.
+    """
+
+    endpoint = "sentry-api-0-organization-workflow-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+
+    def test_get_cannot_access_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot GET workflows connected only to projects they don't have access to.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to get the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            status_code=403,
+        )
+
+    def test_get_can_access_workflow_from_accessible_project(self) -> None:
+        """
+        Test that users CAN GET workflows connected to projects they have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get their own workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            self.user_workflow.id,
+        )
+        assert response.data["id"] == str(self.user_workflow.id)
+
+    def test_get_can_access_unattached_workflow(self) -> None:
+        """
+        Test that users can access workflows with no detector connections (org-level workflows).
+        """
+        self.login_as(self.limited_user)
+
+        # User SHOULD be able to get unattached workflows
+        response = self.get_success_response(
+            self.organization.slug,
+            self.unattached_workflow.id,
+        )
+        assert response.data["id"] == str(self.unattached_workflow.id)
+
+    def test_put_cannot_modify_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot PUT (modify) workflows connected only to projects
+        they don't have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to modify the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            method="PUT",
+            raw_data={
+                "name": "Hacked Workflow",
+                "enabled": True,
+                "config": {},
+                "triggers": {"logicType": "any", "conditions": []},
+                "actionFilters": [],
+            },
+            status_code=403,
+        )
+
+        # Verify the workflow was NOT modified
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.name == "Other's Workflow"
+
+    def test_delete_cannot_delete_workflow_from_inaccessible_project(self) -> None:
+        """
+        Test that users cannot DELETE workflows connected only to projects
+        they don't have access to.
+        """
+        self.login_as(self.limited_user)
+
+        # User should NOT be able to delete the other workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.other_workflow.id,
+            method="DELETE",
+            status_code=403,
+        )
+
+        # Verify the workflow was NOT deleted
+        self.other_workflow.refresh_from_db()
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+
+    def test_access_workflow_connected_to_multiple_projects_with_partial_access(self) -> None:
+        """
+        Test that users CAN access a workflow if they have access to at least one
+        of its connected projects, even if they don't have access to all of them.
+        """
+        self.login_as(self.limited_user)
+
+        # Create a workflow connected to BOTH projects
+        multi_project_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Multi-Project Workflow"
+        )
+        DetectorWorkflow.objects.create(
+            workflow=multi_project_workflow, detector=self.user_detector
+        )
+        DetectorWorkflow.objects.create(
+            workflow=multi_project_workflow, detector=self.other_detector
+        )
+
+        # User has access to one of the projects, so should be able to access the workflow
+        response = self.get_success_response(
+            self.organization.slug,
+            multi_project_workflow.id,
+        )
+        assert response.data["id"] == str(multi_project_workflow.id)

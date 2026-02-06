@@ -2,11 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Link} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -106,13 +105,13 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 
             // Create new entry with defaults for newly added repos
             const orgRepo = repositories?.find(r => r.externalId === repoId);
-            const [owner] = (orgRepo?.name ?? '').split('/');
+            const [owner, name] = (orgRepo?.name || '/').split('/');
             return {
               organization_id: organization.id,
               external_id: repoId,
-              name: orgRepo?.name ?? '',
+              name: name ?? orgRepo?.name ?? '',
               owner: owner ?? '',
-              provider: orgRepo?.provider.id ?? '',
+              provider: orgRepo?.provider?.name?.toLowerCase() ?? '',
               integration_id: orgRepo?.integrationId,
               branch_name: '',
               instructions: '',

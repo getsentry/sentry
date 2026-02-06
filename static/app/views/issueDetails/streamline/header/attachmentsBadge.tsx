@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -57,7 +58,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
 }
 
 const AttachmentButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

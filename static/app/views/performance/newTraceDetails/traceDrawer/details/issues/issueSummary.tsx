@@ -96,10 +96,10 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -111,8 +111,8 @@ const LocationWrapper = styled('div')`
   margin: 0 0 5px;
   direction: rtl;
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   span {
     direction: ltr;
   }
@@ -136,10 +136,18 @@ const IconWrapper = styled('span')`
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   align-items: center;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 const TitleWithoutLink = styled('span')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

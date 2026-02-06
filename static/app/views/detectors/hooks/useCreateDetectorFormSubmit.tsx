@@ -42,7 +42,7 @@ export function useCreateDetectorFormSubmit<
   const {mutateAsync: createDetector} = useCreateDetector();
 
   return useCallback<OnSubmitCallback>(
-    async (data, onSubmitSuccess, onSubmitError, _, formModel) => {
+    async (_data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const isValid = formModel.validateForm();
       if (!isValid) {
         trackAnalytics('monitor.created', {
@@ -53,7 +53,11 @@ export function useCreateDetectorFormSubmit<
         return;
       }
 
-      const payload = formDataToEndpointPayload(data as TFormData);
+      // Use getTransformedData() instead of raw data to apply field-level
+      // getValue transformations (e.g., assertion normalization)
+      const payload = formDataToEndpointPayload(
+        formModel.getTransformedData() as TFormData
+      );
 
       try {
         const resultDetector = await createDetector(payload);

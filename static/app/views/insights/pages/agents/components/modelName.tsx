@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {SpaceSize} from 'sentry/utils/theme';
 
@@ -30,7 +31,11 @@ const IconWrapper = styled('div')`
 `;
 
 const NameWrapper = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 `;
 

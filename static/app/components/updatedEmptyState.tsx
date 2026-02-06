@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/button';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -216,7 +217,7 @@ const ProjectBadgeWrapper = styled('div')`
 
 const Title = styled('div')`
   font-size: 26px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')`
@@ -246,8 +247,8 @@ const Setup = styled('div')`
 `;
 
 export const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${space(1)};
 `;
 
@@ -282,6 +283,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

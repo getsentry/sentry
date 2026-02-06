@@ -77,7 +77,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         file_size = file_obj.size
 
         if file_size is None or file_size < 0:
-            return Response({"error": "File size unavailable"}, status=500)
+            return Response({"detail": "File size unavailable"}, status=500)
 
         response = HttpResponse()
         response["Content-Length"] = file_size
@@ -114,7 +114,7 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         file_size = file_obj.size
 
         if file_size is None or file_size < 0:
-            return Response({"error": "File size unavailable"}, status=500)
+            return Response({"detail": "File size unavailable"}, status=500)
 
         range_header = request.META.get("HTTP_RANGE")
         if range_header:

@@ -3,8 +3,9 @@ import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout/flex';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
+
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
@@ -101,7 +102,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
     calc(${p => p.theme.radius.md} + 1px) 0 0;
@@ -152,10 +153,10 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   border: none;
   padding: 0 ${p => p.theme.space.xl};
   text-transform: inherit;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: left;
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 
   position: relative;
   display: flex;
@@ -211,8 +212,8 @@ const StyledEmptyMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 SimpleTable.Header = Header;

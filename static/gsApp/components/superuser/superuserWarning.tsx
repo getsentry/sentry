@@ -1,10 +1,11 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Client} from 'sentry/api';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import AlertStore from 'sentry/stores/alertStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -103,8 +104,8 @@ function SuperuserWarning({organization, className}: Props) {
 }
 
 const StyledBadge = styled(Badge)`
-  color: ${p => p.theme.white};
-  background: ${p => p.theme.colors.chonk.red400};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
+  background: ${p => p.theme.tokens.background.danger.vibrant};
 `;
 
 const TooltipContent = styled('div')`

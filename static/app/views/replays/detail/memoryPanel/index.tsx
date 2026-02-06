@@ -82,14 +82,14 @@ const ChartWrapper = styled('div')`
 `;
 
 const ChartTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
   flex: 0 1 auto;
   margin: 0;
 `;
 
 const Description = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -143,7 +144,7 @@ const Wrapper = styled('div')`
 `;
 
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin-bottom: ${space(2)};
   margin-left: ${space(1)};
@@ -151,8 +152,8 @@ const SpansHeader = styled('h6')`
 
 const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
   padding: 0 ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   align-items: center;

@@ -1,8 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
@@ -27,6 +28,7 @@ import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
+import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import ReplaysSearch from 'sentry/views/replays/list/search';
 import useReplayIndexTableColumns from 'sentry/views/replays/list/useReplayIndexTableColumns';
 import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
@@ -91,6 +93,7 @@ export default function ReplayIndexTable({
       <Flex gap="md" wrap="wrap">
         <ReplaysFilters />
         <ReplaysSearch />
+        <SaveReplayQueryButton />
         {showDeadRageClickCards ? (
           <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
             {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
@@ -163,6 +166,6 @@ function useNeedsSDKUpdateForClickSearch({search}: {search: undefined | string})
 }
 
 const EmptyStateSubheading = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;

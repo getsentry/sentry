@@ -7,7 +7,7 @@ export const GridTable = styled(FluidHeight)`
   border-radius: ${p => p.theme.radius.md};
 
   .beforeHoverTime + .afterHoverTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue200};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
     content: '';
     left: 0;
     position: absolute;
@@ -16,7 +16,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeHoverTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue200};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.moderate};
     content: '';
     right: 0;
     position: absolute;
@@ -25,7 +25,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeCurrentTime + .afterCurrentTime:before {
-    border-top: 1px solid ${p => p.theme.colors.blue400};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
     content: '';
     left: 0;
     position: absolute;
@@ -34,7 +34,7 @@ export const GridTable = styled(FluidHeight)`
   }
 
   .beforeCurrentTime:last-child:before {
-    border-bottom: 1px solid ${p => p.theme.colors.blue400};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.accent.vibrant};
     content: '';
     right: 0;
     position: absolute;

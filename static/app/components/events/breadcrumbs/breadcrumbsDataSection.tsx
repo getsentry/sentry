@@ -2,9 +2,9 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -220,13 +220,14 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${space(1)};
     height: ${space(1)};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
 const VerticalEllipsis = styled(IconEllipsis)`
   height: 22px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: ${space(0.5)};
   transform: rotate(90deg);
 `;

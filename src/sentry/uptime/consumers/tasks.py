@@ -11,7 +11,11 @@ from sentry.uptime.consumers.results_consumer import (
     get_host_provider_if_valid,
     process_result_internal,
 )
-from sentry.uptime.models import UptimeSubscription, get_detector
+from sentry.uptime.models import (
+    UptimeSubscription,
+    get_detector,
+    load_regions_for_uptime_subscription,
+)
 from sentry.uptime.utils import (
     build_backlog_key,
     build_backlog_schedule_lock_key,
@@ -25,7 +29,7 @@ from sentry.workflow_engine.models.detector import Detector
 logger = logging.getLogger(__name__)
 
 # 7 attempts over 180 seconds
-BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30]
+BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30]
 
 
 @instrumented_task(
@@ -68,6 +72,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
         backlog_key, 0, -1, withscores=True
     )
     host_provider = get_host_provider_if_valid(subscription)
+    subscription_regions = load_regions_for_uptime_subscription(subscription.id)
 
     for result_json, scheduled_time_ms in queued_results_raw:
         if int(scheduled_time_ms) != expected_next_ms:
@@ -93,11 +98,11 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
             result,
             {**metric_tags},
             cluster,
+            subscription_regions,
         )
         cluster.zrem(backlog_key, result_json)
         metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)
         expected_next_ms += subscription_interval_ms
-        last_update_ms = result["scheduled_check_time_ms"]
         processed_count += 1
 
     # If we've hit max attempts process all remaining with backfill
@@ -119,6 +124,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 "uptime_region": result["region"],
                 "host_provider": host_provider,
             }
+            last_update_ms = int(cluster.get(last_update_key) or 0)
             create_backfill_misses(
                 detector,
                 subscription,
@@ -133,6 +139,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
                 result,
                 metric_tags,
                 cluster,
+                subscription_regions,
             )
             cluster.zrem(backlog_key, result_json)
             metrics.incr("uptime.backlog.removed", amount=1, sample_rate=1.0, tags=metric_tags)

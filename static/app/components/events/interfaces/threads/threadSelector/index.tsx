@@ -1,8 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -133,20 +135,21 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
       value={activeThread.id}
       options={items}
       menuWidth={450}
-      triggerProps={{
-        size: 'xs',
-        children: (
-          <ThreadName>
-            {t('Thread #%s: ', activeThread.id)}
-            <ActiveThreadName>
-              {getThreadLabel(
-                filterThreadInfo(event, activeThread, exception),
-                activeThread.name
-              )}
-            </ActiveThreadName>
-          </ThreadName>
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} size="xs">
+          {
+            <ThreadName>
+              {t('Thread #%s: ', activeThread.id)}
+              <ActiveThreadName>
+                {getThreadLabel(
+                  filterThreadInfo(event, activeThread, exception),
+                  activeThread.name
+                )}
+              </ActiveThreadName>
+            </ThreadName>
+          }
+        </OverlayTrigger.Button>
+      )}
       menuBody={
         <StyledGrid hasThreadStates={hasThreadStates}>
           <ThreadSelectorGridCell />
@@ -236,20 +239,24 @@ export default ThreadSelector;
 const ThreadName = styled('div')`
   display: flex;
   gap: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ActiveThreadName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   max-width: 200px;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledGrid = styled(ThreadSelectorGrid)`
   padding-left: 36px;
   padding-right: 20px;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   margin-bottom: ${space(0.5)};
 `;
@@ -260,7 +267,12 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
   user-select: none;
   border-radius: ${p => p.theme.radius.md};
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 

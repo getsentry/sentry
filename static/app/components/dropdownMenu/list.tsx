@@ -39,7 +39,8 @@ interface DropdownMenuContextValue {
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
-  extends Omit<
+  extends
+    Omit<
       AriaMenuOptions<MenuItemProps>,
       | 'selectionMode'
       | 'selectedKeys'
@@ -260,7 +261,7 @@ const StyledOverlay = styled(Overlay)`
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -273,11 +274,12 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 
 const MenuTitle = styled('div')`
   flex-shrink: 0;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;

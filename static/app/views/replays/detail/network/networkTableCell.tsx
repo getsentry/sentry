@@ -1,7 +1,8 @@
 import type {ComponentProps, CSSProperties} from 'react';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import FileSize from 'sentry/components/fileSize';
 import {
   ButtonWrapper,

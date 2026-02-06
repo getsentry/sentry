@@ -8,6 +8,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
@@ -46,8 +47,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 export function createDashboard(
   api: Client,
   orgSlug: string,
-  newDashboard: DashboardDetails,
-  duplicate?: boolean
+  newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     newDashboard;
@@ -59,7 +59,6 @@ export function createDashboard(
       data: {
         title,
         widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
-        duplicate,
         projects,
         environment,
         period,
@@ -244,7 +243,9 @@ export function validateWidgetRequest(
   selection: PageFilters
 ) {
   return [
-    `/organizations/${orgId}/dashboards/widgets/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
     {
       method: 'POST',
       data: widget,

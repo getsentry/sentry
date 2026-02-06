@@ -2,7 +2,9 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
@@ -10,9 +12,6 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
@@ -173,7 +172,7 @@ export function InviteBanner({
       <FloatingFeedbackButton />
       <StyledCard>
         <Flex justify="between">
-          <CardTitleContent>
+          <Stack>
             <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
             <Subtitle>
               {tct('[missingMemberCount] missing members', {
@@ -186,7 +185,7 @@ export function InviteBanner({
                 size="xs"
               />
             </Subtitle>
-          </CardTitleContent>
+          </Stack>
           <ButtonBar>
             <Button
               priority="primary"
@@ -242,7 +241,7 @@ function MemberCards({
             key={member.externalId}
             data-test-id={`member-card-${member.externalId}`}
           >
-            <MemberCardContent>
+            <Stack flex="1 1" minWidth="50%" maxWidth="75%">
               <MemberCardContentRow>
                 <IconGithub size="sm" />
                 {/* TODO(cathy): create mapping from integration to lambda external link function */}
@@ -255,7 +254,7 @@ function MemberCards({
                 {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
               </MemberCardContentRow>
               <MemberEmail>{member.email}</MemberEmail>
-            </MemberCardContent>
+            </Stack>
             <Button
               size="sm"
               onClick={() => handleSendInvite(member.email)}
@@ -271,7 +270,7 @@ function MemberCards({
       })}
 
       <MemberCard data-test-id="see-more-card" key="see-more">
-        <MemberCardContent>
+        <Stack flex="1 1" minWidth="50%" maxWidth="75%">
           <MemberCardContentRow>
             <SeeMore>
               {tct('See all [missingMembersCount] missing members', {
@@ -287,7 +286,7 @@ function MemberCards({
               ),
             })}
           </Subtitle>
-        </MemberCardContent>
+        </Stack>
         <Button
           size="sm"
           priority="primary"
@@ -309,33 +308,28 @@ const StyledCard = styled(Card)`
   overflow: hidden;
 `;
 
-const CardTitleContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const CardTitle = styled('h6')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.colors.gray500};
 `;
 
 const Subtitle = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(0.5)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 70%;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
   text-overflow: ellipsis;
   overflow: hidden;
 `;
@@ -351,26 +345,18 @@ const MemberCard = styled(Card)`
   align-items: center;
 `;
 
-const MemberCardContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1;
-  min-width: 50%;
-  max-width: 75%;
-`;
-
 const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   gap: ${space(0.75)};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const SeeMore = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;

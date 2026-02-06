@@ -23,7 +23,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -377,17 +377,16 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
     def test_query_skips_for_empty_org_ids_when_option_enabled(self) -> None:
         """
         Confirms that query_project_counts_by_org does NOT make a Snuba query
-        when called with an empty org_ids list and the option is enabled.
+        when called with an empty org_ids list.
         """
-        with self.options({"dynamic-sampling.skip_snuba_query_for_empty_orgs": True}):
-            with patch(
-                "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-            ) as mock_query:
-                mock_query.return_value = {"data": []}
+        with patch(
+            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
+        ) as mock_query:
+            mock_query.return_value = {"data": []}
 
-                list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
+            list(query_project_counts_by_org([], SamplingMeasure.TRANSACTIONS))
 
-                assert mock_query.call_count == 0
+            assert mock_query.call_count == 0
 
     def test_fetch_projects_only_queries_measures_with_orgs(self) -> None:
         """
@@ -416,7 +415,6 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                 {
                     "dynamic-sampling.check_span_feature_flag": True,
                     "dynamic-sampling.measure.spans": [org.id],
-                    "dynamic-sampling.skip_snuba_query_for_empty_orgs": True,
                 }
             ):
                 partitioned = partition_by_measure([org.id])
@@ -450,7 +448,6 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                 {
                     "dynamic-sampling.check_span_feature_flag": True,
                     "dynamic-sampling.measure.spans": [org1.id, org2.id],
-                    "dynamic-sampling.skip_snuba_query_for_empty_orgs": True,
                 }
             ):
                 batches = [[org1.id], [org2.id]]
@@ -465,3 +462,139 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                         )
 
             assert mock_query.call_count == 2
+
+
+@freeze_time(MOCK_DATETIME)
+class TestSpanMetricQuery(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    """
+    Tests that verify the span metric query works correctly with is_segment filter.
+    """
+
+    @property
+    def now(self) -> datetime:
+        return MOCK_DATETIME
+
+    def test_span_metric_with_is_segment_filter(self) -> None:
+        """
+        Test that span metric queries only count spans with is_segment=true.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store span metrics with is_segment=true (should be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        # Store span metrics without is_segment tag (should NOT be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar_transaction", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SEGMENTS
+        )
+
+        # Should only count the is_segment=true metrics (5 + 10 = 15)
+        assert results[org.id] == [(project.id, 15.0, 5, 10)]
+
+    def test_span_metric_multiple_projects(self) -> None:
+        """
+        Test span metric query with multiple projects.
+        """
+        org = self.create_organization("test-org")
+        p1 = self.create_project(organization=org)
+        p2 = self.create_project(organization=org)
+
+        # Project 1: 3 keep, 7 drop
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=3,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=7,
+            project_id=p1.id,
+            org_id=org.id,
+        )
+
+        # Project 2: 2 keep, 8 drop
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=2,
+            project_id=p2.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "drop", "is_segment": "true"},
+            minutes_before_now=30,
+            value=8,
+            project_id=p2.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.SPANS
+        )
+
+        assert len(results[org.id]) == 2
+        assert (p1.id, 10.0, 3, 7) in results[org.id]
+        assert (p2.id, 10.0, 2, 8) in results[org.id]
+
+    def test_transaction_metric_does_not_use_is_segment_filter(self) -> None:
+        """
+        Test that transaction metric queries do NOT filter by is_segment.
+        """
+        org = self.create_organization("test-org")
+        project = self.create_project(organization=org)
+
+        # Store transaction metrics (no is_segment tag needed)
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=30,
+            value=5,
+            project_id=project.id,
+            org_id=org.id,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop"},
+            minutes_before_now=30,
+            value=10,
+            project_id=project.id,
+            org_id=org.id,
+        )
+
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            org_ids=[org.id], measure=SamplingMeasure.TRANSACTIONS
+        )
+
+        assert results[org.id] == [(project.id, 15.0, 5, 10)]

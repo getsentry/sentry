@@ -835,7 +835,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         mock_process_suspect_commits.assert_not_called()
 
-    @patch("sentry.integrations.utils.commit_context.logger.exception")
+    @patch("sentry.integrations.utils.commit_context.logger.warning")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
@@ -845,7 +845,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self,
         mock_get_commit_context,
         mock_process_suspect_commits,
-        mock_logger_exception,
+        mock_logger_warning,
     ):
         """
         A failure case where the integration returned an API error.
@@ -866,7 +866,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         mock_process_suspect_commits.assert_not_called()
 
-        mock_logger_exception.assert_any_call(
+        mock_logger_warning.assert_any_call(
             "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,

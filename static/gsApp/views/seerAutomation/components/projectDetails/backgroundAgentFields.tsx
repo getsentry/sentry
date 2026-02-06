@@ -48,11 +48,24 @@ function CursorIntegrationFields({
 }: Props) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
+  const isAutoFixEnabled = Boolean(
+    project.autofixAutomationTuning && project.autofixAutomationTuning !== 'off'
+  );
+  const isBackgroundAgentEnabled = Boolean(preference?.automation_handoff);
+
+  const isDisabled = !canWrite || !isAutoFixEnabled || !isBackgroundAgentEnabled;
+
+  let disabledReason: string | null = null;
+  if (!isAutoFixEnabled) {
+    disabledReason = t('Turn on Auto-Triggered Fixes to use this feature.');
+  } else if (!isBackgroundAgentEnabled) {
+    disabledReason = t('This setting is only available when using background agents.');
+  }
+
   return (
     <BooleanField
-      disabled={
-        !canWrite || preference?.automation_handoff?.target !== 'cursor_background_agent'
-      }
+      disabled={isDisabled}
+      disabledReason={disabledReason}
       name="cursorAutoCreatePullRequests"
       label={t('Auto-Create Pull Requests')}
       help={t(

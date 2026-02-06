@@ -5,8 +5,9 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -88,7 +89,7 @@ const KeyButton = styled(UnstyledButton)`
   max-width: 400px;
 
   :focus {
-    background-color: ${p => p.theme.colors.blue100};
+    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   }
@@ -96,7 +97,7 @@ const KeyButton = styled(UnstyledButton)`
 
 const KeyEditing = styled('div')`
   padding: 0 ${space(0.25)};
-  color: ${p => p.theme.colors.blue500};
+  color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   max-width: 100%;

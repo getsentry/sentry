@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TooltipProps} from 'sentry/components/core/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
 // We do not want people using this type as it should only be used
 // internally by the different button implementations
@@ -21,10 +21,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   analyticsParams?: Record<string, any>;
   /**
-   * Removes borders from the button.
-   */
-  borderless?: boolean;
-  /**
    * Indicates that the button is "doing" something.
    */
   busy?: boolean;
@@ -38,7 +34,7 @@ export interface DO_NOT_USE_CommonButtonProps {
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
    */
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'transparent';
+  priority?: 'default' | 'primary' | 'danger' | 'warning' | 'link' | 'transparent';
   /**
    * The size of the button
    */
@@ -51,11 +47,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    * Additional properties for the Tooltip when `title` is set.
    */
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
-  /**
-   * Userful in scenarios where the border of the button should blend with the
-   * background behind the button.
-   */
-  translucentBorder?: boolean;
 }
 
 type ButtonElementProps = Omit<

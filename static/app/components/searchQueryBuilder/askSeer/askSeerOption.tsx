@@ -2,9 +2,10 @@ import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   AskSeerLabel,
   AskSeerListItem,
@@ -19,7 +20,7 @@ export const ASK_SEER_ITEM_KEY = 'ask_seer';
 
 export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
   const ref = useRef<HTMLDivElement>(null);
-  const {setDisplayAskSeer} = useSearchQueryBuilder();
+  const {setDisplayAskSeer, aiSearchBadgeType} = useSearchQueryBuilder();
 
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
@@ -54,18 +55,19 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
     <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
-      <AiPrivacyTooltip
-        linkProps={{
-          onMouseOver: () => setOptionDisableOverride(true),
-          onMouseOut: () => setOptionDisableOverride(false),
-        }}
-        showUnderline={hasAskSeerConsentFlowChanges}
-        disabled={!hasAskSeerConsentFlowChanges}
-      >
-        <AskSeerLabel {...labelProps}>
-          {t('Ask AI to build your query')} <FeatureBadge type="beta" />
-        </AskSeerLabel>
-      </AiPrivacyTooltip>
+      <AskSeerLabel {...labelProps}>
+        <AiPrivacyTooltip
+          linkProps={{
+            onMouseOver: () => setOptionDisableOverride(true),
+            onMouseOut: () => setOptionDisableOverride(false),
+          }}
+          showUnderline={hasAskSeerConsentFlowChanges}
+          disabled={!hasAskSeerConsentFlowChanges}
+        >
+          {t('Ask AI to build your query')}
+        </AiPrivacyTooltip>
+        <FeatureBadge type={aiSearchBadgeType} />
+      </AskSeerLabel>
     </AskSeerListItem>
   );
 }

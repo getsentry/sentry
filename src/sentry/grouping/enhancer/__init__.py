@@ -13,6 +13,7 @@ from typing import Any, Literal
 import msgpack
 import sentry_sdk
 import zstandard
+from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
@@ -38,7 +39,7 @@ RUST_CACHE = RustCache(1_000)
 # comment is merged
 VERSIONS = [2, 3]
 DEFAULT_ENHANCEMENTS_VERSION = VERSIONS[-1]
-DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
+DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2026-01-20"
 
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
@@ -229,6 +230,18 @@ def _get_hint_for_frame(
         can_use_rust_hint = False
 
     raw_hint = rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+
+    # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
+    return _add_rule_source_to_hint(raw_hint, custom_rules)
+
+
+def _get_hint_for_stacktrace(
+    rust_stacktrace_results: RustStacktraceResult, custom_rules: set[str]
+) -> str | None:
+    raw_hint = rust_stacktrace_results.hint
+
+    if not raw_hint:
+        return None
 
     # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
     return _add_rule_source_to_hint(raw_hint, custom_rules)
@@ -516,7 +529,7 @@ class EnhancementsConfig:
 
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
-            hint=rust_stacktrace_results.hint,
+            hint=_get_hint_for_stacktrace(rust_stacktrace_results, self.custom_rule_strings),
             contributes=rust_stacktrace_results.contributes,
         )
 

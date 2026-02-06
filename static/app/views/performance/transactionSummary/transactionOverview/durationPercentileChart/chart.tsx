@@ -30,7 +30,7 @@ function Chart(props: Props) {
         minInterval: durationUnit,
         type: 'value' as const,
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           // Use p50() to force time formatting.
           formatter: (value: number) =>
             axisLabelFormatter(value, 'duration', undefined, durationUnit),

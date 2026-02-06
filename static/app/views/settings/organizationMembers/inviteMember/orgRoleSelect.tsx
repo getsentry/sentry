@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Radio} from 'sentry/components/core/radio';
+import {Radio} from '@sentry/scraps/radio';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';

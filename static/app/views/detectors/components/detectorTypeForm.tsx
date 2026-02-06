@@ -2,10 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
@@ -165,8 +166,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   grid-template-columns: 1fr;
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.theme.colors.surface500};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  background-color: ${p => p.theme.tokens.background.primary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   overflow: hidden;
 
@@ -181,8 +182,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
   }
 
   &[aria-checked='true'] {
-    border-color: ${p => p.theme.focusBorder};
-    outline: solid 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.focus.default};
   }
 
   ${OptionBody} {
@@ -193,8 +194,8 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 const OptionInfo = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
-  font-size: ${p => p.theme.fontSize.md};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const Visualization = styled('div')`
@@ -217,7 +218,8 @@ const Visualization = styled('div')`
 function MetricVisualization() {
   const theme = useTheme();
   const danger = theme.colors.red400;
-  const defaultChartColor = theme.chart.getColorPalette(0)[0] ?? theme.colors.blue500;
+  const defaultChartColor =
+    theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
 
   return (
     <svg fill="none" viewBox="0 0 480 56">

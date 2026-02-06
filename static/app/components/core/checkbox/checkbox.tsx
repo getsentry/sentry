@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxConfig = {
@@ -23,8 +24,10 @@ const NativeHiddenCheckbox = styled('input')`
   cursor: pointer;
 
   & + * {
-    color: ${p => p.theme.colors.white};
-    border: 1px solid ${p => p.theme.colors.surface100};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.rest};
+    color: ${p => p.theme.tokens.content.onVibrant.light};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
 
     svg {
       stroke: ${p => p.theme.colors.white};
@@ -37,22 +40,23 @@ const NativeHiddenCheckbox = styled('input')`
 
   &:disabled + *,
   &[aria-disabled='true'] + * {
-    background-color: ${p => p.theme.colors.surface500};
-    border: 1px solid ${p => p.theme.colors.surface100};
+    opacity: ${p => p.theme.tokens.interactive.disabled};
     cursor: not-allowed;
   }
 
   &:checked + *,
   &:indeterminate + * {
-    background-color: ${p => p.theme.colors.chonk.blue400};
-    color: ${p => p.theme.white};
+    background-color: ${p =>
+      p.theme.tokens.interactive.chonky.debossed.accent.background};
+    color: ${p => p.theme.tokens.content.onVibrant.light};
   }
 
   &:disabled:checked + *,
   &:disabled:indeterminate + * {
-    background-color: ${p => p.theme.colors.chonk.blue400};
-    border: 1px solid ${p => p.theme.colors.chonk.blue400};
-    opacity: 0.6;
+    background-color: ${p =>
+      p.theme.tokens.interactive.chonky.debossed.accent.background};
+    border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
+    opacity: ${p => p.theme.tokens.interactive.disabled};
   }
 `;
 
@@ -62,8 +66,10 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
+interface CheckboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'checked' | 'size'
+> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */

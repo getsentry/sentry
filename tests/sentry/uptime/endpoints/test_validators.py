@@ -1,6 +1,10 @@
 from unittest import mock
 
-from sentry.constants import DataCategory
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
+
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
@@ -11,11 +15,14 @@ from sentry.uptime.endpoints.validators import (
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
     DEFAULT_DOWNTIME_THRESHOLD,
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
 from sentry.utils.outcomes import Outcome
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
@@ -146,6 +153,24 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             ),
         }
 
+    def assert_valid_uptime_conditions(self, detector):
+        """Verify detector has correct uptime DataConditionGroup and DataConditions."""
+        condition_group = detector.workflow_condition_group
+        assert condition_group is not None
+        assert condition_group.logic_type == "any"
+        assert condition_group.organization_id == detector.project.organization_id
+
+        conditions = sorted(condition_group.conditions.all(), key=lambda c: c.comparison)
+        assert len(conditions) == 2
+
+        assert conditions[0].comparison == CHECKSTATUS_FAILURE
+        assert conditions[0].condition_result == DetectorPriorityLevel.HIGH
+        assert conditions[0].type == Condition.EQUAL
+
+        assert conditions[1].comparison == CHECKSTATUS_SUCCESS
+        assert conditions[1].condition_result == DetectorPriorityLevel.OK
+        assert conditions[1].type == Condition.EQUAL
+
     def test_rejects_multiple_data_sources(self):
         """Test that multiple data sources are rejected for uptime monitors."""
         data = self.get_valid_data(
@@ -183,7 +208,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -202,7 +227,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat assignment was attempted
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -226,7 +251,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is True
 
         # Verify seat was assigned
-        mock_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_assign_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.ACTIVE.value
@@ -254,7 +279,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify seat availability check was performed
-        mock_check_assign_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_check_assign_seat.assert_called_with(seat_object=detector)
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_update_disable_removes_seat(self, mock_disable_seat: mock.MagicMock) -> None:
@@ -272,7 +297,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         assert detector.enabled is False
 
         # Verify disable_seat was called
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_disable_seat.assert_called_with(seat_object=detector)
 
         uptime_subscription = get_uptime_subscription(detector)
         assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
@@ -289,7 +314,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         validator.delete()
 
         # Verify remove_seat was called immediately
-        mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
+        mock_remove_seat.assert_called_with(seat_object=detector)
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",
@@ -533,3 +558,100 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         detector.refresh_from_db()
         assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
         assert detector.config["downtime_threshold"] == 10
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_creates_detector_with_correct_structure(
+        self, mock_assign_seat: mock.MagicMock
+    ) -> None:
+        """Test that create() creates a detector with all required components."""
+        validator = UptimeDomainCheckFailureValidator(
+            data=self.get_valid_data(), context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        assert detector.type == UptimeDomainCheckFailure.slug
+        self.assert_valid_uptime_conditions(detector)
+
+        assert detector.data_sources.count() == 1
+        data_source = detector.data_sources.first()
+        assert data_source.type == DATA_SOURCE_UPTIME_SUBSCRIPTION
+
+        subscription = get_uptime_subscription(detector)
+        assert subscription is not None
+        assert subscription.url == "https://sentry.io"
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_ignores_custom_condition_group(self, mock_assign_seat: mock.MagicMock) -> None:
+        """Test that custom condition_group in request is ignored."""
+        data = self.get_valid_data()
+        data["conditionGroup"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "comparison": "custom_value",
+                    "type": Condition.EQUAL.value,
+                    "conditionResult": DetectorPriorityLevel.LOW,
+                }
+            ],
+        }
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        self.assert_valid_uptime_conditions(detector)
+
+    def test_update_ignores_condition_group_changes(self) -> None:
+        """Test that condition_group cannot be modified on update."""
+        detector = self.create_uptime_detector()
+
+        data = {
+            "conditionGroup": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "comparison": "modified_value",
+                        "type": Condition.EQUAL.value,
+                        "conditionResult": DetectorPriorityLevel.LOW,
+                    }
+                ],
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        self.assert_valid_uptime_conditions(detector)
+
+    @mock.patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_creates_uptime_subscription(self, mock_assign_seat: mock.MagicMock) -> None:
+        """Test that create() properly creates the UptimeSubscription."""
+        data = self.get_valid_data(
+            data_sources=[
+                {
+                    "url": "https://example.com/health",
+                    "intervalSeconds": 300,
+                    "timeoutMs": 5000,
+                    "method": "POST",
+                    "headers": [["Authorization", "Bearer token"]],
+                    "body": '{"check": true}',
+                }
+            ]
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        subscription = get_uptime_subscription(detector)
+        assert subscription.url == "https://example.com/health"
+        assert subscription.interval_seconds == 300
+        assert subscription.timeout_ms == 5000
+        assert subscription.method == "POST"
+        assert subscription.headers == [["Authorization", "Bearer token"]]
+        assert subscription.body == '{"check": true}'

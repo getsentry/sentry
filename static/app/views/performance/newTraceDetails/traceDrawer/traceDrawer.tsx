@@ -2,7 +2,8 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -478,7 +479,6 @@ function TraceLayoutMinimizeButton(props: {
     <CloseButton
       priority="link"
       size="xs"
-      borderless
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
       onClick={props.onClick}
@@ -494,8 +494,8 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const CloseButton = styled(Button)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 100%;
   border-bottom: 2px solid transparent;
   &:hover {
@@ -599,6 +599,7 @@ const TabSeparator = styled('span')`
   margin-right: ${space(0.5)};
   height: 16px;
   width: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
@@ -633,12 +634,13 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
     }
   }
 
   &:hover {
-    border-bottom: 2px solid ${p => p.theme.colors.blue200};
+    border-bottom: 2px solid ${p => p.theme.tokens.border.accent.vibrant};
 
     button:last-child {
       transition: all 0.3s ease-in-out 500ms;
@@ -647,7 +649,7 @@ const Tab = styled('li')`
     }
   }
   &[aria-selected='true'] {
-    border-bottom: 2px solid ${p => p.theme.colors.blue500};
+    border-bottom: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -672,7 +674,7 @@ const TabButton = styled('button')`
   border-radius: 0;
   margin: 0;
   padding: 0 ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
 `;

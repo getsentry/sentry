@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
@@ -83,7 +85,7 @@ function ActivityItem({
   );
 
   return (
-    <ActivityItemWrapper data-test-id="activity-item" className={className}>
+    <Flex marginBottom="xl" data-test-id="activity-item" className={className}>
       {id && <a id={id} />}
 
       {author && (
@@ -109,21 +111,16 @@ function ActivityItem({
 
         {children && (noPadding ? children : <ActivityBody>{children}</ActivityBody>)}
       </StyledActivityBubble>
-    </ActivityItemWrapper>
+    </Flex>
   );
 }
-
-const ActivityItemWrapper = styled('div')`
-  display: flex;
-  margin-bottom: ${space(2)};
-`;
 
 const ActivityHeader = styled('div')`
   display: flex;
   align-items: center;
   padding: 6px ${space(2)};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:last-child {
     border-bottom: none;
@@ -144,15 +141,15 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

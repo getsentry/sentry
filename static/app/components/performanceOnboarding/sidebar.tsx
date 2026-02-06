@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -388,10 +389,10 @@ const TaskList = styled('div')`
 
 const Heading = styled('div')`
   display: flex;
-  color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -416,7 +417,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
 `;
 
@@ -429,6 +430,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   display: flex;
   align-items: center;
   flex-grow: 1;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.success};
 `;

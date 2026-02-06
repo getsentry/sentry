@@ -1,7 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
@@ -81,7 +82,7 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
 
 const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: stripURLOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
@@ -273,7 +274,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconFocus isFocused={false} size="xs" />,
   }),
   console: (frame: ConsoleFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: frame.message ?? '',
     tabKey: TabKey.CONSOLE,
     title: 'Console',
@@ -345,77 +346,77 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     }
   },
   memory: () => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.MEMORY,
     title: 'Memory',
     icon: <IconInfo size="xs" />,
   }),
   paint: () => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
   }),
   'resource.css': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.fetch': (frame: RequestFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.iframe': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.img': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.link': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.other': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.script': (frame: ResourceFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.xhr': (frame: RequestFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'resource.http': (frame: RequestFrame) => ({
-    colorGraphicsToken: 'muted',
+    colorGraphicsToken: 'neutral',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
@@ -450,7 +451,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
 };
 
 const MAPPER_DEFAULT = (frame: any): Details => ({
-  colorGraphicsToken: 'muted',
+  colorGraphicsToken: 'neutral',
   description: frame.message ?? frame.data ?? '',
   tabKey: TabKey.BREADCRUMBS,
   title: toTitleCase(defaultTitle(frame)),

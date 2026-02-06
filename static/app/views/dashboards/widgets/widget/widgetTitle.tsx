@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import {Tooltip} from 'sentry/components/core/tooltip';
 
 export interface WidgetTitleProps {
   title?: string;
@@ -16,6 +17,10 @@ export function WidgetTitle(props: WidgetTitleProps) {
 }
 
 const TitleText = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

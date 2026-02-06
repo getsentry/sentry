@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -15,6 +14,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -38,7 +38,11 @@ export default function FirstEventFooter({
   const {activateSidebar} = useOnboardingSidebar();
 
   const {data: issues} = useApiQuery<Group[]>(
-    [`/projects/${organization.slug}/${project.slug}/issues/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
       enabled: !!project.firstEvent,
@@ -178,7 +182,7 @@ const WaitingIndicator = styled(motion.div)`
 const StatusWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   justify-content: center;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {

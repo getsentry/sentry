@@ -2,7 +2,8 @@ import type React from 'react';
 import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {
   DataConditionType,
@@ -120,6 +121,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     DataConditionType.FIRST_SEEN_EVENT,
     {
       label: t('A new issue is created'),
+      validate: undefined,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_RESOLVED_TRIGGER,
+    {
+      label: t('An issue is resolved'),
       validate: undefined,
     },
   ],

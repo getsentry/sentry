@@ -2,12 +2,12 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import type {InputProps} from '@sentry/scraps/input';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type {InputProps} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -484,7 +484,7 @@ const modalBodyCss = css`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const Subtitle = styled('div')`
@@ -497,7 +497,7 @@ const Subtitle = styled('div')`
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 `;
 
@@ -505,7 +505,7 @@ const FooterInfo = styled('div')`
   flex: 1;
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   gap: ${space(1)};
 `;
 
@@ -517,12 +517,12 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
   margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
   margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
@@ -560,23 +560,23 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditPreviewTagItem = styled(EventTagsTreeRow)`
   &:nth-child(4n-2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
   }
 `;
 
 const EditTagContainer = styled('div')`
   display: grid;
   grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   align-items: center;
 `;
 
@@ -600,8 +600,9 @@ const EditButton = styled(Button)`
 
 const HighlightKey = styled('p')<{disabled?: boolean}>`
   grid-column: span 1;
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
-  font-family: ${p => p.theme.text.familyMono};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
+  font-family: ${p => p.theme.font.family.mono};
   margin-bottom: 0;
   word-wrap: break-word;
   word-break: break-all;
@@ -610,7 +611,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

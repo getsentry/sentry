@@ -2,10 +2,6 @@ from typing import Any, TypedDict
 
 import sentry.options
 from sentry.relay.config.ai_model_costs import AIModelCosts, ai_model_costs_config
-from sentry.relay.config.ai_operation_type_map import (
-    AIOperationTypeMap,
-    ai_operation_type_map_config,
-)
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.relay.config.metric_extraction import (
     MetricExtractionGroups,
@@ -24,7 +20,6 @@ RELAY_OPTIONS: list[str] = [
     "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-set-encodings",
     "relay.metric-bucket-distribution-encodings",
-    "relay.span-extraction.sample-rate",
     "relay.span-normalization.allowed_hosts",
     "relay.drop-transaction-attachments",
     "replay.relay-snuba-publishing-disabled.sample-rate",
@@ -43,7 +38,6 @@ class SpanOpDefaults(TypedDict):
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
     aiModelCosts: AIModelCosts | None
-    aiOperationTypeMap: AIOperationTypeMap
     metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults
@@ -83,7 +77,6 @@ def get_global_config() -> GlobalConfig:
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
         "aiModelCosts": ai_model_costs_config(),
-        "aiOperationTypeMap": ai_operation_type_map_config(),
         "metricExtraction": global_metric_extraction_groups(),
         "spanOpDefaults": span_op_defaults(),
     }

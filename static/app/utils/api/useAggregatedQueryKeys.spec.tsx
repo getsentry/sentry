@@ -4,6 +4,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey, QueryClient} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -27,7 +28,10 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     initialProps = {
-      getQueryKey: (ids: readonly string[]): ApiQueryKey => ['/api/test/', {query: ids}],
+      getQueryKey: (ids: readonly string[]): ApiQueryKey => [
+        getApiUrl('/api-tokens/'),
+        {query: ids},
+      ],
       onError: () => {},
       responseReducer,
       bufferLimit: 50,
@@ -36,7 +40,7 @@ describe('useAggregatedQueryKeys', () => {
 
   it('should convert multiple buffer calls into one fetch request after a timeout', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
       body: {
         '1111': 5,
         '2222': 7,
@@ -57,7 +61,7 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     expect(mockRequest).toHaveBeenCalledWith(
-      `/api/test/`,
+      `/api-tokens/`,
       expect.objectContaining({
         query: expect.arrayContaining(['1111', '2222', '3333']),
       })
@@ -66,7 +70,7 @@ describe('useAggregatedQueryKeys', () => {
 
   it('should send a fetch request immediatly if the buffer is full', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
     });
 
     const {result} = renderHook(useAggregatedQueryKeys, {
@@ -88,7 +92,7 @@ describe('useAggregatedQueryKeys', () => {
   it('should return cached data right away, if it exists in the cache', async () => {
     const queryClient = makeTestQueryClient();
     MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
       body: {
         '1111': 5,
         '2222': 7,
@@ -135,7 +139,7 @@ describe('useAggregatedQueryKeys', () => {
       '1111': 5,
     };
     MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
       body: mockResponse,
     });
 
@@ -161,7 +165,7 @@ describe('useAggregatedQueryKeys', () => {
   it('should separate callsites that have different cacheKeys', async () => {
     const wrapper = makeWrapper(makeTestQueryClient());
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/api/test/`,
+      url: `/api-tokens/`,
     });
     const responseReducer1 = jest.fn((prevState: any, response: ApiResult) => {
       return {

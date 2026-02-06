@@ -1,13 +1,12 @@
 from datetime import timedelta
 
-from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.backends.postgres import PostgresRuleHistoryBackend
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -19,7 +18,7 @@ class BasePostgresRuleHistoryBackendTest(TestCase):
 
 class RecordTest(BasePostgresRuleHistoryBackendTest):
     def test(self) -> None:
-        rule = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
         self.backend.record(rule, self.group)
         assert RuleFireHistory.objects.filter(rule=rule, group=self.group).count() == 1
         self.backend.record(rule, self.group)
@@ -31,7 +30,7 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
         assert RuleFireHistory.objects.filter(rule=rule).count() == 3
 
     def test_returns_new_instance(self) -> None:
-        rule = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
         new_instance = self.backend.record(rule, self.group)
         assert new_instance is not None
 
@@ -45,7 +44,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 
     def test(self) -> None:
         history = []
-        rule = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
         for i in range(3):
             history.append(
                 RuleFireHistory(
@@ -71,7 +70,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
                     date_added=before_now(days=i + 1),
                 )
             )
-        rule_2 = Rule.objects.create(project=self.event.project)
+        rule_2 = self.create_project_rule(project=self.event.project)
         history.append(
             RuleFireHistory(
                 project=rule.project, rule=rule_2, group=self.group, date_added=before_now(days=0)
@@ -144,7 +143,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
 
     def test_event_id(self) -> None:
-        rule = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
         for i in range(3):
             RuleFireHistory.objects.create(
                 project=rule.project,
@@ -198,9 +197,9 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
-        workflow = self.create_workflow(organization=self.event.project.organization)
-
-        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+        workflow = Workflow.objects.get(
+            id=AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        )
 
         # Create some RuleFireHistory entries
         rule_history = []
@@ -298,8 +297,8 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self) -> None:
-        rule = Rule.objects.create(project=self.event.project)
-        rule_2 = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
+        rule_2 = self.create_project_rule(project=self.event.project)
         history = []
 
         for i in range(3):
@@ -336,9 +335,9 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory for hourly stats when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
-        workflow = self.create_workflow(organization=self.event.project.organization)
-
-        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+        workflow = Workflow.objects.get(
+            id=AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        )
 
         rule_history = []
         # Hour 1: 2 rule fire entries

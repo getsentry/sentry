@@ -1,6 +1,7 @@
 import {motion} from 'framer-motion';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';

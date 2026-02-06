@@ -3,8 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
@@ -368,6 +369,10 @@ export function ScreenLoadSpansTable({transaction, primaryRelease}: Props) {
 }
 
 const Container = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
 `;

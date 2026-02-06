@@ -33,20 +33,23 @@ class ApiTokenDetailsEndpoint(Endpoint):
     owner = ApiOwner.SECURITY
     permission_classes = (SentryIsAuthenticated,)
 
-    @method_decorator(never_cache)
-    def get(self, request: Request, token_id: int) -> Response:
-
+    def convert_args(self, request: Request, token_id: int, *args, **kwargs):
         user_id = get_appropriate_user_id(request=request)
-
         try:
-            instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
+            kwargs["instance"] = ApiToken.objects.get(
+                id=token_id, application__isnull=True, user_id=user_id
+            )
         except ApiToken.DoesNotExist:
             raise ResourceDoesNotExist(detail="Invalid token ID")
 
+        return (args, kwargs)
+
+    @method_decorator(never_cache)
+    def get(self, request: Request, instance: ApiToken) -> Response:
         return Response(serialize(instance, request.user, include_token=False))
 
     @method_decorator(never_cache)
-    def put(self, request: Request, token_id: int) -> Response:
+    def put(self, request: Request, instance: ApiToken) -> Response:
         keys = list(request.data.keys())
         if any(key not in ALLOWED_FIELDS for key in keys):
             return Response(
@@ -60,33 +63,16 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         result = serializer.validated_data
 
-        user_id = get_appropriate_user_id(request=request)
+        instance.name = result.get("name")
+        instance.save()
 
-        try:
-            token_to_rename = ApiToken.objects.get(
-                id=token_id, application__isnull=True, user_id=user_id
-            )
-        except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist(detail="Invalid token ID")
-
-        token_to_rename.name = result.get("name")
-        token_to_rename.save()
-
-        return Response(serialize(token_to_rename, request.user, include_token=False), status=200)
+        return Response(serialize(instance, request.user, include_token=False), status=200)
 
     @method_decorator(never_cache)
-    def delete(self, request: Request, token_id: int) -> Response:
-
+    def delete(self, request: Request, instance: ApiToken) -> Response:
         user_id = get_appropriate_user_id(request=request)
 
-        try:
-            token_to_delete = ApiToken.objects.get(
-                id=token_id, application__isnull=True, user_id=user_id
-            )
-        except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist(detail="Invalid token ID")
-
-        token_to_delete.delete()
+        instance.delete()
         analytics.record(
             ApiTokenDeleted(
                 user_id=user_id,

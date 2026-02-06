@@ -163,6 +163,6 @@ export default abstract class FormField<
 }
 
 const ErrorMessage = styled('p')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.errorText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.danger};
 `;

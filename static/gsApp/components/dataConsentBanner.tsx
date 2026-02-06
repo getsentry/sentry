@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -84,7 +85,7 @@ function DataConsentBanner({
         analyticsEventName="Data Consent Banner: Dismissed"
         analyticsParams={{source}}
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -111,14 +112,14 @@ const DataConsentBannerWrapper = styled('div')`
   grid-column: 1 / -1;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
 `;
 
 const DataConsentBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;
@@ -182,6 +183,6 @@ const DismissButton = styled(Button)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
 `;

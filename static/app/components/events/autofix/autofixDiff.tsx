@@ -3,10 +3,12 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {diffWords, type Change} from 'diff';
 
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   DiffLineType,
@@ -91,7 +93,7 @@ function detectLanguageFromPath(filePath: string): string {
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -589,26 +591,26 @@ function FileDiff({
       {!integratedStyle && (
         <FileHeader onClick={() => setIsExpanded(value => !value)}>
           <InteractionStateLayer />
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
           <Button
             icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
             aria-label={t('Toggle file diff')}
             aria-expanded={isExpanded}
             size="zero"
-            borderless
+            priority="transparent"
           />
         </FileHeader>
       )}
       {integratedStyle && (
         <FileHeader>
-          <FileAddedRemoved>
+          <Flex align="center" gap="md">
             <FileAdded>+{file.added}</FileAdded>
             <FileRemoved>-{file.removed}</FileRemoved>
-          </FileAddedRemoved>
+          </Flex>
           <FileName title={file.path}>{file.path}</FileName>
         </FileHeader>
       )}
@@ -650,7 +652,7 @@ export function AutofixDiff({
   }
 
   return (
-    <DiffsColumn>
+    <Stack gap="md">
       {diff.map(file => (
         <AutofixHighlightWrapper
           key={file.path}
@@ -674,21 +676,15 @@ export function AutofixDiff({
           />
         </AutofixHighlightWrapper>
       ))}
-    </DiffsColumn>
+    </Stack>
   );
 }
 
-const DiffsColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const FileDiffWrapper = styled('div')<{integratedStyle?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
   line-height: 20px;
   vertical-align: middle;
@@ -706,15 +702,9 @@ const FileHeader = styled('div')`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
   gap: ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
-`;
-
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const FileAdded = styled('div')`
@@ -722,7 +712,7 @@ const FileAdded = styled('div')`
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FileName = styled('div')`
@@ -743,13 +733,13 @@ const DiffContainer = styled('div')<{integratedStyle?: boolean}>`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
   white-space: pre-wrap;
 `;
@@ -759,8 +749,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -818,9 +808,8 @@ const ButtonGroup = styled('div')`
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
-  font-family: ${p => p.theme.text.family};
-  background-color: ${p =>
-    p.isHovered ? p.theme.button.default.background : p.theme.tokens.background.primary};
+  font-family: ${p => p.theme.font.family.sans};
+  background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
   transition:
     background-color 0.2s ease-in-out,
@@ -870,12 +859,12 @@ const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const RemovedLines = styled('div')`
   margin-bottom: ${space(1)};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 `;
@@ -888,15 +877,15 @@ const RemovedLine = styled('div')`
 `;
 
 const StyledTextArea = styled(TextArea)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.tokens.border.primary};
   position: relative;
   min-height: 250px;
 
   &:focus {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p => p.theme.tokens.focus.default};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
 `;
 
@@ -913,22 +902,22 @@ const TextAreaWrapper = styled('div')`
 
 const SectionTitle = styled('p')`
   margin: ${space(1)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const NoChangesMessage = styled('p')`
   margin: ${space(1)} 0;
-  color: ${p => p.theme.subText};
-  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-family: ${p => p.theme.font.family.sans};
 `;
 
 const OverlayTitle = styled('h3')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.text.family};
+  font-family: ${p => p.theme.font.family.sans};
 `;

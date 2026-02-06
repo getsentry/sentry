@@ -1,6 +1,8 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,7 +36,7 @@ export function StartTourModal({
         <TextContainer>
           <Header>{header}</Header>
           <Description>{description}</Description>
-          <Footer>
+          <Flex justify="end" marginTop="xl" gap="md">
             <TextTourAction
               onClick={() => {
                 onDismissTour();
@@ -52,7 +54,7 @@ export function StartTourModal({
             >
               {t('Take a tour')}
             </TourAction>
-          </Footer>
+          </Flex>
         </TextContainer>
       </TourContainer>
     </ThemeProvider>
@@ -85,20 +87,14 @@ const TextContainer = styled('div')`
 
 const Header = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Footer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
-  gap: ${space(1)};
+  white-space: pre-line;
 `;
 
 export const startTourModalCss = css`

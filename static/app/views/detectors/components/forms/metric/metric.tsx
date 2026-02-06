@@ -3,14 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
@@ -61,7 +60,10 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {
+  getMetricDetectorSuffix,
+  getStaticDetectorThresholdPlaceholder,
+} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -223,6 +225,7 @@ function PriorityRow({
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
   const thresholdSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  const thresholdPlaceholder = getStaticDetectorThresholdPlaceholder(aggregate);
   const isHigh = priority === 'high';
   const isStatic = detectionType === 'static';
 
@@ -284,7 +287,7 @@ function PriorityRow({
               flexibleControlStateSize
               inline={false}
               hideLabel
-              placeholder="0"
+              placeholder={thresholdPlaceholder}
               name={thresholdFieldName}
               suffix={thresholdSuffix}
               required={isHigh}
@@ -786,10 +789,10 @@ const DisabledSection = styled('div')<{disabled: boolean}>`
 
 const PriorityLabel = styled('span')`
   min-width: 120px;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   margin-left: ${space(0.25)};
 `;

@@ -2,7 +2,9 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,17 +15,17 @@ export const Indent = styled('div')`
   padding-right: ${space(1)};
 `;
 
-export const InspectorMargin = styled('div')`
-  padding: ${space(1)};
-`;
+export function InspectorMargin(props: ContainerProps<'div'>) {
+  return <Container padding="md" {...props} />;
+}
 
 const NotFoundText = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const WarningText = styled('span')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 export function Warning({warnings}: {warnings: string[]}) {
@@ -64,7 +66,11 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
           key={key}
           keyName={key}
           type={type}
-          value={<ValueContainer>{value}</ValueContainer>}
+          value={
+            <Container as="span" overflow="auto">
+              {value}
+            </Container>
+          }
         />
       ))}
     </StyledKeyValueTable>
@@ -75,29 +81,25 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
   );
 }
 
-const ValueContainer = styled('span')`
-  overflow: auto;
-`;
-
 const SectionTitle = styled('dt')``;
 
 const SectionTitleExtra = styled('span')`
   flex-grow: 1;
   text-align: right;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const SectionData = styled('dd')`
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 `;
 
 const ToggleButton = styled('button')`
   background: ${p => p.theme.tokens.background.primary};
   border: 0;
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  line-height: ${p => p.theme.text.lineHeightBody};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
 
   width: 100%;
   display: flex;
@@ -108,7 +110,11 @@ const ToggleButton = styled('button')`
   padding: ${space(0.5)} ${space(1)};
 
   :hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -139,12 +145,14 @@ export function SectionItem({
 
 const StyledKeyValueTable = styled(KeyValueTable)`
   & > dt {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     padding-left: ${space(4)};
   }
   & > dd {
-    ${p => p.theme.overflowEllipsis};
-    font-size: ${p => p.theme.fontSize.sm};
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: ${p => p.theme.font.size.sm};
     display: flex;
     justify-content: flex-end;
     white-space: normal;

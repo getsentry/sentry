@@ -2,8 +2,9 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';

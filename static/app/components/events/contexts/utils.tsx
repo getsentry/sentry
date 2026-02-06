@@ -5,7 +5,8 @@ import type {Location} from 'history';
 import moment from 'moment-timezone';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
@@ -192,7 +193,7 @@ export function getKnownStructuredData(
 
 /**
  * Returns the type of a given context, after coercing from its type and alias.
- * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
+ * - 'type' refers to the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
  * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
  */
 export function getContextType({alias, type}: {alias: string; type?: string}): string {
@@ -579,7 +580,7 @@ export function getContextSummary({
 }
 
 const RelativeTime = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

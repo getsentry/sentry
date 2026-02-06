@@ -7,9 +7,6 @@ from typing import ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -54,7 +51,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     __repr__ = sane_repr("id", "type")
 
     objects: ClassVar[ActionManager] = ActionManager()
-    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+    objects_for_deletion: ClassVar[BaseManager[Action]] = BaseManager()
 
     class Type(StrEnum):
         SLACK = "slack"
@@ -124,9 +121,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, notification_uuid: str) -> None:
-        from sentry.workflow_engine.processors.detector import get_detector_from_event_data
+        from sentry.workflow_engine.processors.detector import get_preferred_detector
 
-        detector = get_detector_from_event_data(event_data)
+        detector = get_preferred_detector(event_data)
 
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
@@ -177,20 +174,3 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             key_parts.append(str(data))
 
         return ":".join(key_parts)
-
-
-@receiver(pre_save, sender=Action)
-def enforce_config_schema(sender, instance: Action, **kwargs):
-    handler = instance.get_handler()
-
-    config_schema = handler.config_schema
-    data_schema = handler.data_schema
-
-    if config_schema is not None:
-        instance.validate_config(config_schema)
-
-    if data_schema is not None:
-        try:
-            validate(instance.data, data_schema)
-        except ValidationError as e:
-            raise ValidationError(f"Invalid config: {e.message}")

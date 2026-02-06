@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   updateDashboardFavorite,
@@ -14,9 +17,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -88,7 +88,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}
@@ -227,15 +227,15 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
-        </BodyCellContainer>
+        </Flex>
       ) : (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <Tooltip title="Sentry">
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -266,7 +266,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <BodyCellContainer>
+        <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -336,7 +336,7 @@ function DashboardTable({
               }
             />
           </Flex>
-        </BodyCellContainer>
+        </Flex>
       );
     }
 
@@ -389,23 +389,19 @@ function DashboardTable({
 export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  display: grid;
+  font-size: ${p => p.theme.font.size.md};
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   padding-left: ${space(1)};
-`;
-
-const BodyCellContainer = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const StyledButton = styled(Button)`

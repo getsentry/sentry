@@ -5,12 +5,13 @@ import * as Sentry from '@sentry/react';
 import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Switch} from 'sentry/components/core/switch';
 import {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {BackendRepository} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
@@ -122,7 +123,7 @@ export function ConfigureRootCauseAnalysisStep() {
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
           owner,
-          provider: repo.provider?.name,
+          provider: repo.provider?.id,
           name,
         });
       }
@@ -156,6 +157,7 @@ export function ConfigureRootCauseAnalysisStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(new Error('Seer Onboarding: Unable to update autofix'));
           addErrorMessage(t('Failed to save settings'));
         },
       }
@@ -276,10 +278,11 @@ export function ConfigureRootCauseAnalysisStep() {
                       searchable
                       value={undefined}
                       strategy="fixed"
-                      triggerProps={{
-                        icon: <IconAdd />,
-                        children: t('Add Repository'),
-                      }}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} icon={<IconAdd />}>
+                          {t('Add Repository')}
+                        </OverlayTrigger.Button>
+                      )}
                       onChange={handleAddRepository}
                       options={repositoryOptions}
                       menuTitle={t('Select Repository')}

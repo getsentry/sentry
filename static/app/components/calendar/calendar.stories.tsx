@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 import type {Range} from 'react-date-range';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DatePicker, DateRangePicker} from 'sentry/components/calendar';
-import {ExternalLink} from 'sentry/components/core/link';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Calendar', story => {

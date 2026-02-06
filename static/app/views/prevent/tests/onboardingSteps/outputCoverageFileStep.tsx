@@ -1,10 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import {Text} from 'sentry/components/core/text';
+import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
+
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 

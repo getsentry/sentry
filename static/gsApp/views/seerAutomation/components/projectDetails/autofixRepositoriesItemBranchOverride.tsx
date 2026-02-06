@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Input} from '@sentry/scraps/input/input';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Text} from '@sentry/scraps/text/text';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {BranchOverride} from 'sentry/components/events/autofix/types';
 import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
@@ -31,7 +31,9 @@ export default function AutofixRepositoriesItemBranchOverride({
   const isValid = isOverrideValid(override);
 
   const getErrorStyle = (value: string) =>
-    hasAnyValue && !value.trim() ? {borderColor: theme.tokens.border.danger} : undefined;
+    hasAnyValue && !value.trim()
+      ? {borderColor: theme.tokens.border.danger.vibrant}
+      : undefined;
 
   return (
     <Flex align="center" gap="sm">

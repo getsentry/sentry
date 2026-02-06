@@ -64,7 +64,8 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
 }
 
 export interface DropdownMenuProps
-  extends Omit<
+  extends
+    Omit<
       DropdownMenuListProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,

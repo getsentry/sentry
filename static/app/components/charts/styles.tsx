@@ -7,14 +7,14 @@ export const SectionHeading = styled('h4')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin: ${space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   margin-right: ${space(1)};
 `;
 
@@ -51,7 +51,7 @@ export const HeaderTitle = styled('div')`
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
 `;
 
@@ -74,7 +74,7 @@ export const HeaderValue = styled('div')`
   position: absolute;
   top: 40px;
   z-index: 1;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;
 
 export const ChartContainer = styled('div')`

@@ -1,9 +1,11 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, type ValidSize} from 'sentry/styles/space';
@@ -137,7 +139,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll up') : t('Scroll left')}
           icon={<StyledIconChevron direction={isVertical ? 'up' : 'left'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
       {!isAtEnd && (
@@ -147,7 +149,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll down') : t('Scroll right')}
           icon={<StyledIconChevron direction={isVertical ? 'down' : 'right'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
     </ScrollCarouselWrapper>
@@ -210,13 +212,14 @@ const StyledArrowButton = styled(Button)<{orientation: 'horizontal' | 'vertical'
   padding: 10px;
   border-radius: 100%;
   z-index: 1;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   opacity: 0.6;
   background-color: ${p => p.theme.tokens.background.primary};
 
   &:hover {
     opacity: 1;
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
@@ -234,11 +237,11 @@ const LeftMask = styled('div')<{transparentMask: boolean}>`
   left: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to left, ${Color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
+      ? `linear-gradient(to left, ${color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     90deg,
     ${p.theme.tokens.background.primary} 50%,
-    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
+    ${color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -251,7 +254,7 @@ const RightMask = styled('div')<{transparentMask: boolean}>`
       : `linear-gradient(
     270deg,
     ${p.theme.tokens.background.primary} 50%,
-    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
+    ${color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -269,11 +272,11 @@ const TopMask = styled('div')<{transparentMask: boolean}>`
   top: 0;
   background: ${p =>
     p.transparentMask
-      ? `linear-gradient(to top, ${Color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
+      ? `linear-gradient(to top, ${color(p.theme.tokens.background.primary).alpha(0).rgb().string()}, ${p.theme.tokens.background.primary})`
       : `linear-gradient(
     180deg,
     ${p.theme.tokens.background.primary} 50%,
-    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
+    ${color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 
@@ -286,7 +289,7 @@ const BottomMask = styled('div')<{transparentMask: boolean}>`
       : `linear-gradient(
     0deg,
     ${p.theme.tokens.background.primary} 50%,
-    ${Color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
+    ${color(p.theme.tokens.background.primary).alpha(0.09).rgb().string()} 100%
   )`};
 `;
 

@@ -55,20 +55,16 @@ export type LogsFrozenContextProviderProps =
   | LogsNotFrozenProviderProps;
 
 interface LogsFrozenForTracesProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForTracesProviderProps {}
+  extends ReactPortal, LogsFrozenForTracesProviderProps {}
 
 interface LogsFrozenForTraceProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForTraceProviderProps {}
+  extends ReactPortal, LogsFrozenForTraceProviderProps {}
 
 interface LogsFrozenForSpanProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForSpanProviderProps {}
+  extends ReactPortal, LogsFrozenForSpanProviderProps {}
 
 interface LogsFrozenForReplayProviderWithChildrenProps
-  extends ReactPortal,
-    LogsFrozenForReplayProviderProps {}
+  extends ReactPortal, LogsFrozenForReplayProviderProps {}
 
 type LogsFrozenContextProviderWithChildrenProps =
   | LogsFrozenForTracesProviderWithChildrenProps

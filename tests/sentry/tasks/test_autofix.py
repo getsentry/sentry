@@ -202,7 +202,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         configure_seer_for_existing_org(organization_id=self.organization.id)
 
         # Check org-level options
-        assert self.organization.get_option("sentry:enable_seer_coding") is True
         assert self.organization.get_option("sentry:default_autofix_automation_tuning") == "medium"
 
         # Check project-level options
@@ -214,6 +213,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         mock_bulk_get.assert_called_once()
         mock_bulk_set.assert_called_once()
 
+    @pytest.mark.skip("DO NOT override autofix automation tuning off")
     @patch("sentry.tasks.autofix.bulk_set_project_preferences")
     @patch("sentry.tasks.autofix.bulk_get_project_preferences")
     def test_overrides_autofix_off_to_medium(

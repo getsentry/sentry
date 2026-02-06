@@ -31,14 +31,14 @@ export function useUrlConversationDrawer() {
       renderer: Parameters<typeof baseOpenDrawer>[0],
       options?: Parameters<typeof baseOpenDrawer>[1] & {
         conversationId?: string;
-        spanId?: string;
-        traceIds?: string[];
+        endTimestamp?: number;
+        startTimestamp?: number;
       }
     ) => {
       const {
         conversationId: optionsConversationId,
-        spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
+        startTimestamp: optionsStartTimestamp,
+        endTimestamp: optionsEndTimestamp,
         onClose,
         ariaLabel,
         ...rest
@@ -46,8 +46,8 @@ export function useUrlConversationDrawer() {
 
       setConversationDrawerQueryState({
         conversationId: optionsConversationId,
-        spanId: optionsSpanId,
-        traceIds: optionsTraceIds,
+        startTimestamp: optionsStartTimestamp,
+        endTimestamp: optionsEndTimestamp,
       });
 
       return baseOpenDrawer(renderer, {

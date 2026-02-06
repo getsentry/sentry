@@ -1,9 +1,10 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
-import {Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -102,7 +103,11 @@ const QueryCardHeader = styled('div')`
 
 const QueryTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
   font-size: 1rem;
@@ -112,15 +117,19 @@ const QueryTitle = styled('div')`
 `;
 
 const QueryDetail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   max-height: 150px;
   height: 100%;
   overflow: hidden;
@@ -134,15 +143,18 @@ const QueryCardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  display: grid;
+  font-size: ${p => p.theme.font.size.sm};
   grid-column-gap: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   padding-left: ${space(1)};
 `;
 

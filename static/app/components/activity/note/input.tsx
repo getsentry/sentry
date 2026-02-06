@@ -5,8 +5,9 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Button} from '@sentry/scraps/button';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -254,9 +255,9 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   }
 
   return `
-  color: ${p.theme.error};
+  color: ${p.theme.tokens.content.danger};
   margin: -1px;
-  border: 1px solid ${p.theme.error};
+  border: 1px solid ${p.theme.tokens.content.danger};
   border-radius: ${p.theme.radius.md};
 
     &:before {
@@ -317,8 +318,8 @@ const FooterButton = styled(Button)<{error?: boolean}>`
       &:active,
       &:focus,
       &:hover {
-        border-bottom-color: ${p.theme.error};
-        border-right-color: ${p.theme.error};
+        border-bottom-color: ${p.theme.tokens.border.danger};
+        border-right-color: ${p.theme.tokens.border.danger};
       }
     `}
 `;
@@ -327,7 +328,7 @@ const ErrorMessage = styled('span')`
   display: flex;
   align-items: center;
   height: 100%;
-  color: ${p => p.theme.error};
+  color: ${p => p.theme.tokens.content.danger};
   font-size: 0.9em;
 `;
 
@@ -335,7 +336,7 @@ const MarkdownIndicator = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const NotePreview = styled(MarkedText, {

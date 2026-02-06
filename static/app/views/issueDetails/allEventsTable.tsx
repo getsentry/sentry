@@ -13,6 +13,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -30,8 +31,19 @@ interface Props {
   organization: Organization;
 }
 
-const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
-  return `/issues/${groupId}/events/latest/`;
+const makeGroupPreviewRequestUrl = ({
+  orgSlug,
+  groupId,
+}: {
+  groupId: string;
+  orgSlug: string;
+}) => {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, eventId: 'latest'},
+    }
+  );
 };
 
 function AllEventsTable({organization, excludedTags, group}: Props) {
@@ -44,6 +56,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
+    orgSlug: organization.slug,
     groupId: group.id,
   });
 

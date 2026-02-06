@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,7 +30,7 @@ export default function RepositoryProjectPathConfigRow({
   return (
     <Fragment>
       <NameRepoColumn>
-        <ProjectRepoHolder>
+        <Stack>
           <RepoName>{pathConfig.repoName}</RepoName>
           <ProjectAndBranch>
             <IdBadge
@@ -39,7 +41,7 @@ export default function RepositoryProjectPathConfigRow({
             />
             <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
           </ProjectAndBranch>
-        </ProjectRepoHolder>
+        </Stack>
       </NameRepoColumn>
       <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
       <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
@@ -78,11 +80,6 @@ export default function RepositoryProjectPathConfigRow({
   );
 }
 
-const ProjectRepoHolder = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const RepoName = styled(`span`)`
   padding-bottom: ${space(1)};
 `;
@@ -90,7 +87,7 @@ const RepoName = styled(`span`)`
 const ProjectAndBranch = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 // match the line height of the badge
@@ -116,7 +113,6 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export const ButtonWrapper = styled('span')`
-  display: flex;
-  gap: ${space(1)};
-`;
+export function ButtonWrapper(props: Exclude<FlexProps<'span'>, {as?: never}>) {
+  return <Flex as="span" gap="md" {...props} />;
+}

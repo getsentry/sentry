@@ -3,12 +3,14 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -18,6 +20,7 @@ import type {
   MetricCondition,
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -194,9 +197,9 @@ export function MetricDetectorChart({
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
+      aggregate,
       conditions,
       detectionType,
-      aggregate,
       comparisonSeries,
     });
 
@@ -253,7 +256,11 @@ export function MetricDetectorChart({
     thresholdType,
   });
 
-  const {maxValue, minValue} = useDetectorChartAxisBounds({series, thresholdMaxValue});
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
 
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
@@ -278,18 +285,33 @@ export function MetricDetectorChart({
     });
 
     const isPercentage = outputType === 'percentage';
-    // For percentage aggregates, use fixed max of 1 (100%) and calculated min
-    const yAxisMax = isPercentage ? 1 : maxValue > 0 ? maxValue : undefined;
-    const yAxisMin = isPercentage ? minValue : 0;
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places (consistent with metric alerts)
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2 // Fixed 2 decimal places for percentages
+        );
+      }
+      return formatYAxisLabel(value);
+    };
 
     const mainYAxis: YAXisComponentOption = {
       max: yAxisMax,
       min: yAxisMin,
       axisLabel: {
-        // Show max label for percentage (100%) but hide for other types to avoid arbitrary values
+        // Show max label for percentage but hide for other types to avoid arbitrary values
         showMaxLabel: isPercentage,
         // Format the axis labels with units
-        formatter: formatYAxisLabel,
+        formatter: customFormatter,
       },
       // Disable the y-axis grid lines
       splitLine: {show: false},
@@ -383,10 +405,13 @@ export function MetricDetectorChart({
           options={timePeriodOptions}
           value={selectedTimePeriod}
           onChange={opt => setSelectedTimePeriod(opt.value)}
-          triggerProps={{
-            borderless: true,
-            prefix: t('Display'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              priority="transparent"
+              prefix={t('Display')}
+            />
+          )}
         />
       </ChartFooter>
     </ChartContainer>

@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TOKENS_PAGE_TITLE} from 'sentry/views/prevent/settings';
 import TokensPageWrapper from 'sentry/views/prevent/tokens/tokensWrapper';
 
 const COVERAGE_FEATURE = 'prevent-test-analytics';
@@ -14,7 +13,7 @@ describe('TokensPageWrapper', () => {
         organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
       });
 
-      const tokensTitle = screen.getByText(TOKENS_PAGE_TITLE);
+      const tokensTitle = screen.getByText('Tokens');
       expect(tokensTitle).toBeInTheDocument();
     });
 

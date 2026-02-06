@@ -5,11 +5,13 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {TagSegment} from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -74,7 +76,7 @@ function TagFacetsDistributionMeter({
           <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
           aria-label={t(
@@ -90,14 +92,14 @@ function TagFacetsDistributionMeter({
   function renderSegments() {
     if (totalValues === 0) {
       return (
-        <SegmentBar>
+        <Flex overflow="hidden">
           <p>{t('No recent data.')}</p>
-        </SegmentBar>
+        </Flex>
       );
     }
 
     return (
-      <SegmentBar>
+      <Flex overflow="hidden">
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
@@ -126,7 +128,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={theme.chart.neutral}
+                  color={theme.tokens.dataviz.semantic.neutral}
                 />
               ) : (
                 <Segment
@@ -141,7 +143,7 @@ function TagFacetsDistributionMeter({
             </div>
           );
         })}
-      </SegmentBar>
+      </Flex>
     );
   }
 
@@ -182,7 +184,11 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={segment.isOther ? theme.chart.neutral : colors[index]!}
+                      color={
+                        segment.isOther
+                          ? theme.tokens.dataviz.semantic.neutral
+                          : colors[index]!
+                      }
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
@@ -267,14 +273,9 @@ const TagHeader = styled('span')`
   cursor: pointer;
 `;
 
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-`;
-
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -283,19 +284,21 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
   margin-right: ${space(1)};
   align-self: center;
 `;
 
 const TitleDescription = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
-  font-size: ${p => p.theme.fontSize.md};
-  ${p => p.theme.overflowEllipsis};
+  font-size: ${p => p.theme.font.size.md};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   align-self: center;
 `;
 
@@ -310,16 +313,16 @@ const OtherSegment = styled('span')<{color: string}>`
 
 const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}>`
   &:hover {
-    color: ${p => p.theme.white};
+    color: ${p => p.theme.colors.white};
   }
   display: block;
   width: 100%;
   height: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: 1px ${space(0.5)} 0 0;
   user-select: none;
 `;
@@ -362,18 +365,18 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   transition: color 0.3s;
   color: ${p =>
-    p.unfocus ? p.theme.tokens.content.muted : p.theme.tokens.content.primary};
+    p.unfocus ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
 `;
 
 const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-left: ${space(1)};
   color: ${p => p.theme.tokens.content.primary};
   text-align: right;
@@ -381,7 +384,7 @@ const LegendPercent = styled('span')`
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
 `;
 

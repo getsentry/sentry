@@ -87,7 +87,7 @@ class DetectorStateManager:
         self.counter_updates = {}
         self.state_updates = {}
 
-    def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
+    def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int) -> None:
         self.dedupe_updates[group_key] = dedupe_value
 
     def enqueue_counter_reset(self, group_key: DetectorGroupKey = None) -> None:
@@ -99,12 +99,12 @@ class DetectorStateManager:
 
     def enqueue_counter_update(
         self, group_key: DetectorGroupKey, counter_updates: DetectorCounters
-    ):
+    ) -> None:
         self.counter_updates[group_key] = counter_updates
 
     def enqueue_state_update(
         self, group_key: DetectorGroupKey, is_triggered: bool, priority: DetectorPriorityLevel
-    ):
+    ) -> None:
         self.state_updates[group_key] = (is_triggered, priority)
 
     def get_redis_keys_for_group_keys(
@@ -183,15 +183,15 @@ class DetectorStateManager:
 
         return key
 
-    def commit_state_updates(self):
+    def commit_state_updates(self) -> None:
         self._bulk_commit_detector_state()
         self._bulk_commit_redis_state()
 
-    def _bulk_commit_dedupe_values(self, pipeline):
+    def _bulk_commit_dedupe_values(self, pipeline: Any) -> None:
         for group_key, dedupe_value in self.dedupe_updates.items():
             pipeline.set(self.build_key(group_key, "dedupe_value"), dedupe_value, ex=REDIS_TTL)
 
-    def _bulk_commit_counter_updates(self, pipeline):
+    def _bulk_commit_counter_updates(self, pipeline: Any) -> None:
         for group_key, counter_updates in self.counter_updates.items():
             for counter_name, counter_value in counter_updates.items():
                 key_name = self.build_key(group_key, counter_name)
@@ -201,7 +201,7 @@ class DetectorStateManager:
                 else:
                     pipeline.set(key_name, counter_value, ex=REDIS_TTL)
 
-    def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None):
+    def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None) -> None:
         pipeline = get_redis_client().pipeline()
         if self.dedupe_updates:
             self._bulk_commit_dedupe_values(pipeline)
@@ -214,7 +214,7 @@ class DetectorStateManager:
         self.dedupe_updates.clear()
         self.counter_updates.clear()
 
-    def _bulk_commit_detector_state(self):
+    def _bulk_commit_detector_state(self) -> None:
         # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
         detector_state_lookup = self.bulk_get_detector_state(
             [update for update in self.state_updates.keys()]
@@ -233,7 +233,10 @@ class DetectorStateManager:
                         state=priority,
                     )
                 )
-            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
+            elif (
+                is_triggered != detector_state.is_triggered
+                or priority != detector_state.priority_level
+            ):
                 detector_state.is_triggered = is_triggered
                 detector_state.state = priority
                 updated_detector_states.append(detector_state)
@@ -587,7 +590,7 @@ class StatefulDetectorHandler(
             event_data=event_data,
         )
 
-    def _is_detector_group_value(self, value) -> bool:
+    def _is_detector_group_value(self, value: Any) -> bool:
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
         """

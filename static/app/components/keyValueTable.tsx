@@ -26,11 +26,15 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
 }
 
 const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => css`
-  font-size: ${theme.fontSize.md};
+  font-size: ${theme.font.size.md};
   padding: ${space(0.5)} ${space(1)};
-  font-weight: ${theme.fontWeight.normal};
+  font-weight: ${theme.font.weight.sans.regular};
   line-height: inherit;
-  ${theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   background-color: ${type === 'error'
     ? theme.colors.red100 + ' !important'
@@ -38,7 +42,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
       ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
       : 'inherit'};
   &:nth-of-type(2n-1) {
-    background-color: ${theme.backgroundSecondary};
+    background-color: ${theme.tokens.background.secondary};
   }
 `;
 
@@ -51,6 +55,6 @@ const Key = styled('dt')<{type: Props['type']}>`
 
 const Value = styled('dd')<{type: Props['type']}>`
   ${commonStyles};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   text-align: right;
 `;

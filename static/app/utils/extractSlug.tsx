@@ -5,7 +5,7 @@ type ExtractedSlug = {
 
 // XXX: If you change this also change its sibiling in:
 // - static/index.ejs
-// - webpack.config.ts
+// - rspack.config.ts
 const KNOWN_DOMAINS = /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
 
 /**

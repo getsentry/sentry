@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
 
-import {Button} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -108,15 +107,10 @@ export function WrapUpStep() {
         </MaxWidthPanel>
 
         <ActionSection>
-          {!hasCompletedAnySteps && (
-            <Button
-              size="md"
-              onClick={handlePreviousStep}
-              aria-label={t('Previous Step')}
-            >
-              {t('Previous Step')}
-            </Button>
-          )}
+          <Button size="md" onClick={handlePreviousStep} aria-label={t('Previous Step')}>
+            {t('Previous Step')}
+          </Button>
+
           <LinkButton
             priority="primary"
             size="md"

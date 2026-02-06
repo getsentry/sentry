@@ -1,13 +1,14 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PluginConfig from 'sentry/components/pluginConfig';
@@ -16,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -28,8 +30,22 @@ export default function ProjectPluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const {pluginId} = useParams<{pluginId: string; projectId: string}>();
-  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
-  const pluginDetailsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/${pluginId}/`;
+  const pluginsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }
+  );
+  const pluginDetailsQueryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/plugins/$pluginId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+        pluginId,
+      },
+    }
+  );
 
   const {
     data: plugins,

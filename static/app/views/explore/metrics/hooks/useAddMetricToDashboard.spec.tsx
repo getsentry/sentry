@@ -62,23 +62,25 @@ describe('useAddMetricToDashboard', () => {
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.TRACEMETRICS,
-          queries: [
-            {
-              aggregates: [yAxis],
-              columns: ['project'],
-              fields: ['project'],
-              conditions: 'release:1.2.3',
-              orderby: `-${yAxis}`,
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: [
+              {
+                aggregates: [yAxis],
+                columns: ['project'],
+                fields: ['project'],
+                conditions: 'release:1.2.3',
+                orderby: `-${yAxis}`,
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });
@@ -111,23 +113,25 @@ describe('useAddMetricToDashboard', () => {
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        widget: {
-          title: 'Custom Widget',
-          displayType: DisplayType.BAR,
-          interval: undefined,
-          limit: undefined,
-          widgetType: WidgetType.TRACEMETRICS,
-          queries: [
-            {
-              aggregates: [yAxis],
-              columns: [],
-              fields: [],
-              conditions: 'release:1.2.3',
-              orderby: '',
-              name: '',
-            },
-          ],
-        },
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: [
+              {
+                aggregates: [yAxis],
+                columns: [],
+                fields: [],
+                conditions: 'release:1.2.3',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
       })
     );
   });

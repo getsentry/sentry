@@ -6,7 +6,9 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {TooltipContext} from 'sentry/components/core/tooltip';
+import {Surface} from '@sentry/scraps/layout';
+import {TooltipContext} from '@sentry/scraps/tooltip';
+
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
@@ -254,7 +256,13 @@ function GlobalModal({onClose}: Props) {
                   damping: 25,
                 })}
               >
-                <Content role="document">{renderedChild}</Content>
+                <Surface variant="overlay" elevation="high">
+                  {p => (
+                    <Content role="document" {...p}>
+                      {renderedChild}
+                    </Content>
+                  )}
+                </Surface>
               </Modal>
             )}
           </AnimatePresence>
@@ -276,7 +284,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -306,11 +314,6 @@ const Modal = styled(motion.div)`
 `;
 
 const Content = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow:
-    0 0 0 1px ${p => p.theme.translucentBorder},
-    ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};
 

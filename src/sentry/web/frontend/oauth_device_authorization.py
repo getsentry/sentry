@@ -1,0 +1,202 @@
+from __future__ import annotations
+
+import logging
+
+from django.conf import settings
+from django.http import HttpRequest, HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import View
+
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
+from sentry.models.apidevicecode import (
+    DEFAULT_EXPIRATION,
+    DEFAULT_INTERVAL,
+    ApiDeviceCode,
+    UserCodeCollisionError,
+)
+from sentry.utils import json, metrics
+from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import control_silo_view
+
+logger = logging.getLogger("sentry.oauth")
+
+
+@control_silo_view
+class OAuthDeviceAuthorizationView(View):
+    """
+    OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
+
+    This endpoint initiates the device authorization flow for headless clients
+    (CLIs, Docker containers, CI/CD jobs) that cannot use browser-based OAuth.
+
+    Request (POST /oauth/device/code):
+        client_id (required): The OAuth application's client ID
+        scope (optional): Space-delimited list of requested scopes
+
+    Response (200 OK, application/json):
+        device_code: Secret code for token endpoint polling
+        user_code: Human-readable code for user to enter
+        verification_uri: URL where user should go to authorize
+        verification_uri_complete: URL with embedded user_code (optional)
+        expires_in: Lifetime of codes in seconds
+        interval: Minimum polling interval in seconds
+
+    Errors:
+        invalid_client: Unknown or inactive client_id
+        invalid_scope: Requested scope is invalid or exceeds app permissions
+
+    Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
+    """
+
+    @csrf_exempt
+    @method_decorator(never_cache)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    def error(
+        self,
+        request: HttpRequest,
+        name: str,
+        description: str | None = None,
+        status: int = 400,
+    ) -> HttpResponse:
+        """Return a JSON error response per RFC 8628."""
+        client_id = request.POST.get("client_id")
+
+        logger.error(
+            "oauth.device-authorization-error",
+            extra={
+                "error_name": name,
+                "status": status,
+                "client_id": client_id,
+                "description": description,
+            },
+        )
+
+        response_data = {"error": name}
+        if description:
+            response_data["error_description"] = description
+
+        return HttpResponse(
+            json.dumps(response_data),
+            content_type="application/json",
+            status=status,
+        )
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        """
+        Handle device authorization request (RFC 8628 §3.1).
+
+        Creates a new device code and user code pair that can be used to
+        complete the device authorization flow.
+        """
+        client_id = request.POST.get("client_id")
+
+        # client_id is required (RFC 8628 §3.1)
+        if not client_id:
+            return self.error(
+                request,
+                name="invalid_client",
+                description="Missing required parameter: client_id",
+                status=401,
+            )
+
+        # Validate the application exists and is active
+        try:
+            application = ApiApplication.objects.get(
+                client_id=client_id,
+                status=ApiApplicationStatus.active,
+            )
+        except ApiApplication.DoesNotExist:
+            return self.error(
+                request,
+                name="invalid_client",
+                description="Invalid client_id",
+                status=401,
+            )
+
+        # Parse and validate scopes
+        scope_param = request.POST.get("scope", "")
+        scopes = scope_param.split() if scope_param else []
+
+        # Validate scopes against global allowed scopes
+        for scope in scopes:
+            if scope not in settings.SENTRY_SCOPES:
+                return self.error(
+                    request,
+                    name="invalid_scope",
+                    description=f"Unknown scope: {scope}",
+                )
+
+        # For org-level access apps, validate scopes against app's max scopes
+        if application.requires_org_level_access:
+            max_scopes = application.scopes
+            for scope in scopes:
+                if scope not in max_scopes:
+                    return self.error(
+                        request,
+                        name="invalid_scope",
+                        description=f"Scope '{scope}' exceeds application permissions",
+                    )
+
+        # Create the device code with retry logic for collisions
+        # Note: device_code and user_code are auto-generated by model defaults
+        try:
+            device_code = ApiDeviceCode.create_with_retry(
+                application=application,
+                scope_list=scopes,
+            )
+        except UserCodeCollisionError:
+            logger.exception(
+                "oauth.device-authorization-collision",
+                extra={"client_id": client_id, "application_id": application.id},
+            )
+            return self.error(
+                request,
+                name="server_error",
+                description="Unable to generate device code. Please try again.",
+                status=500,
+            )
+
+        # Build the verification URIs
+        verification_uri = absolute_uri("/oauth/device/")
+        verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
+
+        # Calculate expires_in from the expiration time
+        expires_in = int(DEFAULT_EXPIRATION.total_seconds())
+
+        metrics.incr(
+            "oauth_device_authorization.create",
+            sample_rate=1.0,
+            tags={"has_scopes": bool(scopes)},
+        )
+        logger.info(
+            "oauth.device-authorization-created",
+            extra={
+                "client_id": client_id,
+                "application_id": application.id,
+                "device_code_id": device_code.id,
+                "scopes": scopes,
+            },
+        )
+
+        # Return the device authorization response (RFC 8628 §3.2)
+        return HttpResponse(
+            json.dumps(
+                {
+                    "device_code": device_code.device_code,
+                    "user_code": device_code.user_code,
+                    "verification_uri": verification_uri,
+                    "verification_uri_complete": verification_uri_complete,
+                    "expires_in": expires_in,
+                    "interval": DEFAULT_INTERVAL,
+                }
+            ),
+            content_type="application/json",
+        )
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        """GET is not supported for device authorization (RFC 8628 §3.1)."""
+        return HttpResponse(status=405)

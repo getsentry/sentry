@@ -17,12 +17,48 @@ export type SeerAnalyticsEventsParameters = {
     setup_integration: boolean;
     setup_write_integration?: boolean;
   };
+  'coding_integration.install_clicked': {
+    organization: Organization;
+    project_slug: string;
+    provider: string;
+    source: 'cta' | 'settings';
+    user_id: string;
+  };
+  'coding_integration.send_to_agent_clicked': {
+    group_id: string;
+    organization: Organization;
+    provider: string;
+    source: 'autofix' | 'explorer';
+    user_id: string;
+  };
+  'coding_integration.setup_handoff_clicked': {
+    organization: Organization;
+    project_slug: string;
+    provider: string;
+    source: 'cta' | 'settings_dropdown' | 'settings_toggle';
+    user_id: string;
+  };
   'seer.autofix.feedback_submitted': {
     autofix_run_id: string;
     group_id: string;
     positive: boolean;
     step_type: 'root_cause' | 'solution' | 'changes';
     user_id: string;
+  };
+  'seer.config_reminder.rendered': {
+    has_code_review_beta: boolean;
+    has_legacy_seer: boolean;
+    has_seat_based_seer: boolean;
+    initial_step: string;
+  };
+  'seer.explorer.feedback_submitted': {
+    block_index: number;
+    block_message: string;
+    conversations_url: string | undefined;
+    explorer_url: string | undefined;
+    langfuse_url: string | undefined;
+    run_id: number | undefined;
+    type: 'positive' | 'negative';
   };
   'seer.explorer.global_panel.opened': {
     referrer: string;
@@ -49,9 +85,14 @@ type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
 export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null> = {
   'autofix.coding_agent.launch_from_root_cause':
     'Autofix: Coding Agent Launch From Root Cause',
+  'coding_integration.install_clicked': 'Coding Integration: Install Clicked',
+  'coding_integration.send_to_agent_clicked': 'Coding Integration: Send to Agent Clicked',
+  'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
+  'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
+  'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
   'seer.explorer.global_panel.opened': 'Seer Explorer: Global Panel Opened',
   'seer.explorer.global_panel.tool_link_navigation': 'Seer Explorer: Tool Link Visited',
   'seer.explorer.message_sent': 'Seer Explorer: Message Sent',

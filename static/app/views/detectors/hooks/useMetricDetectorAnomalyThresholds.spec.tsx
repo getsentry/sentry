@@ -116,4 +116,50 @@ describe('useMetricDetectorAnomalyThresholds', () => {
 
     expect(anomalyDataRequest).not.toHaveBeenCalled();
   });
+
+  it('includes legacy_alert query param when isLegacyAlert is true', async () => {
+    const organization = OrganizationFixture({
+      features: ['anomaly-detection-threshold-data'],
+    });
+
+    const mockData = [
+      {
+        external_alert_id: 24,
+        timestamp: 1609459200,
+        value: 100,
+        yhat_lower: 80,
+        yhat_upper: 120,
+      },
+    ];
+
+    const anomalyDataRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/123/anomaly-data/`,
+      body: {data: mockData},
+      match: [MockApiClient.matchQuery({legacy_alert: 'true'})],
+    });
+
+    const series = [
+      {
+        seriesName: 'count()',
+        data: [{name: 1609459200000, value: 100}],
+      },
+    ];
+
+    renderHookWithProviders(
+      () =>
+        useMetricDetectorAnomalyThresholds({
+          detectorId: '123',
+          detectionType: 'dynamic',
+          startTimestamp: 1609459200,
+          endTimestamp: 1609545600,
+          series,
+          isLegacyAlert: true,
+        }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(anomalyDataRequest).toHaveBeenCalled();
+    });
+  });
 });

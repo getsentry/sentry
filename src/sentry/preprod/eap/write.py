@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -21,6 +21,7 @@ from sentry.preprod.models import (
 )
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
 
@@ -45,11 +46,7 @@ def produce_preprod_size_metric_to_eap(
 
     artifact = size_metric.preprod_artifact
 
-    # Generate a unique trace_id for this preprod artifact using UUID5 with PREPROD_NAMESPACE.
-    # This ensures no collision with other trace types in EAP.
-    # Design: Use preprod_artifact_id to group related components of the SAME build
-    # (e.g., main app + Watch extension + dynamic features) under one trace.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
+    trace_id = get_preprod_trace_id(size_metric.preprod_artifact_id)
 
     # Generate deterministic item_id based on size_metric.id.
     # This enables ReplacingMergeTree deduplication when reprocessing the same metric.
@@ -57,8 +54,9 @@ def produce_preprod_size_metric_to_eap(
     # the same metric will result in identical (timestamp, trace_id, item_id) tuple,
     # causing ClickHouse to automatically deduplicate and keep the most recent write.
     item_id_str = f"size_metric_{size_metric.id}"
-    item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+    item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
@@ -77,9 +75,9 @@ def produce_preprod_size_metric_to_eap(
             "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
         ),
         "app_id": artifact.app_id,
-        "app_name": artifact.app_name,
-        "build_version": artifact.build_version,
-        "build_number": artifact.build_number,
+        "app_name": mobile_app_info.app_name if mobile_app_info else None,
+        "build_version": mobile_app_info.build_version if mobile_app_info else None,
+        "build_number": mobile_app_info.build_number if mobile_app_info else None,
         "main_binary_identifier": artifact.main_binary_identifier,
         "artifact_date_built": (
             int(artifact.date_built.timestamp()) if artifact.date_built else None
@@ -144,16 +142,16 @@ def produce_preprod_build_distribution_to_eap(
     received = Timestamp()
     received.FromDatetime(artifact.date_added)
 
-    # Generate trace_id for this preprod artifact - same as size metrics to enable grouping.
-    # This allows queries to join build distribution data with size metrics via trace_id.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(artifact.id)).hex
+    # Same trace_id as size metrics to enable grouping/joining via trace_id.
+    trace_id = get_preprod_trace_id(artifact.id)
 
     # Generate deterministic item_id based on artifact.id.
     # Unlike size metrics (one per size_metric.id), build distribution has one record per artifact.
     # This enables ReplacingMergeTree deduplication when reprocessing the same artifact.
     item_id_str = f"build_distribution_{artifact.id}"
-    item_id = int(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex, 16).to_bytes(16, "little")
+    item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
+    mobile_app_info = getattr(artifact, "mobile_app_info", None)
     attributes: dict[str, Any] = {
         "preprod_artifact_id": artifact.id,
         "sub_item_type": "build_distribution",
@@ -163,9 +161,9 @@ def produce_preprod_build_distribution_to_eap(
             "apple" if artifact.is_ios() else "android" if artifact.is_android() else None
         ),
         "app_id": artifact.app_id,
-        "app_name": artifact.app_name,
-        "build_version": artifact.build_version,
-        "build_number": artifact.build_number,
+        "app_name": mobile_app_info.app_name if mobile_app_info else None,
+        "build_version": mobile_app_info.build_version if mobile_app_info else None,
+        "build_number": mobile_app_info.build_number if mobile_app_info else None,
         "main_binary_identifier": artifact.main_binary_identifier,
         "artifact_date_built": (
             int(artifact.date_built.timestamp()) if artifact.date_built else None

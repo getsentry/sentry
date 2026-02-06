@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,11 +16,10 @@ import {space} from 'sentry/styles/space';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 
-import AllTeamsList from './allTeamsList';
-import {GRID_TEMPLATE} from './allTeamsRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
+import {OtherTeamsTable} from './otherTeamsTable';
+import {YourTeamsTable} from './yourTeamsTable';
 
 type Props = {
   access: Set<string>;
@@ -47,7 +43,9 @@ export default function OrganizationTeams({
   if (!organization) {
     return null;
   }
+
   const canCreateTeams = access.has('project:admin');
+  const openMembership = !!(features.has('open-membership') || access.has('org:write'));
 
   const action = (
     <Button
@@ -55,11 +53,7 @@ export default function OrganizationTeams({
       size="sm"
       disabled={!canCreateTeams}
       title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
-      onClick={() =>
-        openCreateTeamModal({
-          organization,
-        })
-      }
+      onClick={() => openCreateTeamModal({organization})}
       icon={<IconAdd />}
     >
       {t('Create Team')}
@@ -74,7 +68,6 @@ export default function OrganizationTeams({
     debouncedSearch(query);
   }
 
-  const {slug: orgSlug, orgRole, orgRoleList, teamRoleList} = organization;
   const filteredTeams = teams.filter(team =>
     `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
   );
@@ -82,7 +75,7 @@ export default function OrganizationTeams({
 
   return (
     <div data-test-id="team-list">
-      <SentryDocumentTitle title={title} orgSlug={orgSlug} />
+      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
       <SettingsPageHeader title={title} action={action} />
 
       <OrganizationAccessRequests
@@ -95,47 +88,20 @@ export default function OrganizationTeams({
         onChange={handleSearch}
         query={teamQuery}
       />
-      <Panel>
-        <StyledPanelHeader>
-          <div>{t('Your Teams')}</div>
-          <div />
-          <div>
-            <TeamRoleColumnLabel />
-          </div>
-          <div />
-        </StyledPanelHeader>
-        <PanelBody>
-          <RoleOverwritePanelAlert
-            orgRole={orgRole}
-            orgRoleList={orgRoleList}
-            teamRoleList={teamRoleList}
-            isSelf
-          />
-          {initiallyLoaded ? (
-            <AllTeamsList
-              organization={organization}
-              teamList={userTeams.filter(team => team.slug.includes(teamQuery))}
-              access={access}
-              openMembership={false}
-            />
-          ) : (
-            <LoadingIndicator />
-          )}
-        </PanelBody>
-      </Panel>
-      <Panel>
-        <PanelHeader>{t('Other Teams')}</PanelHeader>
-        <PanelBody>
-          <AllTeamsList
-            organization={organization}
-            teamList={otherTeams}
-            access={access}
-            openMembership={
-              !!(features.has('open-membership') || access.has('org:write'))
-            }
-          />
-        </PanelBody>
-      </Panel>
+      <YourTeamsTable
+        teams={userTeams}
+        isLoading={!initiallyLoaded}
+        canCreateTeams={canCreateTeams}
+        hasSearch={teamQuery.length > 0}
+        allTeamsCount={teams.length}
+      />
+      <OtherTeamsTable
+        teams={otherTeams}
+        openMembership={openMembership}
+        canCreateTeams={canCreateTeams}
+        hasSearch={teamQuery.length > 0}
+        allTeamsCount={teams.length}
+      />
       {hasMore && (
         <LoadMoreWrapper>
           {fetching && <LoadingIndicator mini />}
@@ -148,10 +114,6 @@ export default function OrganizationTeams({
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  ${GRID_TEMPLATE}
 `;
 
 const LoadMoreWrapper = styled('div')`

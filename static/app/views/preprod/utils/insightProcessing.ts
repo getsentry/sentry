@@ -100,6 +100,13 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
     ),
   },
   {
+    key: 'large_audios',
+    name: t('Large Audio'),
+    description: t(
+      'Size Analysis flags audio files over 5 MB. These files can often be compressed further, converted to a more efficient format, or excluded from the app bundle and instead downloaded dynamically as the user requires them.'
+    ),
+  },
+  {
     key: 'unnecessary_files',
     name: t('Unnecessary Files'),
     description: t('Files that are not needed can be removed to reduce size.'),
@@ -342,6 +349,7 @@ export function processInsights(
     'large_images',
     'large_videos',
     'large_audio',
+    'large_audios',
     'unnecessary_files',
     'localized_strings_minify',
     'small_files',

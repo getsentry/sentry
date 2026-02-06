@@ -87,7 +87,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   }
 
   makeBarTextColor(_inside: boolean, theme: Theme): string {
-    return theme.subText;
+    return theme.tokens.content.secondary;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

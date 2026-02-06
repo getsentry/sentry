@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-notrial.svg';
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -170,7 +171,6 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        borderless
         priority="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
@@ -188,9 +188,9 @@ const BusinessTrialBannerWrapper = styled('div')`
   padding: ${space(2)};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   margin-bottom: 0;
 `;
@@ -199,7 +199,7 @@ const IntegationBannerTitle = styled('div')`
   display: flex;
   align-items: baseline;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
   font-weight: 600;
 `;
@@ -214,7 +214,7 @@ const CloseBannerButton = styled(Button)`
   display: block;
   top: ${space(2)};
   right: ${space(2)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;

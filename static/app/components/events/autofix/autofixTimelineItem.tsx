@@ -40,8 +40,8 @@ function getEventColor(
 ): TimelineItemProps['colorConfig'] {
   return {
     title: theme.tokens.content.primary,
-    icon: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
-    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.muted,
+    icon: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
+    iconBorder: isActive ? theme.colors.pink400 : theme.tokens.content.secondary,
   };
 }
 
@@ -145,7 +145,7 @@ const AnimatedContent = styled(motion.div)`
 
 const StyledSpan = styled(MarkedText)`
   & code {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
     background-color: transparent;
     display: inline-block;
   }
@@ -163,7 +163,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   gap: ${space(1)};
   text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
   text-decoration-color: ${p => p.theme.colors.pink400};
@@ -177,12 +177,18 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
   margin-right: ${space(0.25)};
 `;

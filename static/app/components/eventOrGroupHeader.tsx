@@ -2,7 +2,8 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -156,12 +157,12 @@ function EventOrGroupHeader({
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   & em {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -176,7 +177,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -185,11 +190,15 @@ const TitleWithLink = styled(Link)`
 `;
 
 const TitleWithoutLink = styled('span')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

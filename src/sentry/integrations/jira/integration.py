@@ -516,6 +516,9 @@ class JiraIntegration(IssueSyncIntegration):
             logging_context=logging_context,
         )
 
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name"]
+
     def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.

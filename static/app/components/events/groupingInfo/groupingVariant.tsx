@@ -202,17 +202,17 @@ const Header = styled('div')`
 `;
 
 const VariantTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   display: flex;
   align-items: center;
 `;
 
 const VariantHint = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-left: ${p => p.theme.space.xs};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}: any) =>
@@ -238,7 +238,10 @@ const TextWithQuestionTooltip = styled('div')`
 
 const Hash = styled('span')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    ${p => p.theme.overflowEllipsis};
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     width: 210px;
   }
 `;

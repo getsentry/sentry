@@ -134,6 +134,8 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
+        dcg = self.create_data_condition_group(organization=self.org)
+        self.create_data_condition_group_action(action=action, condition_group=dcg)
 
         with self.tasks():
             run_scheduled_deletions_control()

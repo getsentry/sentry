@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -87,7 +89,9 @@ function ResourceTypeSelector({value}: {value?: string}) {
   return (
     <CompactSelect
       style={{maxWidth: '200px'}}
-      triggerProps={{prefix: `${t('Type')}`}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
+      )}
       options={options}
       value={value ?? ''}
       onChange={newValue => {

@@ -7,7 +7,7 @@
 # shellcheck disable=SC2034 # Unused variables
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
-POSTGRES_CONTAINER="sentry-postgres-1"
+POSTGRES_CONTAINER="postgres-postgres-1"
 
 venv_name=".venv"
 

@@ -7,7 +7,7 @@ from typing import ClassVar, Self
 
 import sentry_sdk
 from django.db import models
-from django.db.models import IntegerField, Sum
+from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
@@ -18,6 +18,7 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveIntegerField,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
@@ -26,12 +27,50 @@ logger = logging.getLogger(__name__)
 
 
 class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
+    def annotate_installable(self) -> Self:
+        return self.annotate(
+            installable=Case(
+                When(installable_app_file_id__isnull=False, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
     def annotate_download_count(self) -> Self:
         return self.annotate(
             download_count=Coalesce(
                 Sum("installablepreprodartifact__download_count"),
                 0,
                 output_field=IntegerField(),
+            )
+        )
+
+    def annotate_main_size_metrics(self) -> Self:
+        # Import here to avoid circular import since PreprodArtifactSizeMetrics
+        # is defined later in this file
+        from sentry.preprod.models import PreprodArtifactSizeMetrics
+
+        main_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=OuterRef("pk"),
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        )
+        return self.annotate(
+            install_size=Subquery(main_metrics.values("max_install_size")[:1]),
+            download_size=Subquery(main_metrics.values("max_download_size")[:1]),
+        )
+
+    def annotate_platform_name(self) -> Self:
+        # Import here to avoid circular import since PreprodArtifact
+        # is defined later in this file
+        from sentry.preprod.models import PreprodArtifact
+
+        return self.annotate(
+            platform_name=Case(
+                When(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE, then=Value("apple")),
+                When(artifact_type=PreprodArtifact.ArtifactType.AAB, then=Value("android")),
+                When(artifact_type=PreprodArtifact.ArtifactType.APK, then=Value("android")),
+                default=Value(None),
+                output_field=models.CharField(),
             )
         )
 
@@ -136,13 +175,6 @@ class PreprodArtifact(DefaultFieldsModel):
     error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
     error_message = models.TextField(null=True)
 
-    # E.g. 1.2.300
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_version = models.CharField(max_length=255, null=True)
-    # E.g. 9999
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    build_number = BoundedBigIntegerField(null=True)
-
     # Version of tooling used to upload/build the artifact, extracted from metadata files
     cli_version = models.CharField(max_length=255, null=True)
     fastlane_plugin_version = models.CharField(max_length=255, null=True)
@@ -163,56 +195,60 @@ class PreprodArtifact(DefaultFieldsModel):
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
 
-    # The name of the app, e.g. "My App"
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_name = models.CharField(max_length=255, null=True)
-
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
 
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    # The objectstore id of the app icon
-    # DEPRECATED, use PreprodArtifactMobileAppInfo instead
-    app_icon_id = models.CharField(max_length=255, null=True)
-
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
-        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type).
+        Get sibling artifacts for the same commit, deduplicated by (app_id, artifact_type, build_configuration_id).
 
-        When multiple artifacts exist for the same (app_id, artifact_type) combination
+        When multiple artifacts exist for the same (app_id, artifact_type, build_configuration_id) combination
         (e.g., due to reprocessing or CI retries), this method returns only one artifact
         per combination to prevent duplicate rows in status checks:
-        - For the calling artifact's (app_id, artifact_type): Returns the calling artifact itself
+        - For the calling artifact's combination: Returns the calling artifact itself
         - For other combinations: Returns the earliest (oldest) artifact for that combination
 
-        Note: Deduplication by both app_id and artifact_type is necessary because
-        iOS and Android apps can share the same app_id (e.g., "com.example.app").
+        Note: Deduplication by app_id, artifact_type, and build_configuration_id is necessary because:
+        - iOS and Android apps can share the same app_id (e.g., "com.example.app")
+        - The same app can have multiple build configurations (e.g., Release, AdHoc, Debug)
 
         Results are filtered by the current artifact's organization for security.
 
         Returns:
-            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type),
+            List of PreprodArtifact objects, deduplicated by (app_id, artifact_type, build_configuration_id),
             ordered by app_id
         """
         if not self.commit_comparison:
             return []
 
-        all_artifacts = PreprodArtifact.objects.filter(
-            commit_comparison=self.commit_comparison,
-            project__organization_id=self.project.organization_id,
-        ).order_by("app_id", "artifact_type", "date_added")
+        all_artifacts = (
+            PreprodArtifact.objects.filter(
+                commit_comparison=self.commit_comparison,
+                project__organization_id=self.project.organization_id,
+            )
+            .select_related("build_configuration", "commit_comparison")
+            .prefetch_related("mobile_app_info")
+            .order_by("app_id", "artifact_type", "build_configuration_id", "date_added")
+        )
 
         artifacts_by_key = defaultdict(list)
         for artifact in all_artifacts:
-            key = (artifact.app_id, artifact.artifact_type)
+            key = (artifact.app_id, artifact.artifact_type, artifact.build_configuration_id)
             artifacts_by_key[key].append(artifact)
 
         selected_artifacts = []
-        for (app_id, artifact_type), artifacts in artifacts_by_key.items():
-            if self.app_id == app_id and self.artifact_type == artifact_type:
-                selected_artifacts.append(self)
+        for (app_id, artifact_type, build_config_id), artifacts in artifacts_by_key.items():
+            if (
+                self.app_id == app_id
+                and self.artifact_type == artifact_type
+                and self.build_configuration_id == build_config_id
+            ):
+                # Find the prefetched version of self to preserve prefetched relations
+                self_artifact = next((a for a in artifacts if a.id == self.id), None)
+                selected_artifacts.append(self_artifact or artifacts[0])
             else:
                 selected_artifacts.append(artifacts[0])
 
@@ -266,6 +302,95 @@ class PreprodArtifact(DefaultFieldsModel):
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
             build_configuration=self.build_configuration,
         )
+
+    @classmethod
+    def get_base_artifacts_for_commit(
+        cls, artifacts: list[PreprodArtifact]
+    ) -> dict[int, PreprodArtifact]:
+        """
+        Batch lookup base artifacts for a list of head artifacts.
+
+        Finds base artifacts by matching (app_id, artifact_type, build_configuration_id).
+        All artifacts must share the same commit_comparison (same base_sha).
+
+        When multiple base artifacts match the same key, the newest (most recent) is returned.
+
+        Args:
+            artifacts: List of head artifacts. All must share the same commit_comparison.
+
+        Returns:
+            Dict mapping head_artifact_id -> base_artifact
+
+        Raises:
+            ValueError: If artifacts have different commit_comparisons.
+        """
+        if not artifacts:
+            return {}
+
+        first_artifact = artifacts[0]
+        if not first_artifact.commit_comparison or not first_artifact.commit_comparison.base_sha:
+            return {}
+
+        commit_comparison_id = first_artifact.commit_comparison_id
+        if any(a.commit_comparison_id != commit_comparison_id for a in artifacts[1:]):
+            raise ValueError("All artifacts must share the same commit_comparison.")
+
+        base_sha = first_artifact.commit_comparison.base_sha
+        head_repo_name = first_artifact.commit_comparison.head_repo_name
+        organization_id = first_artifact.project.organization_id
+
+        base_commit_comparisons = list(
+            CommitComparison.objects.filter(
+                head_sha=base_sha,
+                head_repo_name=head_repo_name,
+                organization_id=organization_id,
+            ).order_by("date_added")
+        )
+
+        if not base_commit_comparisons:
+            return {}
+
+        if len(base_commit_comparisons) > 1:
+            logger.warning(
+                "preprod.models.get_base_artifacts_for_commit.multiple_base_commit_comparisons",
+                extra={
+                    "head_sha": base_sha,
+                    "head_repo_name": head_repo_name,
+                    "organization_id": organization_id,
+                    "base_commit_comparison_ids": [c.id for c in base_commit_comparisons],
+                },
+            )
+            sentry_sdk.capture_message(
+                "Multiple base commit comparisons found",
+                level="warning",
+                extras={
+                    "head_sha": base_sha,
+                    "head_repo_name": head_repo_name,
+                    "organization_id": organization_id,
+                },
+            )
+
+        base_commit_comparison = base_commit_comparisons[0]
+
+        base_artifacts_qs = PreprodArtifact.objects.filter(
+            commit_comparison=base_commit_comparison,
+            project__organization_id=organization_id,
+        ).order_by("-date_added")
+
+        # Newest base artifact wins due to -date_added ordering
+        base_artifacts = list(base_artifacts_qs)
+        result: dict[int, PreprodArtifact] = {}
+        for artifact in artifacts:
+            for ba in base_artifacts:
+                if (
+                    ba.app_id == artifact.app_id
+                    and ba.artifact_type == artifact.artifact_type
+                    and ba.build_configuration_id == artifact.build_configuration_id
+                ):
+                    result[artifact.id] = ba
+                    break
+
+        return result
 
     def get_head_artifacts_for_commit(
         self, artifact_type: ArtifactType | None = None
@@ -415,6 +540,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """Size analysis completed successfully."""
         FAILED = 3
         """Size analysis failed. See error_code and error_message for details."""
+        NOT_RAN = 4
+        """Size analysis not ran. See error_code and error_message for details."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -423,6 +550,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.PROCESSING, "processing"),
                 (cls.COMPLETED, "completed"),
                 (cls.FAILED, "failed"),
+                (cls.NOT_RAN, "not_ran"),
             )
 
     class ErrorCode(IntEnum):
@@ -434,6 +562,10 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         """The artifact type is not supported for size analysis."""
         PROCESSING_ERROR = 3
         """An error occurred during size analysis processing."""
+        NO_QUOTA = 4
+        """NOT_RAN state: No quota available."""
+        SKIPPED = 5
+        """NOT_RAN state: Size analysis was not requested on this build."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -442,6 +574,8 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.TIMEOUT, "timeout"),
                 (cls.UNSUPPORTED_ARTIFACT, "unsupported_artifact"),
                 (cls.PROCESSING_ERROR, "processing_error"),
+                (cls.NO_QUOTA, "no_quota"),
+                (cls.SKIPPED, "skipped"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -616,3 +750,56 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactmobileappinfo"
+
+
+@region_silo_model
+class PreprodComparisonApproval(DefaultFieldsModel):
+    """
+    Tracks approval status for preprod comparisons (size or snapshot).
+    """
+
+    class ApprovalStatus(IntEnum):
+        NEEDS_APPROVAL = 0
+        APPROVED = 1
+        REJECTED = 2
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.NEEDS_APPROVAL, "needs_approval"),
+                (cls.APPROVED, "approved"),
+                (cls.REJECTED, "rejected"),
+            )
+
+    class FeatureType(IntEnum):
+        SIZE = 0
+        SNAPSHOTS = 1
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.SIZE, "size"),
+                (cls.SNAPSHOTS, "snapshots"),
+            )
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact", on_delete=models.CASCADE)
+    preprod_feature_type = BoundedPositiveIntegerField(choices=FeatureType.as_choices())
+    approval_status = BoundedPositiveIntegerField(
+        default=ApprovalStatus.NEEDS_APPROVAL, choices=ApprovalStatus.as_choices()
+    )
+    approved_at = models.DateTimeField(null=True)
+    # Nullable for non-Sentry users (e.g. approvals via GitHub UI)
+    approved_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # For non-Sentry approvers, store GitHub user info: {"github": {"id": 123, "login": "username"}}
+    extras = models.JSONField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodcomparisonapproval"
+
+
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+
+__all__ = ["PreprodSnapshotComparison", "PreprodSnapshotMetrics"]
