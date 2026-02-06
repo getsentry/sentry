@@ -97,9 +97,7 @@ class OAuthCORSMixin:
 
         return self._set_cors_headers(response, origin)
 
-    def _set_cors_headers(
-        self, response: HttpResponseBase, origin: str
-    ) -> HttpResponseBase:
+    def _set_cors_headers(self, response: HttpResponseBase, origin: str) -> HttpResponseBase:
         """Set all CORS headers on the response for a valid origin."""
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = self.cors_allowed_headers
