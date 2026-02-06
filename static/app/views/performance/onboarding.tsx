@@ -10,7 +10,7 @@ import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -19,6 +19,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
@@ -34,6 +35,10 @@ import {
   StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {
+  stepsToMarkdown,
+  stepsToText,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import LegacyOnboardingPanel from 'sentry/components/onboardingPanel';
 import Panel from 'sentry/components/panels/panel';
@@ -577,6 +582,30 @@ export function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <Flex justify="end" marginBottom="xs">
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            markdown: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'markdown',
+                source: 'performance_onboarding',
+              });
+              return stepsToMarkdown(steps);
+            },
+            text: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'text',
+                source: 'performance_onboarding',
+              });
+              return stepsToText(steps);
+            },
+            json: undefined,
+          })}
+        />
+      </Flex>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

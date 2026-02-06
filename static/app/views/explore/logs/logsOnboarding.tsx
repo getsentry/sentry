@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,6 +19,10 @@ import {
   StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {
+  stepsToMarkdown,
+  stepsToText,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -305,6 +311,30 @@ function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <Flex justify="end" marginBottom="xs">
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            markdown: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'markdown',
+                source: 'logs_onboarding',
+              });
+              return stepsToMarkdown(steps);
+            },
+            text: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'text',
+                source: 'logs_onboarding',
+              });
+              return stepsToText(steps);
+            },
+            json: undefined,
+          })}
+        />
+      </Flex>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

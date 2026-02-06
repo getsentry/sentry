@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -16,6 +18,10 @@ import {
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {
+  stepsToMarkdown,
+  stepsToText,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
@@ -30,6 +36,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -294,6 +301,30 @@ export function Onboarding() {
       <SetupTitle project={project} />
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <ContinuousProfilingBillingRequirementBanner project={project} />
+      <Flex justify="end" marginBottom="xs">
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            markdown: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'markdown',
+                source: 'profiling_onboarding',
+              });
+              return stepsToMarkdown(steps);
+            },
+            text: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization,
+                format: 'text',
+                source: 'profiling_onboarding',
+              });
+              return stepsToText(steps);
+            },
+            json: undefined,
+          })}
+        />
+      </Flex>
       <GuidedSteps>
         {steps
           // Only show non-optional steps
