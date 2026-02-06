@@ -29,7 +29,7 @@ describe('useProfileFunctionTrendss', () => {
       body: {data: []},
     });
 
-    const hook = renderHook(useProfileFunctionTrends, {
+    const hook = renderHook(useProfileFunctionTrends<string>, {
       wrapper: TestContext,
       initialProps: {
         trendFunction: 'p95()',
@@ -49,7 +49,7 @@ describe('useProfileFunctionTrendss', () => {
       body: {data: []},
     });
 
-    const hook = renderHook(useProfileFunctionTrends, {
+    const hook = renderHook(useProfileFunctionTrends<string>, {
       wrapper: TestContext,
       initialProps: {
         trendFunction: 'p95()',

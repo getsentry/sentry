@@ -13,7 +13,7 @@ describe('useProfileFunctions', () => {
       body: {data: []},
     });
 
-    const hook = renderHookWithProviders(useProfileFunctions, {
+    const hook = renderHookWithProviders(useProfileFunctions<string>, {
       initialProps: {
         fields: ['count()'],
         referrer: '',
@@ -36,7 +36,7 @@ describe('useProfileFunctions', () => {
       body: {data: []},
     });
 
-    const hook = renderHookWithProviders(useProfileFunctions, {
+    const hook = renderHookWithProviders(useProfileFunctions<string>, {
       initialProps: {
         fields: ['count()'],
         referrer: '',

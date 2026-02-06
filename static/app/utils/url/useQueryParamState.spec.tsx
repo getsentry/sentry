@@ -131,7 +131,7 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(useQueryParamState, {
+    const {result} = renderHook(useQueryParamState<Sort[]>, {
       wrapper: UrlParamBatchProvider,
       initialProps: {
         fieldName: 'sort',
