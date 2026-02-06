@@ -6,6 +6,7 @@ import {
   type AggregationOutputType,
   type DataUnit,
 } from 'sentry/utils/discover/fields';
+import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -16,42 +17,61 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 /**
- * Transforms legacy Series[] data into Plottable[] objects for the TimeSeriesWidgetVisualization component.
+ * Delimiter used by the backend to separate parts of a series name.
+ * Format: "alias : yAxis : groupValue1,groupValue2"
  */
-export function transformLegacySeriesToPlottables(
-  timeseriesResults: Series[] | undefined,
+export const SERIES_NAME_PART_DELIMITER = ' : ';
+
+export function transformLegacySeriesToTimeSeries(
+  timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
   timeseriesResultsUnits: Record<string, DataUnit> | undefined,
-  widget: Widget
-): Plottable[] {
-  if (!timeseriesResults || timeseriesResults.length === 0) {
-    return [];
+  fields: string[] = [],
+  yAxis = '',
+  alias?: string
+): TimeSeries | null {
+  if (!timeseriesResult) {
+    return null;
   }
 
-  const plottables = timeseriesResults
-    .map(series => {
-      const unaliasedSeriesName =
-        series.seriesName?.split(' : ').at(-1)?.trim() ?? series.seriesName;
-      const fieldType =
-        timeseriesResultsTypes?.[unaliasedSeriesName] ??
-        aggregateOutputType(unaliasedSeriesName);
+  const fieldType = timeseriesResultsTypes?.[yAxis] ?? aggregateOutputType(yAxis);
 
-      // Prefer results types and units from the config if available
-      // Fallback to the default mapping logic if not available
-      const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, unaliasedSeriesName);
-      const valueType =
-        timeseriesResultsTypes?.[series.seriesName] ??
-        (mapped.valueType as AggregationOutputType);
-      const valueUnit = timeseriesResultsUnits?.[series.seriesName] ?? mapped.valueUnit;
+  // Prefer results types and units from the config if available
+  // Fallback to the default mapping logic if not available
+  const mapped = mapAggregationTypeToValueTypeAndUnit(fieldType, yAxis);
+  const seriesName = timeseriesResult.seriesName ?? yAxis;
+  const valueType =
+    timeseriesResultsTypes?.[seriesName] ?? (mapped.valueType as AggregationOutputType);
+  const valueUnit = timeseriesResultsUnits?.[seriesName] ?? mapped.valueUnit;
 
-      const timeSeries = convertEventsStatsToTimeSeriesData(
-        series.seriesName,
-        createEventsStatsFromSeries(series, valueType, valueUnit)
-      );
-      return createPlottableFromTimeSeries(timeSeries[1], widget);
-    })
-    .filter(plottable => plottable !== null);
-  return plottables;
+  const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
+
+  const isOther = splitSeriesName.includes('Other');
+
+  // Extract group values by filtering out alias and yAxis from the series name
+  // Series name format: "alias : groupValue1,groupValue2 : yAxis" or "groupValue1,groupValue2" or "groupValue1,groupValue2 : yAxis"
+  const groupValuesPart = splitSeriesName.find(name => name !== alias && name !== yAxis);
+
+  const groupBy =
+    fields.length > 0 && groupValuesPart ? parseGroupBy(groupValuesPart, fields) : null;
+
+  const timeSeries = convertEventsStatsToTimeSeriesData(
+    yAxis,
+    createEventsStatsFromSeries(
+      {...timeseriesResult, seriesName: yAxis},
+      valueType,
+      valueUnit
+    )
+  )[1];
+
+  return {
+    ...timeSeries,
+    groupBy,
+    meta: {
+      ...timeSeries.meta,
+      isOther,
+    },
+  };
 }
 
 function createEventsStatsFromSeries(
@@ -79,20 +99,22 @@ function createEventsStatsFromSeries(
   };
 }
 
-function createPlottableFromTimeSeries(
+export function createPlottableFromTimeSeries(
   timeSeries: TimeSeries,
-  widget: Widget
+  widget: Widget,
+  alias?: string,
+  name?: string
 ): Plottable | null {
   const shouldStack = widget.queries[0]?.columns.length! > 0;
 
   const {displayType, title} = widget;
   switch (displayType) {
     case DisplayType.LINE:
-      return new Line(timeSeries);
+      return new Line(timeSeries, {alias, name});
     case DisplayType.AREA:
-      return new Area(timeSeries);
+      return new Area(timeSeries, {alias, name});
     case DisplayType.BAR:
-      return new Bars(timeSeries, {stack: shouldStack ? title : undefined});
+      return new Bars(timeSeries, {stack: shouldStack ? title : undefined, alias, name});
     default:
       return null;
   }
