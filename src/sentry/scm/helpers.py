@@ -81,7 +81,7 @@ def fetch_service_provider(
     integration_id: int,
     map_to_provider: Callable[
         [Integration | RpcIntegration, int], Provider
-    ] = map_integration_to_provider,
+    ] = lambda i, oid: map_integration_to_provider(oid, i),
 ) -> Provider:
     integration = integration_service.get_integration(
         integration_id=integration_id,

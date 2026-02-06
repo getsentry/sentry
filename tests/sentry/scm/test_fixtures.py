@@ -130,8 +130,8 @@ class BaseTestProvider(Provider):
 
     # Comment reactions
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]:
-        return ["+1", "eyes"]
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> dict[Reaction, int]:
+        return {"+1": 1, "eyes": 1}
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
