@@ -38,6 +38,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -115,8 +116,8 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
         try:
             stopping_point = AutofixStoppingPoint(action.value)
         except ValueError:
-            logger.warning(
-                "entrypoint.invalid_autofix_stopping_point",
+            logger.exception(
+                "seer.entrypoint.slack.invalid_stopping_point",
                 extra={
                     "entrypoint_key": SeerEntrypointKey.SLACK.value,
                     "stopping_point": action.value,
@@ -242,7 +243,7 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 )
             case _:
                 logging_ctx["event_type"] = event_type
-                logger.info("entrypoint.unsupported_event_type", extra=logging_ctx)
+                logger.info("seer.entrypoint.slack.unsupported_event_type", extra=logging_ctx)
                 return
 
         # Determine whether an automation has progressed beyond the current stopping point
@@ -269,13 +270,23 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
             data_kwargs["has_progressed"] = has_coding_enabled
 
+        data = SeerAutofixUpdate(**data_kwargs)
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],
             organization_id=cache_payload["organization_id"],
-            data=SeerAutofixUpdate(**data_kwargs),
+            data=data,
         )
-        logger.info("entrypoint.on_autofix_update_success", extra=logging_ctx)
+        logger.info("seer.entrypoint.slack.autofix_update_scheduled", extra=logging_ctx)
+        metrics.incr(
+            "seer.entrypoint.slack.autofix_update_scheduled",
+            tags={
+                "event_type": str(event_type),
+                "current_point": str(data.current_point),
+                "has_progressed": str(data.has_progressed),
+                "thread_count": len(cache_payload["threads"]),
+            },
+        )
 
 
 def send_thread_update(
@@ -299,6 +310,10 @@ def send_thread_update(
     renderable = NotificationService.render_template(
         data=data, template=template_cls(), provider=provider
     )
+    metric_tags = {
+        "data_source": str(data.source),
+        "is_ephemeral": str(bool(ephemeral_user_id)),
+    }
     try:
         if ephemeral_user_id:
             install.send_threaded_ephemeral_message(
@@ -313,12 +328,15 @@ def send_thread_update(
                 thread_ts=thread["thread_ts"],
                 renderable=renderable,
             )
-    except ValueError as e:
-        logging_ctx["error"] = str(e)
-        logger.warning("entrypoint.send_thread_update.invalid_integration", extra=logging_ctx)
+    except ValueError:
+        logger.exception(
+            "seer.entrypoint.slack.thread_update.invalid_integration", extra=logging_ctx
+        )
+        metrics.incr("seer.entrypoint.slack.thread_update.invalid_integration", tags=metric_tags)
         # No need to retry since these are configuration errors, and will just repeat
         return
-    logger.info("entrypoint.send_thread_update.success", extra=logging_ctx)
+    logger.info("seer.entrypoint.slack.thread_update.sent", extra=logging_ctx)
+    metrics.incr("seer.entrypoint.slack.thread_update.sent", tags=metric_tags)
 
 
 @instrumented_task(
@@ -342,13 +360,16 @@ def process_thread_update(
 
     from sentry.integrations.slack.integration import SlackIntegration
 
+    logging_ctx = {
+        "integration_id": integration_id,
+        "organization_id": organization_id,
+        "entrypoint_key": SeerEntrypointKey.SLACK.value,
+    }
+
     try:
         data_dto = NotificationDataDto.from_dict(serialized_data)
-    except (NotificationServiceError, NoRegistrationExistsError) as e:
-        logger.warning(
-            "entrypoint.process_thread_update.deserialize_error",
-            extra={"error": e, "data": serialized_data},
-        )
+    except (NotificationServiceError, NoRegistrationExistsError):
+        logger.exception("seer.entrypoint.slack.thread_update.deserialize_error", extra=logging_ctx)
         return
 
     integration = integration_service.get_integration(
@@ -358,14 +379,7 @@ def process_thread_update(
         status=ObjectStatus.ACTIVE,
     )
     if not integration:
-        logger.warning(
-            "entrypoint.process_thread_update.integration_not_found",
-            extra={
-                "integration_id": integration_id,
-                "organization_id": organization_id,
-                "entrypoint_key": SeerEntrypointKey.SLACK.value,
-            },
-        )
+        logger.error("seer.entrypoint.slack.thread_update.integration_not_found", extra=logging_ctx)
         return
 
     send_thread_update(
@@ -461,7 +475,7 @@ def update_existing_message(
         original_blocks = message_data["blocks"]
         original_text = message_data["text"]
     except (KeyError, TypeError):
-        logger.exception("entrypoint.update_message_invalid_payload", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.message_update.invalid_payload", extra=logging_ctx)
         return
 
     blocks = _transform_block_actions(original_blocks, transformer)
@@ -486,7 +500,7 @@ def update_existing_message(
     try:
         install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
     except IntegrationError:
-        logger.exception("entrypoint.update_message_failed", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.message_update.failed", extra=logging_ctx)
 
 
 def handle_prepare_autofix_update(
@@ -521,10 +535,9 @@ def handle_prepare_autofix_update(
         automation_stopping_point = (
             get_automation_stopping_point(group) if is_group_triggering_automation(group) else None
         )
-    except Exception as e:
-        logger.warning(
-            "entrypoint.get_automation_stopping_point_error",
-            extra={"error": str(e), **logging_ctx},
+    except Exception:
+        logger.exception(
+            "seer.entrypoint.slack.prepare_autofix.get_stopping_point_error", extra=logging_ctx
         )
         automation_stopping_point = None
 
@@ -559,15 +572,22 @@ def handle_prepare_autofix_update(
                 ),
             )
     except UnableToAcquireLock:
-        logger.warning("entrypoint.handle_prepare_autofix_update.lock_failed", extra=logging_ctx)
+        logger.exception("seer.entrypoint.slack.prepare_autofix.lock_failed", extra=logging_ctx)
         return
-
     logger.info(
-        "entrypoint.handle_prepare_autofix_update",
+        "seer.entrypoint.slack.prepare_autofix.cache_populated",
         extra={
             "cache_key": cache_result["key"],
             "cache_source": cache_result["source"],
             "thread_count": len(threads),
+            "has_automation": bool(automation_stopping_point),
             **logging_ctx,
+        },
+    )
+    metrics.incr(
+        "seer.entrypoint.slack.prepare_autofix.cache_populated",
+        tags={
+            "cache_source": cache_result["source"],
+            "has_automation": str(bool(automation_stopping_point)),
         },
     )
