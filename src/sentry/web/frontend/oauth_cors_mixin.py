@@ -86,7 +86,7 @@ class OAuthCORSMixin:
 
         # For POST requests with a validated app, check allowed_origins
         allowed = self.application.get_allowed_origins()
-        if not allowed or origin not in allowed:
+        if not allowed or ("*" not in allowed and origin not in allowed):
             # Origin not in allowed list - don't set Access-Control-Allow-Origin
             # This causes the browser to block the response
             logger.warning(
