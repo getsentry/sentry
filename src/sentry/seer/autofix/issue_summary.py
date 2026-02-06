@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -387,7 +388,15 @@ def run_automation(
         }
     )
 
+    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    if autofix_state:
+        return  # already have an autofix on this issue
+
     if not is_group_triggering_automation(group):
+        return
+
+    # Increment the rate limit counter only when we are actually about to trigger.
+    if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
         return
 
     stopping_point = None
@@ -405,9 +414,8 @@ def run_automation(
 
 def is_group_triggering_automation(group: Group) -> bool:
     """
-    Checks if a group is eligible for automation.
+    Checks if a group is going to be picked up for automation. Does not check for existing run.
     Checks project options (fixability tuning, preferences), billing quota, and rate limiting.
-    Note: If an autofix run is currently in progress, returns False.
     """
     fixability_score = get_and_update_group_fixability_score(group)
 
@@ -423,10 +431,6 @@ def is_group_triggering_automation(group: Group) -> bool:
     )
     if not has_budget:
         return False
-
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
-    if autofix_state:
-        return False  # already have an autofix on this issue
 
     is_rate_limited = is_seer_autotriggered_autofix_rate_limited(group.project, group.organization)
     if is_rate_limited:

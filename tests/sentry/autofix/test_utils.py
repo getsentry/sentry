@@ -4,19 +4,23 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.conf import settings
 
+from sentry import ratelimits
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS,
     AutofixState,
+    _get_autofix_rate_limit_config,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_autofix_state_from_pr_id,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_scanner_rate_limited,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -285,7 +289,9 @@ class TestAutomationRateLimiting(TestCase):
         project = self.create_project()
         organization = project.organization
 
-        is_rate_limited = is_seer_autotriggered_autofix_rate_limited(project, organization)
+        is_rate_limited = is_seer_autotriggered_autofix_rate_limited_and_increment(
+            project, organization
+        )
 
         assert is_rate_limited is False
         mock_track_outcome.assert_not_called()
@@ -304,7 +310,9 @@ class TestAutomationRateLimiting(TestCase):
         mock_is_limited.return_value = (True, 19, None)
 
         with self.options({"seer.max_num_autofix_autotriggered_per_hour": 20}):
-            is_rate_limited = is_seer_autotriggered_autofix_rate_limited(project, organization)
+            is_rate_limited = is_seer_autotriggered_autofix_rate_limited_and_increment(
+                project, organization
+            )
 
         assert is_rate_limited is True
         mock_track_outcome.assert_called_once()
@@ -321,7 +329,7 @@ class TestAutomationRateLimiting(TestCase):
         for option, multiplier in AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.items():
             with self.options({"seer.max_num_autofix_autotriggered_per_hour": base_limit}):
                 project.update_option("sentry:autofix_automation_tuning", option)
-                is_seer_autotriggered_autofix_rate_limited(project, organization)
+                is_seer_autotriggered_autofix_rate_limited_and_increment(project, organization)
                 expected_limit = base_limit * multiplier
                 mock_is_limited.assert_called_with(
                     project=project,
@@ -329,3 +337,24 @@ class TestAutomationRateLimiting(TestCase):
                     limit=expected_limit,
                     window=60 * 60,
                 )
+
+    @override_options({"seer.max_num_autofix_autotriggered_per_hour": 20})
+    def test_rate_limit_read_only_check_does_not_increment_counter(self) -> None:
+        project = self.create_project()
+        organization = project.organization
+        config = _get_autofix_rate_limit_config(project)
+
+        # Check a few times to be safe
+        for _ in range(5):
+            is_seer_autotriggered_autofix_rate_limited(project, organization)
+        current = ratelimits.backend.current_value(
+            key=config["key"], project=project, window=config["window"]
+        )
+        assert current == 0
+
+        is_seer_autotriggered_autofix_rate_limited_and_increment(project, organization)
+        current = ratelimits.backend.current_value(
+            key=config["key"], project=project, window=config["window"]
+        )
+        assert current == 1
+        ratelimits.backend.reset(key=config["key"], project=project, window=config["window"])
