@@ -87,6 +87,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         access_json = {
             "ok": True,
             "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            "scope": ",".join(sorted(self.provider.identity_oauth_scopes)),
             "team": {"id": team_id, "name": "Example"},
             "authed_user": {"id": authorizing_user_id},
         }

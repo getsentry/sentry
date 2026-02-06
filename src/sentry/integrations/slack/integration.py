@@ -92,7 +92,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
     def _get_debug_metadata_keys(self) -> list[str]:
-        return ["domain_name", "installation_type"]
+        return ["domain_name", "installation_type", "scopes"]
 
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
@@ -363,12 +363,14 @@ class SlackIntegrationProvider(IntegrationProvider):
         team_name = data["team"]["name"]
         team_id = data["team"]["id"]
 
-        scopes = sorted(self.identity_oauth_scopes)
+        # Use actual granted scopes from Slack's OAuth response
+        granted_scopes_str = data.get("scope")  # "channels:read,links:write,..."
+        scopes = granted_scopes_str.split(",") if granted_scopes_str else self._get_oauth_scopes()
         team_data = self._get_team_info(access_token)
 
         metadata = {
             "access_token": access_token,
-            "scopes": scopes,
+            "scopes": sorted(scopes),
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
             "installation_type": "born_as_bot",
