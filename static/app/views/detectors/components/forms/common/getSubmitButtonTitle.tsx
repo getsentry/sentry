@@ -1,6 +1,10 @@
+import {getSubmitButtonTitle as getSubmitButtonTitleBase} from 'sentry/components/forms/form';
 import type FormModel from 'sentry/components/forms/model';
-import {t} from 'sentry/locale';
 
+/**
+ * Wraps the base getSubmitButtonTitle to support an optional disabledReason
+ * that takes precedence over form-state-derived titles.
+ */
 export function getSubmitButtonTitle(
   form: FormModel,
   disabledReason?: string
@@ -9,13 +13,5 @@ export function getSubmitButtonTitle(
     return disabledReason;
   }
 
-  if (form.isFormIncomplete) {
-    return t('Required fields must be filled out');
-  }
-
-  if (form.isError) {
-    return t('Form contains errors');
-  }
-
-  return undefined;
+  return getSubmitButtonTitleBase(form);
 }
