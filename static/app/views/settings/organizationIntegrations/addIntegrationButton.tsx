@@ -9,7 +9,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import AddIntegration from './addIntegration';
 
 interface AddIntegrationButtonProps
-  extends Omit<ButtonProps, 'children' | 'analyticsParams'>,
+  extends
+    Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
       React.ComponentProps<typeof AddIntegration>,
       'provider' | 'organization' | 'analyticsParams' | 'modalParams'

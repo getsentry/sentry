@@ -10,14 +10,18 @@ import type {SurfaceVariant} from 'sentry/utils/theme';
 
 import {getBorder, getRadius, rc} from './styles';
 
-interface FlatSurfaceProps<T extends ContainerElement = 'div'>
-  extends Omit<ContainerProps<T>, 'background' | 'border'> {
+interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
+  ContainerProps<T>,
+  'background' | 'border'
+> {
   elevation?: never;
   variant?: SurfaceVariant;
 }
 
-interface OverlaySurfaceProps<T extends ContainerElement = 'div'>
-  extends Omit<ContainerProps<T>, 'background' | 'border'> {
+interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
+  ContainerProps<T>,
+  'background' | 'border'
+> {
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';
 }

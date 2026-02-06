@@ -20,7 +20,7 @@ export default function useButtonTracking({
   const routes = useRoutes();
 
   const trackButton = useCallback(() => {
-    const considerSendingAnalytics = organization && routes;
+    const considerSendingAnalytics = organization && Boolean(routes);
 
     if (considerSendingAnalytics) {
       const routeString = getEventPath(routes);

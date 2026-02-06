@@ -81,8 +81,10 @@ interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-interface SegmentedControlProps<Value extends string>
-  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
+interface SegmentedControlProps<Value extends string> extends Omit<
+  RadioGroupProps,
+  'value' | 'defaultValue' | 'onChange' | 'isDisabled'
+> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
   value: Value;
@@ -120,6 +122,7 @@ export function SegmentedControl<Value extends string>({
   return (
     <GroupWrap
       {...radioGroupProps}
+      {...props}
       size={size}
       priority={priority}
       ref={ref}
@@ -152,8 +155,7 @@ SegmentedControl.Item = Item as <Value extends string>(
 ) => React.JSX.Element;
 
 interface SegmentProps<Value extends string>
-  extends SegmentedControlItemProps<Value>,
-    AriaRadioProps {
+  extends SegmentedControlItemProps<Value>, AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;

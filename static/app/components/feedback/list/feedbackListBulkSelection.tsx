@@ -10,11 +10,10 @@ import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
-interface Props
-  extends Pick<
-    ReturnType<typeof useListItemCheckboxContext>,
-    'countSelected' | 'deselectAll' | 'selectedIds'
-  > {
+interface Props extends Pick<
+  ReturnType<typeof useListItemCheckboxContext>,
+  'countSelected' | 'deselectAll' | 'selectedIds'
+> {
   mailbox: Mailbox;
 }
 

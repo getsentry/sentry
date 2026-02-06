@@ -28,11 +28,10 @@ const statusToText: Record<string, string> = {
   ignored: 'spam',
 };
 
-interface Props
-  extends Pick<
-    ReturnType<typeof useListItemCheckboxContext>,
-    'deselectAll' | 'selectedIds'
-  > {}
+interface Props extends Pick<
+  ReturnType<typeof useListItemCheckboxContext>,
+  'deselectAll' | 'selectedIds'
+> {}
 
 export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();

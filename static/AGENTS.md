@@ -56,7 +56,9 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
-## Design system
+## UI Patterns
+
+- When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
 
 ### General practices
 
