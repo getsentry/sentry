@@ -245,8 +245,8 @@ class TestGitHubProviderDeleteCommentReaction:
         provider.delete_comment_reaction(repository, "101", "999")
 
         assert (
-            "delete",
-            ("/repos/test-org/test-repo/issues/comments/101/reactions/999",),
+            "delete_comment_reaction",
+            ("test-org/test-repo", "101", "999"),
             {},
         ) in client.calls
 
