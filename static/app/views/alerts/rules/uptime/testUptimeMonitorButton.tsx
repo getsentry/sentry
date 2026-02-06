@@ -70,7 +70,7 @@ export function TestUptimeMonitorButton({
       }
     },
     onError: (error: RequestError) => {
-      if (onValidationError && error.responseJSON) {
+      if (onValidationError && error.status === 400 && error.responseJSON) {
         onValidationError(error.responseJSON);
       } else {
         addErrorMessage(t('Uptime check failed'));
