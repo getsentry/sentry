@@ -33,7 +33,7 @@ def add_say_hello():
 
 @override_settings(SCM_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 class TestScmRpc(APITestCase):
-    def call(self, method_name: str, data: dict[str, Any]) -> Response:
+    def call(self, method_name: str, data: Any) -> Response:
         path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": method_name})
         return self.client.post(
             path,
@@ -237,3 +237,18 @@ class TestScmRpc(APITestCase):
             assert response.json() == [
                 "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?"
             ]
+
+    def test_list_as_data(self) -> None:
+        response = self.call("say_hello", [])
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Request body must be a JSON object"}
+
+    def test_empty_dict_as_data(self) -> None:
+        response = self.call("say_hello", {})
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Missing 'args' in request body"}
+
+    def test_list_as_args(self) -> None:
+        response = self.call("say_hello", {"args": []})
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Argument 'args' must be a dictionary"}

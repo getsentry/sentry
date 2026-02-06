@@ -173,12 +173,14 @@ class ScmRpcServiceEndpoint(Endpoint):
         if not self._is_authorized(request):
             raise PermissionDenied()
 
+        if not isinstance(request.data, dict):
+            raise ParseError("Request body must be a JSON object")
         try:
             arguments: dict[str, Any] = request.data["args"]
         except KeyError as e:
-            raise ParseError() from e
+            raise ParseError("Missing 'args' in request body") from e
         if not isinstance(arguments, dict):
-            raise ParseError()
+            raise ParseError("Argument 'args' must be a dictionary")
 
         try:
             result = self._dispatch_to_source_code_manager(method_name, arguments)
