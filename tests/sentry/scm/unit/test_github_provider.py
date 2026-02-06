@@ -210,7 +210,7 @@ class TestGitHubProviderDeletePullRequestComment:
 
 
 class TestGitHubProviderGetCommentReactions:
-    def test_returns_reactions_from_client(self):
+    def test_returns_transformed_reactions(self):
         client = FakeGitHubApiClient()
         client.comment_reactions = [
             make_github_reaction(reaction_id=1, content="+1"),
@@ -221,7 +221,13 @@ class TestGitHubProviderGetCommentReactions:
 
         reactions = provider.get_comment_reactions(repository, "101")
 
-        assert reactions == client.comment_reactions
+        assert len(reactions) == 2
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "+1"
+        assert reactions[0]["author"] is not None
+        assert reactions[0]["author"]["id"] == "123"
+        assert reactions[1]["id"] == "2"
+        assert reactions[1]["content"] == "eyes"
 
 
 class TestGitHubProviderCreateCommentReaction:

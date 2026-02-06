@@ -169,7 +169,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_pull_request_comment(r, comment_id),
         )
 
-    def get_comment_reactions(self, comment_id: str) -> dict[Reaction, int]:
+    def get_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
         """Get reactions on a comment."""
         return exec_provider_fn(
             self.organization_id,

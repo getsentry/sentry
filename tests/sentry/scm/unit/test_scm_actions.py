@@ -125,7 +125,11 @@ def _check_pull_request_comments(result: Any) -> None:
 
 
 def _check_comment_reactions(result: Any) -> None:
-    assert result == {"+1": 1, "eyes": 1}
+    assert len(result) == 2
+    assert result[0]["id"] == "1"
+    assert result[0]["content"] == "+1"
+    assert result[1]["id"] == "2"
+    assert result[1]["content"] == "eyes"
 
 
 def _check_issue_reactions(result: Any) -> None:

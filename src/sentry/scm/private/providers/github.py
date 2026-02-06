@@ -141,11 +141,12 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> dict[Reaction, int]:
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[IssueReaction]:
         try:
-            return self.client.get_comment_reactions(repository["name"], comment_id)
+            raw_reactions = self.client.get_comment_reactions(repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException from e
+        return [_transform_issue_reaction(r) for r in raw_reactions]
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction

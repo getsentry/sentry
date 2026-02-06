@@ -630,15 +630,11 @@ class GitHubBaseClient(
     ) -> Any:
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
-        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue-comment
         """
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
-        response = self.get(endpoint)
-        reactions = response.get("reactions", {})
-        reactions.pop("url", None)
-        return reactions
+        return self._get_with_pagination(f"/repos/{repo}/issues/comments/{comment_id}/reactions")
 
     def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
         """
