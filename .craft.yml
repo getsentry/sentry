@@ -1,6 +1,5 @@
 minVersion: '2.20.0'
 releaseBranchPrefix: releases
-changelog: CHANGES
 changelog:
   filePath: CHANGES
   policy: auto
