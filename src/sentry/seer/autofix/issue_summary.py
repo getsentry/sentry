@@ -388,12 +388,12 @@ def run_automation(
         }
     )
 
-    if not is_group_triggering_automation(group):
-        return
-
     autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
     if autofix_state:
         return  # already have an autofix on this issue
+
+    if not is_group_triggering_automation(group):
+        return
 
     # Increment the rate limit counter only when we are actually about to trigger.
     if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
