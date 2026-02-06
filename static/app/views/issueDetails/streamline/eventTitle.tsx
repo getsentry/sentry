@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, type CSSProperties} from 'react';
+import {Fragment, useCallback, type CSSProperties} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
@@ -8,9 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,10 +27,6 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {
-  issueAndEventToMarkdown,
-  useActiveThreadId,
-} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
 type EventNavigationProps = {
@@ -48,55 +42,6 @@ type EventNavigationProps = {
 };
 
 export const MIN_NAV_HEIGHT = 44;
-
-function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
-  const organization = useOrganization();
-  const activeThreadId = useActiveThreadId();
-
-  // Get data for markdown copy functionality
-  const {data: groupSummaryData} = useGroupSummaryData(group);
-  const {data: autofixData} = useAutofixData({groupId: group.id});
-
-  const markdownText = useMemo(() => {
-    return issueAndEventToMarkdown(
-      group,
-      event,
-      groupSummaryData,
-      autofixData,
-      activeThreadId
-    );
-  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
-
-  const {copy} = useCopyToClipboard();
-
-  const handleCopyMarkdown = useCallback(() => {
-    copy(markdownText, {successMessage: t('Copied issue to clipboard as Markdown')}).then(
-      () => {
-        trackAnalytics('issue_details.copy_issue_details_as_markdown', {
-          organization,
-          groupId: group.id,
-          eventId: event?.id,
-          hasAutofix: Boolean(autofixData),
-          hasSummary: Boolean(groupSummaryData),
-        });
-      }
-    );
-  }, [
-    copy,
-    markdownText,
-    organization,
-    group.id,
-    event?.id,
-    autofixData,
-    groupSummaryData,
-  ]);
-
-  return (
-    <MarkdownButton priority="link" onClick={handleCopyMarkdown}>
-      {t('Copy as Markdown')}
-    </MarkdownButton>
-  );
-}
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
@@ -172,8 +117,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             >
               {t('JSON')}
             </JsonLink>
-            <Divider />
-            <GroupMarkdownButton group={group} event={event} />
           </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
@@ -251,22 +194,6 @@ const JsonLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
   text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
-
-  :hover {
-    color: ${p => p.theme.tokens.content.secondary};
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const MarkdownButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
-  font-size: inherit;
-  font-weight: normal;
-  cursor: pointer;
-  white-space: nowrap;
 
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
