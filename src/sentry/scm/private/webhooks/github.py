@@ -1,6 +1,14 @@
 import msgspec
 
-from sentry.scm.types import PullRequestAction, PullRequestEvent, SubscriptionEvent
+from sentry.scm.types import (
+    CheckRunAction,
+    CheckRunEvent,
+    CommentAction,
+    CommentEvent,
+    PullRequestAction,
+    PullRequestEvent,
+    SubscriptionEvent,
+)
 
 # Existing.
 # class GithubWebhookType(StrEnum):
@@ -29,7 +37,7 @@ class GitHubUser(msgspec.Struct):
 
 
 class GitHubCheckRunEvent(msgspec.Struct, gc=False):
-    action: str | None = None
+    action: CheckRunAction
     check_run: "GitHubCheckRun"
 
 
@@ -41,23 +49,30 @@ class GitHubCheckRun(msgspec.Struct, gc=False):
 check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
 
 
-def parse_github_check_run_event(event: SubscriptionEvent):
-    # TODO: Add CheckRunEvent and map to it.
-    return check_run_decoder.decode(event["event"])
+def parse_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
+    e = check_run_decoder.decode(event["event"])
+
+    return {
+        "action": e.action,
+        "check_run": {
+            "external_id": e.check_run.external_id,
+            "html_url": e.check_run.html_url,
+        },
+    }
 
 
-# $$$$$$\  $$$$$$\   $$$$$$\  $$\   $$\ $$$$$$$$\        $$$$$$\   $$$$$$\  $$\      $$\ $$\      $$\ $$$$$$$$\ $$\   $$\ $$$$$$$$\
-# \_$$  _|$$  __$$\ $$  __$$\ $$ |  $$ |$$  _____|      $$  __$$\ $$  __$$\ $$$\    $$$ |$$$\    $$$ |$$  _____|$$$\  $$ |\__$$  __|
-#   $$ |  $$ /  \__|$$ /  \__|$$ |  $$ |$$ |            $$ /  \__|$$ /  $$ |$$$$\  $$$$ |$$$$\  $$$$ |$$ |      $$$$\ $$ |   $$ |
-#   $$ |  \$$$$$$\  \$$$$$$\  $$ |  $$ |$$$$$\          $$ |      $$ |  $$ |$$\$$\$$ $$ |$$\$$\$$ $$ |$$$$$\    $$ $$\$$ |   $$ |
-#   $$ |   \____$$\  \____$$\ $$ |  $$ |$$  __|         $$ |      $$ |  $$ |$$ \$$$  $$ |$$ \$$$  $$ |$$  __|   $$ \$$$$ |   $$ |
-#   $$ |  $$\   $$ |$$\   $$ |$$ |  $$ |$$ |            $$ |  $$\ $$ |  $$ |$$ |\$  /$$ |$$ |\$  /$$ |$$ |      $$ |\$$$ |   $$ |
-# $$$$$$\ \$$$$$$  |\$$$$$$  |\$$$$$$  |$$$$$$$$\       \$$$$$$  | $$$$$$  |$$ | \_/ $$ |$$ | \_/ $$ |$$$$$$$$\ $$ | \$$ |   $$ |
-# \______| \______/  \______/  \______/ \________|       \______/  \______/ \__|     \__|\__|     \__|\________|\__|  \__|   \__|
+#  $$$$$$\   $$$$$$\  $$\      $$\ $$\      $$\ $$$$$$$$\ $$\   $$\ $$$$$$$$\
+# $$  __$$\ $$  __$$\ $$$\    $$$ |$$$\    $$$ |$$  _____|$$$\  $$ |\__$$  __|
+# $$ /  \__|$$ /  $$ |$$$$\  $$$$ |$$$$\  $$$$ |$$ |      $$$$\ $$ |   $$ |
+# $$ |      $$ |  $$ |$$\$$\$$ $$ |$$\$$\$$ $$ |$$$$$\    $$ $$\$$ |   $$ |
+# $$ |      $$ |  $$ |$$ \$$$  $$ |$$ \$$$  $$ |$$  __|   $$ \$$$$ |   $$ |
+# $$ |  $$\ $$ |  $$ |$$ |\$  /$$ |$$ |\$  /$$ |$$ |      $$ |\$$$ |   $$ |
+# \$$$$$$  | $$$$$$  |$$ | \_/ $$ |$$ | \_/ $$ |$$$$$$$$\ $$ | \$$ |   $$ |
+#  \______/  \______/ \__|     \__|\__|     \__|\________|\__|  \__|   \__|
 
 
 class GitHubIssueCommentEvent(msgspec.Struct, gc=False):
-    action: str
+    action: CommentAction
     comment: "GitHubIssueComment"
     issue: "GitHubIssue"
 
@@ -65,6 +80,7 @@ class GitHubIssueCommentEvent(msgspec.Struct, gc=False):
 class GitHubIssueComment(msgspec.Struct, gc=False):
     id: int
     body: str | None = None
+    user: GitHubUser | None
 
 
 class GitHubIssue(msgspec.Struct, gc=False):
@@ -72,15 +88,36 @@ class GitHubIssue(msgspec.Struct, gc=False):
     pull_request: "GitHubIssueCommentPullRequest" | None = None
 
 
-class GitHubIssueCommentPullRequest(msgspec.Struct, gc=False): ...
+class GitHubIssueCommentPullRequest(msgspec.Struct, gc=False):
+    pass
 
 
 issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 
 
-def parse_github_issue_comment_event(event: SubscriptionEvent):
-    # TODO: Add IssueCommentEvent and map to it.
-    return issue_comment_decoder.decode(event["event"])
+def parse_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
+    e = issue_comment_decoder.decode(event["event"])
+
+    return {
+        "action": e.action,
+        "comment_type": "pull_request" if e.issue.pull_request is not None else "issue",
+        "comment": {
+            "author": (
+                {
+                    "id": str(e.comment.user.id),
+                    "username": e.comment.user.login,
+                }
+                if e.comment.user
+                else None
+            ),
+            "body": e.comment.body,
+            "id": str(e.comment.id),
+            # TODO: REMOVE THESE
+            "provider": "github",
+            "raw": {},
+        },
+        "subscription_event": event,
+    }
 
 
 # $$$$$$$\  $$\   $$\ $$\       $$\             $$$$$$$\  $$$$$$$$\  $$$$$$\  $$\   $$\ $$$$$$$$\  $$$$$$\ $$$$$$$$\
@@ -136,6 +173,7 @@ def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEven
             "id": str(e.number),
             "is_private_repo": e.pull_request.head.repo.private,
             "raw": {},  # TODO: Remove this and have Alex wrap his PR type like I have with event.
+            "provider": "github",  # TODO: Remove this and have Alex wrap his PR type like I have with event.
             "title": e.pull_request.title,
         },
         "subscription_event": event,

@@ -12,9 +12,14 @@ class Author(TypedDict):
     username: str
 
 
+class CheckRun(TypedDict):
+    external_id: str
+    html_url: str
+
+
 class Comment(TypedDict):
     id: str
-    body: str
+    body: str | None
     author: Author
     provider: ProviderName
     raw: dict[str, Any]
@@ -168,6 +173,56 @@ class SubscriptionEventSentryMeta(TypedDict):
     """
 
 
+type CheckRunAction = Literal["completed", "created", "requested_action", "rerequested"]
+
+
+class CheckRunEvent(TypedDict):
+    action: CheckRunAction
+    """The action that triggered the event. An enumeration of string values."""
+
+    check_run: CheckRun
+    """"""
+
+    subscription_event: SubscriptionEvent
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and pull_request fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
+
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """
+
+
+type CommentAction = Literal["created", "deleted", "edited", "pinned", "unpinned"]
+type CommentType = Literal["issue", "pull_request"]
+
+
+class CommentEvent(TypedDict):
+    """ """
+
+    action: CommentAction
+    """The action that triggered the event. An enumeration of string values."""
+
+    comment_type: CommentType
+    """"""
+
+    comment: Comment
+    """"""
+
+    subscription_event: SubscriptionEvent
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and pull_request fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
+
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """
+
+
 type PullRequestAction = Literal[
     "assigned",
     "closed",
@@ -182,10 +237,13 @@ type PullRequestAction = Literal[
 
 
 class PullRequestEvent(TypedDict):
-    """"""
+    """
+    Pull request event type. This event is received when an action was performed on a pull-request.
+    For example, opened, closed, or ready for review.
+    """
 
     action: PullRequestAction
-    """The action that triggered the webhook. One of a limited set of possible values."""
+    """The action that triggered the event. An enumeration of string values."""
 
     pull_request: PullRequest
     """The pull-request that was acted upon."""

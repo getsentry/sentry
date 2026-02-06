@@ -4,9 +4,9 @@ from collections.abc import Callable
 from types import UnionType
 from typing import DefaultDict, Union, get_args, get_origin, get_type_hints
 
-from sentry.scm.types import PullRequest
+from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent
 
-EventType = PullRequest
+EventType = CheckRunEvent | CommentEvent | PullRequestEvent
 
 
 def union_members(tp: type) -> set[type]:
@@ -67,7 +67,7 @@ one event type you must define a new function which listens for that type. We do
 unions at this time.
 
 When registering listeners it is critcal that these listeners are imported into the listeners
-module at src/sentry/scm/listeners.py. Importing the module registers it with the scm_event_stream
+module at src/sentry/scm/stream.py. Importing the module registers it with the scm_event_stream
 singleton and ensures we can dispatch events to your listener.
 
 Listeners run asynchronously on a task queue; specfically taskbroker. Listeners run in the region
