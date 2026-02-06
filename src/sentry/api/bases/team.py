@@ -66,7 +66,7 @@ class TeamEndpoint(Endpoint):
 
         bind_organization_context(team.organization)
 
-        request._request.organization = team.organization
+        request._request.organization = team.organization  # type: ignore[attr-defined]
 
         kwargs["team"] = team
         return (args, kwargs)

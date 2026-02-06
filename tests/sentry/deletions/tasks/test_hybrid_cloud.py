@@ -92,7 +92,7 @@ def reset_watermarks() -> None:
 
 @pytest.fixture
 def saved_search_owner_id_field() -> HybridCloudForeignKey[int, int]:
-    return SavedSearch._meta.get_field("owner_id")  # type: ignore[return-value]
+    return SavedSearch._meta.get_field("owner_id")
 
 
 @django_db_all

@@ -10,7 +10,7 @@ T = TypeVar("T", bound=Model)
 def manytoone_to_dict(
     queryset: QuerySet[T], key: str, filter_func: Callable[[Any], bool] | None = None
 ) -> MutableMapping[Any, list[T]]:
-    result: defaultdict[Any, list[T]] = defaultdict(list)
+    result = defaultdict(list)
     for row in queryset:
         if filter_func and not filter_func(row):
             continue

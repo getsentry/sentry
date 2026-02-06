@@ -301,7 +301,7 @@ def build_group_to_groupevent(
         start_timestamp = instance_data.get("start_timestamp")
 
         if event_id is None:
-            logger.info(  # type: ignore[unreachable]
+            logger.info(
                 "delayed_processing.missing_event_id",
                 extra={"rule": rule_group[0], "project_id": project_id},
             )

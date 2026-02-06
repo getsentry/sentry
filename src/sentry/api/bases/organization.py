@@ -309,7 +309,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         kwargs["organization"] = organization_context.organization
 
         # Used for API access logs
-        request._request.organization = organization_context.organization
+        request._request.organization = organization_context.organization  # type: ignore[attr-defined]
 
         return (args, kwargs)
 
@@ -630,7 +630,7 @@ class OrganizationEndpoint(Endpoint):
 
         bind_organization_context(organization)
 
-        request._request.organization = organization
+        request._request.organization = organization  # type: ignore[attr-defined]
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)

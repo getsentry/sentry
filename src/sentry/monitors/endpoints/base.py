@@ -70,7 +70,7 @@ class MonitorEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = project.organization
+        request._request.organization = project.organization  # type: ignore[attr-defined]
 
         kwargs["organization"] = organization
         kwargs["project"] = project

@@ -635,9 +635,10 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         ]
 
     def semver_package_autocomplete_function(self):
+        assert self.snuba_params.organization_id is not None
         packages = (
             Release.objects.filter(
-                organization_id=self.snuba_params.organization_id,  # type: ignore[misc]
+                organization_id=self.snuba_params.organization_id,
                 package__startswith=self.query,
             )
             .values_list("package")
@@ -645,7 +646,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         )
 
         versions = Release.objects.filter(
-            organization_id=self.snuba_params.organization_id,  # type: ignore[misc]
+            organization_id=self.snuba_params.organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(
                 project_id__in=self.snuba_params.project_ids

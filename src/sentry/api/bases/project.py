@@ -199,9 +199,7 @@ class ProjectEndpoint(Endpoint):
 
         bind_organization_context(project.organization)
 
-        request._request.organization = (
-            project.organization
-        )  # XXX: we should not be stuffing random attributes into HttpRequest
+        request._request.organization = project.organization  # type: ignore[attr-defined]  # XXX: we should not be stuffing random attributes into HttpRequest
 
         kwargs["project"] = project
         return (args, kwargs)

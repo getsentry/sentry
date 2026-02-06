@@ -133,7 +133,7 @@ def fetch_workflow_groups_paginated(
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
-        .annotate(detector_id=Subquery(detector_subquery))  # type: ignore[no-redef]
+        .annotate(detector_id=Subquery(detector_subquery))
     )
 
     # Count distinct groups for pagination

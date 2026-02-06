@@ -76,7 +76,7 @@ class GroupEndpoint(Endpoint):
 
             bind_organization_context(organization)
 
-            request._request.organization = organization
+            request._request.organization = organization  # type: ignore[attr-defined]
         else:
             organization = None
 
@@ -100,7 +100,7 @@ class GroupEndpoint(Endpoint):
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
 
-        request._request.organization = group.project.organization
+        request._request.organization = group.project.organization  # type: ignore[attr-defined]
 
         kwargs["group"] = group
 

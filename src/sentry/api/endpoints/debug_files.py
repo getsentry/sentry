@@ -346,10 +346,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-        if request.GET.get("id") and _has_delete_permission(request.access, project):
+        debug_file_id = request.GET.get("id")
+        if debug_file_id and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)  # type: ignore[misc]
+                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )
