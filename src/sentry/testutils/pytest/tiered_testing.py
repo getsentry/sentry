@@ -21,6 +21,9 @@ from __future__ import annotations
 import os
 import re
 from typing import TYPE_CHECKING
+from unittest.mock import patch
+
+import pytest
 
 if TYPE_CHECKING:
     from _pytest.config import Config
@@ -137,3 +140,37 @@ def pytest_report_header(config: Config) -> list[str]:
     """Report the tier being tested."""
     test_tier = os.environ.get("TEST_TIER", "all")
     return [f"Test tier: {test_tier}"]
+
+
+class MockSnubaResponse:
+    """Mock response for Snuba HTTP calls."""
+
+    status = 200
+    data = b"[]"
+
+    def read(self) -> bytes:
+        return self.data
+
+
+@pytest.fixture(autouse=True)
+def _mock_snuba_for_tier1(request):
+    """
+    Auto-mock Snuba connections for tier1 tests.
+
+    When running tier1 tests, Snuba is not available, but some code paths
+    (like Django signals) may try to write to Snuba. This fixture mocks
+    those calls to prevent connection errors.
+    """
+    test_tier = os.environ.get("TEST_TIER", "").lower()
+
+    if test_tier != "tier1":
+        # Not tier1, don't mock anything
+        yield
+        return
+
+    # Mock the Snuba pool to return success without actually connecting
+    mock_response = MockSnubaResponse()
+
+    with patch("sentry.utils.snuba._snuba_pool") as mock_pool:
+        mock_pool.urlopen.return_value = mock_response
+        yield
