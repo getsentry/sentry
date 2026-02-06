@@ -51,6 +51,9 @@ from sentry.notifications.notifications.activity.base import GroupActivityNotifi
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_commit import (
+    ResolvedInCommitActivityNotification,
+)
 from sentry.notifications.notifications.activity.resolved_in_pull_request import (
     ResolvedInPullRequestActivityNotification,
 )
@@ -76,7 +79,7 @@ DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
     ActivityType.SET_REGRESSION: RegressionActivityNotification,
     ActivityType.SET_RESOLVED: ResolvedActivityNotification,
     ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
-    ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedInCommitActivityNotification,
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedInPullRequestActivityNotification,
     ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
     ActivityType.UNASSIGNED: UnassignedActivityNotification,

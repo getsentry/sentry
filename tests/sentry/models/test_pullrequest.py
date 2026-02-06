@@ -13,10 +13,17 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class FindReferencedGroupsTest(TestCase):
+    @with_feature("organizations:defer-commit-resolution")
     def test_resolve_in_commit(self) -> None:
+        """
+        Test that commits with "Fixes ISSUE-123" create GroupLinks but do NOT
+        immediately resolve issues. Resolution happens when a release is created
+        that includes these commits, via update_group_resolutions().
+        """
         group = self.create_group()
 
         repo = Repository.objects.create(name="example", organization_id=group.organization.id)
@@ -32,18 +39,19 @@ class FindReferencedGroupsTest(TestCase):
         groups = commit.find_referenced_groups()
         assert len(groups) == 1
         assert group in groups
-        # These are created in resolved_in_commit
-        assert GroupHistory.objects.filter(
-            group=group,
-            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
-        ).exists()
+        # GroupLink and GroupHistory are created in resolved_in_commit
         assert GroupLink.objects.filter(
             group=group,
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
+        assert GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
+        # Issue should NOT be resolved immediately - resolution happens via releases
         group.refresh_from_db()
-        assert group.status == GroupStatus.RESOLVED
+        assert group.status == GroupStatus.UNRESOLVED
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()

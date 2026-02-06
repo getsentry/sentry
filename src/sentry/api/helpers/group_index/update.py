@@ -623,12 +623,14 @@ def process_group_resolution(
             resolution.update(datetime=django_timezone.now(), **resolution_params)
 
     if commit:
-        GroupLink.objects.create(
+        # Use get_or_create since a GroupLink may already exist from
+        # resolved_in_commit() signal handler when the commit was pushed
+        GroupLink.objects.get_or_create(
             group_id=group.id,
             project_id=group.project_id,
             linked_type=GroupLink.LinkedType.commit,
-            relationship=GroupLink.Relationship.resolves,
             linked_id=commit.id,
+            defaults={"relationship": GroupLink.Relationship.resolves},
         )
 
     affected = Group.objects.filter(id=group.id).update(
