@@ -162,6 +162,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters
   ) => TableData;
   /**
+   * Optional y-axis range for timeseries visualizations.
+   * If omitted, the visualization component default is used.
+   */
+  axisRange?: 'auto' | 'dataMin';
+  /**
    * Default field to add to the widget query when adding a new field for series display type.
    */
   defaultSeriesField?: QueryFieldValue;
