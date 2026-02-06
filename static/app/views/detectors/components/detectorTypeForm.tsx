@@ -46,13 +46,14 @@ export function DetectorTypeForm() {
 
 type SelectableDetectorType = Extract<
   DetectorType,
-  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure' | 'preprod_static'
 >;
 
 const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
+  'preprod_static',
 ] as const satisfies SelectableDetectorType[];
 
 const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
@@ -70,9 +71,11 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
+  show?: boolean;
 }
 
 function MonitorTypeField() {
+  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -117,38 +120,49 @@ function MonitorTypeField() {
         }
       ),
     },
+    {
+      id: 'preprod_static',
+      name: getDetectorTypeLabel('preprod_static'),
+      description: t('Monitor mobile app build sizes and detect regressions.'),
+      visualization: <MobileBuildVisualization />,
+      show: !!organization?.features?.includes('preprod-issues'),
+    },
   ];
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
-        const checked = selectedDetectorType === id;
-        return (
-          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-            <OptionBody>
-              <Flex direction="column" gap="sm">
-                <Radio
-                  name="detectorType"
-                  checked={checked}
-                  onChange={() => handleChange(id)}
-                  aria-label={name}
-                  disabled={disabled}
-                />
-                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                  {name}
-                </Text>
-                {description && (
-                  <Text size="md" variant="muted">
-                    {description}
+      {options
+        .filter(({show}) => show === undefined || show)
+        .map(({id, name, description, visualization, infoBanner, disabled}) => {
+          const checked = selectedDetectorType === id;
+          return (
+            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+              <OptionBody>
+                <Flex direction="column" gap="sm">
+                  <Radio
+                    name="detectorType"
+                    checked={checked}
+                    onChange={() => handleChange(id)}
+                    aria-label={name}
+                    disabled={disabled}
+                  />
+                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                    {name}
                   </Text>
-                )}
-              </Flex>
-              {visualization && <Visualization>{visualization}</Visualization>}
-            </OptionBody>
-            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
-          </OptionLabel>
-        );
-      })}
+                  {description && (
+                    <Text size="md" variant="muted">
+                      {description}
+                    </Text>
+                  )}
+                </Flex>
+                {visualization && <Visualization>{visualization}</Visualization>}
+              </OptionBody>
+              {infoBanner && (checked || disabled) && (
+                <OptionInfo>{infoBanner}</OptionInfo>
+              )}
+            </OptionLabel>
+          );
+        })}
     </Stack>
   );
 }
@@ -688,6 +702,235 @@ function UptimeVisualization() {
       <rect width="4" height="14" x="444.254" y="20.991" fill={danger} rx="2" />
       <rect width="4" height="14" x="456.254" y="20.991" fill={danger} rx="2" />
       <rect width="4" height="14" x="468.254" y="20.991" fill={danger} rx="2" />
+    </svg>
+  );
+}
+
+function MobileBuildVisualization() {
+  const theme = useTheme();
+  const danger = theme.colors.red400;
+  const warning = theme.colors.yellow400;
+  const success = theme.colors.green400;
+
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 480 56">
+      <rect
+        width="229.834"
+        height="20"
+        x="247.208"
+        y="17.991"
+        fill={danger}
+        fillOpacity=".1"
+        rx="4"
+      />
+      <rect
+        width="4"
+        height="14"
+        x=".254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="12.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="24.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="36.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="48.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="60.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="72.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="84.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="96.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="108.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="120.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="132.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="144.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="156.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="168.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="180.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="192.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="204.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="216.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="228.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect
+        width="4"
+        height="14"
+        x="240.254"
+        y="20.991"
+        fill={success}
+        opacity=".8"
+        rx="2"
+      />
+      <rect width="4" height="14" x="252.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="264.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="276.254" y="20.991" fill={danger} rx="2" />
+      <rect width="4" height="14" x="288.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="300.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="312.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="324.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="336.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="348.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="360.254" y="20.991" fill={danger} rx="2" />
+      <rect width="4" height="14" x="372.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="384.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="396.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="408.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="420.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="432.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="444.254" y="20.991" fill={warning} rx="2" />
+      <rect width="4" height="14" x="456.254" y="20.991" fill={success} rx="2" />
+      <rect width="4" height="14" x="468.254" y="20.991" fill={success} rx="2" />
     </svg>
   );
 }

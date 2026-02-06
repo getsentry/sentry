@@ -48,6 +48,12 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
           </Alert>
         </Alert.Container>
       );
+    case 'preprod_static':
+      return (
+        <PageFiltersContainer>
+          <FallbackDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
+      );
     default:
       unreachable(detectorType);
       return (

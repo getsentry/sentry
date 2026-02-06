@@ -18,6 +18,10 @@ import {
   NewMetricDetectorForm,
 } from 'sentry/views/detectors/components/forms/metric/metric';
 import {
+  EditExistingPreprodDetectorForm,
+  NewPreprodDetectorForm,
+} from 'sentry/views/detectors/components/forms/mobileBuild';
+import {
   EditExistingUptimeDetectorForm,
   NewUptimeDetectorForm,
 } from 'sentry/views/detectors/components/forms/uptime';
@@ -46,6 +50,8 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewCronDetectorForm />;
     case 'issue_stream':
       return <PlaceholderForm />;
+    case 'preprod_static':
+      return <NewPreprodDetectorForm />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;
@@ -69,6 +75,8 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
           <Alert variant="danger">{t('Issue stream monitors can not be edited.')}</Alert>
         </Alert.Container>
       );
+    case 'preprod_static':
+      return <EditExistingPreprodDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

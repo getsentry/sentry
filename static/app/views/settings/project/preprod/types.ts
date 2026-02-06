@@ -1,6 +1,6 @@
-type MetricType = 'install_size' | 'download_size';
+export type MetricType = 'install_size' | 'download_size';
 
-type MeasurementType = 'absolute' | 'absolute_diff' | 'relative_diff';
+export type MeasurementType = 'absolute' | 'absolute_diff' | 'relative_diff';
 
 export interface StatusCheckFilter {
   key: string;
@@ -21,10 +21,26 @@ export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> = [
   {label: 'Download Size', value: 'download_size'},
 ];
 
-export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> = [
-  {label: 'Absolute Size', value: 'absolute'},
-  {label: 'Absolute Diff', value: 'absolute_diff'},
-  {label: 'Relative Diff', value: 'relative_diff'},
+export const MEASUREMENT_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: MeasurementType;
+}> = [
+  {
+    label: 'Absolute Size',
+    value: 'absolute',
+    description: 'Thresholds based on configured size metric.',
+  },
+  {
+    label: 'Absolute Diff',
+    value: 'absolute_diff',
+    description: 'Absolute diff based on configured size metric, e.g. +10 MB',
+  },
+  {
+    label: 'Relative Diff',
+    value: 'relative_diff',
+    description: 'Relative diff based on configured size metric, e.g. +10%',
+  },
 ];
 
 export function getMetricLabel(metric: MetricType): string {
