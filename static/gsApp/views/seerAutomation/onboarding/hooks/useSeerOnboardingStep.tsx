@@ -2,7 +2,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
-export function useSeerOnboardingStep() {
+export function useSeerOnboardingStep(): {initialStep: Steps; isPending: boolean} {
   const {isPending, data} = useSeerOnboardingCheck({staleTime: 60_000});
 
   let initialStep = Steps.CONNECT_GITHUB;
