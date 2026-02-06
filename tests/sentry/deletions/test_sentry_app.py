@@ -9,6 +9,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Action
@@ -98,7 +99,8 @@ class TestSentryAppDeletionTask(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
-        deletions.exec_sync(self.sentry_app)
+        with outbox_runner():
+            deletions.exec_sync(self.sentry_app)
 
         action.refresh_from_db()
         assert action.status == ObjectStatus.DISABLED
