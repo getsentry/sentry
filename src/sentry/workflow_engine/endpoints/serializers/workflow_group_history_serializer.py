@@ -35,13 +35,13 @@ class _Result(TypedDict):
     count: int
     last_triggered: datetime
     event_id: str
-    detector_id: int | None
+    group_detector_id: int | None
 
 
 def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
 
-    detector_ids = [r["detector_id"] for r in results if r["detector_id"] is not None]
+    detector_ids = [r["group_detector_id"] for r in results if r["group_detector_id"] is not None]
     detector_lookup = {}
     if detector_ids:
         detector_lookup = {d.id: d for d in Detector.objects.filter(id__in=detector_ids)}
@@ -53,7 +53,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory
             last_triggered=r["last_triggered"],
             event_id=r["event_id"],
             detector=(
-                detector_lookup.get(r["detector_id"]) if r["detector_id"] is not None else None
+                detector_lookup.get(r["group_detector_id"]) if r["group_detector_id"] is not None else None
             ),
         )
         for r in results
@@ -133,7 +133,7 @@ def fetch_workflow_groups_paginated(
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
-        .annotate(detector_id=Subquery(detector_subquery))
+        .annotate(group_detector_id=Subquery(detector_subquery))
     )
 
     # Count distinct groups for pagination
