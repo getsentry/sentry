@@ -124,16 +124,18 @@ class ScmRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
+    @staticmethod
     @sentry_sdk.trace
-    def _is_authorized(self, request: Request) -> bool:
+    def _is_authorized(request: Request) -> bool:
         if request.auth and isinstance(
             request.successful_authenticator, ScmRpcSignatureAuthentication
         ):
             return True
         return False
 
+    @staticmethod
     @sentry_sdk.trace
-    def _dispatch_to_source_code_manager(self, method_name: str, arguments: dict[str, Any]) -> Any:
+    def _dispatch_to_source_code_manager(method_name: str, arguments: dict[str, Any]) -> Any:
         method = scm_method_registry.get(method_name)
         if method is None:
             raise NotFound(f"Unknown RPC method {method_name!r}")
