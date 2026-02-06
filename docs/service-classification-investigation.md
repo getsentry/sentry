@@ -521,10 +521,93 @@ The `event_from_stack()` function correctly sets the level. But `capture_event()
 
 For tests that can't be automatically classified and fail due to environment differences (not service dependencies), the split script maintains a `FORCE_TIER2_FILES` set. This is a small, documented escape hatch. Currently contains 1 file (2 tests). Should be reviewed periodically to see if the underlying issues have been fixed.
 
+## First Green Run
+
+With all fixes applied (Kafka services block, split script tier2_services, `_requires_snuba` static detection, `FORCE_TIER2_FILES`, `test_taskworker_schedule_parameters` fixture fix), the tiered workflow achieved **all 22 shards passing** (8 Tier 1 + 14 Tier 2).
+
+Timing results:
+
+| | Avg | Last finished |
+|---|---|---|
+| Tier 1 (8 shards) | 12.5 min | 14.1 min |
+| Tier 2 (14 shards) | 18.6 min | 20.3 min |
+| Gap | | 6.2 min |
+
+Tier 2 still finishes ~6 min after Tier 1. Shard allocation needs tuning to balance wall-clock times (shift more shards to Tier 2).
+
+## Optimization: Conditional `reset_snuba`
+
+### Problem
+
+`reset_snuba` fires before every `SnubaTestCase` test, making 10 HTTP POST calls to drop Snuba tables. This adds ~50-200ms per test, even for tests that never write to Snuba. Most SnubaTestCase tests inherit the class for `store_event()` or other helpers, but many individual tests only read or never interact with Snuba data at all.
+
+### Per-test overhead in Tier 2
+
+| Source | Cost per test |
+|--------|-------------|
+| `reset_snuba` (10 HTTP POSTs) | ~50-200ms |
+| `databases="__all__"` (flush all DBs) | ~10-50ms |
+| Each `store_event()` call | ~10-50ms |
+| Each `store_metric()` call | ~10-30ms |
+
+Tier 1 tests have zero HTTP overhead and only flush the default database.
+
+### Solution: Transport-level dirty tracking
+
+Instead of instrumenting individual write methods in `cases.py` (which would require changes to 8+ methods across 7 classes), we monitor at the HTTP transport level with zero changes to test code.
+
+All Snuba test writes use one of two HTTP paths:
+1. `_snuba_pool.urlopen("POST", "/tests/entities/*/insert", ...)` - used by `store_group`
+2. `requests.post(settings.SENTRY_SNUBA + ".../insert", ...)` - used by everything else
+
+The optimization wraps both to detect URLs containing `/insert`:
+
+```python
+# In fixtures.py
+_snuba_dirty = True  # First test always resets
+
+def _monitoring_requests_post(*args, **kwargs):
+    global _snuba_dirty
+    if "/insert" in str(url):
+        _snuba_dirty = True
+    return _original_requests_post(*args, **kwargs)
+```
+
+`reset_snuba` checks the flag and skips the 10 HTTP calls if clean:
+
+```python
+@pytest.fixture
+def reset_snuba(call_snuba):
+    global _snuba_dirty
+    if not _snuba_dirty:
+        return
+    # ... do the 10 drops ...
+    _snuba_dirty = False
+```
+
+**Key properties:**
+- Zero changes to `cases.py` or any test code
+- Automatically catches all current and future write methods
+- First test always gets a reset (`_snuba_dirty = True` initially)
+- After a write, the next test gets a reset
+- After a read-only test, the next test skips the reset
+
+### Future Optimization Opportunities
+
+**Moving tests from Tier 2 to Tier 1 (estimated ~100-250 test files):**
+
+1. **Move `requires_snuba` from module-level to test-level** (~50-100 files) - Many files use `pytestmark = [requires_snuba]` forcing ALL tests to Tier 2. Moving the marker to individual tests would let the rest go to Tier 1.
+
+2. **Extract `store_event()` into a mixin without Snuba dependency** (~40-60 files) - Many tests inherit `SnubaTestCase` only for `store_event()`. Creating an `EventCreationMixin` with mocked eventstream would remove the Snuba dependency.
+
+3. **Remove redundant `SnubaTestCase` inheritance** (~10-15 files) - Some classes inherit `SnubaTestCase` when they already get it via `BaseMetricsLayerTestCase`.
+
+4. **Make `reset_snuba` a no-op when Snuba isn't available** - Tests that inherit `SnubaTestCase` but never query Snuba would work in Tier 1 if `reset_snuba` silently skipped when Snuba isn't running. This would let tests self-classify at runtime.
+
 ## Validation
 
 The classification can be validated empirically: run Tier 1 tests with only the Tier 1 services. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
 ## Expected Impact
 
-~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20ts) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
+~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding using the same 22 shard count as today, this reduces total CI wall-clock time while using the same runner resources.
