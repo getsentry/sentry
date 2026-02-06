@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -2271,7 +2271,7 @@ dev = [
     { name = "selenium", specifier = ">=4.16.0" },
     { name = "sentry-cli", specifier = ">=2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
-    { name = "sentry-devenv", specifier = ">=1.22.0" },
+    { name = "sentry-devenv", specifier = ">=1.27.0" },
     { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post2" },
     { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.3.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
@@ -2338,14 +2338,14 @@ wheels = [
 
 [[package]]
 name = "sentry-devenv"
-version = "1.22.0"
+version = "1.27.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "sentry-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_devenv-1.22.0-py3-none-any.whl", hash = "sha256:36a82352fecbdea0c2f5ab1cce74dc64d4d741b4a249ab1a7a88524a3aa7c2f9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_devenv-1.27.0-py3-none-any.whl", hash = "sha256:33d03b29ca6259c4726070c0339ca5625cdbb17015f3f000b6a70f95c73c453a" },
 ]
 
 [[package]]
