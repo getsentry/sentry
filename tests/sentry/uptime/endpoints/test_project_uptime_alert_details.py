@@ -6,6 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
+from sentry.testutils.helpers import with_feature
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -47,6 +48,7 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
 
+@with_feature("organizations:uptime-runtime-assertions")
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
 

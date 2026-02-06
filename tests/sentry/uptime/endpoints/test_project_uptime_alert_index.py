@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.testutils.helpers import with_feature
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import get_uptime_subscription
 from sentry.uptime.types import (
@@ -18,6 +19,7 @@ class ProjectUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-index"
 
 
+@with_feature("organizations:uptime-runtime-assertions")
 class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpointTest):
     method = "post"
 
