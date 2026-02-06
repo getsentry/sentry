@@ -4,7 +4,7 @@ import {
   type ContentBlock,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
