@@ -198,6 +198,20 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const TABLE_FIELDS = [
+  SpanFields.IS_STARRED_TRANSACTION,
+  SpanFields.TRANSACTION,
+  SpanFields.PROJECT,
+  'tpm()',
+  `p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
+  `count_unique(${SpanFields.USER})`,
+  `sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `performance_score(measurements.score.total)`,
+];
+
 const TRANSACTIONS_TABLE: Widget = {
   id: 'frontend-overview-table',
   title: t('Transactions'),
@@ -205,6 +219,7 @@ const TRANSACTIONS_TABLE: Widget = {
   widgetType: WidgetType.SPANS,
   interval: '5m',
   limit: 50,
+  tableWidths: TABLE_FIELDS.map(() => -1),
   queries: [
     {
       name: '',
@@ -219,19 +234,7 @@ const TRANSACTIONS_TABLE: Widget = {
         `sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
         `performance_score(measurements.score.total)`,
       ],
-      fields: [
-        SpanFields.IS_STARRED_TRANSACTION,
-        SpanFields.TRANSACTION,
-        SpanFields.PROJECT,
-        'tpm()',
-        `p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
-        `count_unique(${SpanFields.USER})`,
-        `sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `performance_score(measurements.score.total)`,
-      ],
+      fields: TABLE_FIELDS,
       fieldAliases: [
         t('Starred'),
         t('Transaction'),
