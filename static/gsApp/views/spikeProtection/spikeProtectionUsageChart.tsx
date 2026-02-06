@@ -152,6 +152,46 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
     });
   }
 
+  get isThresholdRelevant(): boolean {
+    const {usageStats, spikeThresholds, dataCategoryInfo} = this.props;
+
+    const spikeThresholdData = spikeThresholds?.groups?.find(
+      group => group.billing_metric === dataCategoryInfo?.uid
+    )?.threshold;
+
+    if (!spikeThresholdData) {
+      return false;
+    }
+
+    const maxThreshold = Math.max(...spikeThresholdData.filter(v => v > 0));
+    if (maxThreshold <= 0) {
+      return false;
+    }
+
+    let maxUsage = 0;
+    const seriesKeys = [
+      'accepted',
+      'filtered',
+      'rateLimited',
+      'invalid',
+      'clientDiscard',
+      'projected',
+    ] as const;
+    for (const key of seriesKeys) {
+      const series = (usageStats as any)[key];
+      if (Array.isArray(series)) {
+        for (const point of series) {
+          const val = point?.value?.[1] ?? 0;
+          if (typeof val === 'number' && val > maxUsage) {
+            maxUsage = val;
+          }
+        }
+      }
+    }
+
+    return maxUsage >= maxThreshold * 0.9;
+  }
+
   get chartSeries() {
     const chartSeries: SeriesOption[] = [];
     const {spikeThresholds, dataTransform} = this.props;
@@ -166,9 +206,17 @@ class SpikeProtectionUsageChart extends Component<SpikeProtectionUsageChartProps
   }
 
   render() {
-    const {isLoading} = this.props;
+    const {isLoading, legendSelected} = this.props;
+    const mergedLegendSelected = this.isThresholdRelevant
+      ? legendSelected
+      : {[t('Spike Protection Threshold')]: false, ...legendSelected};
     return (
-      <UsageChart {...this.props} isLoading={isLoading} chartSeries={this.chartSeries} />
+      <UsageChart
+        {...this.props}
+        isLoading={isLoading}
+        chartSeries={this.chartSeries}
+        legendSelected={mergedLegendSelected}
+      />
     );
   }
 }
