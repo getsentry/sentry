@@ -26,9 +26,6 @@ from sentry.taskworker.namespaces import scm_tasks
 # know what to do we can give great performace to our consumers transparently.
 #
 # Frozen is set to ensure immuatability. Attributes may not be changed after being set.
-#
-# To gain a 7% performance uplift we can set "array_like=True". However, this will significantly
-# impact our ability to change the schema with little benefit to consumers and producers.
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
     event_type_hint: str | None
     event: bytes
