@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry import features
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
+from sentry.constants import (
+    ENABLE_SEER_CODING_DEFAULT,
+    ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+    ObjectStatus,
+)
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
@@ -96,7 +100,10 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
     def has_access(organization: Organization) -> bool:
         has_feature_flag = features.has("organizations:seer-slack-workflows", organization)
         has_enhanced_alerts = bool(
-            organization.get_option("sentry:enable_seer_enhanced_alerts", default=True)
+            organization.get_option(
+                "sentry:enable_seer_enhanced_alerts",
+                default=ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+            )
         )
         return has_feature_flag and has_enhanced_alerts
 
