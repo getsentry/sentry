@@ -255,7 +255,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <Stack flex="1" width="100%">
-              {organization.features.includes('workflow-engine-metric-issues-ui') && (
+              {organization.features.includes('workflow-engine-metric-issue-ui') && (
                 <MetricAlertOngoingIssues project={project} rule={rule} />
               )}
               <SectionHeading>{t('Alert History')}</SectionHeading>
