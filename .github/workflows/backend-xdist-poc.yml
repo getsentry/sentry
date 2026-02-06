@@ -41,6 +41,9 @@ jobs:
           mode: backend-ci
 
       - name: Run tests with xdist -n2 --dist=loadfile
+        env:
+          # Override PYTEST_ADDOPTS to remove --reruns (incompatible with xdist)
+          PYTEST_ADDOPTS: "--durations=10 --fail-slow=60s"
         run: |
           python3 -b -m pytest \
             tests \
