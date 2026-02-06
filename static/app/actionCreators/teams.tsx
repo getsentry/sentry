@@ -75,30 +75,6 @@ export async function joinTeamPromise(
   return data;
 }
 
-/**
- * @deprecated use leaveTeamPromise instead
- */
-export function leaveTeam(
-  api: Client,
-  params: OrgAndTeamSlug & Partial<MemberId>,
-  options: CallbackOptions
-) {
-  const endpoint = `/organizations/${params.orgId}/members/${
-    params.memberId || 'me'
-  }/teams/${params.teamId}/`;
-
-  return api.request(endpoint, {
-    method: 'DELETE',
-    success: data => {
-      TeamStore.onUpdateSuccess(params.teamId, data);
-      doCallback(options, 'success', data);
-    },
-    error: error => {
-      doCallback(options, 'error', error);
-    },
-  });
-}
-
 export async function leaveTeamPromise(
   api: Client,
   params: OrgAndTeamSlug & Partial<MemberId>
