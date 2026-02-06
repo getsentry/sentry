@@ -107,7 +107,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     }
     this.loadingData[orgSlug] = true;
 
-    const data = await this.api.requestPromise(`/subscriptions/${orgSlug}/`);
+    const data = await this.api.requestPromise(`/customers/${orgSlug}/`);
     if (markStartedTrial) {
       data.isTrialStarted = true;
     }
