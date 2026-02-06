@@ -1,6 +1,7 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 
 const context = require.context('sentry', true, /\.stories.tsx$/, 'lazy');
@@ -17,15 +18,7 @@ export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
     documentation?: TypeLoader.TypeLoaderResult;
-    frontmatter?: {
-      description: string;
-      title: string;
-      layout?: 'document';
-      resources?: StoryResources;
-      source?: string;
-      status?: 'in-progress' | 'experimental' | 'stable';
-      types?: string;
-    };
+    frontmatter?: MDXFrontmatter;
   };
   filename: string;
 }

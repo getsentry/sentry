@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -17,16 +16,12 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import rehypeExpressiveCode from 'rehype-expressive-code';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
-import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
+import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -320,36 +315,8 @@ const appConfig: Configuration = {
           {
             loader: '@mdx-js/loader',
             options: {
-              remarkPlugins: [
-                remarkUnwrapMdxParagraphs,
-                remarkFrontmatter,
-                remarkMdxFrontmatter,
-                remarkGfm,
-                [
-                  remarkCallout,
-                  {
-                    root: (callout: Callout) => {
-                      return {
-                        tagName: 'Callout',
-                        properties: {
-                          title: callout.title,
-                          type: callout.type.toLowerCase(),
-                          isFoldable: callout.isFoldable ?? false,
-                          defaultFolded: callout.defaultFolded ?? false,
-                        },
-                      };
-                    },
-                  },
-                ],
-              ],
-              rehypePlugins: [
-                [
-                  rehypeExpressiveCode,
-                  {
-                    useDarkModeMediaQuery: false,
-                  },
-                ],
-              ],
+              remarkPlugins,
+              rehypePlugins,
             },
           },
         ],
