@@ -2,7 +2,15 @@ from typing import Any
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
-from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
+from sentry.scm.types import (
+    Comment,
+    Provider,
+    PullRequest,
+    PullRequestActionResult,
+    Reaction,
+    Referrer,
+    Repository,
+)
 from sentry.shared_integrations.exceptions import ApiError
 
 REACTION_MAP = {
@@ -37,14 +45,16 @@ def _transform_issue_reaction(raw: dict[str, Any]) -> Reaction:
     return raw["content"]
 
 
-def _transform_pull_request(raw: dict[str, Any]) -> PullRequest:
-    return PullRequest(
-        id=str(raw["id"]),
-        title=raw["title"],
-        description=raw.get("body"),
-        head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
-        base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
-        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
+    return PullRequestActionResult(
+        pull_request=PullRequest(
+            id=str(raw["id"]),
+            title=raw["title"],
+            description=raw.get("body"),
+            head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
+            base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
+            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        ),
         provider="github",
         raw=raw,
     )
@@ -85,7 +95,9 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
+    def get_pull_request(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestActionResult:
         try:
             raw = self.client.get_pull_request(repository["name"], pull_request_id)
         except ApiError as e:

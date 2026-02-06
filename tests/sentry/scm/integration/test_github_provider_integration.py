@@ -160,8 +160,9 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        pr = self.provider.get_pull_request(self.repository, "1347")
+        result = self.provider.get_pull_request(self.repository, "1347")
 
+        pr = result["pull_request"]
         assert pr["id"] == "1"
         assert pr["title"] == "Amazing new feature"
         assert pr["description"] == "Please pull these awesome changes in!"

@@ -32,6 +32,10 @@ class PullRequest(TypedDict):
     head: PullRequestBranch
     base: PullRequestBranch
     author: Author
+
+
+class PullRequestActionResult(TypedDict):
+    pull_request: PullRequest
     provider: ProviderName
     raw: dict[str, Any]
 
@@ -56,7 +60,9 @@ class Provider(Protocol):
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest: ...
+    def get_pull_request(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestActionResult: ...
 
     def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]: ...
 

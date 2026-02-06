@@ -14,7 +14,7 @@ from sentry.scm.helpers import (
 from sentry.scm.types import (
     Comment,
     Provider,
-    PullRequest,
+    PullRequestActionResult,
     Reaction,
     Referrer,
     Repository,
@@ -124,7 +124,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_issue_comment(r, comment_id),
         )
 
-    def get_pull_request(self, pull_request_id: str) -> PullRequest:
+    def get_pull_request(self, pull_request_id: str) -> PullRequestActionResult:
         """Get a pull request."""
         return exec_provider_fn(
             self.organization_id,

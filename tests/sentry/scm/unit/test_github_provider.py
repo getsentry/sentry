@@ -128,8 +128,9 @@ class TestGitHubProviderGetPullRequest:
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        pr = provider.get_pull_request(repository, "42")
+        result = provider.get_pull_request(repository, "42")
 
+        pr = result["pull_request"]
         assert pr["id"] == "42"
         assert pr["title"] == "Fix bug"
         assert pr["description"] == "This fixes the bug"
@@ -146,9 +147,9 @@ class TestGitHubProviderGetPullRequest:
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        pr = provider.get_pull_request(repository, "42")
+        result = provider.get_pull_request(repository, "42")
 
-        assert pr["description"] is None
+        assert result["pull_request"]["description"] is None
 
     def test_raises_key_error_on_malformed_response(self):
         client = FakeGitHubApiClient()

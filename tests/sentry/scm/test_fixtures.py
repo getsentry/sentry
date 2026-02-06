@@ -3,7 +3,15 @@ from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
-from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
+from sentry.scm.types import (
+    Comment,
+    Provider,
+    PullRequest,
+    PullRequestActionResult,
+    Reaction,
+    Referrer,
+    Repository,
+)
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -66,7 +74,9 @@ class BaseTestProvider(Provider):
 
     # Pull request
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
+    def get_pull_request(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestActionResult:
         raw: dict[str, Any] = {
             "id": 1,
             "title": "Test PR",
@@ -75,13 +85,15 @@ class BaseTestProvider(Provider):
             "base": {"ref": "main", "sha": "def456"},
             "user": {"id": 1, "login": "testuser"},
         }
-        return PullRequest(
-            id=str(raw["id"]),
-            title=raw["title"],
-            description=raw["body"],
-            head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
-            base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
-            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        return PullRequestActionResult(
+            pull_request=PullRequest(
+                id=str(raw["id"]),
+                title=raw["title"],
+                description=raw["body"],
+                head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
+                base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
+                author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+            ),
             provider="test",
             raw=raw,
         )
