@@ -50,6 +50,9 @@ class OAuthDeviceAuthorizationView(View):
     Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
     """
 
+    # Set during post() for CORS origin validation
+    application: ApiApplication | None = None
+
     @csrf_exempt
     @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs) -> HttpResponseBase:
@@ -68,10 +71,12 @@ class OAuthDeviceAuthorizationView(View):
         """Add CORS headers for browser-based public OAuth clients.
 
         The device authorization endpoint is used by public clients (SPAs, CLIs running
-        in browsers) that need CORS support. We allow all origins since:
-        1. This endpoint only issues device codes, not tokens
-        2. The security is in the user manually approving the device code
-        3. No credentials (cookies) are involved - public clients use PKCE
+        in browsers) that need CORS support.
+
+        Origin validation:
+        - If the application has allowed_origins configured, only those origins are permitted
+        - If allowed_origins is empty/not set, all origins are allowed (backwards compatible)
+        - For OPTIONS preflight, we allow all origins since we don't have the app yet
 
         Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
         any cookie-based auth from being used with this endpoint.
@@ -81,11 +86,27 @@ class OAuthDeviceAuthorizationView(View):
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = "Content-Type"
 
-        if origin:
-            response["Access-Control-Allow-Origin"] = origin
-        else:
+        if not origin:
             response["Access-Control-Allow-Origin"] = "*"
+            return response
 
+        # For POST requests with a validated application, check allowed_origins
+        if self.application:
+            allowed = self.application.get_allowed_origins()
+            if allowed and origin not in allowed:
+                # Origin not in allowed list - don't set Access-Control-Allow-Origin
+                # This causes the browser to block the response
+                logger.warning(
+                    "oauth.device-authorization-cors-rejected",
+                    extra={
+                        "origin": origin,
+                        "allowed_origins": allowed,
+                        "client_id": self.application.client_id,
+                    },
+                )
+                return response
+
+        response["Access-Control-Allow-Origin"] = origin
         return response
 
     def error(
@@ -142,6 +163,8 @@ class OAuthDeviceAuthorizationView(View):
                 client_id=client_id,
                 status=ApiApplicationStatus.active,
             )
+            # Store for CORS origin validation in _add_cors_headers
+            self.application = application
         except ApiApplication.DoesNotExist:
             return self.error(
                 request,
@@ -195,7 +218,9 @@ class OAuthDeviceAuthorizationView(View):
 
         # Build the verification URIs
         verification_uri = absolute_uri("/oauth/device/")
-        verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
+        verification_uri_complete = (
+            f"{verification_uri}?user_code={device_code.user_code}"
+        )
 
         # Calculate expires_in from the expiration time
         expires_in = int(DEFAULT_EXPIRATION.total_seconds())

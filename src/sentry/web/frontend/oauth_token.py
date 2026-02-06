@@ -17,7 +17,11 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
+from sentry.models.apidevicecode import (
+    DEFAULT_INTERVAL,
+    ApiDeviceCode,
+    DeviceCodeStatus,
+)
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits import backend as ratelimiter
@@ -56,6 +60,9 @@ class _TokenInformation(TypedDict):
 
 @control_silo_view
 class OAuthTokenView(View):
+    # Set during post() for CORS origin validation
+    application: ApiApplication | None = None
+
     # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
     # never_cache at dispatch so every response from this endpoint is marked
     # appropriately without repeating headers across handlers.
@@ -77,10 +84,12 @@ class OAuthTokenView(View):
         """Add CORS headers for browser-based public OAuth clients.
 
         The token endpoint is used by public clients (SPAs, CLIs running in browsers)
-        that need CORS support for the device code flow. We allow all origins since:
-        1. Public clients authenticate via PKCE, not cookies
-        2. The security is in the PKCE code_verifier (device flow) or authorization code
-        3. No credentials (cookies) are involved - public clients use bearer tokens
+        that need CORS support for the device code flow.
+
+        Origin validation:
+        - If the application has allowed_origins configured, only those origins are permitted
+        - If allowed_origins is empty/not set, all origins are allowed (backwards compatible)
+        - For OPTIONS preflight, we allow all origins since we don't have the app yet
 
         Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
         any cookie-based auth from being used with this endpoint.
@@ -90,11 +99,27 @@ class OAuthTokenView(View):
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
-        if origin:
-            response["Access-Control-Allow-Origin"] = origin
-        else:
+        if not origin:
             response["Access-Control-Allow-Origin"] = "*"
+            return response
 
+        # For POST requests with a validated application, check allowed_origins
+        if self.application:
+            allowed = self.application.get_allowed_origins()
+            if allowed and origin not in allowed:
+                # Origin not in allowed list - don't set Access-Control-Allow-Origin
+                # This causes the browser to block the response
+                logger.warning(
+                    "oauth.token-cors-rejected",
+                    extra={
+                        "origin": origin,
+                        "allowed_origins": allowed,
+                        "client_id": self.application.client_id,
+                    },
+                )
+                return response
+
+        response["Access-Control-Allow-Origin"] = origin
         return response
 
     # Note: the reason parameter is for internal use only
@@ -157,7 +182,9 @@ class OAuthTokenView(View):
 
         # Validate grant_type first (needed to determine auth requirements)
         if not grant_type:
-            return self.error(request=request, name="invalid_request", reason="missing grant_type")
+            return self.error(
+                request=request, name="invalid_request", reason="missing grant_type"
+            )
         if grant_type not in [
             GrantTypes.AUTHORIZATION,
             GrantTypes.REFRESH,
@@ -166,7 +193,9 @@ class OAuthTokenView(View):
             return self.error(request=request, name="unsupported_grant_type")
 
         # Determine client credentials from header or body (mutually exclusive).
-        (client_id, client_secret), cred_error = self._extract_basic_auth_credentials(request)
+        (client_id, client_secret), cred_error = self._extract_basic_auth_credentials(
+            request
+        )
         if cred_error is not None:
             return cred_error
 
@@ -264,7 +293,9 @@ class OAuthTokenView(View):
                     # Use unguarded_write because deleting the grant triggers SET_NULL on
                     # SentryAppInstallation.api_grant, which is a cross-model write
                     with unguarded_write(using=router.db_for_write(ApiGrant)):
-                        ApiGrant.objects.filter(application=application, code=code).delete()
+                        ApiGrant.objects.filter(
+                            application=application, code=code
+                        ).delete()
             # For device_code, invalidate the device code
             elif grant_type == GrantTypes.DEVICE_CODE:
                 device_code_value = request.POST.get("device_code")
@@ -300,12 +331,21 @@ class OAuthTokenView(View):
                 status=401,
             )
 
+        # Store for CORS origin validation in _add_cors_headers
+        self.application = application
+
         if grant_type == GrantTypes.AUTHORIZATION:
-            token_data = self.get_access_tokens(request=request, application=application)
+            token_data = self.get_access_tokens(
+                request=request, application=application
+            )
         elif grant_type == GrantTypes.DEVICE_CODE:
-            return self.handle_device_code_grant(request=request, application=application)
+            return self.handle_device_code_grant(
+                request=request, application=application
+            )
         elif grant_type == GrantTypes.REFRESH:
-            token_data = self.get_refresh_token(request=request, application=application)
+            token_data = self.get_refresh_token(
+                request=request, application=application
+            )
         else:
             # Should not reach here due to earlier grant_type validation
             return self.error(request=request, name="unsupported_grant_type")
@@ -373,7 +413,9 @@ class OAuthTokenView(View):
                 # avoid excessive memory use on decode.
                 b64 = param.strip()
                 if len(b64) > MAX_BASIC_AUTH_B64_LEN:
-                    logger.warning("Invalid Basic auth header: too long", extra={"client_id": None})
+                    logger.warning(
+                        "Invalid Basic auth header: too long", extra={"client_id": None}
+                    )
                     return (None, None), self.error(
                         request=request,
                         name="invalid_client",
@@ -381,14 +423,18 @@ class OAuthTokenView(View):
                         status=401,
                     )
                 try:
-                    decoded = base64.b64decode(b64.encode("ascii"), validate=True).decode("utf-8")
+                    decoded = base64.b64decode(
+                        b64.encode("ascii"), validate=True
+                    ).decode("utf-8")
                     # format: client_id:client_secret (client_secret may be empty)
                     if ":" not in decoded:
                         raise ValueError("missing colon in basic credentials")
                     client_id, client_secret = decoded.split(":", 1)
                     return (client_id, client_secret), None
                 except Exception:
-                    logger.warning("Invalid Basic auth header", extra={"client_id": None})
+                    logger.warning(
+                        "Invalid Basic auth header", extra={"client_id": None}
+                    )
                     return (None, None), self.error(
                         request=request,
                         name="invalid_client",
