@@ -130,7 +130,11 @@ def queryset_for_query(
     Raises:
         InvalidSearchQuery: If the query string is invalid
     """
-    queryset = PreprodArtifact.objects.get_queryset()
+    queryset = (
+        PreprodArtifact.objects.get_queryset()
+        .select_related("project", "build_configuration", "commit_comparison", "mobile_app_info")
+        .prefetch_related("preprodartifactsizemetrics_set")
+    )
     queryset = queryset.annotate_download_count()
     queryset = queryset.annotate_installable()
     queryset = queryset.annotate_main_size_metrics()
@@ -288,7 +292,10 @@ class BuildsEndpoint(OrganizationEndpoint):
             )
 
         on_results = lambda artifacts: [
-            transform_preprod_artifact_to_build_details(artifact).dict() for artifact in artifacts
+            transform_preprod_artifact_to_build_details(
+                artifact, include_base_artifact=False
+            ).dict()
+            for artifact in artifacts
         ]
         paginate = lambda queryset: self.paginate(
             order_by="-date_added",

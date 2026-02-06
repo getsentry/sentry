@@ -283,30 +283,57 @@ def to_size_info(
 
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
+    include_base_artifact: bool = True,
+    size_metrics_list: list[PreprodArtifactSizeMetrics] | None = None,
 ) -> BuildDetailsApiResponse:
+    """
+    Transform a PreprodArtifact to a BuildDetailsApiResponse.
 
-    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
+    Args:
+        artifact: The PreprodArtifact to transform
+        include_base_artifact: If True, fetch and include base artifact data.
+            Set to False for list endpoints to avoid N+1 queries.
+        size_metrics_list: Optional pre-fetched size metrics. If not provided,
+            will be fetched from artifact.preprodartifactsizemetrics_set.
+    """
+    if size_metrics_list is None:
+        size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
 
     base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
-    base_artifact = (
-        artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
-    )
+    base_artifact = None
     base_build_info = None
-    if base_artifact:
-        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=base_artifact,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+
+    if include_base_artifact:
+        base_artifact = (
+            artifact.get_base_artifact_for_commit()
+            .select_related("build_configuration", "mobile_app_info")
+            .first()
         )
-        base_size_metrics_list = list(base_size_metrics_qs)
-        base_build_info = create_build_details_app_info(base_artifact)
+        if base_artifact:
+            base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact=base_artifact,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            )
+            base_size_metrics_list = list(base_size_metrics_qs)
+            base_build_info = create_build_details_app_info(base_artifact)
 
     size_info = to_size_info(size_metrics_list, base_size_metrics_list)
 
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)
+
+    # Use annotated download_count if available, otherwise query for it
+    download_count = 0
+    if is_installable:
+        annotated_count = getattr(artifact, "download_count", None)
+        if annotated_count is not None:
+            download_count = int(annotated_count)
+        else:
+            download_count = get_download_count_for_artifact(artifact)
+
     distribution_info = DistributionInfo(
         is_installable=is_installable,
-        download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
+        download_count=download_count,
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
     )
 
