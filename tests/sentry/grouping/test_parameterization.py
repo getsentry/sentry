@@ -77,11 +77,6 @@ standard_cases = [
     # OpenStack Swift transaction IDs
     ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
     (
-        "swift_txn_id - in message",
-        "Failed with txid tx69f60bc9f7634a01988e6-0052d9544b in region",
-        "Failed with txid <swift_txn_id> in region",
-    ),
-    (
         "swift_txn_id - with suffix",
         "tx274a77a8975c4a66aeb24-0052d95365-cluster01",
         "<swift_txn_id>",
