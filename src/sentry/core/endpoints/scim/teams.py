@@ -3,6 +3,7 @@ import re
 from typing import Any
 
 import sentry_sdk
+from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.http.response import HttpResponseBase
 from django.utils.text import slugify
@@ -31,6 +32,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsSerializer as TeamSerializer
@@ -39,6 +41,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.signals import team_created
+from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -63,6 +66,7 @@ from .utils import (
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_serializer(many=True)
@@ -350,13 +354,61 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         )
         return Response(context)
 
-    def _add_members_operation(self, request: Request, operation, team):
-        for member in operation["value"]:
+    def _should_manage_privileges(self, team: Team) -> bool:
+        return (
+            settings.SENTRY_MODE == SentryMode.SAAS
+            and team.organization.id == settings.SENTRY_DEFAULT_ORGANIZATION_ID
+            and team.slug in ("staff", "superuser")
+        )
+
+    def _grant_privilege(self, member: OrganizationMember, team: Team) -> None:
+        if not self._should_manage_privileges(team) or not member.user_id:
+            return
+
+        attrs = {}
+        if team.slug == "staff":
+            attrs["is_staff"] = True
+        elif team.slug == "superuser":
+            attrs["is_superuser"] = True
+
+        if attrs:
+            user_service.update_user(user_id=member.user_id, attrs=attrs)
+            metrics.incr(
+                "sentry.scim.team.grant_privilege",
+                tags={
+                    "organization": team.organization.slug,
+                    "team": team.slug,
+                },
+            )
+
+    def _revoke_privileges(self, member: OrganizationMember, team: Team) -> None:
+        if not self._should_manage_privileges(team) or not member.user_id:
+            return
+
+        attrs = {}
+        if team.slug == "staff":
+            attrs["is_staff"] = False
+        elif team.slug == "superuser":
+            attrs["is_superuser"] = False
+
+        if attrs:
+            user_service.update_user(user_id=member.user_id, attrs=attrs)
+            metrics.incr(
+                "sentry.scim.team.revoke_privileges",
+                tags={
+                    "organization": team.organization.slug,
+                    "team": team.slug,
+                },
+            )
+
+    def _add_members_operation(self, request: Request, operation, team) -> list[OrganizationMember]:
+        added_members = []
+
+        for member_data in operation["value"]:
             member = OrganizationMember.objects.get(
-                organization=team.organization, id=member["value"]
+                organization=team.organization, id=member_data["value"]
             )
             if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
-                # if a member already belongs to a team, do nothing
                 continue
 
             with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
@@ -370,8 +422,13 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     data=omt.get_audit_log_data(),
                 )
 
-    def _remove_members_operation(self, request: Request, member_id, team):
+            added_members.append(member)
+
+        return added_members
+
+    def _remove_members_operation(self, request: Request, member_id, team) -> None:
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
+
         with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
@@ -431,6 +488,50 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
+
+        members_to_revoke: list[tuple[OrganizationMember, Team]] = []
+
+        for operation in operations:
+            op = operation["op"].lower()
+
+            if op == TeamPatchOps.REMOVE and "members" in operation["path"]:
+                try:
+                    member_id = self._get_member_id_for_remove_op(operation)
+                    member = OrganizationMember.objects.get(
+                        organization=team.organization, id=member_id
+                    )
+                    members_to_revoke.append((member, team))
+                except OrganizationMember.DoesNotExist:
+                    pass
+
+            elif op == TeamPatchOps.REPLACE:
+                path = operation.get("path")
+                if path == "members":
+                    existing = OrganizationMemberTeam.objects.filter(
+                        team_id=team.id
+                    ).select_related("organizationmember")
+                    for omt in existing:
+                        members_to_revoke.append((omt.organizationmember, team))
+
+        for member, team_obj in members_to_revoke:
+            try:
+                self._revoke_privileges(member, team_obj)
+            except Exception:
+                logger.exception(
+                    "scim.privilege_revocation_failed",
+                    extra={
+                        "organization_id": team.organization.id,
+                        "team_id": team.id,
+                        "member_id": member.id,
+                    },
+                )
+                return Response(
+                    {"detail": "Failed to revoke user privileges"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        members_to_grant_privileges: list[OrganizationMember] = []
+
         try:
             with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
@@ -438,12 +539,16 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
                 for operation in operations:
                     op = operation["op"].lower()
+
                     if op == TeamPatchOps.ADD and operation["path"] == "members":
-                        self._add_members_operation(request, operation, team)
+                        added_members = self._add_members_operation(request, operation, team)
+                        members_to_grant_privileges.extend(added_members)
+
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
                         self._remove_members_operation(
                             request, self._get_member_id_for_remove_op(operation), team
                         )
+
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
@@ -451,11 +556,16 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             # delete all the current team members
                             # and replace with the ones in the operation list
                             with transaction.atomic(router.db_for_write(OrganizationMember)):
-                                existing = list(
+                                existing_members = list(
                                     OrganizationMemberTeam.objects.filter(team_id=team.id)
                                 )
-                                OrganizationMemberTeam.objects.bulk_delete(existing)
-                                self._add_members_operation(request, operation, team)
+                                OrganizationMemberTeam.objects.bulk_delete(existing_members)
+
+                                added_members = self._add_members_operation(
+                                    request, operation, team
+                                )
+                                members_to_grant_privileges.extend(added_members)
+
                         # azure and okta handle team name change operation differently
                         elif path is None:
                             # for okta
@@ -473,6 +583,31 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         except IntegrityError as e:
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
+
+        failed_grants = []
+        for member in members_to_grant_privileges:
+            try:
+                self._grant_privilege(member, team)
+            except Exception:
+                logger.exception(
+                    "scim.privilege_grant_failed",
+                    extra={
+                        "organization_id": team.organization.id,
+                        "team_id": team.id,
+                        "member_id": member.id,
+                    },
+                )
+                failed_grants.append(member.id)
+
+        if failed_grants:
+            logger.warning(
+                "scim.privilege_grant_partial_failure",
+                extra={
+                    "organization_id": team.organization.id,
+                    "team_id": team.id,
+                    "failed_member_ids": failed_grants,
+                },
+            )
 
         metrics.incr("sentry.scim.team.update", tags={"organization": organization})
         return self.respond(status=204)
