@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+
+
+class NotificationThreadKeyType(StrEnum):
+    """
+    The sender key for a notification thread.
+    """
+
+    ISSUE_ALERT = "issue_alert"
+    METRIC_ALERT = "metric_alert"
+    NOA = "noa"
 
 
 @region_silo_model
@@ -35,8 +47,10 @@ class NotificationThread(DefaultFieldsModel):
 
     # Extensible key storage (for debugging/auditing)
     key_type = models.CharField(
-        max_length=64, db_index=True
-    )  # "issue_alert", "metric_alert", "noa"
+        max_length=64,
+        db_index=True,
+        choices=[(k.value, k.name) for k in NotificationThreadKeyType],
+    )
     key_data = models.JSONField()
 
     provider_data = models.JSONField(default=dict)
