@@ -13,7 +13,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -46,11 +46,7 @@ def produce_preprod_size_metric_to_eap(
 
     artifact = size_metric.preprod_artifact
 
-    # Generate a unique trace_id for this preprod artifact using UUID5 with PREPROD_NAMESPACE.
-    # This ensures no collision with other trace types in EAP.
-    # Design: Use preprod_artifact_id to group related components of the SAME build
-    # (e.g., main app + Watch extension + dynamic features) under one trace.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
+    trace_id = get_preprod_trace_id(size_metric.preprod_artifact_id)
 
     # Generate deterministic item_id based on size_metric.id.
     # This enables ReplacingMergeTree deduplication when reprocessing the same metric.
@@ -146,9 +142,8 @@ def produce_preprod_build_distribution_to_eap(
     received = Timestamp()
     received.FromDatetime(artifact.date_added)
 
-    # Generate trace_id for this preprod artifact - same as size metrics to enable grouping.
-    # This allows queries to join build distribution data with size metrics via trace_id.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(artifact.id)).hex
+    # Same trace_id as size metrics to enable grouping/joining via trace_id.
+    trace_id = get_preprod_trace_id(artifact.id)
 
     # Generate deterministic item_id based on artifact.id.
     # Unlike size metrics (one per size_metric.id), build distribution has one record per artifact.

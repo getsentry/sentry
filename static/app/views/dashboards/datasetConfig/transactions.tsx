@@ -1,6 +1,3 @@
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
-import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -8,7 +5,6 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -18,31 +14,22 @@ import {
   TRANSACTIONS_AGGREGATION_FUNCTIONS,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import type {
-  DiscoverQueryExtras,
-  DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  shouldUseOnDemandMetrics,
-  type OnDemandControlContext,
-} from 'sentry/utils/performance/contexts/onDemandControl';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {
+  useTransactionsSeriesQuery,
+  useTransactionsTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useTransactionsWidgetQuery';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {handleOrderByReset, type DatasetConfig} from './base';
 import {
-  doOnDemandMetricsRequest,
   filterAggregateParams,
   filterSeriesSortOptions,
   filterYAxisAggregateParams,
@@ -93,40 +80,8 @@ export const TransactionsConfig: DatasetConfig<
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  getTableRequest: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null
-  ) => {
-    const useOnDemandMetrics = shouldUseOnDemandMetrics(
-      organization,
-      widget,
-      onDemandControlContext
-    );
-    const queryExtras = {
-      useOnDemandMetrics,
-      onDemandType: 'dynamic_query',
-    };
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      mepSetting,
-      queryExtras
-    );
-  },
-  getSeriesRequest: getEventsSeriesRequest,
+  useSeriesQuery: useTransactionsSeriesQuery,
+  useTableQuery: useTransactionsTableQuery,
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,
@@ -160,103 +115,4 @@ function getEventsTableFieldOptions(
       }, {}),
     fieldKeys: TRANSACTION_FIELDS,
   });
-}
-
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
-) {
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-  const url = `/organizations/${organization.slug}/events/`;
-
-  // To generate the target url for TRACE ID links we always include a timestamp,
-  // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
-  // max(timestamp) for the aggregate case as fields, to accomodate this.
-  if (
-    query.aggregates.length &&
-    query.columns.includes('trace') &&
-    !query.aggregates.includes('max(timestamp)') &&
-    !query.columns.includes('timestamp')
-  ) {
-    query.aggregates.push('max(timestamp)');
-  } else if (query.columns.includes('trace') && !query.columns.includes('timestamp')) {
-    query.columns.push('timestamp');
-  }
-
-  const eventView = eventViewFromWidget('', query, pageFilters);
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: isMEPEnabled
-      ? DiscoverDatasets.METRICS_ENHANCED
-      : DiscoverDatasets.TRANSACTIONS,
-    ...queryExtras,
-  };
-
-  if (query.orderby) {
-    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-    },
-    // Tries events request up to 3 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
-function getEventsSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  mepSetting?: MEPState | null
-) {
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.TRANSACTIONS,
-    referrer
-  );
-
-  if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
-    requestData.queryExtras = {
-      ...requestData.queryExtras,
-      ...{dataset: DiscoverDatasets.METRICS_ENHANCED},
-    };
-    return doOnDemandMetricsRequest(api, requestData, widget.widgetType);
-  }
-
-  return doEventsRequest<true>(api, requestData);
 }

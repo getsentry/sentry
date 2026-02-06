@@ -1,9 +1,8 @@
 import {useEffect} from 'react';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
@@ -35,13 +34,13 @@ export default function SeerSettingsPageWrapper({children}: Props) {
     // Or if we havn't launched the new seer yet.
     // Then they need to see old settings page, or get downgraded off old seer.
     if (!showNewSeer(organization)) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
     // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
     if (!organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/trial/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/trial/`));
       return;
     }
 

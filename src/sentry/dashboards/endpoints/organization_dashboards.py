@@ -74,6 +74,8 @@ class PrebuiltDashboardId(IntEnum):
     MOBILE_VITALS_SCREEN_LOADS = 10
     MOBILE_VITALS_SCREEN_RENDERING = 11
     BACKEND_OVERVIEW = 12
+    MOBILE_SESSION_HEALTH = 13
+    FRONTEND_OVERVIEW = 14
 
 
 class PrebuiltDashboard(TypedDict):
@@ -138,6 +140,14 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
         "title": "Backend Overview",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
+        "title": "Mobile Session Health",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.FRONTEND_OVERVIEW,
+        "title": "Frontend Overview",
     },
 ]
 
@@ -574,9 +584,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            duplicate = request.data.get("duplicate", False)
-
-            if not duplicate or retry >= MAX_RETRIES:
+            if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
             request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])

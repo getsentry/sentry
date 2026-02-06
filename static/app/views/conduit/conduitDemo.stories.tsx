@@ -1,11 +1,10 @@
 import {useMemo, useState} from 'react';
 import {useStream} from 'conduit-client';
 
-import {Heading} from '@sentry/scraps/text';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text/text';
 import * as Storybook from 'sentry/stories';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import useOrganization from 'sentry/utils/useOrganization';

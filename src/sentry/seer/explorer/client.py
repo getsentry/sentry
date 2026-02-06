@@ -9,6 +9,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
+from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
@@ -169,7 +170,7 @@ class SeerExplorerClient:
             on_completion_hook: Optional `ExplorerOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
-            enable_coding: Enable code editing tools. When disabled, the agent cannot make code changes. Default is False.
+            enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
     """
 
     def __init__(
@@ -192,6 +193,10 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+
+        if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
+            raise SeerPermissionError("Seer coding is not enabled for this organization")
+
         self.enable_coding = enable_coding
 
         # Validate that category_key and category_value are provided together
@@ -208,12 +213,14 @@ class SeerExplorerClient:
     def start_run(
         self,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         conduit_channel_id: str | None = None,
         conduit_url: str | None = None,
+        request: Request | None = None,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -226,6 +233,7 @@ class SeerExplorerClient:
             metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
             conduit_channel_id: Optional Conduit channel ID for streaming
             conduit_url: Optional Conduit URL for streaming
+            request: Optional rest_framework Request object from endpoints.
 
         Returns:
             int: The run ID that can be used to fetch results or continue the conversation
@@ -245,11 +253,16 @@ class SeerExplorerClient:
             "run_id": None,
             "insert_index": None,
             "on_page_context": on_page_context,
-            "user_org_context": collect_user_org_context(self.user, self.organization),
+            "user_org_context": collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             "intelligence_level": self.intelligence_level,
             "is_interactive": self.is_interactive,
             "enable_coding": self.enable_coding,
         }
+
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
 
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
@@ -297,6 +310,7 @@ class SeerExplorerClient:
         self,
         run_id: int,
         prompt: str,
+        prompt_metadata: dict[str, str] | None = None,
         insert_index: int | None = None,
         on_page_context: str | None = None,
         artifact_key: str | None = None,
@@ -339,10 +353,17 @@ class SeerExplorerClient:
             "enable_coding": self.enable_coding,
         }
 
+        if prompt_metadata:
+            payload["query_metadata"] = prompt_metadata
+
         # Add artifact key and schema if provided
         if artifact_key and artifact_schema:
             payload["artifact_key"] = artifact_key
             payload["artifact_schema"] = artifact_schema.schema()
+
+        if self.category_key and self.category_value:
+            payload["category_key"] = self.category_key
+            payload["category_value"] = self.category_value
 
         # Add conduit params for streaming if provided
         if conduit_channel_id and conduit_url:
@@ -484,6 +505,7 @@ class SeerExplorerClient:
         path = "/v1/automation/explorer/update"
         payload = {
             "run_id": run_id,
+            "organization_id": self.organization.id,
             "payload": {
                 "type": "create_pr",
                 "repo_name": repo_name,

@@ -2,14 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
@@ -48,7 +47,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => closeModal()}
@@ -131,7 +130,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         <LinkButton
           analyticsEventKey="data_consent_modal.settings"
           analyticsEventName="Data Consent Modal: Settings"
-          href="/settings/legal/#aggregatedDataConsent"
+          href={`/settings/${organization.slug}/legal/#aggregatedDataConsent`}
           busy={isPending}
         >
           {t('View Settings')}

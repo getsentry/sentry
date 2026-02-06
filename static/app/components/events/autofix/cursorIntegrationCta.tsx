@@ -1,12 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -14,8 +13,10 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 interface CursorIntegrationCtaProps {
   project: Project;
@@ -23,6 +24,7 @@ interface CursorIntegrationCtaProps {
 
 export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
   const organization = useOrganization();
+  const user = useUser();
 
   const {preference, isFetching: isLoadingPreferences} =
     useProjectSeerPreferences(project);
@@ -43,10 +45,28 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
     project.seerScannerAutomation !== false && project.autofixAutomationTuning !== 'off';
   const isConfigured = Boolean(preference?.automation_handoff) && isAutomationEnabled;
 
+  const handleInstallClick = useCallback(() => {
+    trackAnalytics('coding_integration.install_clicked', {
+      organization,
+      project_slug: project.slug,
+      provider: 'cursor',
+      source: 'cta',
+      user_id: user.id,
+    });
+  }, [organization, project.slug, user.id]);
+
   const handleSetupClick = useCallback(async () => {
     if (!cursorIntegration?.id) {
       throw new Error('Cursor integration not found');
     }
+
+    trackAnalytics('coding_integration.setup_handoff_clicked', {
+      organization,
+      project_slug: project.slug,
+      provider: 'cursor',
+      source: 'cta',
+      user_id: user.id,
+    });
 
     const isAutomationDisabled =
       project.seerScannerAutomation === false ||
@@ -69,12 +89,15 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
       },
     });
   }, [
+    organization,
+    project.slug,
     project.seerScannerAutomation,
     project.autofixAutomationTuning,
     updateProjectSeerPreferences,
     updateProjectAutomation,
     preference?.repositories,
     cursorIntegration,
+    user.id,
   ]);
 
   if (!hasCursorIntegrationFeatureFlag) {
@@ -111,9 +134,10 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
           </Text>
           <div>
             <LinkButton
-              href="/settings/integrations/cursor/"
+              href={`/settings/${organization.slug}/integrations/cursor/`}
               priority="default"
               size="sm"
+              onClick={handleInstallClick}
             >
               {t('Install Cursor Integration')}
             </LinkButton>
@@ -138,7 +162,9 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
               'You have the Cursor integration installed. Turn on Seer automation and set up hand off to trigger Cursor Cloud Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
               {
                 seerProjectSettings: (
-                  <Link to={`/settings/projects/${project.slug}/seer/`} />
+                  <Link
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                  />
                 ),
                 docsLink: (
                   <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />

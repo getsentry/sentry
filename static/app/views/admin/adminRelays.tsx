@@ -1,8 +1,9 @@
 import {useCallback, useState} from 'react';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import ResultGrid from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

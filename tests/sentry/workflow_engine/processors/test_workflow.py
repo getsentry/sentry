@@ -13,7 +13,6 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -333,25 +332,16 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.issue_stream_detector.delete()
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.msg == "No Detectors associated with the issue were found"
 
-        mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
-        mock_logger.exception.assert_called_with(
-            "Issue stream detector not found for event",
-            extra={
-                "project_id": self.group.project_id,
-                "group_id": self.group_event.group_id,
-            },
-        )  # exception is called twice for both missing detectors
-
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_issue_stream_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.issue_stream_detector.delete()
+        self.group.update(type=ErrorGroupType.type_id)
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
@@ -385,8 +375,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.issue_stream_detector.delete()
+        self.group.update(type=ErrorGroupType.type_id)
+
         self.error_detector.delete()
+        self.issue_stream_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
@@ -412,7 +404,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock

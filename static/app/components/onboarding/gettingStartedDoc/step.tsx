@@ -2,9 +2,9 @@ import type React from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Button, ButtonBar} from 'sentry/components/core/button';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   StepType,
@@ -54,7 +54,6 @@ export function Step({
         {stepTitle}
         <ToggleButton
           priority="link"
-          borderless
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}

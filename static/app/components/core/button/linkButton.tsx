@@ -1,10 +1,10 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-// eslint-disable-next-line boundaries/element-types
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
@@ -51,7 +51,7 @@ export function LinkButton({
             }
           />
         )}
-        <ButtonLabel size={size} borderless={props.borderless}>
+        <ButtonLabel size={size}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
@@ -116,7 +116,7 @@ const ButtonLabel = styled('span', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['size', 'borderless'].includes(prop),
-})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
+})<Pick<CommonButtonProps, 'size'>>`
   height: 100%;
   min-width: 0;
   display: flex;

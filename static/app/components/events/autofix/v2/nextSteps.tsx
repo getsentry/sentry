@@ -2,15 +2,16 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Text} from 'sentry/components/core/text';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {
+  useCodingAgentIntegrations,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat, IconChevron} from 'sentry/icons';
@@ -54,7 +55,7 @@ interface ExplorerNextStepsProps {
   /**
    * Callback when a coding agent handoff is requested.
    */
-  onCodingAgentHandoff?: (integrationId: number) => void;
+  onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
   /**
    * Callback when the open chat button is clicked.
    */
@@ -121,10 +122,9 @@ function StepButton({
   isBusy: boolean;
   onStepClick: () => void;
   step: AutofixExplorerStep;
-  // TODO(autofix): Handle GitHub Copilot in explore autofix
-  codingAgentIntegrations?: Array<{id: string | null; name: string; provider: string}>;
+  codingAgentIntegrations?: CodingAgentIntegration[];
   isLoading?: boolean;
-  onCodingAgentHandoff?: (integrationId: number) => void;
+  onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
 }) {
   const priority = index === 0 ? 'primary' : 'default';
 
@@ -142,19 +142,32 @@ function StepButton({
     );
   }
 
-  // Build dropdown items for coding agent integrations (filter out those without IDs for now)
-  const dropdownItems = codingAgentIntegrations
-    .filter(integration => integration.id !== null)
-    .map(integration => ({
-      key: `agent:${integration.id}`,
+  // Build dropdown items for coding agent integrations
+  const dropdownItems = codingAgentIntegrations.map(integration => {
+    const needsSetup = integration.requires_identity && !integration.has_identity;
+    const actionLabel = needsSetup
+      ? t('Setup %s', integration.name)
+      : t('Send to %s', integration.name);
+
+    return {
+      key: `agent:${integration.id ?? integration.provider}`,
       label: (
         <Flex gap="md" align="center">
-          <PluginIcon pluginId="cursor" size={16} />
-          <span>{t('Send to %s', integration.name)}</span>
+          <PluginIcon pluginId={integration.provider} size={16} />
+          <span>{actionLabel}</span>
         </Flex>
       ),
-      onAction: () => onCodingAgentHandoff?.(parseInt(integration.id!, 10)),
-    }));
+      onAction: () => {
+        // OAuth redirect for integrations without identity
+        if (needsSetup) {
+          const currentUrl = window.location.href;
+          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
+        onCodingAgentHandoff?.(integration);
+      },
+    };
+  });
 
   return (
     <ButtonBar merged gap="0">

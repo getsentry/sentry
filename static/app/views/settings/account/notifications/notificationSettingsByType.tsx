@@ -18,6 +18,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -55,7 +56,10 @@ const getQueryParams = (notificationType: string) => {
 };
 
 const notificationOptionsQueryKey = (notificationType: string) =>
-  [`/users/me/notification-options/`, {query: getQueryParams(notificationType)}] as const;
+  [
+    getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
+    {query: getQueryParams(notificationType)},
+  ] as const;
 
 export function NotificationSettingsByType({notificationType}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
@@ -67,20 +71,31 @@ export function NotificationSettingsByType({notificationType}: Props) {
   });
   const {data: notificationProviders = [], status: notificationProviderStatus} =
     useApiQuery<NotificationProvidersObject[]>(
-      [`/users/me/notification-providers/`, {query: getQueryParams(notificationType)}],
+      [
+        getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+        {query: getQueryParams(notificationType)},
+      ],
       {staleTime: 30_000}
     );
   const {data: identities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [`/users/me/identities/`, {query: {provider: 'slack'}}],
+    [
+      getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}}),
+      {query: {provider: 'slack'}},
+    ],
     {staleTime: 30_000}
   );
   const {data: organizationIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<OrganizationIntegration[]>(
-      [`/users/me/organization-integrations/`, {query: {provider: 'slack'}}],
+      [
+        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
+        {query: {provider: 'slack'}},
+      ],
       {staleTime: 30_000}
     );
   const {data: defaultSettings, status: defaultSettingsStatus} =
-    useApiQuery<DefaultSettings>(['/notification-defaults/'], {staleTime: 30_000});
+    useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
+      staleTime: 30_000,
+    });
   const [providerModel] = useState(() => new FormModel());
 
   useEffect(() => {
@@ -212,10 +227,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('logs-billing')
     );
 
-    const hasSeerUserBilling = organizations.some(
-      organization =>
-        organization.features?.includes('seer-user-billing') &&
-        organization.features?.includes('seer-user-billing-launch')
+    const hasSeerUserBilling = organizations.some(organization =>
+      organization.features?.includes('seer-user-billing-launch')
+    );
+
+    const hasSizeAnalysisBilling = organizations.some(organization =>
+      organization.features?.includes('expose-category-size-analysis')
     );
 
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
@@ -224,6 +241,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
+    const includeSizeAnalysis = hasSizeAnalysisBilling;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
@@ -245,6 +263,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
         return false;
       }
       if (field.name.startsWith('quotaSeerUsers') && !hasSeerUserBilling) {
+        return false;
+      }
+      if (field.name.startsWith('quotaSize') && !includeSizeAnalysis) {
         return false;
       }
       return true;

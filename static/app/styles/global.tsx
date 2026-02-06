@@ -30,7 +30,7 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
   .gatsby-highlight,
   .prism-dark {
-    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.primary)};
+    ${generateThemePrismVariables(darkTheme, darkTheme.tokens.background.secondary)};
   }
 
   pre[class*='language-'] {
@@ -290,8 +290,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           }
         }
         .loading .loading-indicator {
-          border-color: ${theme.tokens.background.transparent.neutral.muted};
-          border-left-color: ${theme.tokens.background.accent.vibrant};
+          border-color: ${theme.tokens.border.transparent.neutral.muted};
+          border-left-color: ${theme.tokens.border.accent.vibrant};
         }
 
         .pattern-bg {
@@ -400,12 +400,14 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
             border-bottom-color: ${theme.tokens.border.primary};
           }
           &:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-bottom-color: ${theme.tokens.background.primary};
           }
           &.inverted:before {
             border-top-color: ${theme.tokens.border.primary};
           }
           &.inverted:after {
+            /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
             border-top-color: ${theme.tokens.background.primary};
           }
         }

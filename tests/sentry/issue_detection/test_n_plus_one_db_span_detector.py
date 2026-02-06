@@ -34,7 +34,9 @@ class NPlusOneDBSpanDetectorTest(unittest.TestCase):
             for option_name, value in setting_overides.items():
                 self._settings[DetectorType.N_PLUS_ONE_DB_QUERIES][option_name] = value
 
-        detector = NPlusOneDBSpanDetector(self._settings, event)
+        detector = NPlusOneDBSpanDetector(
+            self._settings[NPlusOneDBSpanDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -403,7 +405,7 @@ class NPlusOneDbSettingTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = NPlusOneDBSpanDetector(settings, event)
+        detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -414,6 +416,6 @@ class NPlusOneDbSettingTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = NPlusOneDBSpanDetector(settings, event)
+        detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
         assert not detector.is_creation_allowed_for_project(project)

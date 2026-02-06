@@ -63,7 +63,7 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        assert context["platform_name"] == "ios"
+        assert context["platform_name"] == "apple"
         assert context["git_head_ref"] == "feature/test"
         assert context["app_id"] == "com.example.app"
         assert context["build_configuration_name"] == "Debug"
@@ -180,12 +180,12 @@ class StatusCheckFiltersTest(TestCase):
 
         context = _get_artifact_filter_context(artifact)
 
-        rule_ios_release = StatusCheckRule(
+        rule_apple_release = StatusCheckRule(
             id="rule1",
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios build_configuration_name:Release",
+            filter_query="platform_name:apple build_configuration_name:Release",
         )
 
         rule_android_release = StatusCheckRule(
@@ -201,10 +201,10 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios build_configuration_name:Debug",
+            filter_query="platform_name:apple build_configuration_name:Debug",
         )
 
-        assert _rule_matches_artifact(rule_ios_release, context) is True
+        assert _rule_matches_artifact(rule_apple_release, context) is True
         assert _rule_matches_artifact(rule_android_release, context) is False
         assert _rule_matches_artifact(rule_ios_debug, context) is False
 
@@ -581,7 +581,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="d" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
@@ -613,10 +613,15 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_release,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics([head_artifact])
 
-        assert head_artifact.id in result
-        assert result[head_artifact.id].id == base_metrics.id
+        assert head_artifact.id in base_artifact_map
+        fetched_base_artifact = base_artifact_map[head_artifact.id]
+        assert fetched_base_artifact.id == base_artifact.id
+        assert fetched_base_artifact.id in base_metrics_by_artifact
+        metrics_list = base_metrics_by_artifact[fetched_base_artifact.id]
+        assert len(metrics_list) == 1
+        assert metrics_list[0].id == base_metrics.id
 
     def test_fetch_base_size_metrics_with_different_build_config(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -630,7 +635,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="e" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
@@ -662,9 +667,9 @@ class StatusCheckFiltersTest(TestCase):
             build_configuration=self.build_config_debug,
         )
 
-        result = _fetch_base_size_metrics([head_artifact], self.project)
+        base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics([head_artifact])
 
-        assert result == {}
+        assert base_size_metrics_map == {}
 
     def test_status_check_with_absolute_diff_rule(self):
         base_commit_comparison = CommitComparison.objects.create(
@@ -678,7 +683,7 @@ class StatusCheckFiltersTest(TestCase):
 
         head_commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
-            head_sha="a" * 40,
+            head_sha="f" * 40,
             base_sha="b" * 40,
             provider="github",
             head_repo_name="owner/repo",
@@ -723,7 +728,7 @@ class StatusCheckFiltersTest(TestCase):
             )
         }
 
-        base_size_metrics_map = _fetch_base_size_metrics([head_artifact], self.project)
+        base_artifact_map, base_metrics_by_artifact = _fetch_base_size_metrics([head_artifact])
 
         rule = StatusCheckRule(
             id="rule1",
@@ -737,7 +742,8 @@ class StatusCheckFiltersTest(TestCase):
             [head_artifact],
             size_metrics_map,
             rules=[rule],
-            base_size_metrics_map=base_size_metrics_map,
+            base_artifact_map=base_artifact_map,
+            base_metrics_by_artifact=base_metrics_by_artifact,
         )
         assert status == StatusCheckStatus.FAILURE
         assert len(triggered_rules) == 1
@@ -862,7 +868,7 @@ class StatusCheckFiltersTest(TestCase):
         )
 
         context = _get_artifact_filter_context(artifact)
-        assert context["platform_name"] == "ios"
+        assert context["platform_name"] == "apple"
         assert "build_configuration_name" not in context
 
         rule = StatusCheckRule(
@@ -870,7 +876,7 @@ class StatusCheckFiltersTest(TestCase):
             metric="install_size",
             measurement="absolute",
             value=100 * 1024 * 1024,
-            filter_query="platform_name:ios !build_configuration_name:Debug",
+            filter_query="platform_name:apple !build_configuration_name:Debug",
         )
 
         assert _rule_matches_artifact(rule, context) is False

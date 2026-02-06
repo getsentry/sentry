@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, type ValidSize} from 'sentry/styles/space';
@@ -138,7 +139,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll up') : t('Scroll left')}
           icon={<StyledIconChevron direction={isVertical ? 'up' : 'left'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
       {!isAtEnd && (
@@ -148,7 +149,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll down') : t('Scroll right')}
           icon={<StyledIconChevron direction={isVertical ? 'down' : 'right'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
     </ScrollCarouselWrapper>

@@ -1,16 +1,19 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
 import {space} from 'sentry/styles/space';
 
-interface SegmentedRadioFieldProps<Choices extends string = string>
-  extends Omit<InputFieldProps, 'type'> {
+interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
+  InputFieldProps,
+  'type'
+> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
 

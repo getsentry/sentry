@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import partial
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import (
@@ -17,7 +18,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -54,6 +55,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
@@ -99,11 +101,14 @@ class OrganizationWorkflowPermission(OrganizationPermission):
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationWorkflowPermission,)
 
-    def convert_args(self, request: Request, workflow_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, workflow_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Workflow]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"], id=workflow_id
+                organization=kwargs["organization"], id=validated_workflow_id
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
@@ -148,17 +153,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
+            ids = to_valid_int_id_list("id", raw_idlist)
             queryset = queryset.filter(id__in=ids)
 
         if raw_detectorlist := request.GET.getlist("detector"):
-            try:
-                detector_ids = [int(id) for id in raw_detectorlist]
-            except ValueError:
-                raise ValidationError({"detector": ["Invalid detector ID format"]})
+            detector_ids = to_valid_int_id_list("detector", raw_detectorlist)
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
         if raw_query := request.GET.get("query"):
@@ -219,8 +218,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Returns a list of alerts for a given organization
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
@@ -230,10 +231,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
         priority_detector_id: int | None = None
         if raw_priority := request.GET.get("priorityDetector"):
-            try:
-                priority_detector_id = int(raw_priority)
-            except ValueError:
-                raise ValidationError({"priorityDetector": ["Invalid detector ID format"]})
+            priority_detector_id = to_valid_int_id("priorityDetector", raw_priority)
 
             is_priority = Exists(
                 DetectorWorkflow.objects.filter(
@@ -303,8 +301,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request, organization):
+    def post(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Creates an alert for an organization
         """
         validator = WorkflowValidator(
@@ -333,7 +333,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Mutate an Organization's Alerts",
-        description=("Currently supports bulk enabling/disabling alerts."),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.QUERY,
@@ -359,8 +358,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request, organization):
+    def put(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Bulk enable or disable alerts for a given Organization
         """
         if not (
@@ -418,8 +419,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Bulk delete alerts for a given organization
         """
         if not (

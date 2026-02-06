@@ -2,11 +2,11 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -177,7 +177,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           options={TREND_FUNCTION_OPTIONS}
           onChange={onChangeTrendType}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} borderless size="zero" />
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
           )}
           offset={4}
         />

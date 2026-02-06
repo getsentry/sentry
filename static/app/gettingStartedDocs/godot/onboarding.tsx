@@ -1,19 +1,23 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-const getVerifySnippet = () => `
-extends Node
+import {logsVerify} from './logs';
+
+const getVerifySnippet = () => {
+  return `extends Node
 
 func _ready():
 	SentrySDK.add_breadcrumb(SentryBreadcrumb.create("Just about to welcome the World."))
-	SentrySDK.capture_message("Hello, World!")
-`;
+	SentrySDK.capture_message("Hello, World!")`;
+};
 
 export const onboarding: OnboardingConfig = {
   install: () => [
@@ -42,7 +46,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Sentry can be configured in the Project Settings window or [link: programmatically]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
+            'Sentry can be configured in the Project Settings window or [link:programmatically]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
             {
               code: <code />,
               link: (
@@ -55,6 +59,19 @@ export const onboarding: OnboardingConfig = {
           type: 'code',
           language: 'url',
           code: params.dsn.public,
+        },
+        {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable structured logs, go to [strong:Project Settings > Sentry > Options > Enable Logs].',
+                {strong: <strong />}
+              ),
+            },
+          ],
         },
       ],
     },
@@ -90,6 +107,14 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Further Settings'),
       content: [

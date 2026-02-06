@@ -5,6 +5,8 @@ import logging
 from django.http import HttpResponse
 from rest_framework.request import Request
 
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.web.frontend.base import region_silo_view
@@ -24,6 +26,7 @@ class GithubPluginWebhookEndpoint(GithubWebhookBase):
             organization=organization, key="github:webhook_secret"
         )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-plugins-github-webhook"])
     def post(self, request: Request, organization_id):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)

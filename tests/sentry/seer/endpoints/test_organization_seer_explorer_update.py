@@ -52,6 +52,7 @@ class TestOrganizationSeerExplorerUpdate(APITestCase):
         # Verify the payload
         sent_data = orjson.loads(call_args[1]["data"])
         assert sent_data["run_id"] == "123"
+        assert sent_data["organization_id"] == self.organization.id
         assert sent_data["payload"]["type"] == "interrupt"
 
     @patch(

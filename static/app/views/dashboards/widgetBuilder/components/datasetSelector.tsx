@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,7 +66,10 @@ function WidgetBuilderDatasetSelector() {
     });
   }
 
-  if (hasTraceMetricsDashboards) {
+  if (
+    organization.features.includes('tracemetrics-enabled') &&
+    hasTraceMetricsDashboards
+  ) {
     datasetOptions.push({
       value: WidgetType.TRACEMETRICS,
       label: t('Metrics'),
@@ -121,6 +126,7 @@ function WidgetBuilderDatasetSelector() {
           // or set the dataset if there is no cached state
           restoreOrSetBuilderState(newDataset);
 
+          Sentry.setTag('widget_builder.dataset', newDataset);
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',

@@ -1,17 +1,20 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {css, withTheme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import withApi from 'sentry/utils/withApi';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
@@ -58,10 +61,13 @@ function TrialStartedSidebarItem({
     SubscriptionStore.clearStartedTrial(organization.slug);
     TrialRequestedActions.clearNotification();
   };
+  // Dismiss trial started when user clicks outside of trial requested or started hovercard
+  const hovercardBodyRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(hovercardBodyRef, dismissNotification);
 
   const renderTrialStartedHovercardBody = () => {
     return (
-      <HovercardBody>
+      <HovercardBody ref={hovercardBodyRef}>
         <HovercardHeader>
           <div>{t('Trial Started')}</div>
           <TrialBadge subscription={subscription} organization={organization} />
@@ -79,16 +85,18 @@ function TrialStartedSidebarItem({
           {t('Additional Integrations')}
         </Bullets>
 
-        <Button onClick={dismissNotification} size="xs">
-          {t('Awesome, got it!')}
-        </Button>
+        <Flex justify="end">
+          <Button onClick={dismissNotification} size="xs">
+            {t('Awesome, got it!')}
+          </Button>
+        </Flex>
       </HovercardBody>
     );
   };
 
   const renderTrialRequestedHovercardBody = () => {
     return (
-      <HovercardBody>
+      <HovercardBody ref={hovercardBodyRef}>
         <HovercardHeader>{t('Trial Requested')}</HovercardHeader>
         <p>
           {t(
@@ -96,9 +104,11 @@ function TrialStartedSidebarItem({
           )}
         </p>
 
-        <Button onClick={dismissNotification} size="xs">
-          {t('Awesome, got it!')}
-        </Button>
+        <Flex justify="end">
+          <Button onClick={dismissNotification} size="xs">
+            {t('Awesome, got it!')}
+          </Button>
+        </Flex>
       </HovercardBody>
     );
   };
@@ -168,28 +178,10 @@ function TrialStartedSidebarItem({
   );
 }
 
-const startedStyle = (theme: Theme) => css`
-  transition: box-shadow 200ms;
-
-  button,
-  button:hover {
-    color: inherit;
-  }
-
-  &:hover a {
-    color: ${theme.colors.white};
-  }
-
-  &:hover {
-    box-shadow: 0 0 8px ${theme.tokens.background.accent.vibrant};
-  }
-`;
-
 const Wrapper = styled(motion.div)`
   margin: 0 -20px 0 -5px;
   padding: 0 20px 0 5px;
   border-radius: 4px 0 0 4px;
-  ${p => p.animate === 'started' && startedStyle(p.theme)}
 
   /* This is needed to fix positioning of the hovercard, since it wraps a
    * inline span, the span has no size and the position is incorrectly

@@ -13,7 +13,7 @@ import {
   isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -26,6 +26,7 @@ import {
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
@@ -163,6 +164,21 @@ function getChartType(displayType: DisplayType) {
   return chartType;
 }
 
+/**
+ * Transforms yAxis values for logs context.
+ * In logs, `count()` without an argument is invalid - it must be `count(message)`.
+ *
+ * This function defensively handles the case where the widget only uses count() without
+ * an argument. We should remove this when we convert the dashboard widgets to use
+ * count(message) instead.
+ */
+function transformLogsYAxis(yAxis: string): string {
+  if (yAxis === `${AggregationKey.COUNT}()`) {
+    return `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
+  }
+  return yAxis;
+}
+
 function getAggregateArguments(yAxis: string): string[] {
   const parsedFunction = parseFunction(yAxis);
   if (!parsedFunction) {
@@ -199,7 +215,7 @@ function _getWidgetExploreUrl(
         : widget.queries[0]!.aggregates
       )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
-  ].slice(0, 3);
+  ];
 
   const chartType = getChartType(widget.displayType);
   let exploreMode: Mode | undefined = preferMode;
@@ -318,13 +334,18 @@ function _getWidgetExploreUrl(
   };
 
   if (traceItemDataset === TraceItemDataset.LOGS) {
+    const logsVisualize = queryParams.visualize.map(v => ({
+      ...v,
+      yAxes: v.yAxes.map(transformLogsYAxis),
+    }));
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
       field: queryParams.field,
       groupBy: queryParams.groupBy,
-      aggregateFields: queryParams.visualize,
+      aggregateFields: logsVisualize,
       interval: queryParams.interval,
       mode: queryParams.mode,
       referrer: queryParams.referrer,

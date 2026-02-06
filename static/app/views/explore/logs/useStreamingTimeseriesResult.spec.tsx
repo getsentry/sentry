@@ -105,7 +105,7 @@ describe('useStreamingTimeseriesResult', () => {
       dataScanned: undefined,
       canResumeAutoFetch: false,
       resumeAutoFetch: () => {},
-    } as UseInfiniteLogsQueryResult;
+    } as unknown as UseInfiniteLogsQueryResult;
   }
 
   const getMockSingleAxisTimeseries = () =>
@@ -456,6 +456,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'enabled', organization: logsOrganization}),
@@ -470,6 +471,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
     const {result} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
@@ -484,6 +486,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiAxisTimeseries();
 
     const {result} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
@@ -498,6 +501,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiGroupTimeseries();
 
     const {result} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),
@@ -512,6 +516,7 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTimeseriesData = getMockMultiAxisGroupTimeseries();
 
     const {result} = renderHook(
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
         wrapper: createWrapper({autoRefresh: 'idle'}),

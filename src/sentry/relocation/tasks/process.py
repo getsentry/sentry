@@ -96,8 +96,8 @@ RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd af
 FAST_TIME_LIMIT = 60  # 1 minute
 MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
 SLOW_TIME_LIMIT = 60 * 60  # 1 hour
-DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
-CROSS_REGION_EXPORT_TIMEOUT = timedelta(minutes=60)
+DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=80)
+CROSS_REGION_EXPORT_TIMEOUT = timedelta(minutes=80)
 
 # All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
 MAX_FAST_TASK_RETRIES = 3

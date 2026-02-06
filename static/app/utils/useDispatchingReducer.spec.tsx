@@ -19,6 +19,7 @@ describe('useDispatchingReducer', () => {
   it('initializes state with initializer', () => {
     const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     expect(result.current[0]).toBe(initialState);
@@ -26,6 +27,7 @@ describe('useDispatchingReducer', () => {
   it('initializes state with fn initializer arg', () => {
     const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() =>
       useDispatchingReducer(reducer, undefined, () => initialState)
     );
@@ -43,6 +45,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls reducer and updates state', async () => {
       const initialState = {type: 'initial'};
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
       act(() => result.current[1]('action'));
@@ -57,6 +60,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls before action with state and action args', () => {
       const initialState = {type: 'initial'};
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
       const beforeAction = jest.fn();
@@ -72,6 +76,7 @@ describe('useDispatchingReducer', () => {
     });
     it('calls after action with previous, new state and action args', () => {
       const initialState = {type: 'initial'};
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
       const beforeNextState = jest.fn();
@@ -103,6 +108,7 @@ describe('useDispatchingReducer', () => {
               };
           }
         });
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       const {result} = renderHook(() =>
         useDispatchingReducer(action_storing_reducer, initialState)
       );
@@ -140,6 +146,7 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {a: {}, b: {}};
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => useDispatchingReducer(finalReducer, initialState));
 
     act(() => {
@@ -164,6 +171,7 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {};
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     result.current[2].on('before action', (_state: any, action: any) => {

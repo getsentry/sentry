@@ -10,6 +10,8 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -23,7 +25,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,12 @@ ACTIONS_REQUIRING_TRIGGER_CHECK: dict[PullRequestAction, CodeReviewTrigger] = {
     PullRequestAction.SYNCHRONIZE: CodeReviewTrigger.ON_NEW_COMMIT,
 }
 
+ACTIONS_ELIGIBLE_FOR_EYES_REACTION: set[PullRequestAction] = {
+    PullRequestAction.OPENED,
+    PullRequestAction.READY_FOR_REVIEW,
+    PullRequestAction.SYNCHRONIZE,
+}
+
 
 def handle_pull_request_event(
     *,
@@ -86,6 +94,7 @@ def handle_pull_request_event(
     repo: Repository,
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
+    extra: Mapping[str, str | None],
     **kwargs: Any,
 ) -> None:
     """
@@ -93,8 +102,6 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
-    extra = {"organization_id": organization.id, "repo": repo.name}
-
     pull_request = event.get("pull_request")
     if not pull_request:
         logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
@@ -108,7 +115,6 @@ def handle_pull_request_event(
         logger.warning(Log.MISSING_ACTION.value, extra=extra)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
-    extra["action"] = action_value
 
     record_webhook_received(github_event, action_value)
 
@@ -140,6 +146,26 @@ def handle_pull_request_event(
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
+
+    pr_number = pull_request.get("number")
+    if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
+        # We don't ever need to delete :eyes: since we later add it back to the PR description idempotently.
+        reactions_to_delete = [GitHubReaction.HOORAY]
+        if is_github_rate_limit_sensitive(organization.slug):
+            reactions_to_delete = []
+
+        delete_existing_reactions_and_add_reaction(
+            github_event=github_event,
+            github_event_action=action_value,
+            integration=integration,
+            organization_id=organization.id,
+            repo=repo,
+            pr_number=str(pr_number),
+            comment_id=None,
+            reactions_to_delete=reactions_to_delete,
+            reaction_to_add=GitHubReaction.EYES,
+            extra=extra,
+        )
 
     from .task import schedule_task
 

@@ -170,7 +170,7 @@ function tourReducer<T extends TourEnumType>(
 
 export function useTourReducer<T extends TourEnumType>(
   initialState: TourState<T>,
-  options: TourOptions<T>
+  options?: TourOptions<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
 

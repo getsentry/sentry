@@ -2,7 +2,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxConfig = {
@@ -29,7 +30,7 @@ const NativeHiddenCheckbox = styled('input')`
     border: 1px solid ${p => p.theme.tokens.border.primary};
 
     svg {
-      stroke: ${p => p.theme.tokens.content.onVibrant.light};
+      stroke: ${p => p.theme.colors.white};
     }
   }
 
@@ -65,8 +66,10 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
+interface CheckboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'checked' | 'size'
+> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */

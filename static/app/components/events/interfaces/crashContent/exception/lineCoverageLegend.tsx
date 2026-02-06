@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {coverageText as COVERAGE_TEXT} from 'sentry/components/events/interfaces/frame/contextLineNumber';
 import {Coverage} from 'sentry/types/integrations';
 

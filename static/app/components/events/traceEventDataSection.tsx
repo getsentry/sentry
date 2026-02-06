@@ -1,18 +1,16 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {Button} from 'sentry/components/core/button/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconCopy, IconEllipsis, IconSort} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -21,7 +19,6 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -77,7 +74,6 @@ export function TraceEventDataSection({
   const api = useApi();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const {copy} = useCopyToClipboard();
 
   const {
     displayOptions,
@@ -317,15 +313,13 @@ export function TraceEventDataSection({
       return '';
     });
 
-    const formattedStacktrace = rawStacktraces.filter(Boolean).join('\n\n');
-    copy(formattedStacktrace);
+    return rawStacktraces.filter(Boolean).join('\n\n');
   }, [
     event,
     platform,
     organization,
     projectSlug,
     isMobile,
-    copy,
     activeThreadId,
     displayOptions,
   ]);
@@ -458,32 +452,20 @@ export function TraceEventDataSection({
         !stackTraceNotFound && (
           <ButtonBar>
             {!displayOptions.includes('raw-stack-trace') && (
-              <Tooltip
-                title={t('Only full version available')}
-                disabled={!forceFullStackTrace}
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter frames')}
+                value={isFullStackTrace ? 'full' : 'relevant'}
+                onChange={handleFilterFramesChange}
               >
-                <SegmentedControl
-                  size="xs"
-                  aria-label={t('Filter frames')}
-                  value={isFullStackTrace ? 'full' : 'relevant'}
-                  onChange={handleFilterFramesChange}
-                >
-                  <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
-                    {t('Most Relevant')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="full">
-                    {t('Full Stack Trace')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Tooltip>
+                <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+                  {t('Most Relevant')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="full">
+                  {t('Full Stack Trace')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
             )}
-            <Button
-              size="xs"
-              icon={<IconCopy />}
-              onClick={handleCopyRawStacktrace}
-              aria-label={t('Copy Raw Stacktrace')}
-              title={t('Copy raw stacktrace to clipboard')}
-            />
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
                 size="xs"
@@ -525,16 +507,27 @@ export function TraceEventDataSection({
               trigger={triggerProps => (
                 <OverlayTrigger.IconButton
                   {...triggerProps}
-                  icon={<IconEllipsis />}
                   size="xs"
-                  aria-label={t('Options')}
-                />
+                  icon={<IconEllipsis />}
+                  aria-label={t('Display as')}
+                >
+                  {t('Display as')}
+                </OverlayTrigger.IconButton>
               )}
               multiple
               position="bottom-end"
               value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: optionsToShow}]}
+            />
+
+            <CopyAsDropdown
+              size="xs"
+              items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                text: handleCopyRawStacktrace,
+                json: undefined,
+                markdown: undefined,
+              })}
             />
           </ButtonBar>
         )

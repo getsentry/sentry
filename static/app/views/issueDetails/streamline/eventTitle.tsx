@@ -4,14 +4,16 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,7 +66,6 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
       activeThreadId
     );
   }, [group, event, groupSummaryData, autofixData, activeThreadId]);
-  const markdownLines = markdownText.trim().split('\n').length.toLocaleString();
 
   const {copy} = useCopyToClipboard();
 
@@ -91,13 +92,7 @@ function GroupMarkdownButton({group, event}: {event: Event; group: Group}) {
   ]);
 
   return (
-    <MarkdownButton
-      title={tct('Copies [numLines] lines of Markdown', {
-        numLines: <strong>{markdownLines}</strong>,
-      })}
-      priority="link"
-      onClick={handleCopyMarkdown}
-    >
+    <MarkdownButton priority="link" onClick={handleCopyMarkdown}>
       {t('Copy as Markdown')}
     </MarkdownButton>
   );
@@ -152,7 +147,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               title={t('Copy Event ID')}
               onClick={handleCopyEventId}
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconCopy size="xs" variant="muted" />}
             />
           </EventIdWrapper>
@@ -163,7 +158,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             css={grayText}
             aria-label={t('Event timestamp')}
           />
-          <JsonLinkWrapper className="hidden-xs">
+          <Flex align="center" gap="xs" className="hidden-xs">
             <Divider />
             <JsonLink
               href={jsonUrl}
@@ -179,7 +174,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
             </JsonLink>
             <Divider />
             <GroupMarkdownButton group={group} event={event} />
-          </JsonLinkWrapper>
+          </Flex>
           {actionableItems && actionableItems.length > 0 && (
             <Fragment>
               <Divider />
@@ -187,7 +182,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                 title={t(
                   'Sentry has detected configuration issues with this event. Click for more info.'
                 )}
-                borderless
+                priority="transparent"
                 size="zero"
                 icon={<IconWarning variant="danger" />}
                 onClick={() => {
@@ -250,12 +245,6 @@ const ProcessingErrorButton = styled(Button)`
   :hover {
     color: ${p => p.theme.colors.red400};
   }
-`;
-
-const JsonLinkWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const JsonLink = styled(ExternalLink)`

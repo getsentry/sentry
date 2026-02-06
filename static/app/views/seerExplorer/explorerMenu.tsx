@@ -6,6 +6,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
@@ -266,10 +267,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, centered
+      // Position above anchor (since button is at bottom of panel)
       setMenuPosition({
-        top: `${relativeTop + rect.height + spacing}px`,
-        left: `${relativeLeft - rect.width - spacing}px`,
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        right: `${panelRect.width - relativeLeft - rect.width}px`,
       });
     } else {
       setMenuPosition({
@@ -414,7 +415,7 @@ function useSessions({
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const hasFeature = organization?.features.includes('seer-explorer');
+  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
 
   const {data, isPending, isError, refetch} = useExplorerSessions({
     limit: 20,

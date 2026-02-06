@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -177,8 +179,12 @@ export default function AlertRulesList() {
   };
 
   const hasEditAccess = organization.access.includes('alerts:write');
+  const hasMetricAlertsFeature = organization.features.includes('incidents');
 
   const ruleList = ruleListResponse.filter(defined);
+  const hasAnyMetricAlerts = ruleList.some(
+    rule => rule.type === CombinedAlertType.METRIC
+  );
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
       rule.type === CombinedAlertType.UPTIME
@@ -210,6 +216,14 @@ export default function AlertRulesList() {
         <Layout.Body>
           <Layout.Main width="full">
             <DataConsentBanner source="alerts" />
+            {!hasMetricAlertsFeature && hasAnyMetricAlerts && (
+              <Alert.Container>
+                <Alert variant="danger">
+                  Your metric alerts have been disabled. Upgrade your plan to re-enable
+                  them.
+                </Alert>
+              </Alert.Container>
+            )}
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
@@ -297,6 +311,7 @@ export default function AlertRulesList() {
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}
+                          hasMetricAlerts={hasMetricAlertsFeature}
                         />
                       );
                     })

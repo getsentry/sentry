@@ -6,15 +6,15 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {
   ListLabel,
   ListSeparator,
   ListWrap,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -26,7 +26,8 @@ import {ListBoxSection} from './section';
 type ObjectLike = object;
 
 interface ListBoxProps<T extends ObjectLike>
-  extends Omit<
+  extends
+    Omit<
       React.HTMLAttributes<HTMLUListElement>,
       'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,

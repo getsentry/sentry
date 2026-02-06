@@ -3,10 +3,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_region_silo_endpoint
 
 
-@region_silo_endpoint
+@internal_region_silo_endpoint
 class RelayHealthCheck(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

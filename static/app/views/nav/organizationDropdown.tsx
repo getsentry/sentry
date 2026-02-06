@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Button} from 'sentry/components/core/button';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';

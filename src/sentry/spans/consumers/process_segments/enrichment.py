@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
+from itertools import islice
 from typing import Any
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
@@ -51,6 +52,9 @@ MOBILE_MAIN_THREAD_NAME = "main"
 # normalized by Relay, but we defensively apply the same fallback as the op is
 # not guaranteed in typing.
 DEFAULT_SPAN_OP = "default"
+
+# Maximum number of ancestor hops to search for an agent name in gen_ai spans.
+MAX_AGENT_NAME_ANCESTOR_HOPS = 5
 
 
 def _find_segment_span(spans: list[SpanEvent]) -> SpanEvent | None:
@@ -129,22 +133,11 @@ class TreeEnricher:
                     attributes[key] = value
 
             if is_gen_ai_span(span) and ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME not in attributes:
-                if (parent_span_id := span.get("parent_span_id")) is not None:
-                    parent_span = self._spans_by_id.get(parent_span_id)
-                    if (
-                        parent_span is not None
-                        and get_span_op(parent_span) == "gen_ai.invoke_agent"
-                        and (
-                            agent_name := attribute_value(
-                                parent_span, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME
-                            )
-                        )
-                        is not None
-                    ):
-                        attributes[ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME] = {
-                            "type": "string",
-                            "value": agent_name,
-                        }
+                if (agent_name := self._find_ancestor_agent_name(span)) is not None:
+                    attributes[ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME] = {
+                        "type": "string",
+                        "value": agent_name,
+                    }
 
         attributes["sentry.exclusive_time_ms"] = {
             "type": "double",
@@ -170,6 +163,18 @@ class TreeEnricher:
                 yield current
             else:
                 break
+
+    def _find_ancestor_agent_name(self, span: SpanEvent) -> str | None:
+        """
+        Finds the nearest ancestor's agent name within MAX_AGENT_NAME_ANCESTOR_HOPS.
+        Returns the first agent name found, or None if no ancestor has one.
+        """
+        for ancestor in islice(self._iter_ancestors(span), MAX_AGENT_NAME_ANCESTOR_HOPS):
+            if (
+                agent_name := attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME)
+            ) is not None:
+                return agent_name
+        return None
 
     def _exclusive_time(self, span: SpanEvent) -> float:
         """

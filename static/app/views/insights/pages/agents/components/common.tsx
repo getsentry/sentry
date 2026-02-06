@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
 
 export const GridEditableContainer = styled('div')`
   position: relative;

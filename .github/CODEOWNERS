@@ -255,7 +255,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/dashboards/                                                     @getsentry/dashboards
 /tests/sentry/dashboards/                                                   @getsentry/dashboards
 
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
+/src/sentry/api/serializers/models/dashboard*                        @getsentry/dashboards
 /src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/data-browsing
 /src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 
@@ -496,6 +496,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## Telemetry Experience
+/src/sentry/autopilot/                                                           @getsentry/telemetry-experience
+/tests/sentry/autopilot/                                                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
@@ -525,6 +527,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
+/static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## ML & AI
@@ -629,6 +632,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
+## AI Conversations (Telemetry Experience)
+# These must come after /src/sentry/api/endpoints/ catch-all above
+/src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
+/src/sentry/api/serializers/rest_framework/ai_conversations.py                   @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
+## End of AI Conversations
+
 ## Billing
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
@@ -701,6 +711,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
+/static/eslint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 

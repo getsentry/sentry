@@ -2,15 +2,16 @@ import {useMemo} from 'react';
 import {type Theme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import Feature from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
@@ -102,6 +103,10 @@ interface UseMetricDetectorChartProps {
    */
   end?: string | null;
   height?: number;
+  /**
+   * Display a persistent highlight area for the open period with the given ID.
+   */
+  highlightedOpenPeriodId?: string;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -174,6 +179,7 @@ export function useMetricDetectorChart({
   end,
   detector,
   openPeriods,
+  highlightedOpenPeriodId,
   height = CHART_HEIGHT,
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
@@ -237,6 +243,7 @@ export function useMetricDetectorChart({
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
+    highlightedIncidentId: highlightedOpenPeriodId,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
@@ -287,12 +294,16 @@ export function useMetricDetectorChart({
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
+    if (openPeriodMarkerResult.highlightedIncidentAreaSeries) {
+      baseSeries.push(openPeriodMarkerResult.highlightedIncidentAreaSeries as any);
+    }
 
     return baseSeries;
   }, [
     thresholdAdditionalSeries,
     filteredAnomalyThresholdSeries,
     openPeriodMarkerResult.incidentMarkerSeries,
+    openPeriodMarkerResult.highlightedIncidentAreaSeries,
   ]);
 
   const yAxes = useMemo(() => {

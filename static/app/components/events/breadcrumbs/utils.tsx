@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -58,6 +59,7 @@ export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-d
 const Color = styled('span')<{
   colorConfig: NonNullable<TimelineItemProps['colorConfig']>;
 }>`
+  display: flex;
   color: ${p => p.colorConfig.icon};
 `;
 

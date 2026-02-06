@@ -113,7 +113,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"id": "not-an-id"},
             status_code=400,
         )
-        assert response.data == {"id": ["Invalid ID format"]}
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_sort_by_name(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
@@ -460,7 +461,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"detector": "not-an-id"},
             status_code=400,
         )
-        assert response4.data == {"detector": ["Invalid detector ID format"]}
+        assert "detector" in response4.data
+        assert "not a valid integer id" in str(response4.data["detector"])
 
     def test_compound_query(self) -> None:
         self.create_detector_workflow(
@@ -1284,7 +1286,8 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             status_code=400,
         )
 
-        assert "Invalid ID format" in str(response.data["id"])
+        assert "id" in response.data
+        assert "not a valid integer id" in str(response.data["id"])
 
     def test_delete_workflows_filtering_ignored_with_ids(self) -> None:
         # Link workflow to project via detector

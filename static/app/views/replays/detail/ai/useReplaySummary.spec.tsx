@@ -98,6 +98,7 @@ describe('useReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
+        // eslint-disable-next-line @sentry/no-renderHook-arrow-function
         () => useReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
           organization: mockOrganization,
@@ -120,6 +121,7 @@ describe('useReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
+        // eslint-disable-next-line @sentry/no-renderHook-arrow-function
         () => useReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
           organization: mockOrganization,

@@ -460,9 +460,9 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
-  it('shows Seer categories when seer-billing feature flag is enabled', async () => {
+  it('shows Seer categories for old usage-based Seer plan (seer-added)', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'seer-billing'],
+      features: ['team-insights', 'seer-billing', 'seer-added'],
     });
 
     render(<OrganizationStats />, {
@@ -488,9 +488,23 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
-  it('shows size analysis when billing feature flag is enabled', async () => {
+  it('does not show Seer categories for seat-based Seer plan', async () => {
     const newOrg = OrganizationFixture({
-      features: ['size-analysis-billing'],
+      features: ['team-insights', 'seer-billing', 'seat-based-seer-enabled'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.queryByRole('option', {name: 'Issue Fixes'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
+  });
+
+  it('shows size analysis when expose category feature flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['expose-category-size-analysis'],
     });
 
     render(<OrganizationStats />, {
@@ -503,7 +517,7 @@ describe('OrganizationStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not show size analysis when billing feature flag is disabled', async () => {
+  it('does not show size analysis when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });
@@ -518,9 +532,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows installable build when billing feature flag is enabled', async () => {
+  it('shows installable build when expose category feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['installable-build-billing'],
+      features: ['expose-category-installable-build'],
     });
 
     render(<OrganizationStats />, {
@@ -531,7 +545,7 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
   });
 
-  it('does not show installable build when billing feature flag is disabled', async () => {
+  it('does not show installable build when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });

@@ -167,6 +167,8 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
     def identity(self):
         if self._identity:
             return self._identity
+        if self.identity_id is None:
+            raise ValueError("identity_id is not set")
         self._identity = Identity.objects.get(id=self.identity_id)
         return self._identity
 

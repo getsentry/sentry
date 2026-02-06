@@ -8,6 +8,7 @@ describe('useMemoWithPrevious', () => {
 
     const factory = jest.fn().mockImplementation(() => 'foo');
 
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
     expect(factory).toHaveBeenCalledWith(null);
     expect(result.current).toBe('foo');

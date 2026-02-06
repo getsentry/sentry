@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
 import Panel from 'sentry/components/panels/panel';

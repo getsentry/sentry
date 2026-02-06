@@ -3,7 +3,8 @@ import {Outlet} from 'react-router-dom';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

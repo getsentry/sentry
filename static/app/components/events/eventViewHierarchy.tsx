@@ -57,6 +57,9 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
         headers: {
           Accept: '*/*; charset=utf-8',
         },
+        query: {
+          download: true,
+        },
       },
     ],
     {staleTime: Infinity, enabled: defined(hierarchyMeta)}

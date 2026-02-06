@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -2,7 +2,7 @@ import React, {createRef} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Surface} from 'sentry/components/core/layout/surface';
+import {Surface} from '@sentry/scraps/layout';
 
 describe('Surface', () => {
   it('renders children', () => {
@@ -74,6 +74,9 @@ describe('Surface', () => {
         <Surface variant="overlay" elevation="low">
           Low
         </Surface>
+        <Surface variant="overlay" elevation="medium">
+          Medium
+        </Surface>
         <Surface variant="overlay" elevation="high">
           High
         </Surface>
@@ -81,7 +84,9 @@ describe('Surface', () => {
     );
 
     const low = screen.getByText('Low').className;
+    const medium = screen.getByText('Medium').className;
     const high = screen.getByText('High').className;
     expect(low).not.toEqual(high);
+    expect(medium).not.toEqual(high);
   });
 });

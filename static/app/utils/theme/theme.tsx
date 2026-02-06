@@ -282,8 +282,10 @@ const commonTheme = {
   ...typography,
 };
 
-export interface SentryTheme
-  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
+export interface SentryTheme extends Omit<
+  typeof lightThemeDefinition,
+  'chart' | 'tokens'
+> {
   chart: {
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };
@@ -471,11 +473,11 @@ const ccd = color.categorical.dark;
 
 const CHART_PALETTE_DARK = [
   [ccd.blurple],
-  [ccd.blurple, ccd.purple],
-  [ccd.blurple, ccd.purple, ccd.pink],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow],
-  [ccd.blurple, ccd.purple, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.indigo],
+  [ccd.blurple, ccd.indigo, ccd.pink],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
   [
     ccd.blurple,

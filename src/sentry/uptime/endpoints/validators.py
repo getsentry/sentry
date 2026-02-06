@@ -148,14 +148,35 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
-def _validate_check_config(attrs, organization, user):
+def _validate_check_config(
+    attrs, uptime_subscription: UptimeSubscription | None, organization, user
+):
     assertions_enabled = features.has(
         "organizations:uptime-runtime-assertions", organization, actor=user
     )
 
+    validated_data = attrs
+    if uptime_subscription is not None:
+        validated_data = {}
+        validated_data["url"] = attrs.get("url", uptime_subscription.url)
+        validated_data["interval_seconds"] = attrs.get(
+            "interval_seconds", uptime_subscription.interval_seconds
+        )
+        validated_data["timeout_ms"] = attrs.get("timeout_ms", uptime_subscription.timeout_ms)
+        validated_data["trace_sampling"] = attrs.get(
+            "trace_sampling", uptime_subscription.trace_sampling
+        )
+        validated_data["method"] = attrs.get("method", uptime_subscription.method)
+        validated_data["headers"] = attrs.get("headers", uptime_subscription.headers)
+        validated_data["body"] = attrs.get("body", uptime_subscription.body)
+        validated_data["assertion"] = attrs.get("assertion", uptime_subscription.assertion)
+        validated_data["response_capture_enabled"] = attrs.get(
+            "response_capture_enabled", uptime_subscription.response_capture_enabled
+        )
+
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
-    check_config = checker_api.create_preview_check(attrs, region)
+    check_config = checker_api.create_preview_check(validated_data, region)
     result = checker_api.invoke_checker_validator(assertions_enabled, check_config, region)
     if result is not None and result.status_code >= 400:
         raise serializers.ValidationError({"assertion": result.json()})
@@ -205,7 +226,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
 
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, None, self.context["organization"], user)
         return attrs
 
     def validate_url(self, url):
@@ -254,6 +275,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
+    response_capture_enabled = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="When enabled, response body and headers will be captured on check failures.",
+    )
     recovery_threshold = serializers.IntegerField(
         required=False,
         default=DEFAULT_RECOVERY_THRESHOLD,
@@ -282,6 +308,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         method = "GET"
         body = None
         url = ""
+        uptime_subscription = None
         if self.instance:
             uptime_subscription = get_uptime_subscription(self.instance)
             headers = uptime_subscription.headers
@@ -300,7 +327,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
 
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, uptime_subscription, self.context["organization"], user)
 
         return attrs
 
@@ -342,6 +369,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             recovery_threshold=validated_data["recovery_threshold"],
             downtime_threshold=validated_data["downtime_threshold"],
             assertion=validated_data.get("assertion", None),
+            response_capture_enabled=validated_data.get("response_capture_enabled", True),
             **method_headers_body,
         )
 
@@ -375,6 +403,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             data["trace_sampling"]
             if "trace_sampling" in data
             else uptime_subscription.trace_sampling
+        )
+        response_capture_enabled = (
+            data["response_capture_enabled"]
+            if "response_capture_enabled" in data
+            else uptime_subscription.response_capture_enabled
         )
         status = data["status"] if "status" in data else instance.status
         recovery_threshold = (
@@ -419,6 +452,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
                 recovery_threshold=recovery_threshold,
                 downtime_threshold=downtime_threshold,
                 assertion=assertion,
+                response_capture_enabled=response_capture_enabled,
             )
         except UptimeMonitorNoSeatAvailable as err:
             # Nest seat availability errors under status. Since this is the
@@ -470,6 +504,11 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         default=False,
         help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
     )
+    response_capture_enabled = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="When enabled, response body and headers will be captured on check failures.",
+    )
     body = serializers.CharField(
         required=False,
         allow_null=True,
@@ -489,6 +528,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             "timeout_ms",
             "method",
             "trace_sampling",
+            "response_capture_enabled",
             "body",
             "interval_seconds",
             "assertion",
@@ -525,7 +565,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         user = None
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, self.instance, self.context["organization"], user)
 
         return attrs
 
@@ -541,6 +581,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
                 headers=validated_data.get("headers", None),
                 body=validated_data.get("body", None),
                 assertion=validated_data.get("assertion", None),
+                response_capture_enabled=validated_data.get("response_capture_enabled", True),
             )
         return uptime_subscription
 
@@ -737,6 +778,7 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
             body=data_source.get("body", NOT_SET),
             trace_sampling=data_source.get("trace_sampling", NOT_SET),
             assertion=data_source.get("assertion", NOT_SET),
+            response_capture_enabled=data_source.get("response_capture_enabled", NOT_SET),
         )
 
         create_audit_entry(

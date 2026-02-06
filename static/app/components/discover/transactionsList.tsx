@@ -2,20 +2,18 @@ import {Component, Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
-import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {parseCursor} from 'sentry/utils/cursor';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -127,7 +125,6 @@ type Props = {
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
-  supportsInvestigationRule?: boolean;
   /**
    * A list of preferred table headers to use over the field names.
    */
@@ -209,19 +206,23 @@ function TableRender({
           'Select an Event ID from a list of slow transactions to uncover slow spans.'
         )}
       >
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          tableData={tableData}
-          columnOrder={columnOrder}
-          titles={titles}
-          generateLink={generateLink}
-          handleCellAction={handleCellAction}
-          useAggregateAlias={useAggregateAlias}
-          referrer={referrer}
-        />
+        {props => (
+          <div {...props}>
+            <TransactionsTable
+              eventView={eventView}
+              organization={organization}
+              location={location}
+              isLoading={isLoading}
+              tableData={tableData}
+              columnOrder={columnOrder}
+              titles={titles}
+              generateLink={generateLink}
+              handleCellAction={handleCellAction}
+              useAggregateAlias={useAggregateAlias}
+              referrer={referrer}
+            />
+          </div>
+        )}
       </DemoTourElement>
     </Fragment>
   );
@@ -267,17 +268,7 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader({
-    cursor,
-    numSamples,
-    supportsInvestigationRule,
-    view,
-  }: {
-    numSamples: number | null | undefined;
-    cursor?: string | undefined;
-    supportsInvestigationRule?: boolean;
-    view?: DomainView;
-  }): React.ReactNode {
+  renderHeader({view}: {view?: DomainView}): React.ReactNode {
     const {
       organization,
       selected,
@@ -287,11 +278,7 @@ class _TransactionsList extends Component<Props> {
       handleOpenInDiscoverClick,
       showTransactions,
       breakdown,
-      eventView,
     } = this.props;
-    const cursorOffset = parseCursor(cursor)?.offset ?? 0;
-    numSamples = numSamples ?? null;
-    const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
     return (
       <Fragment>
         <div>
@@ -304,15 +291,6 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        {supportsInvestigationRule && (
-          <InvestigationRuleWrapper>
-            <InvestigationRuleCreation
-              buttonProps={{size: 'xs'}}
-              eventView={eventView}
-              numSamples={totalNumSamples}
-            />
-          </InvestigationRuleWrapper>
-        )}
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -395,10 +373,7 @@ class _TransactionsList extends Component<Props> {
           isLoading
           pageLinks={null}
           tableData={null}
-          header={this.renderHeader({
-            numSamples: null,
-            view: domainViewFilters?.view,
-          })}
+          header={this.renderHeader({view: domainViewFilters?.view})}
         />
       );
     }
@@ -418,12 +393,7 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
-            header={this.renderHeader({
-              numSamples: tableData?.data?.length ?? null,
-              supportsInvestigationRule: this.props.supportsInvestigationRule,
-              cursor,
-              view: domainViewFilters?.view,
-            })}
+            header={this.renderHeader({view: domainViewFilters?.view})}
           />
         )}
       </DiscoverQuery>
@@ -469,11 +439,7 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader({
-              numSamples: null,
-              supportsInvestigationRule: false,
-              view: domainViewFilters?.view,
-            })}
+            header={this.renderHeader({view: domainViewFilters?.view})}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},
@@ -511,10 +477,6 @@ const Header = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const InvestigationRuleWrapper = styled('div')`
-  margin-right: ${space(1)};
 `;
 
 function TransactionsList(

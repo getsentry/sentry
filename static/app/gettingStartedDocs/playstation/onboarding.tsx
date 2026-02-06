@@ -5,8 +5,9 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -67,7 +68,7 @@ const onboardingRetail: OnboardingConfig = {
             {
               projectSettingsLink: (
                 <ExternalLink
-                  href={`/settings/projects/${params.project.slug}/playstation/?tab=retail`}
+                  href={`/settings/${params.organization.slug}/projects/${params.project.slug}/playstation/?tab=retail`}
                   openInNewTab
                 />
               ),

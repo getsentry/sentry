@@ -2503,6 +2503,69 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
+const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  app_id: {
+    desc: t('The bundle identifier of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  app_name: {
+    desc: t('The display name of the application'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_configuration_name: {
+    desc: t('The name of the build configuration (e.g., Debug, Release)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  platform_name: {
+    desc: t('The platform the build targets (e.g., apple, android)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_number: {
+    desc: t('The build number assigned to this build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  build_version: {
+    desc: t('The version string of the build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_ref: {
+    desc: t('The Git branch of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_ref: {
+    desc: t('The Git branch of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_sha: {
+    desc: t('The Git SHA of the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_base_sha: {
+    desc: t('The Git SHA of the base commit for comparison associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_head_repo_name: {
+    desc: t('The repository name for the HEAD commit associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  git_pr_number: {
+    desc: t('The pull request number associated with a build'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
   ...EVENT_FIELD_DEFINITIONS,
@@ -3388,6 +3451,27 @@ export const getFieldDefinition = (
       }
       return null;
     case 'preprod':
+      if (PREPROD_FIELD_DEFINITIONS[key]) {
+        return PREPROD_FIELD_DEFINITIONS[key];
+      }
+      if (SPAN_FIELD_DEFINITIONS[key]) {
+        return SPAN_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+
+      if (kind === FieldKind.BOOLEAN) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      return null;
+
     case 'span':
       if (SPAN_FIELD_DEFINITIONS[key]) {
         return SPAN_FIELD_DEFINITIONS[key];

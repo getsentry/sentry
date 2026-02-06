@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -239,21 +239,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
-   * Generate the request promises for fetching
-   * series data.
-   */
-  getSeriesRequest?: (
-    api: Client,
-    widget: Widget,
-    queryIndex: number,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
-  /**
    * Get the result type of the series. ie duration, size, percentage, etc
    */
   getSeriesResultType?: (
@@ -267,23 +252,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     data: SeriesResponse,
     widgetQuery: WidgetQuery
   ) => Record<string, DataUnit>;
-  /**
-   * Generate the request promises for fetching
-   * tabular data.
-   */
-  getTableRequest?: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
@@ -327,15 +295,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 
   /**
-   * Hook-based approach for fetching series data
+   * Hook-based approach for fetching series data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getSeriesRequest when available.
    */
   useSeriesQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
   /**
-   * Hook-based approach for fetching table data
+   * Hook-based approach for fetching table data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getTableRequest when available.
    */
   useTableQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
 }

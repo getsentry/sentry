@@ -9,7 +9,7 @@ const productionEntryPoints = [
   // dynamic imports _not_ recognized by knip
   'static/app/bootstrap/initializeMain.tsx',
   'static/gsApp/initializeBundleMetrics.tsx',
-  // defined in webpack.config pipelines
+  // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/views/integrationPipeline/index.tsx',
   // very dynamically imported
@@ -50,6 +50,8 @@ const config: KnipConfig = {
     ...testingEntryPoints,
     ...storyBookEntryPoints,
     'static/eslint/**/index.mjs',
+    // figma code connect files - consumed by Figma CLI
+    'static/**/*.figma.{tsx,jsx}',
   ],
   project: [
     'static/**/*.{js,mjs,ts,tsx}!',

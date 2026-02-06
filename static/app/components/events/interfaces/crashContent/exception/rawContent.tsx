@@ -7,6 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -42,8 +43,17 @@ export default function RawContent({
     isError,
   } = useApiQuery<string>(
     [
-      // Note that this endpoint does not have a trailing slash for some reason
-      `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report`,
+      getApiUrl(
+        // Note that this endpoint does not have a trailing slash for some reason
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/apple-crash-report',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            eventId,
+          },
+        }
+      ),
       {
         query: {minified: String(type === 'minified')},
         headers: {Accept: '*/*; charset=utf-8'},

@@ -2,8 +2,10 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
@@ -66,16 +68,16 @@ export function ChapterList({timeRanges}: Props) {
 
   if (!chapterData?.length) {
     return (
-      <EmptyContainer>
+      <Container padding="xl">
         <Alert variant="info" showIcon={false}>
           {t('No chapters available for this replay.')}
         </Alert>
-      </EmptyContainer>
+      </Container>
     );
   }
 
   return (
-    <ChaptersList>
+    <Container flex="1">
       {chapterData.map(({title, start, end, breadcrumbs}, i) => (
         <ChapterRow
           key={i}
@@ -86,7 +88,7 @@ export function ChapterList({timeRanges}: Props) {
           onClickChapterTimestamp={onClickChapterTimestamp}
         />
       ))}
-    </ChaptersList>
+    </Container>
   );
 }
 
@@ -229,7 +231,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
@@ -252,10 +253,6 @@ const ChapterIconArrow = styled(IconChevron)`
   details[open] & {
     transform: rotate(180deg);
   }
-`;
-
-const ChaptersList = styled('div')`
-  flex: 1;
 `;
 
 const ChapterWrapper = styled('details')`
@@ -290,13 +287,11 @@ const ChapterWrapper = styled('details')`
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   [data-is-feedback='true'] {
@@ -404,8 +399,4 @@ const ReplayTimestamp = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   justify-content: flex-end;
-`;
-
-const EmptyContainer = styled('div')`
-  padding: ${space(2)};
 `;

@@ -22,6 +22,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -47,7 +48,14 @@ function CustomerUpgradeRequest() {
     data: customer,
     isPending,
     isError,
-  } = useApiQuery<Subscription>([`/customers/${orgId}/`], {staleTime: 0});
+  } = useApiQuery<Subscription>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: orgId},
+      }),
+    ],
+    {staleTime: 0}
+  );
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>();

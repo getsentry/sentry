@@ -1,9 +1,10 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {InputGroup, type InputProps} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {clamp} from 'sentry/utils/profiling/colors/utils';

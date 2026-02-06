@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueType, type Group} from 'sentry/types/group';
@@ -110,13 +111,14 @@ export function EventList({group}: EventListProps) {
                   pageCount={pageEventsCount}
                   totalCount={totalEventsCount}
                   tableUnits={t('events')}
+                  paginatorType="cursor"
                 />
               </HeaderItem>
               <HeaderItem>
                 <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -130,7 +132,7 @@ export function EventList({group}: EventListProps) {
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{

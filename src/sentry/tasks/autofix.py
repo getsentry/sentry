@@ -2,7 +2,10 @@ import logging
 from datetime import datetime, timedelta
 
 import sentry_sdk
+from django.utils import timezone
 
+from sentry import analytics
+from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -22,6 +25,8 @@ from sentry.seer.autofix.utils import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.state import current_task
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -52,10 +57,29 @@ def check_autofix_status(run_id: int, organization_id: int) -> None:
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int) -> None:
+def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary
 
+    trigger_path = kwargs.get("trigger_path", "unknown")
+    sentry_sdk.set_tag("trigger_path", trigger_path)
+
     group = Group.objects.get(id=group_id)
+    organization = group.project.organization
+
+    task_state = current_task()
+    if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.generate_summary_and_run_automation", sample_rate=1.0)
+        analytics.record(
+            AiAutofixAutomationEvent(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                task_name="generate_summary_and_run_automation",
+                issue_event_count=group.times_seen,
+                fixability_score=group.seer_fixability_score,
+            )
+        )
+
     get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
 
@@ -81,10 +105,21 @@ def generate_issue_summary_only(group_id: int) -> None:
 
     group = Group.objects.get(id=group_id)
     organization = group.project.organization
-    logger.info(
-        "Task: generate_issue_summary_only",
-        extra={"org_id": organization.id, "org_slug": organization.slug},
-    )
+
+    task_state = current_task()
+    if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.generate_issue_summary_only", sample_rate=1.0)
+        analytics.record(
+            AiAutofixAutomationEvent(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                task_name="generate_issue_summary_only",
+                issue_event_count=group.times_seen,
+                fixability_score=group.seer_fixability_score,
+            )
+        )
+
     summary_data, status_code = get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
@@ -119,16 +154,32 @@ def run_automation_only_task(group_id: int) -> None:
 
     group = Group.objects.get(id=group_id)
     organization = group.project.organization
-    logger.info(
-        "Task: run_automation_only_task",
-        extra={"org_id": organization.id, "org_slug": organization.slug},
-    )
+
+    task_state = current_task()
+    if task_state is None or task_state.attempt == 0:
+        metrics.incr("sentry.tasks.autofix.run_automation_only_task", sample_rate=1.0)
+        analytics.record(
+            AiAutofixAutomationEvent(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                task_name="run_automation_only",
+                issue_event_count=group.times_seen,
+                fixability_score=group.seer_fixability_score,
+            )
+        )
 
     event = group.get_latest_event()
 
     if not event:
         logger.warning("run_automation_only_task.no_event_found", extra={"group_id": group_id})
         return
+
+    # Track issue age when running automation
+    issue_age_days = int((timezone.now() - group.first_seen).total_seconds() / (60 * 60 * 24))
+    metrics.distribution(
+        "seer.automation.issue_age_since_first_seen", issue_age_days, unit="day", sample_rate=1.0
+    )
 
     run_automation(
         group=group, user=AnonymousUser(), event=event, source=SeerAutomationSource.POST_PROCESS
@@ -172,9 +223,11 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     # If seer is enabled for an org, every project must have project level settings
     for project in projects:
         project.update_option("sentry:seer_scanner_automation", True)
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
+        autofix_automation_tuning = project.get_option("sentry:autofix_automation_tuning")
+        if autofix_automation_tuning != AutofixAutomationTuningSettings.OFF:
+            project.update_option(
+                "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+            )
 
     preferences_by_id = bulk_get_project_preferences(organization_id, project_ids)
 

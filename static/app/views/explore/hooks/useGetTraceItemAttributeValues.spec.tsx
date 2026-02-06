@@ -108,4 +108,46 @@ describe('useGetTraceItemAttributeValues', () => {
     expect(searchQueryMock).not.toHaveBeenCalled();
     expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for numbers
   });
+
+  it('getTraceItemAttributeValues returns empty array for boolean type', async () => {
+    const mockSearchResponse = [
+      {
+        key: attributeKey,
+        value: 'true',
+        first_seen: null,
+        last_seen: null,
+        times_seen: null,
+      },
+    ];
+    const searchQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/trace-items/attributes/${attributeKey}/values/`,
+      body: mockSearchResponse,
+      match: [
+        (_url, options) => {
+          const query = options?.query || {};
+          return query.attributeType === 'boolean';
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {
+        traceItemType: TraceItemDataset.LOGS,
+        type: 'boolean',
+      },
+    });
+
+    const tag = {
+      key: attributeKey,
+      name: attributeKey,
+      kind: FieldKind.TAG,
+    };
+
+    expect(searchQueryMock).not.toHaveBeenCalled();
+
+    const searchResults = await result.current(tag, 'search-query');
+
+    expect(searchQueryMock).not.toHaveBeenCalled();
+    expect(searchResults).toEqual([]); // This will always return an empty array because we don't suggest values for booleans
+  });
 });

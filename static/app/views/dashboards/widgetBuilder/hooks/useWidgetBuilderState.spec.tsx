@@ -890,6 +890,30 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
 
+    it('resets display type to first supported type when switching to dataset with limited display types', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.TABLE},
+        })
+      );
+
+      const {result} = renderHook(useWidgetBuilderState, {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.PREPROD_APP_SIZE,
+        });
+      });
+
+      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+    });
+
     it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({

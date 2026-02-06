@@ -2,10 +2,10 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import IdBadge from 'sentry/components/idBadge';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -126,7 +126,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
           />
           <ButtonBar gap="xs">
             <SettingsButton
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconSettings variant="muted" />}
               title={t('Settings')}

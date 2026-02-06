@@ -8,7 +8,6 @@ from uuid import uuid4
 import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel, Field
-from urllib3.exceptions import TimeoutError
 
 from sentry import features, options
 from sentry.constants import VALID_PLATFORMS
@@ -30,7 +29,7 @@ from sentry.utils.redis import redis_clusters
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
 SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
-SEER_TIMEOUT_S = 180
+SEER_TIMEOUT_S = 10
 START_TIME_DELTA_MINUTES = 60
 TRANSACTION_BATCH_SIZE = 50
 NUM_TRANSACTIONS_TO_PROCESS = 10
@@ -42,22 +41,39 @@ MAX_LLM_FIELD_LENGTH = 2000
 
 
 seer_issue_detection_connection_pool = connection_from_url(
-    settings.SEER_SUMMARIZATION_URL,
+    settings.SEER_AUTOFIX_URL,
     timeout=SEER_TIMEOUT_S,
     retries=0,
     maxsize=10,
 )
 
 
-def mark_trace_as_processed(trace_id: str) -> bool:
-    """
-    Mark trace as processed for LLM issue detection to prevent duplicate analysis.
-    Returns True if successfully marked, False if already marked.
-    """
+def _get_unprocessed_traces(trace_ids: list[str]) -> set[str]:
+    """Return set of trace_ids that have NOT been processed"""
+    if not trace_ids:
+        return set()
     cluster = redis_clusters.get("default")
-    key = f"llm_detection:processed:{trace_id}"
-    result = cluster.set(key, "1", nx=True, ex=TRACE_PROCESSING_TTL_SECONDS)
-    return bool(result)
+    keys = [f"llm_detection:processed:{tid}" for tid in trace_ids]
+    results = cluster.mget(keys)
+    return {tid for tid, val in zip(trace_ids, results) if val is None}
+
+
+def mark_traces_as_processed(trace_ids: list[str]) -> None:
+    """
+    Mark traces as processed for LLM issue detection to prevent duplicate analysis.
+
+    Will overwrite existing keys to refresh the TTL, since reaching this point
+    means we have confirmation that the trace is being processed.
+    """
+    if not trace_ids:
+        return
+
+    cluster = redis_clusters.get("default")
+    with cluster.pipeline() as pipeline:
+        for trace_id in trace_ids:
+            key = f"llm_detection:processed:{trace_id}"
+            pipeline.set(key, "1", ex=TRACE_PROCESSING_TTL_SECONDS)
+        pipeline.execute()
 
 
 class DetectedIssue(BaseModel):
@@ -76,15 +92,11 @@ class DetectedIssue(BaseModel):
     transaction_name: str
 
 
-class IssueDetectionResponse(BaseModel):
-    issues: list[DetectedIssue]
-    traces_analyzed: int
-
-
 class IssueDetectionRequest(BaseModel):
     traces: list[TraceMetadata]
     organization_id: int
     project_id: int
+    org_slug: str
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -113,17 +125,11 @@ def get_base_platform(platform: str | None) -> str | None:
 
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
-    project_id: int | None = None,
-    project: Project | None = None,
+    project: Project,
 ) -> None:
     """
     Create and produce an IssueOccurrence from an LLM-detected issue.
     """
-    if project is None:
-        if project_id is None:
-            raise ValueError("Either project or project_id must be provided")
-        project = Project.objects.get_from_cache(id=project_id)
-
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
@@ -200,7 +206,7 @@ def get_enabled_project_ids() -> list[int]:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.run_llm_issue_detection",
     namespace=issues_tasks,
-    processing_deadline_duration=120,
+    processing_deadline_duration=120,  # 2 minutes
 )
 def run_llm_issue_detection() -> None:
     """
@@ -217,7 +223,7 @@ def run_llm_issue_detection() -> None:
     for index, project_id in enumerate(enabled_project_ids):
         detect_llm_issues_for_project.apply_async(
             args=[project_id],
-            countdown=index * 120,
+            countdown=index * 90,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -225,7 +231,7 @@ def run_llm_issue_detection() -> None:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
     namespace=issues_tasks,
-    processing_deadline_duration=10 * 60,
+    processing_deadline_duration=180,  # 3 minutes
 )
 def detect_llm_issues_for_project(project_id: int) -> None:
     """
@@ -239,6 +245,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
     organization_id = organization.id
+    organization_slug = organization.slug
 
     has_access = features.has("organizations:gen-ai-features", organization) and not bool(
         organization.get_option("sentry:hide_ai_features")
@@ -252,70 +259,66 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not evidence_traces:
         return
 
-    # Shuffle to randomize order
+    # Shuffle to randomize selection
     random.shuffle(evidence_traces)
-    processed_traces = 0
 
-    for trace in evidence_traces:
-        if processed_traces >= NUM_TRANSACTIONS_TO_PROCESS:
-            break
+    # Bulk check which traces are already processed
+    all_trace_ids = [t.trace_id for t in evidence_traces]
+    unprocessed_ids = _get_unprocessed_traces(all_trace_ids)
+    skipped = len(all_trace_ids) - len(unprocessed_ids)
+    if skipped:
+        sentry_sdk.metrics.count("llm_issue_detection.trace.skipped", skipped)
 
-        if not mark_trace_as_processed(trace.trace_id):
-            sentry_sdk.metrics.count(
-                "llm_issue_detection.trace.skipped",
-                1,
-            )
-            continue
+    # Take up to NUM_TRANSACTIONS_TO_PROCESS
+    traces_to_send: list[TraceMetadata] = [
+        t for t in evidence_traces if t.trace_id in unprocessed_ids
+    ][:NUM_TRANSACTIONS_TO_PROCESS]
 
-        trace_id = trace.trace_id
-        sentry_sdk.metrics.count(
-            "llm_issue_detection.seer_request", 1, attributes={"trace_id": trace_id}
+    if not traces_to_send:
+        return
+
+    sentry_sdk.metrics.count(
+        "llm_issue_detection.seer_request",
+        1,
+        attributes={"trace_count": len(traces_to_send)},
+    )
+
+    seer_request = IssueDetectionRequest(
+        traces=traces_to_send,
+        organization_id=organization_id,
+        project_id=project_id,
+        org_slug=organization_slug,
+    )
+
+    response = make_signed_seer_api_request(
+        connection_pool=seer_issue_detection_connection_pool,
+        path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
+        body=json.dumps(seer_request.dict()).encode("utf-8"),
+        timeout=SEER_TIMEOUT_S,
+        retries=0,
+    )
+
+    if response.status == 202:
+        mark_traces_as_processed([trace.trace_id for trace in traces_to_send])
+
+        logger.info(
+            "llm_issue_detection.request_accepted",
+            extra={
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "trace_count": len(traces_to_send),
+            },
         )
-        seer_request = IssueDetectionRequest(
-            traces=[trace],
-            organization_id=organization_id,
-            project_id=project_id,
-        )
+        return
 
-        try:
-            response = make_signed_seer_api_request(
-                connection_pool=seer_issue_detection_connection_pool,
-                path=SEER_ANALYZE_ISSUE_ENDPOINT_PATH,
-                body=json.dumps(seer_request.dict()).encode("utf-8"),
-                timeout=SEER_TIMEOUT_S,
-                retries=0,
-            )
-        except TimeoutError:
-            logger.exception("LLM Issue Detection Seer timeout", extra={"trace_id": trace_id})
-            continue
-
-        if response.status < 200 or response.status >= 300:
-            logger.error(
-                "LLM issue Detection Seer response failure",
-                extra={
-                    "status_code": response.status,
-                    "response_data": response.data,
-                    "trace_id": trace_id,
-                },
-            )
-            continue
-
-        raw_response_data = response.json()
-        response_data = IssueDetectionResponse.parse_obj(raw_response_data)
-        processed_traces += response_data.traces_analyzed
-
-        for detected_issue in response_data.issues:
-            logger.info(
-                "LLM Issue Detection Result",
-                extra={
-                    "title": detected_issue.title,
-                    "trace_id": trace_id,
-                    "project_id": project_id,
-                    "category": detected_issue.category,
-                    "subcategory": detected_issue.subcategory,
-                },
-            )
-            create_issue_occurrence_from_detection(
-                detected_issue=detected_issue,
-                project_id=project_id,
-            )
+    # Log (+ send to sentry) unexpected responses
+    logger.error(
+        "llm_issue_detection.unexpected_response",
+        extra={
+            "status_code": response.status,
+            "response_data": response.data,
+            "project_id": project_id,
+            "organization_id": organization_id,
+            "trace_count": len(traces_to_send),
+        },
+    )

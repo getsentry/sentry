@@ -64,7 +64,6 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
                 parent_span_id=None,
                 project_id=self.project.id,
                 milliseconds=3000,
-                is_eap=True,
             )
 
             # Visit the trace view and wait till waterfall loads

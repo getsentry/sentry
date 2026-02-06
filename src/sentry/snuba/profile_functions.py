@@ -33,7 +33,6 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
@@ -53,5 +52,5 @@ class ProfileFunctions(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 additional_queries=additional_queries,
             ),
-            debug=debug,
+            debug=params.debug,
         )

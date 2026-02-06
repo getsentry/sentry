@@ -2,14 +2,14 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {InlineCode} from 'sentry/components/core/code/inlineCode';
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {
   CrumbContainer,
@@ -33,6 +33,7 @@ import {
   IconCalendar,
   IconClock,
   IconFire,
+  IconFocus,
   IconLink,
   IconSync,
   IconUser,
@@ -46,6 +47,7 @@ import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -86,19 +88,6 @@ export interface ClusterSummary {
   impact?: string;
   location?: string;
   service_tags?: string[];
-}
-
-function renderWithInlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  if (parts.length === 1) {
-    return text;
-  }
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
-    }
-    return part;
-  });
 }
 
 function getStacktraceFromEvent(event: Event): StacktraceType | null {
@@ -608,7 +597,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
             skipWrapper
             maxWidth={360}
           >
-            <TagBarHoverArea>
+            <Flex align="center" padding="xs 0" width="100%" height="100%">
               <TagMiniBar aria-hidden="true">
                 {barValues.map((value, index) => {
                   const pct = totalCount > 0 ? (value.count / totalCount) * 100 : 0;
@@ -623,7 +612,7 @@ function DenseTagItem({tag, colors}: DenseTagItemProps) {
                   );
                 })}
               </TagMiniBar>
-            </TagBarHoverArea>
+            </Flex>
           </Tooltip>
         ) : (
           <Text size="xs" variant="muted">
@@ -674,16 +663,6 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setStackTraceGroupId(cluster.group_ids[0]!);
   }, [cluster.group_ids]);
-
-  const allTags = useMemo(() => {
-    return [
-      ...new Set([
-        ...(cluster.error_type_tags ?? []),
-        ...(cluster.code_area_tags ?? []),
-        ...(cluster.service_tags ?? []),
-      ]),
-    ];
-  }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
 
   const relevancePercent = cluster.fixability_score
     ? Math.round(cluster.fixability_score * 100)
@@ -747,11 +726,15 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
           <Container padding="2xl" borderBottom="muted">
             <Flex direction="column" gap="xs" marginBottom="lg">
               <Heading as="h2" size="lg">
-                {renderWithInlineCode(cluster.impact || cluster.title)}
+                <StyledMarkedText
+                  text={cluster.impact || cluster.title}
+                  inline
+                  as="span"
+                />
               </Heading>
               {cluster.impact ? (
                 <Text size="sm" variant="muted">
-                  {renderWithInlineCode(cluster.title)}
+                  <StyledMarkedText text={cluster.title} inline as="span" />
                 </Text>
               ) : null}
             </Flex>
@@ -838,34 +821,31 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
               )}
             </Flex>
 
-            {allTags.length > 0 && (
-              <Flex wrap="wrap" gap="xs">
-                {allTags.slice(0, 8).map(tag => (
-                  <TagPill key={tag}>{tag}</TagPill>
-                ))}
-                {allTags.length > 8 && <TagPill>+{allTags.length - 8}</TagPill>}
-              </Flex>
+            {cluster.summary && (
+              <Container
+                background="secondary"
+                border="primary"
+                radius="md"
+                marginTop="lg"
+              >
+                <Flex direction="column" padding="md lg" gap="sm">
+                  <Flex align="center" gap="xs">
+                    <IconFocus size="xs" variant="promotion" />
+                    <Text size="sm" bold>
+                      {t('Root Cause')}
+                    </Text>
+                  </Flex>
+                  <RootCauseContent>
+                    <StyledMarkedText text={cluster.summary} inline as="span" />
+                  </RootCauseContent>
+                </Flex>
+              </Container>
             )}
           </Container>
 
           <Grid padding="sm" gap="sm">
-            <Disclosure size="sm" expanded>
-              <Disclosure.Title>{t('What went wrong')}</Disclosure.Title>
-              <Disclosure.Content>
-                <div style={{minHeight: 60}}>
-                  {cluster.summary ? (
-                    <Text size="sm">{renderWithInlineCode(cluster.summary)}</Text>
-                  ) : (
-                    <Text size="sm" variant="muted">
-                      {t('No summary available')}
-                    </Text>
-                  )}
-                </div>
-              </Disclosure.Content>
-            </Disclosure>
-
             {stackTraceGroupId > 0 && (
-              <Disclosure size="sm">
+              <Disclosure size="sm" expanded>
                 <Disclosure.Title
                   trailingItems={
                     <Button
@@ -926,16 +906,6 @@ export function ClusterDetailDrawer({cluster}: {cluster: ClusterSummary}) {
   );
 }
 
-const TagPill = styled('span')`
-  display: inline-block;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.primary};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 20px;
-`;
-
 const IssueTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
@@ -966,6 +936,18 @@ const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
   background-color: ${p => p.theme.tokens.border.secondary};
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
+  }
+`;
+
+const RootCauseContent = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  line-height: 1.5;
 `;
 
 const IssuePreviewCard = styled('div')`
@@ -1050,14 +1032,6 @@ const TagMiniBar = styled('div')`
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
-`;
-
-const TagBarHoverArea = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const DenseTagChip = styled('div')`

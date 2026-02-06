@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
@@ -58,7 +59,7 @@ export default function AutomationBuilder() {
               {
                 when: <ConditionBadge />,
                 selector: showTriggerLogicTypeSelector ? (
-                  <EmbeddedWrapper>
+                  <Container width="80px">
                     <EmbeddedSelectField
                       styles={{
                         control: (provided: any) => ({
@@ -85,7 +86,7 @@ export default function AutomationBuilder() {
                       options={TRIGGER_MATCH_OPTIONS}
                       size="xs"
                     />
-                  </EmbeddedWrapper>
+                  </Container>
                 ) : (
                   <strong>{t('any')}</strong>
                 ),
@@ -118,7 +119,7 @@ export default function AutomationBuilder() {
         ))}
         <span>
           <PurpleTextButton
-            borderless
+            priority="transparent"
             icon={<IconAdd />}
             size="xs"
             onClick={() => actions.addIf()}
@@ -175,7 +176,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
             {tct('[if: If] [selector] of these filters match', {
               if: <ConditionBadge />,
               selector: (
-                <EmbeddedWrapper>
+                <Container width="80px">
                   <EmbeddedSelectField
                     styles={{
                       control: (provided: any) => ({
@@ -203,7 +204,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                       actions.updateIfLogicType(actionFilter.id, option.value)
                     }
                   />
-                </EmbeddedWrapper>
+                </Container>
               ),
             })}
           </StepLead>
@@ -212,7 +213,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
-              borderless
+              priority="transparent"
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />
@@ -274,10 +275,6 @@ const EmbeddedSelectField = styled(Select)`
   padding: 0;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
-`;
-
-const EmbeddedWrapper = styled('div')`
-  width: 80px;
 `;
 
 const IfThenWrapper = styled(Flex)`
