@@ -184,7 +184,7 @@ function TagTreeColumns({
           return {startIndex, runningTotal, columns};
         }
         // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal >= columnRowGoal) {
+        if (runningTotal > columnRowGoal) {
           columns.push(
             <TreeColumn key={columns.length} data-test-id="tag-tree-column">
               {tagTreeRowGroups.slice(startIndex, index)}

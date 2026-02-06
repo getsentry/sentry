@@ -210,5 +210,5 @@ export function getRelativeDate(
     return deltaText;
   }
 
-  return isFuture ? `${prefix} ${deltaText}` : `${deltaText} ${suffix}`;
+  return isFuture ? `${deltaText} ${suffix}` : `${prefix} ${deltaText}`;
 }

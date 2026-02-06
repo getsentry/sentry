@@ -106,7 +106,7 @@ export function formatAbbreviatedNumberWithDynamicPrecision(
   // numbers less than 1 will have a negative log10
   const numOfDigits = log10 < 0 ? 1 : Math.floor(log10) + 1;
 
-  const maxStep = numberFormatSteps[0][0];
+  const maxStep = numberFormatSteps[1][0];
 
   // if the number is larger than the largest step, we determine the number of digits
   // by dividing the number by the largest step, otherwise the number of formatted
@@ -295,7 +295,7 @@ export function formatTimeDuration(duration?: number, numLargestUnitsToShow?: nu
   if (
     typeof numLargestUnitsToShow === 'number' &&
     numLargestUnitsToShow > 0 &&
-    parts.length > numLargestUnitsToShow
+    parts.length >= numLargestUnitsToShow
   ) {
     parts.splice(numLargestUnitsToShow, parts.length - numLargestUnitsToShow);
   }
