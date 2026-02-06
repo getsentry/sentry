@@ -30,7 +30,9 @@ export function useDebouncedValue<T>(
 
   useEffect(() => {
     return () => {
-      debounceFn.cancel();
+      // debounceFn may be undefined during unmount in React 19 strict mode
+      // when the ref is reset between effect invocations
+      debounceFn?.cancel();
     };
   }, [debounceFn]);
 
