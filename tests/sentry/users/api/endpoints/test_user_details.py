@@ -211,6 +211,20 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
 
+    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    def test_user_cannot_elevate_when_superuser_org_not_configured(self) -> None:
+        """Verify users cannot elevate when SUPERUSER_ORG_ID is None (not configured)"""
+        from sentry.users.api.endpoints.user_details import user_can_elevate
+
+        # SUPERUSER_ORG_ID defaults to None, don't override it
+        # Even if user is in org 1, they can't elevate without SUPERUSER_ORG_ID configured
+        with assume_test_silo_mode(SiloMode.REGION):
+            org = self.create_organization(id=1, name="Default Org")
+            self.create_member(user=self.user, organization=org)
+
+        # user_can_elevate should return False when SUPERUSER_ORG_ID is None
+        assert not user_can_elevate(self.user)
+
 
 @control_silo_test
 @override_options({"staff.ga-rollout": False})
@@ -504,7 +518,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.name == "New Name"
         assert user.username == "newemail@example.com"
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_superuser(self) -> None:
         """Test that superuser with permission can remove superuser status"""
         # Add user to org 1 so they pass the user_can_elevate check
@@ -525,7 +539,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         user = User.objects.get(id=self.user.id)
         assert not user.is_superuser
 
-    @override_settings(SENTRY_MODE=SentryMode.SAAS)
+    @override_settings(SENTRY_MODE=SentryMode.SAAS, SUPERUSER_ORG_ID=1)
     def test_superuser_with_permission_can_remove_staff(self) -> None:
         """Test that superuser with permission can remove staff status"""
         # Add user to org 1 so they pass the user_can_elevate check
