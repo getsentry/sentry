@@ -200,6 +200,7 @@ class GitHubWebhook(SCMWebhook, ABC):
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         github_event = kwargs["github_event"]
+        github_delivery_id = kwargs.get("github_delivery_id")
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -276,6 +277,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                     event=event,
                     organization=orgs[repo.organization_id],
                     repo=repo,
+                    github_delivery_id=github_delivery_id,
                 )
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:

@@ -721,9 +721,9 @@ class PullRequestEventWebhook(APITestCase):
         assert response.status_code == 204
         return integration
 
-    @patch("sentry.integrations.github.webhook.code_review_handle_webhook_event")
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     def test_github_delivery_id_extracted_and_passed_to_processors(
-        self, mock_code_review_handle: MagicMock
+        self, mock_handler: MagicMock
     ) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -734,6 +734,12 @@ class PullRequestEventWebhook(APITestCase):
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             ).add_organization(self.project.organization.id, self.user)
 
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
         body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
         delivery_id = "test-delivery-id-abc123"
 
@@ -748,14 +754,12 @@ class PullRequestEventWebhook(APITestCase):
         )
 
         assert response.status_code == 204
-        mock_code_review_handle.assert_called()
-        call_kwargs = mock_code_review_handle.call_args[1]
+        mock_handler.assert_called_once()
+        call_kwargs = mock_handler.call_args[1]
         assert call_kwargs["github_delivery_id"] == delivery_id
 
-    @patch("sentry.integrations.github.webhook.code_review_handle_webhook_event")
-    def test_github_delivery_id_missing_passed_as_none(
-        self, mock_code_review_handle: MagicMock
-    ) -> None:
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
+    def test_github_delivery_id_missing_passed_as_none(self, mock_handler: MagicMock) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_integration(
@@ -765,6 +769,12 @@ class PullRequestEventWebhook(APITestCase):
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             ).add_organization(self.project.organization.id, self.user)
 
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
         body = PULL_REQUEST_OPENED_EVENT_EXAMPLE
 
         response = self.client.post(
@@ -778,8 +788,8 @@ class PullRequestEventWebhook(APITestCase):
         )
 
         assert response.status_code == 204
-        mock_code_review_handle.assert_called()
-        call_kwargs = mock_code_review_handle.call_args[1]
+        mock_handler.assert_called_once()
+        call_kwargs = mock_handler.call_args[1]
         assert call_kwargs["github_delivery_id"] is None
 
     @responses.activate
