@@ -1,4 +1,4 @@
-from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -101,20 +101,19 @@ class TestMapRepositoryModelToRepository(TestCase):
 
 
 class TestMapIntegrationToProvider(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_returns_github_provider_for_github_integration(self, mock_get_jwt):
+    def test_returns_github_provider_for_github_integration(self):
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
             name="Github Test Org",
             external_id="1",
-            metadata={
-                "access_token": "12345token",
-                "expires_at": "2099-01-01T00:00:00",
-            },
         )
 
-        provider = map_integration_to_provider(self.organization.id, integration)
+        provider = map_integration_to_provider(
+            self.organization.id,
+            integration,
+            get_installation=lambda _, oid: MagicMock(),
+        )
 
         assert isinstance(provider, GitHubProvider)
 
@@ -126,28 +125,32 @@ class TestMapIntegrationToProvider(TestCase):
             external_id="1",
         )
 
-        with mock.patch.object(integration, "get_installation"):
-            with pytest.raises(SCMCodedError) as exc_info:
-                map_integration_to_provider(self.organization.id, integration)
+        with pytest.raises(SCMCodedError) as exc_info:
+            map_integration_to_provider(
+                self.organization.id,
+                integration,
+                get_installation=lambda _, oid: MagicMock(),
+            )
 
         assert exc_info.value.code == "integration_not_found"
 
 
 class TestFetchServiceProvider(TestCase):
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_returns_github_provider_for_github_integration(self, mock_get_jwt):
+    def test_returns_provider_from_map_to_provider(self):
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
             name="Github Test Org",
             external_id="1",
-            metadata={
-                "access_token": "12345token",
-                "expires_at": "2099-01-01T00:00:00",
-            },
         )
 
-        provider = fetch_service_provider(self.organization.id, integration.id)
+        provider = fetch_service_provider(
+            self.organization.id,
+            integration.id,
+            map_to_provider=lambda i, oid: map_integration_to_provider(
+                oid, i, get_installation=lambda _, __: MagicMock()
+            ),
+        )
 
         assert isinstance(provider, GitHubProvider)
 

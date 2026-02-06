@@ -82,6 +82,7 @@ class BaseTestProvider(Provider):
             head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
             base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
             author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+            provider="test",
             raw=raw,
         )
 
@@ -93,8 +94,7 @@ class BaseTestProvider(Provider):
                 id="101",
                 body="Test comment",
                 author={"id": "1", "username": "testuser"},
-                created_at="2024-01-01T00:00:00Z",
-                updated_at="2024-01-01T00:00:00Z",
+                provider="test",
                 raw={},
             )
         ]
@@ -115,8 +115,7 @@ class BaseTestProvider(Provider):
                 id="201",
                 body="PR review comment",
                 author={"id": "2", "username": "reviewer"},
-                created_at="2024-01-02T00:00:00Z",
-                updated_at="2024-01-02T00:00:00Z",
+                provider="test",
                 raw={},
             )
         ]
@@ -131,8 +130,8 @@ class BaseTestProvider(Provider):
 
     # Comment reactions
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[Reaction]:
-        return ["+1", "eyes"]
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> dict[Reaction, int]:
+        return {"+1": 1, "eyes": 1}
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -210,6 +209,14 @@ class FakeGitHubApiClient(GitHubApiClient):
 
     def delete(self, path: str) -> None:
         self._record_call("delete", path)
+        self._maybe_raise()
+
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        self._record_call("delete_issue_comment", repo, comment_id)
+        self._maybe_raise()
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        self._record_call("delete_comment_reaction", repo, comment_id, reaction_id)
         self._maybe_raise()
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> list[dict[str, Any]]:

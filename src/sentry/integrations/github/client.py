@@ -652,6 +652,18 @@ class GitHubBaseClient(
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
 
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/issues/comments#delete-an-issue-comment
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-comment-reaction
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
+
     def get_user(self, gh_username: str) -> Any:
         """
         https://docs.github.com/en/rest/users/users#get-a-user
