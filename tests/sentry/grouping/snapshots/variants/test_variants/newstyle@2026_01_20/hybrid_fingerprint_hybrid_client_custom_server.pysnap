@@ -167,7 +167,7 @@ app:
             context_line*
               "raise SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
-custom_fingerprint:
+custom_server_fingerprint:
   hash: "554e214208f0372603dc9fa6c1c0965f"
   fingerprint_info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
   values: ["soft-timelimit-exceeded"]
