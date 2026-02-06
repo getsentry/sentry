@@ -41,10 +41,10 @@ jobs:
           mode: backend-ci
 
       - name: Run tests with xdist -n2 --dist=loadfile
-        env:
-          # Override PYTEST_ADDOPTS to remove --reruns (incompatible with xdist)
-          PYTEST_ADDOPTS: "--durations=10 --fail-slow=60s"
         run: |
+          # Strip --reruns from PYTEST_ADDOPTS (incompatible with xdist)
+          export PYTEST_ADDOPTS=$(echo "$PYTEST_ADDOPTS" | sed 's/--reruns=[0-9]*//')
+          echo "PYTEST_ADDOPTS=$PYTEST_ADDOPTS"
           python3 -b -m pytest \
             tests \
             --reuse-db \
