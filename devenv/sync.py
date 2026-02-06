@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.metadata
 import json
 import os
 import shlex
@@ -73,16 +72,6 @@ failed command (code {p.returncode}):
     return all_good
 
 
-# Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str) -> bool:
-    version = importlib.metadata.version("sentry-devenv")
-
-    parsed_version = tuple(map(int, version.split(".")))
-    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
-
-    return parsed_version >= parsed_minimum_version
-
-
 def installed_pnpm(version: str, binroot: str) -> bool:
     if shutil.which("pnpm", path=binroot) != f"{binroot}/pnpm" or not os.path.exists(
         f"{binroot}/node-env/bin/pnpm"
@@ -119,20 +108,6 @@ exec {binroot}/node-env/bin/pnpm "$@"
 
 
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.22.0"
-    if not check_minimum_version(minimum_version):
-        raise SystemExit(
-            f"""
-In order to use uv, devenv must be at least version {minimum_version}.
-
-Please run the following to update your global devenv:
-devenv update
-
-Then, use it to run sync this time:
-{constants.root}/bin/devenv sync
-"""
-        )
-
     repo = context["repo"]
     reporoot = context["reporoot"]
     cfg = config.get_repo(reporoot)
@@ -148,14 +123,9 @@ Then, use it to run sync this time:
         colima.uninstall(binroot)
         limactl.uninstall(binroot)
 
-    from devenv.lib import uv
-
-    uv.install(
-        cfg["uv"]["version"],
-        cfg["uv"][constants.SYSTEM_MACHINE],
-        cfg["uv"][f"{constants.SYSTEM_MACHINE}_sha256"],
-        reporoot,
-    )
+    if not shutil.which("uv"):
+        print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
+        return 1
 
     from devenv.lib import node
 
