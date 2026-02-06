@@ -935,6 +935,7 @@ const IssueMessage = styled(EventMessage)`
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.secondary};
 `;
 
@@ -1031,6 +1032,7 @@ const TagMiniBar = styled('div')`
   border-radius: 3px;
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
 `;
 

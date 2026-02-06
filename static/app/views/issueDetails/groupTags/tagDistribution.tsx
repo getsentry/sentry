@@ -172,6 +172,7 @@ const TagBarPlaceholder = styled('div')`
   height: ${space(1)};
   width: 100%;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;

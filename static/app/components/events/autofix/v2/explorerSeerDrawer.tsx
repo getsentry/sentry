@@ -449,6 +449,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
