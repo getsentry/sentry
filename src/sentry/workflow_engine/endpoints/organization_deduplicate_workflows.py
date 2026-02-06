@@ -36,6 +36,8 @@ class WorkflowData:
     def serialize(self) -> str:
         # Extract triggers
         trigger_conditions = []
+        trigger_group = {}
+
         if self.workflow.when_condition_group is not None:
             for condition in self.workflow.when_condition_group.prefetched_trigger_conditions:
                 trigger_conditions.append(
@@ -45,6 +47,15 @@ class WorkflowData:
                         "result": condition.condition_result,
                     }
                 )
+            # Sort trigger conditions and action groups for consistent hashing
+            trigger_conditions.sort(
+                key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
+            )
+
+            trigger_group = {
+                "conditions": trigger_conditions,
+                "logic_type": self.workflow.when_condition_group.logic_type,
+            }
 
         # Extract action groups
         action_groups = []
@@ -82,10 +93,6 @@ class WorkflowData:
                 }
             )
 
-        # Sort trigger conditions and action groups for consistent hashing
-        trigger_conditions.sort(
-            key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))  # type: ignore[arg-type]
-        )
         action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))  # type: ignore[arg-type]
 
         workflow_data = {
@@ -94,7 +101,7 @@ class WorkflowData:
             "environment_id": self.workflow.environment_id,
             "enabled": self.workflow.enabled,
             "organization_id": self.workflow.organization_id,
-            "trigger_conditions": trigger_conditions,
+            "trigger_group": trigger_group,
         }
 
         return json.dumps(workflow_data, sort_keys=True)  # type: ignore[arg-type]
