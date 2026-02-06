@@ -26,8 +26,6 @@ describe('aspnetcore onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify Metrics'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry

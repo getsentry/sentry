@@ -5,8 +5,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
-import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -41,12 +39,6 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;`
                 : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            options.EnableLogs = true;`
-                : ''
             }
             // If you installed Sentry.Xamarin.Forms:
             options.AddXamarinFormsIntegration();
@@ -68,12 +60,6 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;`
                 : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            options.EnableLogs = true;`
-                : ''
             }
             options.AddXamarinFormsIntegration();
         });`;
@@ -93,12 +79,6 @@ sealed partial class App : Application
             // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;`
-                : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            options.EnableLogs = true;`
                 : ''
             }
             options.AddXamarinFormsIntegration();
@@ -214,7 +194,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       content: [
@@ -233,8 +213,6 @@ export const onboarding: OnboardingConfig = {
             'You might need to open the app again for the crash report to be sent to the server.'
           ),
         },
-        logsVerify(params),
-        metricsVerify(params),
       ],
     },
     {

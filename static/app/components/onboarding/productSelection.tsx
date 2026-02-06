@@ -134,11 +134,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
-  'dotnet-xamarin': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.LOGS,
-    ProductSolution.METRICS,
-  ],
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [
