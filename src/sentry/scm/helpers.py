@@ -134,5 +134,5 @@ def exec_provider_fn[T](
 
     try:
         return provider_fn(repository, provider)
-    except KeyError as e:
+    except Exception as e:
         raise SCMUnhandledException from e

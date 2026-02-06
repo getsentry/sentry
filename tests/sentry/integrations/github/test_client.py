@@ -378,37 +378,32 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions(self, get_jwt) -> None:
-        comment_reactions = {
-            "reactions": {
-                "url": "abcdef",
-                "hooray": 1,
-                "+1": 2,
-                "-1": 0,
-            }
-        }
+        reaction_list = [
+            {"id": 1, "content": "hooray", "user": {"login": "octocat", "id": 1}},
+            {"id": 2, "content": "+1", "user": {"login": "hubot", "id": 2}},
+        ]
         responses.add(
             responses.GET,
-            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
-            json=comment_reactions,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2/reactions?per_page=100",
+            json=reaction_list,
+            headers={},
         )
 
         reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
-        stored_reactions = comment_reactions["reactions"]
-        del stored_reactions["url"]
-        assert reactions == stored_reactions
+        assert reactions == reaction_list
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions_missing_reactions(self, get_jwt) -> None:
-        comment_reactions = {"other": "stuff"}
+    def test_get_comment_reactions_empty(self, get_jwt) -> None:
         responses.add(
             responses.GET,
-            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
-            json=comment_reactions,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2/reactions?per_page=100",
+            json=[],
+            headers={},
         )
 
         reactions = self.github_client.get_comment_reactions(repo=self.repo.name, comment_id="2")
-        assert reactions == {}
+        assert reactions == []
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

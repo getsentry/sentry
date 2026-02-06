@@ -12,9 +12,10 @@ from sentry.scm.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.types import (
-    Comment,
+    CommentActionResult,
+    IssueReaction,
     Provider,
-    PullRequest,
+    PullRequestActionResult,
     Reaction,
     Referrer,
     Repository,
@@ -91,7 +92,7 @@ class SourceCodeManager:
             fetch_service_provider=lambda _, __: provider,
         )
 
-    def get_issue_comments(self, issue_id: str) -> list[Comment]:
+    def get_issue_comments(self, issue_id: str) -> list[CommentActionResult]:
         """Get comments on an issue."""
         return exec_provider_fn(
             self.organization_id,
@@ -124,7 +125,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_issue_comment(r, comment_id),
         )
 
-    def get_pull_request(self, pull_request_id: str) -> PullRequest:
+    def get_pull_request(self, pull_request_id: str) -> PullRequestActionResult:
         """Get a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -135,7 +136,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.get_pull_request(r, pull_request_id),
         )
 
-    def get_pull_request_comments(self, pull_request_id: str) -> list[Comment]:
+    def get_pull_request_comments(self, pull_request_id: str) -> list[CommentActionResult]:
         """Get comments on a pull request."""
         return exec_provider_fn(
             self.organization_id,
@@ -168,7 +169,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_pull_request_comment(r, comment_id),
         )
 
-    def get_comment_reactions(self, comment_id: str) -> dict[Reaction, int]:
+    def get_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
         """Get reactions on a comment."""
         return exec_provider_fn(
             self.organization_id,
@@ -201,7 +202,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_comment_reaction(r, comment_id, reaction_id),
         )
 
-    def get_issue_reactions(self, issue_id: str) -> list[Reaction]:
+    def get_issue_reactions(self, issue_id: str) -> list[IssueReaction]:
         """Get reactions on an issue."""
         return exec_provider_fn(
             self.organization_id,

@@ -3,7 +3,17 @@ from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
-from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
+from sentry.scm.types import (
+    Comment,
+    CommentActionResult,
+    IssueReaction,
+    Provider,
+    PullRequest,
+    PullRequestActionResult,
+    Reaction,
+    Referrer,
+    Repository,
+)
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -66,34 +76,32 @@ class BaseTestProvider(Provider):
 
     # Pull request
 
-    def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
+    def get_pull_request(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestActionResult:
         raw: dict[str, Any] = {
-            "id": 1,
-            "title": "Test PR",
-            "body": None,
-            "head": {"ref": "feature", "sha": "abc123"},
-            "base": {"ref": "main", "sha": "def456"},
-            "user": {"id": 1, "login": "testuser"},
+            "head": {"sha": "abc123"},
         }
-        return PullRequest(
-            id=str(raw["id"]),
-            title=raw["title"],
-            description=raw["body"],
-            head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
-            base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
-            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        return PullRequestActionResult(
+            pull_request=PullRequest(
+                head={"sha": raw["head"]["sha"]},
+            ),
             provider="test",
             raw=raw,
         )
 
     # Issue comments
 
-    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
+    def get_issue_comments(
+        self, repository: Repository, issue_id: str
+    ) -> list[CommentActionResult]:
         return [
-            Comment(
-                id="101",
-                body="Test comment",
-                author={"id": "1", "username": "testuser"},
+            CommentActionResult(
+                comment=Comment(
+                    id="101",
+                    body="Test comment",
+                    author={"id": "1", "username": "testuser"},
+                ),
                 provider="test",
                 raw={},
             )
@@ -109,12 +117,14 @@ class BaseTestProvider(Provider):
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
-    ) -> list[Comment]:
+    ) -> list[CommentActionResult]:
         return [
-            Comment(
-                id="201",
-                body="PR review comment",
-                author={"id": "2", "username": "reviewer"},
+            CommentActionResult(
+                comment=Comment(
+                    id="201",
+                    body="PR review comment",
+                    author={"id": "2", "username": "reviewer"},
+                ),
                 provider="test",
                 raw={},
             )
@@ -130,8 +140,11 @@ class BaseTestProvider(Provider):
 
     # Comment reactions
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> dict[Reaction, int]:
-        return {"+1": 1, "eyes": 1}
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[IssueReaction]:
+        return [
+            IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+            IssueReaction(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
+        ]
 
     def create_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -145,8 +158,11 @@ class BaseTestProvider(Provider):
 
     # Issue reactions
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
-        return ["+1", "heart"]
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
+        return [
+            IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+            IssueReaction(id="2", content="heart", author={"id": "2", "username": "otheruser"}),
+        ]
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction

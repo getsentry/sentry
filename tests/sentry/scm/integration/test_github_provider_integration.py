@@ -72,10 +72,11 @@ class TestGitHubProviderIntegration(TestCase):
         comments = self.provider.get_issue_comments(self.repository, "1347")
 
         assert len(comments) == 1
-        assert comments[0]["id"] == "1"
-        assert comments[0]["body"] == "Me too"
-        assert comments[0]["author"]["id"] == "1"
-        assert comments[0]["author"]["username"] == "octocat"
+        assert comments[0]["comment"]["id"] == "1"
+        assert comments[0]["comment"]["body"] == "Me too"
+        assert comments[0]["comment"]["author"] is not None
+        assert comments[0]["comment"]["author"]["id"] == "1"
+        assert comments[0]["comment"]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -160,17 +161,10 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        pr = self.provider.get_pull_request(self.repository, "1347")
+        result = self.provider.get_pull_request(self.repository, "1347")
 
-        assert pr["id"] == "1"
-        assert pr["title"] == "Amazing new feature"
-        assert pr["description"] == "Please pull these awesome changes in!"
-        assert pr["head"]["name"] == "new-topic"
+        pr = result["pull_request"]
         assert pr["head"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
-        assert pr["base"]["name"] == "master"
-        assert pr["base"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5f"
-        assert pr["author"]["id"] == "1"
-        assert pr["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -208,35 +202,47 @@ class TestGitHubProviderIntegration(TestCase):
         comments = self.provider.get_pull_request_comments(self.repository, "1")
 
         assert len(comments) == 1
-        assert comments[0]["id"] == "10"
-        assert comments[0]["body"] == "Great stuff!"
-        assert comments[0]["author"]["username"] == "octocat"
+        assert comments[0]["comment"]["id"] == "10"
+        assert comments[0]["comment"]["body"] == "Great stuff!"
+        assert comments[0]["comment"]["author"] is not None
+        assert comments[0]["comment"]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42",
-            json={
-                "id": 42,
-                "node_id": "MDEyOklzc3VlQ29tbWVudDQy",
-                "body": "Test comment",
-                "reactions": {
-                    "url": f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions",
-                    "+1": 2,
-                    "hooray": 1,
-                    "eyes": 3,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100",
+            json=[
+                {
+                    "id": 1,
+                    "user": {
+                        "login": "octocat",
+                        "id": 1,
+                    },
+                    "content": "+1",
                 },
-            },
+                {
+                    "id": 2,
+                    "user": {
+                        "login": "hubot",
+                        "id": 2,
+                    },
+                    "content": "eyes",
+                },
+            ],
+            headers={},
         )
 
         reactions = self.provider.get_comment_reactions(self.repository, "42")
 
-        assert reactions["+1"] == 2
-        assert reactions["hooray"] == 1
-        assert reactions["eyes"] == 3
-        assert "url" not in reactions
+        assert len(reactions) == 2
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "+1"
+        assert reactions[0]["author"] is not None
+        assert reactions[0]["author"]["username"] == "octocat"
+        assert reactions[1]["id"] == "2"
+        assert reactions[1]["content"] == "eyes"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -307,6 +313,16 @@ class TestGitHubProviderIntegration(TestCase):
         reactions = self.provider.get_issue_reactions(self.repository, "42")
 
         assert len(reactions) == 2
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "heart"
+        assert reactions[0]["author"] is not None
+        assert reactions[0]["author"]["id"] == "1"
+        assert reactions[0]["author"]["username"] == "octocat"
+        assert reactions[1]["id"] == "2"
+        assert reactions[1]["content"] == "+1"
+        assert reactions[1]["author"] is not None
+        assert reactions[1]["author"]["id"] == "2"
+        assert reactions[1]["author"]["username"] == "hubot"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
