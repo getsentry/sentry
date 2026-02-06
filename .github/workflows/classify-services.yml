@@ -83,7 +83,7 @@ jobs:
           from collections import defaultdict
           from pathlib import Path
 
-          merged_tests = {}
+          merged_tests = defaultdict(set)
           for shard_dir in sorted(Path("shards").iterdir()):
               report_file = shard_dir / "test-service-classification.json"
               if not report_file.exists():
@@ -91,7 +91,9 @@ jobs:
                   continue
               report = json.loads(report_file.read_text())
               for test_id, services in report.get("tests", {}).items():
-                  merged_tests[test_id] = services
+                  # Union of services across shards - each shard has static
+                  # results for all tests but runtime results only for its slice
+                  merged_tests[test_id].update(services)
 
           # Build summary
           service_counts = defaultdict(int)
@@ -101,7 +103,7 @@ jobs:
                   service_counts[service] += 1
               if "snuba" in services:
                   tier_counts["snuba_tier"] += 1
-              elif set(services) - {"postgres"}:
+              elif services - {"postgres"}:
                   tier_counts["other_services"] += 1
               elif "postgres" in services:
                   tier_counts["postgres_only"] += 1
@@ -114,7 +116,7 @@ jobs:
                   "service_counts": dict(service_counts),
                   "tier_counts": dict(tier_counts),
               },
-              "tests": dict(sorted(merged_tests.items())),
+              "tests": {k: sorted(v) for k, v in sorted(merged_tests.items())},
           }
 
           Path("test-service-classification.json").write_text(

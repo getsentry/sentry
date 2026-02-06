@@ -257,13 +257,149 @@ Also added `@pytest.hookimpl(trylast=True)` to `pytest_runtest_teardown` to clea
 ### Other Observations
 
 - **26% of tests (8,651) need no services at all** - these are pure unit tests (parametrized function-level tests without DB access). Our static Postgres detection only catches class-based `TestCase` subclasses and function tests with `db`/`transactional_db` fixtures, so function tests using `@django_db_all` or `@pytest.mark.django_db` may be miscounted.
-- **Redis (1,478 tests)** was higher than expected. The default `server.py` uses `DummyCache`, but CI settings may override this to use Redis-backed caching, meaning more tests hit Redis at runtime than static analysis would suggest. This validates the runtime approach for Redis.
+- **Redis (1,478 tests per shard)** was higher than expected - see "Shard Merge Bug" below.
 - **Kafka (254 tests)** detected via static `requires_kafka` markers. Higher than the 20 files we estimated because each file contains multiple tests.
+
+## Second CI Run: Shard Merge Bug
+
+### The Merge Bug
+
+Applied `@pytest.hookimpl(tryfirst=True)` fix and re-ran. Results were identical (444 snuba). Investigation revealed the real issue was in the **merge script**, not the plugin.
+
+Each shard collects ALL 32,772 tests (static detection runs on the full collection), but only RUNS ~1,500 of them (runtime detection). The merge script used assignment (`merged_tests[test_id] = services`) which is **last-write-wins** - the last shard in sorted order (`classification-shard-9`) overwrote all other shards' runtime detections.
+
+Proof: shard-9 reported exactly 444 snuba tests, matching the merged result perfectly.
+
+### Fix: Union Merge
+
+Changed the merge from assignment to set union (`merged_tests[test_id].update(services)`), so a test gets a service if ANY shard detected it.
+
+### Corrected Results (Union Merge on Existing Data)
+
+Applying the union merge to the existing shard data locally revealed a new issue:
+
+| Service | Count | Notes |
+|---------|-------|-------|
+| redis | 32,772 (100%) | Every test in every shard hits Redis |
+| postgres | 23,682 (72%) | Static detection |
+| snuba | 9,551 (29%) | Up from 444 - major improvement |
+| kafka | 254 | Static detection |
+| symbolicator | 64 | Static detection |
+| bigtable | 36 | Static detection |
+| redis-cluster | 30 | |
+| objectstore | 13 | Static detection |
+
+### Redis at 100%: Incidental Service Usage
+
+Every single test that executes shows Redis socket activity. This is **incidental** - likely caused by Django startup code, middleware, or session-level fixtures that ping Redis regardless of what the test does. In CI, Redis is configured as a real backend (not `DummyCache` like in `server.py` defaults).
+
+This is a fundamental limitation of socket-level monitoring: it can't distinguish between "this test NEEDS Redis to function correctly" and "Redis was contacted as a side effect of the test framework." The same likely inflates the Snuba count - `reset_snuba` fires for every `SnubaTestCase` even if the test itself never queries Snuba.
+
+### Implications for Tiered Testing
+
+The runtime classification tells us which tests **use** a service, not which tests **need** it. For tiering decisions:
+
+- **Snuba (9,551 tests / 29%)**: Tests inheriting from `SnubaTestCase` trigger `reset_snuba` (Snuba fixture cleanup) even if they never query Snuba. However, these tests are designed to run with Snuba available, so classifying them as Snuba-tier is conservative and correct.
+- **Redis (100%)**: Universal Redis pings mean Redis should be treated as part of the baseline infrastructure in CI, not as a per-test dependency. The question is whether tests would FAIL without Redis - and with `DummyCache` defaults, most would not.
+- **Postgres (72%)**: The remaining 28% are function-level parametrized tests without DB access - genuine unit tests.
+
+### Remaining ~71% Postgres-Only
+
+After accounting for Redis as baseline noise, the practical tier split is:
+- **~71% of tests**: Only need Postgres (+ Redis as baseline)
+- **~29% of tests**: Need Snuba stack
+- **<1%**: Need additional services (Symbolicator, Kafka, etc.)
+
+## Redis at 100%: Root Cause Analysis
+
+Investigation into why every test shows Redis activity revealed three causes in the test infrastructure:
+
+### 1. `pytest_runtest_teardown` flushes Redis on every test
+
+In `src/sentry/testutils/pytest/sentry.py`:
+
+```python
+def pytest_runtest_teardown(item):
+    from sentry.utils.redis import clusters
+    with clusters.get("default").all() as client:
+        client.flushdb()
+```
+
+This runs after **every single test** as defensive cleanup, regardless of whether the test used Redis.
+
+### 2. Test settings override defaults with Redis-backed backends
+
+In `src/sentry/testutils/pytest/sentry.py`, the test configuration overrides `server.py` defaults:
+
+```python
+settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"  # server.py default: DummyTSDB
+settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"  # server.py default: base.RateLimiter (no-op)
+settings.SENTRY_OPTIONS["redis.clusters"] = {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}}
+```
+
+Note: `CACHES` IS set to `LocMemCache` (not Redis), so Django cache operations don't hit Redis.
+
+### 3. `clear_caches` autouse fixture
+
+In `tests/conftest.py`:
+
+```python
+@pytest.fixture(autouse=True)
+def clear_caches():
+    yield
+    cache.clear()
+```
+
+While `CACHES` uses `LocMemCache`, this fixture runs on every test as cleanup.
+
+### Conclusion
+
+Redis is a **baseline CI dependency** due to framework-level cleanup, not because tests need it. For tiering purposes, Redis must be included in every tier. This also means our earlier static analysis finding ("`server.py` defaults to `DummyCache`") was correct about the defaults, but the test settings override them.
+
+## Tiering Decision
+
+### Options Considered
+
+| Tiers | Benefit | Complexity |
+|-------|---------|------------|
+| **2 tiers** (Postgres+Redis vs Snuba) | Eliminates 4-5min Snuba startup for 71% of tests | Low |
+| **3 tiers** (add pure unit test) | Saves ~5s Postgres startup for 26% of tests | Medium, marginal gain |
+| **4 tiers** (add Symbolicator) | Avoids starting Symbolicator for 99% of tests | High, ~30s savings for 367 tests |
+
+### Service Startup Costs
+
+| Service | Startup Time |
+|---------|-------------|
+| Redis | <1s |
+| Postgres | ~5s |
+| Snuba (+ Clickhouse + Kafka) | ~4-5 min |
+| Symbolicator | ~30s |
+| Objectstore/Bigtable | ~5-10s each |
+
+The Snuba stack accounts for **95%+ of setup time**. Everything else is seconds. Additional tiers beyond the Snuba split provide diminishing returns with increasing complexity.
+
+### Chosen Approach: Two Tiers
+
+**Tier 1 (~71% of tests)**: Postgres + Redis
+- devservices mode: `migrations` (starts postgres + redis)
+- Tests that do NOT need Snuba
+- Setup time: ~10s
+
+**Tier 2 (~29% of tests)**: Full Snuba stack + everything
+- devservices mode: `backend-ci` (current behavior)
+- Tests that DO need Snuba (+ Symbolicator, Kafka, etc.)
+- Setup time: ~4-5 min
+
+Each tier is independently sharded:
+- Tier 1: ~23,221 tests / 1200 per shard = ~20 shards
+- Tier 2: ~9,551 tests / 1200 per shard = ~8 shards
+
+Both tiers run in parallel. Wall-clock time is dominated by Tier 2, but Tier 1 finishes much faster, freeing runners sooner.
 
 ## Validation
 
-The classification can be validated empirically: run "postgres-only" tier tests with only Postgres running. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
+The classification can be validated empirically: run Tier 1 tests with only Postgres + Redis running (no Snuba). Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
 ## Expected Impact
 
-If classification is accurate, ~68% of backend tests can run with just Postgres (setup time: ~30s) instead of the full Snuba stack (setup time: 4-5min). An additional ~26% may need no services at all. Combined with intelligent sharding, this could significantly reduce CI wall-clock time.
+~71% of backend tests can run with just Postgres + Redis (setup time: ~10s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.

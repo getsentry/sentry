@@ -1,0 +1,195 @@
+name: "[POC] backend tiered"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/service-classification-poc
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  # Step 1: Download classification and split into tiers
+  split-tiers:
+    name: split tests into tiers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tier1-test-count: ${{ steps.split.outputs.tier1-test-count }}
+      tier2-test-count: ${{ steps.split.outputs.tier2-test-count }}
+      tier1-shard-count: ${{ steps.shards.outputs.tier1-shard-count }}
+      tier1-shard-indices: ${{ steps.shards.outputs.tier1-shard-indices }}
+      tier2-shard-count: ${{ steps.shards.outputs.tier2-shard-count }}
+      tier2-shard-indices: ${{ steps.shards.outputs.tier2-shard-indices }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download latest classification report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Download from most recent successful classify-services run
+          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: No successful classify-services run found"
+            exit 1
+          fi
+          echo "Downloading classification from run $RUN_ID"
+          gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
+          ls -la /tmp/classification/
+
+      - name: Split tests by tier
+        id: split
+        run: |
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --summary
+
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier1 --output /tmp/tier1-tests.txt
+
+          python3 .github/workflows/scripts/split-tests-by-tier.py \
+            --classification /tmp/classification/test-service-classification.json \
+            --tier tier2 --output /tmp/tier2-tests.txt
+
+          echo "tier1-test-count=$(wc -l < /tmp/tier1-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "tier2-test-count=$(wc -l < /tmp/tier2-tests.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate shard counts
+        id: shards
+        run: |
+          python3 - <<'SCRIPT'
+          import json, math, os
+
+          TESTS_PER_SHARD = 1200
+          MAX_SHARDS = 22
+
+          tier1_files = int(os.environ["TIER1_COUNT"])
+          tier2_files = int(os.environ["TIER2_COUNT"])
+
+          # Estimate tests per file (avg ~15 tests per file based on 32772 tests / 2226 files)
+          TESTS_PER_FILE = 15
+          tier1_tests = tier1_files * TESTS_PER_FILE
+          tier2_tests = tier2_files * TESTS_PER_FILE
+
+          tier1_shards = min(max(1, math.ceil(tier1_tests / TESTS_PER_SHARD)), MAX_SHARDS)
+          tier2_shards = min(max(1, math.ceil(tier2_tests / TESTS_PER_SHARD)), MAX_SHARDS)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"tier1-shard-count={tier1_shards}\n")
+            f.write(f"tier1-shard-indices={json.dumps(list(range(tier1_shards)))}\n")
+            f.write(f"tier2-shard-count={tier2_shards}\n")
+            f.write(f"tier2-shard-indices={json.dumps(list(range(tier2_shards)))}\n")
+
+          print(f"Tier 1: {tier1_files} files, ~{tier1_tests} tests, {tier1_shards} shards")
+          print(f"Tier 2: {tier2_files} files, ~{tier2_tests} tests, {tier2_shards} shards")
+          SCRIPT
+        env:
+          TIER1_COUNT: ${{ steps.split.outputs.tier1-test-count }}
+          TIER2_COUNT: ${{ steps.split.outputs.tier2-test-count }}
+
+      - name: Upload tier file lists
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tier-file-lists
+          path: |
+            /tmp/tier1-tests.txt
+            /tmp/tier2-tests.txt
+          retention-days: 1
+
+  # Tier 1: Postgres + Redis only (fast setup)
+  tier1-test:
+    needs: split-tiers
+    name: "tier1 (${{ matrix.instance }})"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.split-tiers.outputs.tier1-shard-indices) }}
+
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.split-tiers.outputs.tier1-shard-count }}
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download tier file lists
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env (Postgres + Redis only)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: migrations
+
+      - name: Run tier 1 tests (shard ${{ steps.setup.outputs.matrix-instance-number }} of ${{ needs.split-tiers.outputs.tier1-shard-count }})
+        env:
+          SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
+        run: |
+          echo "Running tier 1 (Postgres + Redis) tests..."
+          echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # Tier 2: Full Snuba stack (slow setup)
+  tier2-test:
+    needs: split-tiers
+    name: "tier2 (${{ matrix.instance }})"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.split-tiers.outputs.tier2-shard-indices) }}
+
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.split-tiers.outputs.tier2-shard-count }}
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download tier file lists
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tier-file-lists
+          path: /tmp/
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run tier 2 tests (shard ${{ steps.setup.outputs.matrix-instance-number }} of ${{ needs.split-tiers.outputs.tier2-shard-count }})
+        env:
+          SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
+        run: |
+          echo "Running tier 2 (Full Snuba stack) tests..."
+          echo "Test files: $(wc -l < /tmp/tier2-tests.txt)"
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
