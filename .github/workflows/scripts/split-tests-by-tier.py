@@ -45,11 +45,14 @@ def get_test_files_by_tier(classification: dict) -> dict[str, set[str]]:
         else:
             file_services[file_path].add(services)
 
+    # Services that require the full backend-ci stack (Tier 2)
+    tier2_services = {"snuba", "kafka", "symbolicator", "objectstore", "bigtable"}
+
     tier1_files: set[str] = set()
     tier2_files: set[str] = set()
 
     for file_path, services in file_services.items():
-        if "snuba" in services:
+        if services & tier2_services:
             tier2_files.add(file_path)
         else:
             tier1_files.add(file_path)
