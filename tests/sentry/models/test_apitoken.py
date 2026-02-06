@@ -10,7 +10,6 @@ from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
@@ -308,8 +307,7 @@ class ApiTokenTest(TestCase):
         expiration_base = timezone.now()
         with outbox_runner():
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(ControlOutbox)),
-                flush=False,
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
             ):
                 token.update(expires_at=expiration_base + timedelta(days=30))
                 self.convert_token_outboxes_to_user_scope(token.id, user)
@@ -325,8 +323,7 @@ class ApiTokenTest(TestCase):
 
         with outbox_runner():
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(ControlOutbox)),
-                flush=False,
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
             ):
                 token_id = token.id
                 token.delete()
@@ -343,8 +340,7 @@ class ApiTokenTest(TestCase):
         expiration_base = timezone.now()
         with outbox_runner():
             with outbox_context(
-                transaction.atomic(using=router.db_for_write(ControlOutbox)),
-                flush=False,
+                transaction.atomic(using=router.db_for_write(ControlOutbox)), flush=False
             ):
                 token.update(expires_at=expiration_base + timedelta(days=30))
                 self.convert_token_outboxes_to_user_scope(token_id, user)
@@ -363,85 +359,6 @@ class ApiTokenTest(TestCase):
             ).expires_at == expiration_base + timedelta(days=60)
 
         assert ControlOutbox.objects.filter(category=OutboxCategory.API_TOKEN_UPDATE).count() == 0
-
-    def test_get_allowed_origins_no_application(self) -> None:
-        """Tokens without an application should return empty list."""
-        user = self.create_user()
-        token = ApiToken.objects.create(user_id=user.id)
-        assert token.application is None
-        assert token.get_allowed_origins() == []
-
-    def test_get_allowed_origins_public_client_with_homepage_url(self) -> None:
-        """Public OAuth clients should only allow CORS from their homepage_url.
-
-        RFC 8252 §8.6: Public clients should be bound to a registered website.
-        This prevents client impersonation attacks where an attacker uses your
-        public client_id on a phishing domain like sentry.gg.
-        """
-        user = self.create_user()
-        # Create a public OAuth application with homepage_url
-        app = ApiApplication.objects.create(
-            owner=user,
-            allowed_origins="https://ignored.com",  # Ignored for public clients
-            client_secret=None,  # Public client
-            homepage_url="https://cli.sentry.io",
-        )
-        token = ApiToken.objects.create(user_id=user.id, application=app)
-
-        # Public clients should only allow their homepage_url
-        assert app.is_public
-        assert token.get_allowed_origins() == ["https://cli.sentry.io"]
-
-    def test_get_allowed_origins_public_client_no_homepage_url(self) -> None:
-        """Public OAuth clients without homepage_url should return empty list.
-
-        If no homepage_url is set, the public client is assumed to be a native
-        app using device flow only, where no browser CORS is needed.
-        """
-        user = self.create_user()
-        # Create a public OAuth application without homepage_url
-        app = ApiApplication.objects.create(
-            owner=user,
-            allowed_origins="https://ignored.com",
-            client_secret=None,  # Public client
-            homepage_url=None,  # No homepage URL
-        )
-        token = ApiToken.objects.create(user_id=user.id, application=app)
-
-        # No homepage_url = no CORS (device flow only)
-        assert app.is_public
-        assert token.get_allowed_origins() == []
-
-    def test_get_allowed_origins_confidential_client_uses_app_config(self) -> None:
-        """Confidential clients should use their configured allowed origins."""
-        user = self.create_user()
-        # Create a confidential OAuth application (has client_secret)
-        app = ApiApplication.objects.create(
-            owner=user,
-            allowed_origins="https://allowed.com https://also-allowed.com",
-            # client_secret is auto-generated, making this a confidential client
-        )
-        token = ApiToken.objects.create(user_id=user.id, application=app)
-
-        # Confidential clients should use their configured origins
-        assert not app.is_public
-        assert token.get_allowed_origins() == [
-            "https://allowed.com",
-            "https://also-allowed.com",
-        ]
-
-    def test_get_allowed_origins_confidential_client_empty_origins(self) -> None:
-        """Confidential clients with no configured origins should return empty list."""
-        user = self.create_user()
-        app = ApiApplication.objects.create(
-            owner=user,
-            allowed_origins="",
-            # client_secret is auto-generated, making this a confidential client
-        )
-        token = ApiToken.objects.create(user_id=user.id, application=app)
-
-        assert not app.is_public
-        assert token.get_allowed_origins() == []
 
 
 @control_silo_test

@@ -465,16 +465,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def get_allowed_origins(self) -> list[str]:
         if self.application:
-            if self.application.is_public:
-                # RFC 8252 §8.6: Public clients should be bound to a registered website.
-                # Only allow CORS from the homepage_url to prevent client impersonation
-                # attacks where an attacker uses your public client_id on a phishing domain.
-                #
-                # If no homepage_url is set, return empty list (device flow only from
-                # native apps - no browser CORS needed).
-                if self.application.homepage_url:
-                    return [self.application.homepage_url]
-                return []
             return self.application.get_allowed_origins()
         return []
 
@@ -590,9 +580,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         self._default_flush = value
 
 
-def is_api_token_auth(
-    auth: object,
-) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
+def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:
     """:returns True when an API token is hitting the API."""
     from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
