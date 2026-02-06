@@ -31,19 +31,12 @@ describe('ImageAvatar', () => {
   });
 
   describe('fallback to LetterAvatar', () => {
-    it('renders LetterAvatar when src is not provided', () => {
-      render(
-        <ImageAvatar src="" identifier="jane.bloggs@example.com" name="Jane Bloggs" />
-      );
-      expect(screen.getByText('JB')).toBeInTheDocument();
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('renders LetterAvatar when src is undefined', () => {
-      render(
-        <ImageAvatar src="" identifier="jane.bloggs@example.com" name="Jane Bloggs" />
-      );
-      expect(screen.getByText('JB')).toBeInTheDocument();
+    it.each([
+      ['', 'jane.bloggs@example.com', 'Jane Bloggs', 'JB'],
+      ['', 'john.smith@example.com', 'John Smith', 'JS'],
+    ])('renders LetterAvatar when src is "%s"', (src, identifier, name, expected) => {
+      render(<ImageAvatar src={src} identifier={identifier} name={name} />);
+      expect(screen.getByText(expected)).toBeInTheDocument();
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
 
@@ -69,13 +62,6 @@ describe('ImageAvatar', () => {
         expect(screen.getByText('JB')).toBeInTheDocument();
       });
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('passes props to LetterAvatar fallback', () => {
-      render(
-        <ImageAvatar src="" identifier="john.smith@example.com" name="John Smith" />
-      );
-      expect(screen.getByText('JS')).toBeInTheDocument();
     });
   });
 

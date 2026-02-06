@@ -40,24 +40,19 @@ describe('Gravatar', () => {
   });
 
   describe('fallback to LetterAvatar', () => {
-    it('renders LetterAvatar when gravatarId is empty', () => {
-      render(<Gravatar gravatarId="" name="John Doe" />);
+    it.each([
+      ['', 'John Doe', 'JD'],
+      ['   ', 'John Doe', 'JD'],
+      ['', 'Alice Bob', 'AB'],
+    ])(
+      'renders LetterAvatar with initials %s when gravatarId is "%s" and name is "%s"',
+      (gravatarId, name, expected) => {
+        render(<Gravatar gravatarId={gravatarId} name={name} />);
 
-      expect(screen.getByText('JD')).toBeInTheDocument();
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('renders LetterAvatar when gravatarId is whitespace', () => {
-      render(<Gravatar gravatarId="   " name="John Doe" />);
-
-      expect(screen.getByText('JD')).toBeInTheDocument();
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('passes props to LetterAvatar fallback', () => {
-      render(<Gravatar gravatarId="" name="Alice Bob" />);
-      expect(screen.getByText('AB')).toBeInTheDocument();
-    });
+        expect(screen.getByText(expected)).toBeInTheDocument();
+        expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      }
+    );
   });
 
   describe('hash updates', () => {

@@ -67,28 +67,31 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
   }
 `;
 
-function hashname(name: string) {
-  name += '';
+/**
+ * Generates a numeric hash from a string identifier for consistent color selection
+ */
+function hashIdentifier(identifier: string) {
+  const str = String(identifier);
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash += name.charCodeAt(i);
+  for (let i = 0; i < str.length; i++) {
+    hash += str.charCodeAt(i);
   }
   return hash;
 }
 
 function getColor(
-  name: string | undefined,
+  identifier: string | undefined,
   theme: Theme
 ): {
   background: string;
   content: string;
 } {
   const colors = makeLetterAvatarColors(theme);
-  if (name === undefined) {
+  if (identifier === undefined) {
     return colors[0]!;
   }
 
-  const id = hashname(name);
+  const id = hashIdentifier(identifier);
   return colors[id % colors.length]!;
 }
 

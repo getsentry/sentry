@@ -20,7 +20,7 @@ import {LetterAvatar} from '../letterAvatar/letterAvatar';
  * to eliminate the wrapper before we can enable ref support.
  */
 export interface GravatarProps
-  extends BaseAvatarStyleProps, Omit<ImageAvatarProps, 'src'> {
+  extends BaseAvatarStyleProps, Omit<ImageAvatarProps, 'src' | 'identifier'> {
   gravatarId: string;
 }
 
@@ -28,17 +28,18 @@ export function Gravatar({gravatarId, ...props}: GravatarProps) {
   const avatarHash = useGravatarHash(gravatarId);
 
   if (avatarHash === null) {
-    return <LetterAvatar {...props} />;
+    return <LetterAvatar identifier={gravatarId} {...props} />;
   }
 
   return (
     <ImageAvatar
+      identifier={gravatarId}
       {...props}
       src={`${ConfigStore.get('gravatarBaseUrl')}/avatar/${avatarHash}?${qs.stringify({
         // Default remote size to 120px
         s: 120,
         // If gravatar is not found we need the request to return an error,
-        // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
+        // otherwise error handler will not trigger and avatar will not display a LetterAvatar backup.
         d: '404',
       })}`}
     />
@@ -70,11 +71,12 @@ function useGravatarHash(gravatarId: string) {
 }
 
 /**
+ * Hashes a gravatar identifier using SHA-256.
  * Gravatars require HTTPS to work.
  */
-async function hashGravatarId(message: string): Promise<string> {
+async function hashGravatarId(gravatarId: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(message);
+  const data = encoder.encode(gravatarId);
   const hash = await window.crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))

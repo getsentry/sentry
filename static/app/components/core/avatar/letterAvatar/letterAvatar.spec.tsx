@@ -5,81 +5,31 @@ import {LetterAvatar} from './letterAvatar';
 
 describe('LetterAvatar', () => {
   describe('initials rendering', () => {
-    it('renders first and last initial for two-word names', () => {
-      render(<LetterAvatar identifier="jane.bloggs@example.com" name="Jane Bloggs" />);
-      expect(screen.getByText('JB')).toBeInTheDocument();
-    });
-
-    it('renders first initial only for single-word names', () => {
-      render(<LetterAvatar identifier="jane@example.com" name="Jane" />);
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('renders first and last initial for three or more word names', () => {
-      render(
-        <LetterAvatar identifier="jane.bloggs@example.com" name="Jane Austen Bloggs" />
-      );
-      expect(screen.getByText('JB')).toBeInTheDocument();
-    });
-
-    it('renders first letter of email addresses', () => {
-      render(
-        <LetterAvatar identifier="johnsmith@example.com" name="johnsmith@example.com" />
-      );
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('renders first letter for single character input', () => {
-      render(<LetterAvatar identifier="x@example.com" name="X" />);
-      expect(screen.getByText('X')).toBeInTheDocument();
-    });
-
-    it('renders initials in uppercase', () => {
-      render(<LetterAvatar identifier="jane.bloggs@example.com" name="jane bloggs" />);
-      expect(screen.getByText('JB')).toBeInTheDocument();
-    });
-
-    it('trims trailing spaces from names', () => {
-      render(<LetterAvatar identifier="jane.bloggs@example.com" name="Jane Bloggs " />);
-      expect(screen.getByText('JB')).toBeInTheDocument();
-    });
-
-    it('trims leading spaces from names', () => {
-      render(<LetterAvatar identifier="jane.bloggs@example.com" name=" Jane Bloggs" />);
-      expect(screen.getByText('JB')).toBeInTheDocument();
-    });
-
-    it('handles multibyte characters without slicing them', () => {
-      render(<LetterAvatar identifier="snowman@example.com" name="☃super ☃duper" />);
-      expect(screen.getByText('☃☃')).toBeInTheDocument();
-    });
-
-    it('handles numeric input', () => {
-      render(<LetterAvatar identifier="user123" name="123" />);
-      expect(screen.getByText('1')).toBeInTheDocument();
-    });
-
-    it('handles IP addresses', () => {
-      render(<LetterAvatar identifier="127.0.0.1" name="127.0.0.1" />);
-      expect(screen.getByText('1')).toBeInTheDocument();
+    it.each([
+      ['jane bloggs', 'JB'],
+      ['jane', 'J'],
+      ['jane austen bloggs', 'JB'],
+      ['johnsmith@example.com', 'J'],
+      ['X', 'X'],
+      [' Jane Bloggs ', 'JB'],
+      ['☃super ☃duper', '☃☃'],
+      ['123', '1'],
+      ['127.0.0.1', '1'],
+    ])('renders %s as %s', (name, expected) => {
+      render(<LetterAvatar identifier="test@example.com" name={name} />);
+      expect(screen.getByText(expected)).toBeInTheDocument();
     });
   });
 
   describe('fallback rendering', () => {
-    it('renders question mark for empty string', () => {
-      render(<LetterAvatar identifier="unknown" name="" />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
-
-    it('renders question mark for whitespace-only string', () => {
-      render(<LetterAvatar identifier="unknown" name="   " />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
-
-    it('renders question mark for single space', () => {
-      render(<LetterAvatar identifier="unknown" name=" " />);
-      expect(screen.getByText('?')).toBeInTheDocument();
-    });
+    it.each([[''], ['   '], [' '], [undefined]])(
+      'renders question mark for empty/whitespace: "%s"',
+      (name: string | undefined) => {
+        // @ts-expect-error test untyped falsy values
+        render(<LetterAvatar identifier="unknown" name={name} />);
+        expect(screen.getByText('?')).toBeInTheDocument();
+      }
+    );
   });
 
   describe('identifier vs name separation', () => {

@@ -2,9 +2,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {AvatarUser} from 'sentry/types/user';
+import {UserAvatar} from '@sentry/scraps/avatar';
 
-import {UserAvatar} from './userAvatar';
+import type {AvatarUser} from 'sentry/types/user';
 
 describe('UserAvatar', () => {
   describe('initials rendering with user.name', () => {
@@ -22,92 +22,64 @@ describe('UserAvatar', () => {
       expect(screen.getByText('JD')).toBeInTheDocument();
     });
 
-    it('renders initials from user.name when gravatar fails to load', async () => {
-      const user: AvatarUser = UserFixture({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: null,
-        },
-      });
-
-      render(<UserAvatar user={user} />);
-
-      // Wait for gravatar to render
-      const img = await screen.findByRole('img');
-      expect(img).toBeInTheDocument();
-
-      // Simulate gravatar load failure
-      act(() => {
-        img.dispatchEvent(new Event('error'));
-      });
-
-      // Should show letter avatar with initials from user.name, not email
-      await waitFor(() => {
-        expect(screen.getByText('JD')).toBeInTheDocument();
-      });
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('renders initials from user.name when upload fails to load', async () => {
-      const user: AvatarUser = UserFixture({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
+    it.each([
+      [{avatarType: 'gravatar', avatarUuid: null}, true],
+      [
+        {
           avatarType: 'upload',
           avatarUrl: 'https://example.com/broken.jpg',
           avatarUuid: '123',
         },
-      });
+        false,
+      ],
+    ] as const)(
+      'renders initials from user.name when image fails to load',
+      async (avatar, waitForImg) => {
+        const user: AvatarUser = UserFixture({
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          avatar,
+        });
 
-      render(<UserAvatar user={user} />);
+        render(<UserAvatar user={user} />);
 
-      // Wait for upload to render
-      const img = screen.getByRole('img');
-      expect(img).toBeInTheDocument();
+        // Wait for image to render if needed
+        const img = waitForImg ? await screen.findByRole('img') : screen.getByRole('img');
+        expect(img).toBeInTheDocument();
 
-      // Simulate upload load failure
-      act(() => {
-        img.dispatchEvent(new Event('error'));
-      });
+        // Simulate image load failure
+        act(() => {
+          img.dispatchEvent(new Event('error'));
+        });
 
-      // Should show letter avatar with initials from user.name, not email
-      await waitFor(() => {
-        expect(screen.getByText('JD')).toBeInTheDocument();
-      });
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
+        // Should show letter avatar with initials from user.name, not email
+        await waitFor(() => {
+          expect(screen.getByText('JD')).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      }
+    );
 
-    it('falls back to email for initials when user.name is not provided', () => {
-      const user: AvatarUser = UserFixture({
-        name: '',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
-      });
+    it.each([
+      ['', 'john.doe@example.com', 'johndoe', 'J', 'email'],
+      ['', '', 'johndoe', 'J', 'username'],
+    ])(
+      'falls back to %s for initials when user.name is "%s"',
+      (name, email, username, expected) => {
+        const user: AvatarUser = UserFixture({
+          name,
+          email,
+          username,
+          avatar: {
+            avatarType: 'letter_avatar',
+            avatarUuid: '123',
+          },
+        });
 
-      render(<UserAvatar user={user} />);
-      // Email addresses render as single initial (first character)
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
-
-    it('falls back to username for initials when user.name and email are not provided', () => {
-      const user: AvatarUser = UserFixture({
-        name: '',
-        email: '',
-        username: 'johndoe',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
-      });
-
-      render(<UserAvatar user={user} />);
-      expect(screen.getByText('J')).toBeInTheDocument();
-    });
+        render(<UserAvatar user={user} />);
+        expect(screen.getByText(expected)).toBeInTheDocument();
+      }
+    );
 
     it('handles gravatar type without email by falling back to letter avatar', () => {
       const user: AvatarUser = UserFixture({
@@ -164,7 +136,6 @@ describe('UserAvatar', () => {
 
       render(<UserAvatar user={user} />);
       expect(screen.getByText('JD')).toBeInTheDocument();
-      // Tooltip is rendered but not visible until hover - just verify component renders
     });
 
     it('uses custom renderTooltip when provided', () => {
@@ -217,21 +188,6 @@ describe('UserAvatar', () => {
     });
 
     it('renders letter avatar when avatarType is letter_avatar', () => {
-      const user: AvatarUser = UserFixture({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: '123',
-        },
-      });
-
-      render(<UserAvatar user={user} />);
-      expect(screen.getByText('JD')).toBeInTheDocument();
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    });
-
-    it('defaults to letter avatar when no avatar type is specified', () => {
       const user: AvatarUser = UserFixture({
         name: 'John Doe',
         email: 'john.doe@example.com',
