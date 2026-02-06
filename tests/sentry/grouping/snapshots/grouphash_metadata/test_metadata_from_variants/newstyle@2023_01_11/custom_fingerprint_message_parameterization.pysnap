@@ -4,7 +4,7 @@ source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_var
 hash_basis: fingerprint
 hashing_metadata: {
   "client_fingerprint": "['{{ message }}', 'dogs are great']",
-  "fingerprint": "[\"FailedToFetchError: Charlie didn't bring 2 balls back!\", 'dogs are great']",
+  "fingerprint": "[\"FailedToFetchError: Charlie didn't bring <int> balls back!\", 'dogs are great']",
   "fingerprint_source": "client",
   "is_hybrid_fingerprint": false
 }
@@ -21,6 +21,6 @@ metrics with tags: {
 ---
 contributing variants:
   custom_client_fingerprint*
-    hash: "69d81763f9ec386fc0c0607ef62cabfa"
+    hash: "b31e899e08ed071ee0534f28745910d0"
     fingerprint_info: {"client_fingerprint":["{{ message }}","dogs are great"]}
-    values: ["FailedToFetchError: Charlie didn't bring 2 balls back!","dogs are great"]
+    values: ["FailedToFetchError: Charlie didn't bring <int> balls back!","dogs are great"]

@@ -60,12 +60,12 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       ],
       "contributes": true,
       "description": "custom client fingerprint",
-      "hash": "69d81763f9ec386fc0c0607ef62cabfa",
+      "hash": "b31e899e08ed071ee0534f28745910d0",
       "hint": null,
       "key": "custom_client_fingerprint",
       "type": "custom_fingerprint",
       "values": [
-        "FailedToFetchError: Charlie didn't bring 2 balls back!",
+        "FailedToFetchError: Charlie didn't bring <int> balls back!",
         "dogs are great"
       ]
     }
