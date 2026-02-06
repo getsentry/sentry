@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import inspect
 import logging
+import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
@@ -59,6 +60,7 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
+from sentry.scm.subscriptions.producer import publish_subscription_event
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
@@ -1125,4 +1127,24 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 provider_key=event_handler.provider,
             ).capture():
                 event_handler(event, github_event=github_event)
+
+        # Publish the request to the unified SCM (source control management) subscription's
+        # platform. This is a replacement for the handlers defined above. Handlers should be
+        # defined as consumers of the SCM subscriptions Kafka topic.
+        #
+        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+        #       been above).
+        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        #       middleware has handled routing.
+        publish_subscription_event(
+            {
+                "event_type_hint": request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY],
+                "event": request.body,
+                "extra": {},
+                "received_at": int(time.time()),
+                "sentry_meta": None,
+                "type": "github",
+            }
+        )
+
         return HttpResponse(status=204)

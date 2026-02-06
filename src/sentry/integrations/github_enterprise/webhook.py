@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import re
+import time
 
 import orjson
 import sentry_sdk
@@ -27,6 +28,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.scm.subscriptions.producer import publish_subscription_event
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -211,6 +213,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
             return HttpResponse(status=400)
 
+        skipped_authentication = False
+
         try:
             sha256_signature = request.headers.get("x-hub-signature-256")
             sha1_signature = request.headers.get("x-hub-signature")
@@ -273,6 +277,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 sentry_sdk.capture_exception(e)
                 return HttpResponse(MISSING_SIGNATURE_HEADERS_ERROR, status=400)
             else:
+                skipped_authentication = True
                 # the host is allowed to skip signature verification
                 # log it, and continue on.
                 extra["github_enterprise_version"] = request.headers.get(
@@ -304,6 +309,30 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 provider_key=event_handler.provider,
             ).capture():
                 event_handler(event, host=host, github_event=github_event)
+
+        # Publish the request to the unified SCM (source control management) subscription's
+        # platform. This is a replacement for the handlers defined above. Handlers should be
+        # defined as consumers of the SCM subscriptions Kafka topic.
+        #
+        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+        #       been above).
+        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        #       middleware has handled routing.
+        publish_subscription_event(
+            {
+                "event_type_hint": request.headers["X-GitHub-Event"],
+                "event": request.body,
+                "extra": {
+                    "host": host,
+                    "skipped-authentication": skipped_authentication,
+                    "enterprise-version": request.headers.get("x-github-enterprise-version"),
+                    "ip-address": request.headers.get("x-real-ip"),
+                },
+                "received_at": int(time.time()),
+                "sentry_meta": None,
+                "type": "github_enterprise",
+            }
+        )
 
         return HttpResponse(status=204)
 
