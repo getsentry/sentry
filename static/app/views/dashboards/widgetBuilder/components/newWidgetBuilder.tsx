@@ -379,8 +379,7 @@ export function WidgetPreviewContainer({
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: getPreviewHeight(),
                     outline: isDragEnabled
-                      ? /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-                        `${space(1)} solid ${theme.tokens.border.primary}`
+                      ? `${space(1)} solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >
