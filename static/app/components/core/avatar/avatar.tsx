@@ -11,6 +11,7 @@ import type {BaseAvatarStyleProps} from './avatarComponentStyles';
 
 export interface AvatarProps extends BaseAvatarStyleProps {
   className?: string;
+  'data-test-id'?: string;
   hasTooltip?: boolean;
   ref?: React.Ref<HTMLSpanElement>;
   style?: React.CSSProperties;
@@ -47,13 +48,14 @@ export function Avatar({
   tooltip,
   tooltipOptions,
   hasTooltip = false,
+  'data-test-id': testId,
   ...props
 }: GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps) {
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
         ref={ref as React.Ref<HTMLSpanElement>}
-        data-test-id={`${props.type}-avatar`}
+        data-test-id={testId ?? `${props.type}-avatar`}
         className={classNames('avatar', className)}
         suggested={!!props.suggested}
         style={{...(size ? {height: size, width: size} : {}), ...style}}
