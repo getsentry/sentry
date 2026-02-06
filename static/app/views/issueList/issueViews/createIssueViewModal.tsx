@@ -1,5 +1,3 @@
-import {useEffect, useState} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -14,7 +12,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
-import {useGenerateIssueViewTitle} from 'sentry/views/issueList/queries/useGenerateIssueViewTitle';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -44,23 +41,6 @@ export function CreateIssueViewModal({
 }: CreateIssueViewModalProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const hasAiTitleFeature = organization.features.includes('issue-view-ai-title');
-
-  const [generatedName, setGeneratedName] = useState<string | undefined>(undefined);
-
-  const {mutate: generateTitle, isPending: isGeneratingTitle} = useGenerateIssueViewTitle(
-    {
-      onSuccess: data => {
-        setGeneratedName(data.title);
-      },
-    }
-  );
-
-  useEffect(() => {
-    if (hasAiTitleFeature && incomingQuery) {
-      generateTitle({query: incomingQuery});
-    }
-  }, [hasAiTitleFeature, incomingQuery, generateTitle]);
 
   const {
     mutate: createIssueView,
@@ -97,7 +77,7 @@ export function CreateIssueViewModal({
   };
 
   const initialData = {
-    name: generatedName ?? incomingName ?? '',
+    name: incomingName ?? '',
     query: incomingQuery ?? 'is:unresolved',
     querySort: incomingQuerySort ?? IssueSortOptions.DATE,
     projects: incomingProjects ?? [],
@@ -113,7 +93,6 @@ export function CreateIssueViewModal({
 
   return (
     <Form
-      key={generatedName}
       onSubmit={handleSubmit}
       onCancel={closeModal}
       saveOnBlur={false}
@@ -137,9 +116,7 @@ export function CreateIssueViewModal({
           key="name"
           name="name"
           label={t('Name')}
-          placeholder={
-            isGeneratingTitle ? t('Generating title...') : 'e.g. My Search Results'
-          }
+          placeholder="e.g. My Search Results"
           inline={false}
           stacked
           flexibleControlStateSize

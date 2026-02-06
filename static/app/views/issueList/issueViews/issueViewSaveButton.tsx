@@ -24,8 +24,8 @@ import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssu
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
+import {useGenerateIssueViewTitle} from 'sentry/views/issueList/mutations/useGenerateIssueViewTitle';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
-import {useGenerateIssueViewTitle} from 'sentry/views/issueList/queries/useGenerateIssueViewTitle';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type IssueViewSaveButtonProps = {
@@ -47,14 +47,14 @@ function SegmentedIssueViewSaveButton({
   const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
-  const {mutateAsync: generateTitle} = useGenerateIssueViewTitle();
+  const {mutateAsync: generateTitle, isPending: isGeneratingTitle} =
+    useGenerateIssueViewTitle();
   const user = useUser();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
   const hasAiTitleFeature = organization.features.includes('issue-view-ai-title');
   const isNewView = location.query.new === 'true';
-  const hasDefaultName = view?.name === 'New View';
 
   const discardUnsavedChanges = () => {
     if (view) {
@@ -71,7 +71,7 @@ function SegmentedIssueViewSaveButton({
       trackAnalytics('issue_views.save.clicked', {organization});
 
       let name = view.name;
-      if ((isNewView || hasDefaultName) && hasAiTitleFeature && query) {
+      if (isNewView && hasAiTitleFeature && query.trim().length > 0) {
         try {
           const result = await generateTitle({query});
           name = result.title;
@@ -131,7 +131,7 @@ function SegmentedIssueViewSaveButton({
                 openCreateIssueViewModal();
               }
             }}
-            disabled={isSaving || !hasFeature}
+            disabled={isSaving || isGeneratingTitle || !hasFeature}
           >
             {canEdit ? t('Save') : t('Save As')}
           </PrimarySaveButton>
@@ -157,7 +157,7 @@ function SegmentedIssueViewSaveButton({
             trigger={props => (
               <DropdownTrigger
                 {...props}
-                disabled={!hasFeature || isSaving}
+                disabled={!hasFeature || isSaving || isGeneratingTitle}
                 icon={
                   <IconChevron
                     direction="down"

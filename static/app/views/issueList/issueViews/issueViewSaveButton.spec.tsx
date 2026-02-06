@@ -330,11 +330,18 @@ describe('IssueViewSaveButton', () => {
   });
 
   describe('AI title generation on save', () => {
-    it('generates title when saving a view with default "New View" name and feature flag enabled', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/group-search-views/100/',
-        body: {...mockGroupSearchView, name: 'New View'},
-      });
+    const saveViewLocation = {
+      pathname: '/organizations/org-slug/issues/views/100/',
+      query: {
+        project: '1',
+        environment: 'dev',
+        statsPeriod: '7d',
+        query: 'is:unresolved',
+        sort: IssueSortOptions.DATE,
+      },
+    };
+
+    it('generates title when saving a new view and feature flag is enabled', async () => {
       const mockGenerateTitle = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issue-view-title/generate/',
         method: 'POST',
@@ -350,13 +357,10 @@ describe('IssueViewSaveButton', () => {
         initialRouterConfig: {
           ...initialRouterConfigView,
           location: {
-            pathname: '/organizations/org-slug/issues/views/100/',
+            ...saveViewLocation,
             query: {
-              project: '1',
-              environment: 'dev',
-              statsPeriod: '7d',
-              query: 'is:unresolved',
-              sort: IssueSortOptions.DATE,
+              ...saveViewLocation.query,
+              new: 'true',
             },
           },
         },
@@ -389,11 +393,7 @@ describe('IssueViewSaveButton', () => {
       });
     });
 
-    it('does not generate title when feature flag is disabled', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/group-search-views/100/',
-        body: {...mockGroupSearchView, name: 'New View'},
-      });
+    it('does not generate title when view is not marked as new', async () => {
       const mockGenerateTitle = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issue-view-title/generate/',
         method: 'POST',
@@ -408,60 +408,7 @@ describe('IssueViewSaveButton', () => {
       render(<IssueViewSaveButton {...defaultProps} />, {
         initialRouterConfig: {
           ...initialRouterConfigView,
-          location: {
-            pathname: '/organizations/org-slug/issues/views/100/',
-            query: {
-              project: '1',
-              environment: 'dev',
-              statsPeriod: '7d',
-              query: 'is:unresolved',
-              sort: IssueSortOptions.DATE,
-            },
-          },
-        },
-        organization: OrganizationFixture({
-          features: ['issue-views'],
-        }),
-      });
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
-
-      await waitFor(() => {
-        expect(mockUpdateIssueView).toHaveBeenCalled();
-      });
-
-      expect(mockGenerateTitle).not.toHaveBeenCalled();
-    });
-
-    it('does not generate title when view has custom name', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/group-search-views/100/',
-        body: {...mockGroupSearchView, name: 'My Custom View'},
-      });
-      const mockGenerateTitle = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issue-view-title/generate/',
-        method: 'POST',
-        body: {title: 'Generated Title'},
-      });
-      const mockUpdateIssueView = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/group-search-views/100/',
-        method: 'PUT',
-        body: {...mockGroupSearchView, name: 'My Custom View'},
-      });
-
-      render(<IssueViewSaveButton {...defaultProps} />, {
-        initialRouterConfig: {
-          ...initialRouterConfigView,
-          location: {
-            pathname: '/organizations/org-slug/issues/views/100/',
-            query: {
-              project: '1',
-              environment: 'dev',
-              statsPeriod: '7d',
-              query: 'is:unresolved',
-              sort: IssueSortOptions.DATE,
-            },
-          },
+          location: saveViewLocation,
         },
         organization: OrganizationFixture({
           features: ['issue-views', 'issue-view-ai-title'],
@@ -479,10 +426,6 @@ describe('IssueViewSaveButton', () => {
 
     it('falls back to existing name when title generation fails', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/group-search-views/100/',
-        body: {...mockGroupSearchView, name: 'New View'},
-      });
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issue-view-title/generate/',
         method: 'POST',
         statusCode: 500,
@@ -491,20 +434,17 @@ describe('IssueViewSaveButton', () => {
       const mockUpdateIssueView = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/100/',
         method: 'PUT',
-        body: {...mockGroupSearchView, name: 'New View'},
+        body: mockGroupSearchView,
       });
 
       render(<IssueViewSaveButton {...defaultProps} />, {
         initialRouterConfig: {
           ...initialRouterConfigView,
           location: {
-            pathname: '/organizations/org-slug/issues/views/100/',
+            ...saveViewLocation,
             query: {
-              project: '1',
-              environment: 'dev',
-              statsPeriod: '7d',
-              query: 'is:unresolved',
-              sort: IssueSortOptions.DATE,
+              ...saveViewLocation.query,
+              new: 'true',
             },
           },
         },
@@ -520,7 +460,7 @@ describe('IssueViewSaveButton', () => {
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
-              name: 'New View',
+              name: mockGroupSearchView.name,
             }),
           })
         );
