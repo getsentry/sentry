@@ -15,8 +15,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -74,38 +72,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         }
 
     @responses.activate
-    def test_applies_correctly_for_legacy_webhooks(self) -> None:
-        responses.add(responses.POST, "http://my-fake-webhook.io")
-
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
-                group_id=self.event.group_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(responses.calls) == 1
-
-        payload = json.loads(responses.calls[0].request.body)
-        assert payload["level"] == "error"
-        assert payload["message"] == "こんにちは"
-        assert payload["event"]["id"] == self.event.event_id
-        assert payload["event"]["event_id"] == self.event.event_id
-        assert payload["triggering_rules"] == [rule.label]
-
-    @responses.activate
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_applies_correctly_for_legacy_webhooks_aci(self):
         responses.add(responses.POST, "http://my-fake-webhook.io")
 
@@ -161,8 +127,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert payload["triggering_rules"] == ["error_detector"]
 
     @responses.activate
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_legacy_webhooks_uneven_dual_write_aci(self):
         """
         Test that if a dual written Rule has it's Action updated to email instead that we do not fire a response to the webhook
@@ -200,8 +164,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
     def test_error_for_legacy_webhooks_dual_write_aci(self, mock_notify_users):
         responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)

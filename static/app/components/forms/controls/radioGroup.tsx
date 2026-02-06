@@ -46,8 +46,7 @@ export type RadioOption<C extends string = string> = [
 ];
 
 export interface RadioGroupProps<C extends string = string>
-  extends BaseRadioGroupProps<C>,
-    Omit<ContainerProps, 'onChange'> {
+  extends BaseRadioGroupProps<C>, Omit<ContainerProps, 'onChange'> {
   name?: string;
 }
 

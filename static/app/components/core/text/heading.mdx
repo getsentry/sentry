@@ -59,10 +59,12 @@ Use the required `as` prop to specify the semantic heading level. Each level has
 
 Override the default size with the `size` prop to decouple visual appearance from semantic meaning.
 
+Heading supports up to `4xl` as opposed to [Text](/stories/core/text/) which only allows `2xl`.
+
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Heading as="h3" size="2xl">
-      H3 with 2xl size
+    <Heading as="h2" size="4xl">
+      H2 with 4xl size
     </Heading>
     <Heading as="h1" size="md">
       H1 with medium size
@@ -70,20 +72,26 @@ Override the default size with the `size` prop to decouple visual appearance fro
     <Heading as="h5" size="xl">
       H5 with extra large size
     </Heading>
+    <Heading as="h3" size="3xl">
+      H3 with 3xl size
+    </Heading>
     <Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
       H6 with responsive size
     </Heading>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
-<Heading as="h3" size="2xl">
-  H3 with 2xl size
+<Heading as="h2" size="4xl">
+  H2 with 4xl size
 </Heading>
 <Heading as="h1" size="md">
   H1 with medium size
 </Heading>
 <Heading as="h5" size="xl">
   H5 with extra large size
+</Heading>
+<Heading as="h3" size="3xl">
+  H3 with 3xl size
 </Heading>
 <Heading as="h6" size={{md: 'xs', lg: 'xl'}}>
   H6 with responsive size
@@ -273,3 +281,8 @@ Headings support responsive sizes using breakpoint objects. Breakpoints are: `xs
   Responsive heading
 </Heading>
 ```
+
+## See Also
+
+- [Text](/stories/core/text/) - Related component for body text
+- [Prose](/stories/core/prose/) - Related component for long-form content

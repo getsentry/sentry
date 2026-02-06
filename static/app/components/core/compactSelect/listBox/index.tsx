@@ -26,7 +26,8 @@ import {ListBoxSection} from './section';
 type ObjectLike = object;
 
 interface ListBoxProps<T extends ObjectLike>
-  extends Omit<
+  extends
+    Omit<
       React.HTMLAttributes<HTMLUListElement>,
       'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,

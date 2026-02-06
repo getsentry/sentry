@@ -16,7 +16,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface NumberInputProps
-  extends InputStylesProps,
+  extends
+    InputStylesProps,
     AriaNumberFieldProps,
     Pick<
       React.InputHTMLAttributes<HTMLInputElement>,

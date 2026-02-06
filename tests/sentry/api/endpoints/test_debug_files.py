@@ -220,6 +220,14 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.status_code == 204, response.content
         assert ProjectDebugFile.objects.count() == 0
 
+    def test_delete_without_id_returns_404(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201
+
+        response = self.client.delete(self.url)
+        assert response.status_code == 404, response.content
+        assert ProjectDebugFile.objects.count() == 1
+
     def test_dsyms_as_team_admin(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201

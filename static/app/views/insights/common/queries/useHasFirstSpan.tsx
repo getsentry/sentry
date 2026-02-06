@@ -24,7 +24,6 @@ const modulePropertyMap: Record<
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
   [ModuleName.AGENT_MODELS]: 'hasInsightsAgentMonitoring',
   [ModuleName.AGENT_TOOLS]: 'hasInsightsAgentMonitoring',
-  [ModuleName.AI_GENERATIONS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
   [ModuleName.MCP_TOOLS]: 'hasInsightsMCP',
   [ModuleName.MCP_RESOURCES]: 'hasInsightsMCP',

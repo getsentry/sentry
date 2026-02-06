@@ -29,24 +29,23 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps
-  extends Partial<
-    Omit<
-      HybridFilterProps<number>,
-      | 'searchable'
-      | 'multiple'
-      | 'options'
-      | 'value'
-      | 'defaultValue'
-      | 'onReplace'
-      | 'onToggle'
-      | 'menuBody'
-      | 'menuFooter'
-      | 'menuFooterMessage'
-      | 'checkboxWrapper'
-      | 'shouldCloseOnInteractOutside'
-    >
-  > {
+export interface ProjectPageFilterProps extends Partial<
+  Omit<
+    HybridFilterProps<number>,
+    | 'searchable'
+    | 'multiple'
+    | 'options'
+    | 'value'
+    | 'defaultValue'
+    | 'onReplace'
+    | 'onToggle'
+    | 'menuBody'
+    | 'menuFooter'
+    | 'menuFooterMessage'
+    | 'checkboxWrapper'
+    | 'shouldCloseOnInteractOutside'
+  >
+> {
   /**
    * Message to show in the menu footer
    */
