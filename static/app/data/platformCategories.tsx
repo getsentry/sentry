@@ -491,6 +491,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'apple',
   'bun',
   'dart',
+  'dotnet',
   'electron',
   'go',
   'java',

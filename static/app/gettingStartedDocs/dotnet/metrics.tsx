@@ -4,7 +4,7 @@ import {
   type ContentBlock,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -12,9 +12,8 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: tct(
-        'Send test metrics from your app to verify metrics are arriving in Sentry.',
-        {code: <code />}
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
       ),
     },
     {
