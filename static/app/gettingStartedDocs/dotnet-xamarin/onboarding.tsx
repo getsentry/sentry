@@ -213,7 +213,6 @@ export const onboarding: OnboardingConfig = {
             'You might need to open the app again for the crash report to be sent to the server.'
           ),
         },
-        logsVerify(params),
       ],
     },
     {
