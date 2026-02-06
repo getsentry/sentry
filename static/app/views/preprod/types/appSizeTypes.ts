@@ -61,13 +61,18 @@ interface TreemapElementMisc {
   scale?: number;
 }
 
+interface FlaggedInsight {
+  key: string;
+  savings: number;
+}
+
 export interface TreemapElement {
   children: TreemapElement[];
   is_dir: boolean;
   name: string;
   size: number;
   type: TreemapType;
-  flagged_insights?: string[];
+  flagged_insights?: Array<string | FlaggedInsight>;
   misc?: TreemapElementMisc;
   path?: string;
 }
