@@ -1,4 +1,5 @@
 import sentry
+from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.plugins.bases.tag import TagPlugin
 
 
@@ -22,4 +23,7 @@ class UrlsPlugin(TagPlugin):
             return []
         if not http.url:
             return []
-        return [http.url]
+        url = http.url
+        if len(url) > MAX_TAG_VALUE_LENGTH:
+            url = url[: MAX_TAG_VALUE_LENGTH - 3] + "..."
+        return [url]
