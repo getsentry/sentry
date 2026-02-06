@@ -6,17 +6,11 @@ import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer'
 
 describe('useArithmeticBuilderAction', () => {
   it('returns initial state', () => {
-    const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: 'initial expression',
-        },
-      }
-    );
+    const {result} = renderHook(useArithmeticBuilderAction, {
+      initialProps: {
+        initialExpression: 'initial expression',
+      },
+    });
     expect(result.current).toEqual({
       dispatch: expect.any(Function),
       state: {
@@ -31,17 +25,11 @@ describe('useArithmeticBuilderAction', () => {
 
     const tokens = tokenizeExpression(expression);
 
-    const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
-    );
+    const {result} = renderHook(useArithmeticBuilderAction, {
+      initialProps: {
+        initialExpression: expression,
+      },
+    });
 
     act(() =>
       result.current.dispatch({
@@ -82,17 +70,9 @@ describe('useArithmeticBuilderAction', () => {
 
     const tokens = tokenizeExpression(expression);
 
-    const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
-    );
+    const {result} = renderHook(useArithmeticBuilderAction, {
+      initialProps: {initialExpression: expression},
+    });
 
     act(() =>
       result.current.dispatch({
@@ -115,17 +95,9 @@ describe('useArithmeticBuilderAction', () => {
 
     const tokens = tokenizeExpression(expression);
 
-    const {result} = renderHook(
-      ({initialExpression}) =>
-        useArithmeticBuilderAction({
-          initialExpression,
-        }),
-      {
-        initialProps: {
-          initialExpression: expression,
-        },
-      }
-    );
+    const {result} = renderHook(useArithmeticBuilderAction, {
+      initialProps: {initialExpression: expression},
+    });
 
     act(() =>
       result.current.dispatch({
