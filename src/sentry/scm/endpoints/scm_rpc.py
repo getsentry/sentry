@@ -206,6 +206,10 @@ scm_method_registry: dict[str, Callable] = {
     # This dict could be populated dynamically by scanning the SourceCodeManager class for methods.
     # Explicit listing give us more control: we can rename methods,
     # delay exposing them as RPC, adapt their interface, etc.
+    #
+    # If a method of SourceCodeManager accepts only JSON-serializable arguments, by names, and
+    # returns a JSON-serializable type, then it can be listed here directly.
+    # Else, an adapter function must be used.
     "get_issue_comments": SourceCodeManager.get_issue_comments,
     "create_issue_comment": SourceCodeManager.create_issue_comment,
     "delete_issue_comment": SourceCodeManager.delete_issue_comment,
