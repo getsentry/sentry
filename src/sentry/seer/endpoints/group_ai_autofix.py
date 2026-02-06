@@ -300,6 +300,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if state is None:
             return Response({"autofix": None})
 
+        if state.coding_agents and request.user.id:
+            poll_github_copilot_agents(coding_agents=state.coding_agents, user_id=request.user.id)
+
         # Return the Explorer state directly - frontend will handle the format
         return Response(
             {
