@@ -137,7 +137,7 @@ function StepButton({
   if (step !== 'code_changes' || !codingAgentIntegrations?.length) {
     return (
       <Tooltip
-        disabled={!enableSeerCoding}
+        disabled={enableSeerCoding}
         title={tct(
           '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
           {
@@ -188,7 +188,7 @@ function StepButton({
 
   return (
     <Tooltip
-      disabled={!enableSeerCoding}
+      disabled={enableSeerCoding}
       title={tct(
         '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
         {
