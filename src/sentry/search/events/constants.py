@@ -212,7 +212,7 @@ RESULT_TYPES = RESULT_TYPES.union(SIZE_UNITS.keys())
 RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
 PERCENT_UNITS = {"ratio", "percent"}
 
-NO_CONVERSION_FIELDS = {"start", "end"}
+NO_CONVERSION_FIELDS = {"start", "end", "team"}
 # Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
 # In these cases we should instead treat it as a tag instead
 SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS}

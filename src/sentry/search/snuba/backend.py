@@ -26,6 +26,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.search.base import SearchBackend
@@ -246,6 +247,18 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             project__in=projects,
         ).values_list("group_id", flat=True),
     )
+
+
+def team_filter(actors: Sequence[User | Team | None], projects: Sequence[Project]) -> Q:
+    """Filter groups from projects owned by the specified teams."""
+    teams = [actor for actor in actors if isinstance(actor, Team)]
+    if not teams:
+        return Q(pk__in=[])
+    project_ids_owned_by_teams = ProjectTeam.objects.filter(
+        team__in=teams,
+        project__in=projects,
+    ).values_list("project_id", flat=True)
+    return Q(project_id__in=project_ids_owned_by_teams)
 
 
 def seer_actionability_filter(trigger_values: list[float]) -> Q:
@@ -586,6 +599,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "regressed_in_release": QCallbackCondition(
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
+            "team": QCallbackCondition(functools.partial(team_filter, projects=projects)),
             "detector": QCallbackCondition(_make_detector_filter),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
