@@ -966,6 +966,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
 const LastTriggeredWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   align-self: center;
   width: 100px;
   padding-right: ${space(2)};
