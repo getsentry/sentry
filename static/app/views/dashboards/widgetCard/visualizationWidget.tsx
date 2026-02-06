@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
@@ -10,9 +11,15 @@ import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transformLegacySeriesToPlottables';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
@@ -94,6 +101,7 @@ export function VisualizationWidget({
             releases={releases}
             showReleaseAs={showReleaseAs}
             renderErrorMessage={renderErrorMessage}
+            dashboardFilters={dashboardFilters}
           />
         );
       }}
@@ -107,6 +115,7 @@ interface VisualizationWidgetContentProps {
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
   timeseriesResults: Series[];
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   errorMessage?: string;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   tableResults?: TableDataWithTitle[];
@@ -125,8 +134,11 @@ function VisualizationWidgetContent({
   releases,
   showReleaseAs,
   renderErrorMessage,
+  dashboardFilters,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
 
   const plottables = transformLegacySeriesToPlottables(
     timeseriesResults,
@@ -150,8 +162,13 @@ function VisualizationWidgetContent({
     tableResults.length > 0;
 
   const tableDataRows = tableResults?.[0]?.data;
-  const aggregates = widget.queries[0]?.aggregates ?? [];
-  const columns = widget.queries[0]?.columns ?? [];
+  const widgetQuery = widget.queries[0];
+  const aggregates = widgetQuery?.aggregates ?? [];
+  const columns = widgetQuery?.columns ?? [];
+
+  // We only support one column for legend breakdown right now
+  const firstColumn = columns[0];
+  const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
 
   // Filter out "Other" series for the legend breakdown
   const filteredSeriesWithIndex = showBreakdownData
@@ -192,6 +209,25 @@ function VisualizationWidgetContent({
         const dataType = plottable?.dataType ?? FALLBACK_TYPE;
         const dataUnit = plottable?.dataUnit ?? undefined;
         const label = plottable?.label ?? series.seriesName;
+        const linkedUrl =
+          linkedDashboard && firstColumn && widget.widgetType
+            ? getLinkedDashboardUrl({
+                linkedDashboard,
+                organizationSlug: organization.slug,
+                field: firstColumn,
+                value: series.seriesName,
+                widgetType: widget.widgetType,
+                dashboardFilters,
+                locationQuery: location.query,
+              })
+            : undefined;
+
+        const labelContent = linkedUrl ? (
+          <Link to={linkedUrl}>{label}</Link>
+        ) : (
+          <Text>{label}</Text>
+        );
+
         return (
           <Fragment key={series.seriesName}>
             <Container>
@@ -202,7 +238,7 @@ function VisualizationWidgetContent({
               />
             </Container>
             <Tooltip title={label} showOnlyOnOverflow>
-              <Text>{label}</Text>
+              {labelContent}
             </Tooltip>
             <TextAlignRight>
               {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}

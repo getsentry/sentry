@@ -27,7 +27,7 @@ import {NavLayout} from 'sentry/views/nav/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
-import {initialStepToName, Steps} from 'getsentry/views/seerAutomation/onboarding/types';
+import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
 // See also: `IntegrationProviderSlug` in sentry/integrations/types.py
 // `vsts` is ignored for now, not on the early roadmap in January 2026.
@@ -96,7 +96,7 @@ function useCanSeeReminder(organization: Organization) {
       has_seat_based_seer: hasSeatBasedSeer,
       has_legacy_seer: hasLegacySeer,
       has_code_review_beta: hasCodeReviewBeta,
-      initial_step: initialStepToName(initialStep),
+      initial_step: Steps[initialStep]?.toString() ?? 'unknown',
     }),
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
@@ -196,7 +196,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Flex justify="end">
               <LinkButton
                 to={{
-                  pathname: `/organizations/${organization.slug}/settings/seer/`,
+                  pathname: `/settings/${organization.slug}/seer/`,
                   query: {
                     tab: hasSeatBasedSeer
                       ? undefined

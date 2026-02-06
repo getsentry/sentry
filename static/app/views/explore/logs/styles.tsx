@@ -407,7 +407,7 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
       margin-left: -13px;
 
       &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
+        border-left-color: ${p.theme.tokens.border.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
       }

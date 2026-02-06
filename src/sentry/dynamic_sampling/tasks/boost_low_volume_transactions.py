@@ -26,7 +26,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
+from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
@@ -41,14 +41,13 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 )
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task, sample_function
+from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -83,10 +82,17 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_classes: int | float
 
 
+def _get_segments_org_ids() -> set[int]:
+    """
+    Returns the set of organization IDs that should use SEGMENTS measure.
+    """
+    return set(options.get("dynamic-sampling.transactions.segment-metric-orgs") or [])
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=6 * 60 + 5,
+    processing_deadline_duration=10 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -99,56 +105,54 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    orgs_iterator = GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60))
-    for orgs in orgs_iterator:
-        span_metric_orgs, transaction_metric_orgs = _partition_orgs_by_span_metric_option(orgs)
+    segments_org_ids = _get_segments_org_ids()
 
-        metrics.incr(
-            "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-            tags={"metric_type": "span"},
-            amount=len(span_metric_orgs),
-        )
+    # Process orgs using segment metrics (opted-in via option)
+    if segments_org_ids:
+        for orgs in GetActiveOrgs(
+            max_projects=MAX_PROJECTS_PER_QUERY,
+            granularity=Granularity(60),
+            measure=SamplingMeasure.SEGMENTS,
+        ):
+            # Filter to only orgs in the segments option
+            segment_orgs = [org_id for org_id in orgs if org_id in segments_org_ids]
+            metrics.incr(
+                "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
+                tags={"metric_type": "segment"},
+                amount=len(segment_orgs),
+            )
+            if segment_orgs:
+                _process_orgs_for_boost_low_volume_transactions(
+                    segment_orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
+                )
+
+    # Process orgs using transaction metrics (default)
+    for orgs in GetActiveOrgs(
+        max_projects=MAX_PROJECTS_PER_QUERY,
+        granularity=Granularity(60),
+        measure=SamplingMeasure.TRANSACTIONS,
+    ):
+        # Filter out orgs that use segment metrics
+        transaction_orgs = [org_id for org_id in orgs if org_id not in segments_org_ids]
         metrics.incr(
             "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
             tags={"metric_type": "transaction"},
-            amount=len(transaction_metric_orgs),
+            amount=len(transaction_orgs),
         )
-
-        _process_orgs_for_boost_low_volume_transactions(
-            span_metric_orgs, num_big_trans, num_small_trans, use_span_metric=True
-        )
-
-        _process_orgs_for_boost_low_volume_transactions(
-            transaction_metric_orgs, num_big_trans, num_small_trans, use_span_metric=False
-        )
-
-
-def _partition_orgs_by_span_metric_option(
-    org_ids: list[int],
-) -> tuple[list[int], list[int]]:
-    """
-    Partition organizations by whether they are in the span-metric-orgs option.
-    Returns (span_metric_orgs, transaction_metric_orgs).
-    """
-    span_metric_org_ids = set(options.get("dynamic-sampling.transactions.span-metric-orgs") or [])
-
-    span_metric_orgs = []
-    transaction_metric_orgs = []
-
-    for org_id in org_ids:
-        if org_id in span_metric_org_ids:
-            span_metric_orgs.append(org_id)
-        else:
-            transaction_metric_orgs.append(org_id)
-
-    return span_metric_orgs, transaction_metric_orgs
+        if transaction_orgs:
+            _process_orgs_for_boost_low_volume_transactions(
+                transaction_orgs,
+                num_big_trans,
+                num_small_trans,
+                measure=SamplingMeasure.TRANSACTIONS,
+            )
 
 
 def _process_orgs_for_boost_low_volume_transactions(
     orgs: list[int],
     num_big_trans: int,
     num_small_trans: int,
-    use_span_metric: bool,
+    measure: SamplingMeasure,
 ) -> None:
     """
     Process a batch of organizations for boost low volume transactions.
@@ -156,18 +160,18 @@ def _process_orgs_for_boost_low_volume_transactions(
     if not orgs:
         return
 
-    totals_it = FetchProjectTransactionTotals(orgs, use_span_metric=use_span_metric)
+    totals_it = FetchProjectTransactionTotals(orgs, measure=measure)
     small_transactions_it = FetchProjectTransactionVolumes(
         orgs,
         large_transactions=False,
         max_transactions=num_small_trans,
-        use_span_metric=use_span_metric,
+        measure=measure,
     )
     big_transactions_it = FetchProjectTransactionVolumes(
         orgs,
         large_transactions=True,
         max_transactions=num_big_trans,
-        use_span_metric=use_span_metric,
+        measure=measure,
     )
 
     for project_transactions in transactions_zip(
@@ -296,23 +300,17 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(self, orgs: Sequence[int], use_span_metric: bool = False):
+    def __init__(
+        self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS
+    ):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        self.use_span_metric = use_span_metric
-        self.is_segment_tag: str | None
-        if self.use_span_metric:
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-            self.use_case_id = UseCaseID.SPANS
-        else:
-            self.is_segment_tag = None
-            self.metric_id = indexer.resolve_shared_org(
-                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            self.use_case_id = UseCaseID.TRANSACTIONS
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
+        self.measure = measure
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -340,8 +338,11 @@ class FetchProjectTransactionTotals:
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
-            if self.use_span_metric and self.is_segment_tag:
-                where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+            # Add tag filters from config
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
 
             query = (
                 Query(
@@ -377,7 +378,7 @@ class FetchProjectTransactionTotals:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
             )["data"]
 
-            metric_type = "span" if self.use_span_metric else "transaction"
+            metric_type = self.measure.value
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
                 tags={"query_type": "totals", "metric_type": metric_type},
@@ -421,7 +422,7 @@ class FetchProjectTransactionTotals:
 
 class FetchProjectTransactionVolumes:
     """
-    Fetch transactions for all orgs and all projects  with pagination orgs and projects with count per root project
+    Fetch transactions for all orgs and all projects with pagination orgs and projects with count per root project
 
     org_ids: the orgs for which the projects & transactions should be returned
 
@@ -430,7 +431,7 @@ class FetchProjectTransactionVolumes:
 
     max_transactions: maximum number of transactions to return
 
-    use_span_metric: if True, use span count per root metric with is_segment filter
+    measure: which SamplingMeasure to use for querying metrics
     """
 
     def __init__(
@@ -438,7 +439,7 @@ class FetchProjectTransactionVolumes:
         orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
-        use_span_metric: bool = False,
+        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
     ):
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
@@ -447,19 +448,11 @@ class FetchProjectTransactionVolumes:
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        self.use_span_metric = use_span_metric
-        self.is_segment_tag: str | None
-        if self.use_span_metric:
-            is_segment_string_id = indexer.resolve_shared_org("is_segment")
-            self.is_segment_tag = f"tags_raw[{is_segment_string_id}]"
-            self.metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-            self.use_case_id = UseCaseID.SPANS
-        else:
-            self.is_segment_tag = None
-            self.metric_id = indexer.resolve_shared_org(
-                str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-            )
-            self.use_case_id = UseCaseID.TRANSACTIONS
+        config = MEASURE_CONFIGS[measure]
+        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
+        self.use_case_id = config["use_case_id"]
+        self.tag_filters = config["tags"]
+        self.measure = measure
 
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
@@ -495,8 +488,11 @@ class FetchProjectTransactionVolumes:
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
-            if self.use_span_metric and self.is_segment_tag:
-                where_conditions.append(Condition(Column(self.is_segment_tag), Op.EQ, "true"))
+            # Add tag filters from config
+            for tag_name, tag_value in self.tag_filters.items():
+                tag_string_id = indexer.resolve_shared_org(tag_name)
+                tag_column = f"tags_raw[{tag_string_id}]"
+                where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
 
             query = (
                 Query(
@@ -540,7 +536,7 @@ class FetchProjectTransactionVolumes:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
 
-            metric_type = "span" if self.use_span_metric else "transaction"
+            metric_type = self.measure.value
             volume_type = "large" if self.large_transactions else "small"
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",

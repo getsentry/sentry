@@ -1,4 +1,4 @@
-import {parseAsString, useQueryStates} from 'nuqs';
+import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
@@ -7,6 +7,8 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 export enum ConversationDrawerUrlParams {
   SELECTED_CONVERSATION = 'conversation',
   SELECTED_SPAN = 'conversationSpan',
+  START_TIMESTAMP = 'conversationStart',
+  END_TIMESTAMP = 'conversationEnd',
 }
 
 export function useConversationDrawerQueryState() {
@@ -14,12 +16,16 @@ export function useConversationDrawerQueryState() {
     {
       conversationId: parseAsString,
       spanId: parseAsString,
+      startTimestamp: parseAsInteger,
+      endTimestamp: parseAsInteger,
     },
     {
       history: 'replace',
       urlKeys: {
         conversationId: ConversationDrawerUrlParams.SELECTED_CONVERSATION,
         spanId: ConversationDrawerUrlParams.SELECTED_SPAN,
+        startTimestamp: ConversationDrawerUrlParams.START_TIMESTAMP,
+        endTimestamp: ConversationDrawerUrlParams.END_TIMESTAMP,
       },
     }
   );
