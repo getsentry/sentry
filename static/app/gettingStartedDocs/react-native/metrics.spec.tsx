@@ -54,18 +54,14 @@ describe('getting started with react-native', () => {
     expect(
       await screen.findByRole('heading', {name: /install sentry/i})
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: /configure sentry/i})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /configure sentry/i})).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {name: /send metrics and verify/i})
     ).toBeInTheDocument();
 
     // Goes to the configure step
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(
-      await screen.findByText(/Metrics are enabled by default/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Metrics are enabled by default/)).toBeInTheDocument();
 
     // Goes to the verify step
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
