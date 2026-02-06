@@ -28,7 +28,13 @@ export function SentryAppAvatar({
     return <FallbackAvatar {...props} />;
   }
 
-  return <Avatar {...props} {...getSentryAppAvatarProps(sentryApp)} />;
+  const avatarProps = getSentryAppAvatarProps(sentryApp);
+
+  if (!avatarProps) {
+    return <FallbackAvatar {...props} />;
+  }
+
+  return <Avatar {...props} {...avatarProps} />;
 }
 
 function FallbackAvatar(props: Pick<AvatarProps, 'size' | 'className'>) {
@@ -43,23 +49,20 @@ function FallbackAvatar(props: Pick<AvatarProps, 'size' | 'className'>) {
 
 function getSentryAppAvatarProps(
   sentryApp: AvatarSentryApp
-): UploadBaseAvatarProps | LetterBaseAvatarProps | GravatarBaseAvatarProps {
+): UploadBaseAvatarProps | LetterBaseAvatarProps | GravatarBaseAvatarProps | null {
   const identifier = sentryApp.slug;
   const name = sentryApp.name;
 
-  if (!sentryApp.avatars?.find(({avatarType}) => avatarType === 'upload')?.avatarUrl) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
-  }
+  const uploadUrl = sentryApp.avatars?.find(
+    ({avatarType}) => avatarType === 'upload'
+  )?.avatarUrl;
+
+  // If there is no upload URL, return null and fall
+  if (!uploadUrl) return null;
 
   return {
     type: 'upload',
-    uploadUrl:
-      sentryApp.avatars?.find(({avatarType}) => avatarType === 'upload')?.avatarUrl ?? '',
+    uploadUrl,
     identifier,
     name,
   };
