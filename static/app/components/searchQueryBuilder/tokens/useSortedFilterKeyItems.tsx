@@ -163,7 +163,7 @@ export function useSortedFilterKeyItems({
   filterValue: string;
   includeSuggestions: boolean;
   inputValue: string;
-}): SearchKeyItem[] {
+}): {isLoading: boolean; items: SearchKeyItem[]} {
   const {
     filterKeys,
     getFieldDefinition,
@@ -192,12 +192,16 @@ export function useSortedFilterKeyItems({
   );
   const debouncedQueryKey = useDebouncedValue(baseQueryKey);
 
-  const {data: asyncKeys} = useQuery({
+  const isDebouncing = baseQueryKey !== debouncedQueryKey;
+
+  const {data: asyncKeys, isFetching} = useQuery({
     queryKey: debouncedQueryKey,
     queryFn: ctx => ctx.queryKey[1][0]!(ctx.queryKey[1][1]),
     placeholderData: keepPreviousData,
     enabled: shouldFetchAsync,
   });
+
+  const isLoading = shouldFetchAsync && (isFetching || isDebouncing);
 
   const flatKeys = useMemo(() => {
     const keys = Object.values(filterKeys);
@@ -249,7 +253,7 @@ export function useSortedFilterKeyItems({
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
-  return useMemo(() => {
+  const items = useMemo(() => {
     if (!filterValue || !search) {
       if (!filterKeySections.length) {
         return flatKeys
@@ -403,4 +407,6 @@ export function useSortedFilterKeyItems({
     replaceRawSearchKeys,
     search,
   ]);
+
+  return {items, isLoading};
 }
