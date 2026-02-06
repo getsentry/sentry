@@ -81,7 +81,7 @@ export default function SeerAutomationSettings() {
                 },
                 {
                   name: 'autoOpenPrs',
-                  label: t('Enable Autofix PR Creation by Default'),
+                  label: t('Allow Root Cause Analysis to create PRs by Default'),
                   help: t(
                     'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
                   ),

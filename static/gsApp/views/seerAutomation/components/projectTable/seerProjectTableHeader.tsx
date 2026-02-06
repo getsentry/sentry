@@ -29,7 +29,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Auto Fix'), key: 'fixes'},
+  {title: t('Root Cause Analysis'), key: 'fixes'},
   {title: t('PR Creation'), key: 'pr_creation'},
   {
     title: (
