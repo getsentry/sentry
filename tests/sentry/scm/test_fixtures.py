@@ -6,6 +6,7 @@ from sentry.integrations.models import Integration
 from sentry.scm.types import (
     Comment,
     CommentActionResult,
+    IssueReaction,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -164,8 +165,11 @@ class BaseTestProvider(Provider):
 
     # Issue reactions
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
-        return ["+1", "heart"]
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
+        return [
+            IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+            IssueReaction(id="2", content="heart", author={"id": "2", "username": "otheruser"}),
+        ]
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction

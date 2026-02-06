@@ -264,7 +264,13 @@ class TestGitHubProviderGetIssueReactions:
 
         reactions = provider.get_issue_reactions(repository, "42")
 
-        assert reactions == ["heart", "+1"]
+        assert len(reactions) == 2
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "heart"
+        assert reactions[0]["author"]["id"] == "123"
+        assert reactions[0]["author"]["username"] == "testuser"
+        assert reactions[1]["id"] == "2"
+        assert reactions[1]["content"] == "+1"
 
     def test_raises_key_error_on_malformed_response(self):
         client = FakeGitHubApiClient()

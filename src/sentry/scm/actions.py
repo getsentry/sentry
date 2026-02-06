@@ -13,6 +13,7 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     CommentActionResult,
+    IssueReaction,
     Provider,
     PullRequestActionResult,
     Reaction,
@@ -201,7 +202,7 @@ class SourceCodeManager:
             provider_fn=lambda r, p: p.delete_comment_reaction(r, comment_id, reaction_id),
         )
 
-    def get_issue_reactions(self, issue_id: str) -> list[Reaction]:
+    def get_issue_reactions(self, issue_id: str) -> list[IssueReaction]:
         """Get reactions on an issue."""
         return exec_provider_fn(
             self.organization_id,

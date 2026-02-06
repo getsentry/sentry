@@ -308,6 +308,14 @@ class TestGitHubProviderIntegration(TestCase):
         reactions = self.provider.get_issue_reactions(self.repository, "42")
 
         assert len(reactions) == 2
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "heart"
+        assert reactions[0]["author"]["id"] == "1"
+        assert reactions[0]["author"]["username"] == "octocat"
+        assert reactions[1]["id"] == "2"
+        assert reactions[1]["content"] == "+1"
+        assert reactions[1]["author"]["id"] == "2"
+        assert reactions[1]["author"]["username"] == "hubot"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

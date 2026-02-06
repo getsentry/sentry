@@ -5,6 +5,7 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     Comment,
     CommentActionResult,
+    IssueReaction,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -44,8 +45,12 @@ def _transform_comment(raw: dict[str, Any]) -> CommentActionResult:
     )
 
 
-def _transform_issue_reaction(raw: dict[str, Any]) -> Reaction:
-    return raw["content"]
+def _transform_issue_reaction(raw: dict[str, Any]) -> IssueReaction:
+    return IssueReaction(
+        id=str(raw["id"]),
+        content=raw["content"],
+        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+    )
 
 
 def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
@@ -158,7 +163,7 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
         try:
             raw_reactions = self.client.get_issue_reactions(repository["name"], issue_id)
         except ApiError as e:
