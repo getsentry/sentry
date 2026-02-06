@@ -670,6 +670,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -2274,9 +2281,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for boost low volume transactions.
+# List of organization IDs that should be using segment metrics for boost low volume transactions.
 register(
-    "dynamic-sampling.transactions.span-metric-orgs",
+    "dynamic-sampling.transactions.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3457,13 +3464,6 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.rollout",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
@@ -3472,13 +3472,6 @@ register(
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
