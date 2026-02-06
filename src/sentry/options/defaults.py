@@ -2281,9 +2281,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for boost low volume transactions.
+# List of organization IDs that should be using segment metrics for boost low volume transactions.
 register(
-    "dynamic-sampling.transactions.span-metric-orgs",
+    "dynamic-sampling.transactions.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
