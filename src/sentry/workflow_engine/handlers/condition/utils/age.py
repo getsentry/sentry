@@ -4,14 +4,6 @@ import operator
 from enum import StrEnum
 
 
-class ModelAgeType(StrEnum):
-    OLDEST = "oldest"
-    NEWEST = "newest"
-
-
-model_age_choices = [(ModelAgeType.OLDEST, "oldest"), (ModelAgeType.NEWEST, "newest")]
-
-
 class AgeComparisonType(StrEnum):
     OLDER = "older"
     NEWER = "newer"
