@@ -22,6 +22,8 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
@@ -172,6 +174,7 @@ export function useSortedFilterKeyItems({
     matchKeySuggestions,
     enableAISearch,
     gaveSeerConsent,
+    getTagKeys,
   } = useSearchQueryBuilder();
 
   const organization = useOrganization();
@@ -182,7 +185,53 @@ export function useSortedFilterKeyItems({
     'search-query-builder-conditionals-combobox-menus'
   );
 
-  const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
+  // Async key fetching with debounce when getTagKeys is provided
+  const shouldFetchAsync = !!getTagKeys;
+  const queryParams = useMemo(
+    () => [getTagKeys, filterValue] as const,
+    [getTagKeys, filterValue]
+  );
+  const baseQueryKey = useMemo(
+    () => ['search-query-builder-tag-keys', queryParams] as const,
+    [queryParams]
+  );
+  const debouncedQueryKey = useDebouncedValue(baseQueryKey);
+
+  const {data: asyncKeys} = useQuery({
+    queryKey: debouncedQueryKey,
+    queryFn: ctx => ctx.queryKey[1][0]!(ctx.queryKey[1][1]),
+    placeholderData: keepPreviousData,
+    enabled: shouldFetchAsync,
+  });
+
+  const flatKeys = useMemo(() => {
+    const keys = Object.values(filterKeys);
+    if (!asyncKeys?.length) {
+      return keys;
+    }
+    const existing = new Set(keys.map(k => k.key));
+    return [...keys, ...asyncKeys.filter(k => !existing.has(k.key))];
+  }, [filterKeys, asyncKeys]);
+
+  // Merged lookup of static + async keys, used for validating search results.
+  // Without this, async-only keys would be filtered out by the `filterKeys` check.
+  const allKeysLookup = useMemo(() => {
+    if (!asyncKeys?.length) {
+      return filterKeys;
+    }
+    const merged = {...filterKeys};
+    for (const tag of asyncKeys) {
+      if (!(tag.key in merged)) {
+        merged[tag.key] = tag;
+      }
+    }
+    return merged;
+  }, [filterKeys, asyncKeys]);
+
+  // When async fetching is active, debounce the filter value used for fuzzy search
+  // so it only runs once (after the API response lands) instead of on every keystroke.
+  const debouncedFilterValue = useDebouncedValue(filterValue);
+  const effectiveFilterValue = shouldFetchAsync ? debouncedFilterValue : filterValue;
 
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
     const searchKeyItems: FilterKeySearchItem[] = flatKeys.map(key => {
@@ -211,7 +260,7 @@ export function useSortedFilterKeyItems({
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
   return useMemo(() => {
-    if (!filterValue || !search) {
+    if (!effectiveFilterValue || !search) {
       if (!filterKeySections.length) {
         return flatKeys
           .map(key => createItem(key, getFieldDefinition(key.key)))
@@ -223,19 +272,19 @@ export function useSortedFilterKeyItems({
       ].slice(0, 50);
 
       return filterSectionKeys
-        .map(key => filterKeys[key])
+        .map(key => allKeysLookup[key])
         .filter(defined)
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(filterValue);
+    const searched = search.search(effectiveFilterValue);
 
     const keyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
       .filter(
         filterSearchKeyItem =>
           (filterSearchKeyItem.type === 'key' &&
-            filterKeys[filterSearchKeyItem.item.key]) ||
+            allKeysLookup[filterSearchKeyItem.item.key]) ||
           filterSearchKeyItem.type === 'logic'
       )
       .map(filterSearchKeyItem => {
@@ -250,7 +299,7 @@ export function useSortedFilterKeyItems({
         }
 
         const {key} = filterSearchKeyItem.item;
-        return createItem(filterKeys[key]!, getFieldDefinition(key));
+        return createItem(allKeysLookup[key]!, getFieldDefinition(key));
       });
 
     const askSeerItem = [];
@@ -357,11 +406,11 @@ export function useSortedFilterKeyItems({
 
     return [...keyItems, ...askSeerItem];
   }, [
+    allKeysLookup,
     disallowFreeText,
+    effectiveFilterValue,
     enableAISearch,
     filterKeySections,
-    filterKeys,
-    filterValue,
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
