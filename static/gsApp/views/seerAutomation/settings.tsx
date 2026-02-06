@@ -37,6 +37,7 @@ export default function SeerAutomationSettings() {
 
           // Third section
           enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
+          enableSeerCoding: organization.enableSeerCoding ?? true,
         }}
       >
         <JsonForm
