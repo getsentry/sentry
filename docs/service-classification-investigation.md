@@ -535,11 +535,30 @@ Timing results:
 
 Tier 2 still finishes ~6 min after Tier 1. Shard allocation needs tuning to balance wall-clock times (shift more shards to Tier 2).
 
-## Optimization: Conditional `reset_snuba`
+## Optimization: Conditional `reset_snuba` (Tried and Abandoned)
 
-### Problem
+Attempted to skip `reset_snuba` (10 HTTP calls per test) when the previous test didn't write to Snuba. Implemented transport-level dirty tracking by wrapping `requests.post` and `_snuba_pool.urlopen` to detect `/insert` and `/eventstream` URLs.
 
-`reset_snuba` fires before every `SnubaTestCase` test, making 10 HTTP POST calls to drop Snuba tables. This adds ~50-200ms per test, even for tests that never write to Snuba. Most SnubaTestCase tests inherit the class for `store_event()` or other helpers, but many individual tests only read or never interact with Snuba data at all.
+**Results:** The optimization showed negligible improvement (~0.3 min avg) because most SnubaTestCase tests call `store_event()` which writes via `/eventstream`, so nearly every test dirties Snuba. The approach also introduced stale data risks when write paths were missed (initially missed the `/eventstream` URL pattern).
+
+**Verdict:** Not worth the complexity. Abandoned.
+
+## Tier 2 Performance Analysis
+
+### Top 10 Slowest Tests (from CI `--durations` output)
+
+| Duration | Test |
+|----------|------|
+| 18.0s | `relay_integration/test_integration.py::SentryRemoteTest::test_signature_header_is_none` |
+| 6.9s | `relay_integration/lang/java/test_plugin.py::BasicResolvingIntegrationTest::test_basic_source_lookup` |
+| 6.7s setup | `integration/test_api.py::AuthenticationTest::test_sso_redirect_url_internal_with_domain` |
+| 5.4s | `tasks/test_auto_ongoing_issues.py::ScheduleAutoRegressedOngoingIssuesTest::test_not_all_groups_get_updated` |
+| 4.8s | `snuba/api/endpoints/test_organization_events_trace.py::OrganizationEventsTraceEndpointTest::test_with_orphan_trace` |
+| 4.7s | `dynamic_sampling/tasks/test_tasks.py::TestBoostLowVolumeTransactionsTasks::test_boost_low_volume_transactions_partial` |
+| 4.7s | `rules/processing/test_delayed_processing.py::ApplyDelayedTest::test_apply_delayed_event_frequency_percent_comparison_interval` |
+| 4.7s | `digests/backends/test_redis.py::RedisBackendTestCase::test_large_digest` |
+| 4.7s | `tasks/test_daily_summary.py::DailySummaryTest::test_build_summary_data_group_regressed_twice_and_escalated` |
+| 4.6s | `dynamic_sampling/tasks/test_tasks.py::TestBoostLowVolumeTransactionsTasks::test_boost_low_volume_transactions_with_blended_sample_rate` |
 
 ### Per-test overhead in Tier 2
 
@@ -547,62 +566,29 @@ Tier 2 still finishes ~6 min after Tier 1. Shard allocation needs tuning to bala
 |--------|-------------|
 | `reset_snuba` (10 HTTP POSTs) | ~50-200ms |
 | `databases="__all__"` (flush all DBs) | ~10-50ms |
-| Each `store_event()` call | ~10-50ms |
-| Each `store_metric()` call | ~10-30ms |
+| Each `store_event()` call (2 HTTP POSTs) | ~50-200ms |
+| Each `store_metric()` call (1 HTTP POST) | ~10-30ms |
 
-Tier 1 tests have zero HTTP overhead and only flush the default database.
+### Anti-patterns found
 
-### Solution: Transport-level dirty tracking
-
-Instead of instrumenting individual write methods in `cases.py` (which would require changes to 8+ methods across 7 classes), we monitor at the HTTP transport level with zero changes to test code.
-
-All Snuba test writes use one of two HTTP paths:
-1. `_snuba_pool.urlopen("POST", "/tests/entities/*/insert", ...)` - used by `store_group`
-2. `requests.post(settings.SENTRY_SNUBA + ".../insert", ...)` - used by everything else
-
-The optimization wraps both to detect URLs containing `/insert`:
-
-```python
-# In fixtures.py
-_snuba_dirty = True  # First test always resets
-
-def _monitoring_requests_post(*args, **kwargs):
-    global _snuba_dirty
-    if "/insert" in str(url):
-        _snuba_dirty = True
-    return _original_requests_post(*args, **kwargs)
-```
-
-`reset_snuba` checks the flag and skips the 10 HTTP calls if clean:
-
-```python
-@pytest.fixture
-def reset_snuba(call_snuba):
-    global _snuba_dirty
-    if not _snuba_dirty:
-        return
-    # ... do the 10 drops ...
-    _snuba_dirty = False
-```
-
-**Key properties:**
-- Zero changes to `cases.py` or any test code
-- Automatically catches all current and future write methods
-- First test always gets a reset (`_snuba_dirty = True` initially)
-- After a write, the next test gets a reset
-- After a read-only test, the next test skips the reset
+- Some tests create 25-210 events/ourlogs sequentially via `store_event()` loops
+- `snuba_insert()` exists for batching but only 3 test files use it
+- `databases="__all__"` flushes ~10 databases per test, most unused by the test
 
 ### Future Optimization Opportunities
 
+**Making Tier 2 faster:**
+
+1. **Batch `store_event()` calls** - Add `store_events()` that batches internally, avoiding N sequential HTTP roundtrips
+2. **Optimize `databases="__all__"`** - Audit which databases Snuba tests actually need; most only use `default`
+3. **Reduce event counts** - Some tests create 100+ events when fewer would suffice
+4. **Use `snuba_insert()` for bulk writes** - Already exists but rarely used
+
 **Moving tests from Tier 2 to Tier 1 (estimated ~100-250 test files):**
 
-1. **Move `requires_snuba` from module-level to test-level** (~50-100 files) - Many files use `pytestmark = [requires_snuba]` forcing ALL tests to Tier 2. Moving the marker to individual tests would let the rest go to Tier 1.
-
-2. **Extract `store_event()` into a mixin without Snuba dependency** (~40-60 files) - Many tests inherit `SnubaTestCase` only for `store_event()`. Creating an `EventCreationMixin` with mocked eventstream would remove the Snuba dependency.
-
-3. **Remove redundant `SnubaTestCase` inheritance** (~10-15 files) - Some classes inherit `SnubaTestCase` when they already get it via `BaseMetricsLayerTestCase`.
-
-4. **Make `reset_snuba` a no-op when Snuba isn't available** - Tests that inherit `SnubaTestCase` but never query Snuba would work in Tier 1 if `reset_snuba` silently skipped when Snuba isn't running. This would let tests self-classify at runtime.
+1. **Move `requires_snuba` from module-level to test-level** (~50-100 files) - Many files use `pytestmark = [requires_snuba]` forcing ALL tests to Tier 2
+2. **Extract `store_event()` into a mixin without Snuba dependency** (~40-60 files) - Many tests inherit `SnubaTestCase` only for `store_event()`
+3. **Make `reset_snuba` a no-op when Snuba isn't available** - Tests that inherit `SnubaTestCase` but never query Snuba would self-classify to Tier 1 at runtime
 
 ## Validation
 

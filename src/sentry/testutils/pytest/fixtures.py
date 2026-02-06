@@ -333,59 +333,8 @@ def call_snuba(settings):
     return inner
 
 
-# Track whether any test has written to Snuba since the last reset.
-# Detected automatically by monitoring requests.post calls to SENTRY_SNUBA
-# with "/insert" in the URL (all test data writes use this pattern).
-_snuba_dirty = True  # Start dirty to ensure first reset runs
-_original_requests_post = None
-
-
-def _is_snuba_write_url(url: str) -> bool:
-    """Check if a URL is a Snuba write endpoint."""
-    return "/insert" in url or "/eventstream" in url
-
-
-def _monitoring_requests_post(*args, **kwargs):
-    """Wrapper around requests.post that detects Snuba writes."""
-    global _snuba_dirty
-    url = str(args[0] if args else kwargs.get("url", ""))
-    if _is_snuba_write_url(url):
-        _snuba_dirty = True
-    assert _original_requests_post is not None
-    return _original_requests_post(*args, **kwargs)
-
-
-def _install_snuba_write_monitoring():
-    """Install monitoring to detect Snuba writes via requests.post and _snuba_pool.urlopen."""
-    global _original_requests_post
-    if _original_requests_post is None:
-        _original_requests_post = requests.post
-        requests.post = _monitoring_requests_post
-
-        # Also monitor _snuba_pool.urlopen (used by store_group)
-        from sentry.utils.snuba import _snuba_pool
-
-        _original_urlopen = _snuba_pool.urlopen
-
-        def _monitoring_urlopen(method, url, *args, **kwargs):
-            global _snuba_dirty
-            if _is_snuba_write_url(str(url)):
-                _snuba_dirty = True
-            return _original_urlopen(method, url, *args, **kwargs)
-
-        _snuba_pool.urlopen = _monitoring_urlopen
-
-
 @pytest.fixture
 def reset_snuba(call_snuba):
-    global _snuba_dirty
-
-    # Install monitoring on first use (detects writes automatically)
-    _install_snuba_write_monitoring()
-
-    if not _snuba_dirty:
-        return
-
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
@@ -403,8 +352,6 @@ def reset_snuba(call_snuba):
         response.status_code == 200
         for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
     )
-
-    _snuba_dirty = False
 
 
 @pytest.fixture

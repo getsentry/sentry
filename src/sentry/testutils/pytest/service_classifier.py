@@ -94,16 +94,16 @@ def _install_socket_patches() -> None:
     global _original_send, _original_sendall
     _original_send = socket.socket.send
     _original_sendall = socket.socket.sendall
-    socket.socket.send = _patched_send  # type: ignore[assignment]
-    socket.socket.sendall = _patched_sendall  # type: ignore[assignment]
+    socket.socket.send = _patched_send  # type: ignore[method-assign]
+    socket.socket.sendall = _patched_sendall  # type: ignore[method-assign]
 
 
 def _uninstall_socket_patches() -> None:
     """Restore original socket methods."""
     if _original_send is not None:
-        socket.socket.send = _original_send  # type: ignore[assignment]
+        socket.socket.send = _original_send  # type: ignore[method-assign]
     if _original_sendall is not None:
-        socket.socket.sendall = _original_sendall  # type: ignore[assignment]
+        socket.socket.sendall = _original_sendall  # type: ignore[method-assign]
 
 
 def _get_test_node_id(item: pytest.Item) -> str:
