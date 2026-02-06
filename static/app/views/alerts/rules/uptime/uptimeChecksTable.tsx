@@ -62,11 +62,7 @@ export function UptimeChecksTable({
       {isPending ? (
         <LoadingIndicator />
       ) : (
-        <UptimeChecksGrid
-          project={project}
-          traceSampling={traceSampling}
-          uptimeChecks={uptimeChecks}
-        />
+        <UptimeChecksGrid traceSampling={traceSampling} uptimeChecks={uptimeChecks} />
       )}
       <Pagination pageLinks={getResponseHeader?.('Link')} />
     </Fragment>
