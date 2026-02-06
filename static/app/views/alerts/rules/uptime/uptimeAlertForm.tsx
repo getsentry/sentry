@@ -253,6 +253,10 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                   assertion: data.assertion ?? null,
                 };
               }}
+              onValidationError={responseJson => {
+                const mapped = mapAssertionFormErrors(responseJson);
+                formModel.handleErrorResponse({responseJSON: mapped});
+              }}
             />
           )}
         </Flex>
