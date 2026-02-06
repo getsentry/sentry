@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, TypedDict
 
+from sentry.workflow_engine.types import DataSourceType
+
 
 class QuerySubscriptionUpdate(TypedDict):
     entity: str
@@ -42,4 +44,4 @@ class AlertRuleActivationConditionType(Enum):
     DEPLOY_CREATION = 1
 
 
-DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"
+DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = DataSourceType.SNUBA_QUERY_SUBSCRIPTION

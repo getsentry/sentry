@@ -7,6 +7,7 @@ from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
+from django.db import models
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
 
@@ -36,6 +37,16 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.workflow import WorkflowSnapshot
 
 T = TypeVar("T")
+
+
+class DataSourceType(models.TextChoices):
+    # source_id is a QuerySubscription.id
+    SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"
+    # source_id is a Monitor.id
+    CRON_MONITOR = "cron_monitor"
+    # source_id is an UptimeSubscription.id
+    UPTIME_SUBSCRIPTION = "uptime_subscription"
+
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"

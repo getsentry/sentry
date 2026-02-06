@@ -7,10 +7,16 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DataSourceTest(BaseWorkflowTest):
+    def test_all_data_source_types_have_registered_handlers(self) -> None:
+        for ds_type in DataSourceType:
+            handler = data_source_type_registry.get(ds_type.value)
+            assert handler is not None, f"No handler registered for DataSourceType.{ds_type.name}"
+
     def test_invalid_data_source_type(self) -> None:
         with pytest.raises(ValueError):
             self.create_data_source(type="invalid_type")

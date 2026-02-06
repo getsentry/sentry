@@ -11,7 +11,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceType, DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,7 @@ class DataSource(DefaultFieldsModel):
     # source_id is used in a composite index with type to dynamically lookup the data source
     source_id = models.TextField()
 
-    # This is a dynamic field, depending on the type in the data_source_type_registry
-    type = models.TextField()
+    type = models.TextField(choices=DataSourceType.choices)
 
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
 
