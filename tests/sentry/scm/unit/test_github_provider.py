@@ -71,6 +71,19 @@ class TestGitHubProviderGetIssueComments:
         assert comments[0]["comment"]["author"]["username"] == "user1"
         assert comments[1]["comment"]["id"] == "102"
 
+    def test_returns_none_author_when_user_is_none(self):
+        client = FakeGitHubApiClient()
+        client.issue_comments = [{"id": 1, "body": "ghost comment", "user": None}]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        comments = provider.get_issue_comments(repository, "42")
+
+        assert len(comments) == 1
+        assert comments[0]["comment"]["id"] == "1"
+        assert comments[0]["comment"]["body"] == "ghost comment"
+        assert comments[0]["comment"]["author"] is None
+
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)
@@ -245,6 +258,19 @@ class TestGitHubProviderGetIssueReactions:
         assert reactions[0]["author"]["username"] == "testuser"
         assert reactions[1]["id"] == "2"
         assert reactions[1]["content"] == "+1"
+
+    def test_returns_none_author_when_user_is_none(self):
+        client = FakeGitHubApiClient()
+        client.issue_reactions = [{"id": 1, "content": "eyes", "user": None}]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        reactions = provider.get_issue_reactions(repository, "42")
+
+        assert len(reactions) == 1
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "eyes"
+        assert reactions[0]["author"] is None
 
     def test_raises_key_error_on_malformed_response(self):
         client = FakeGitHubApiClient()

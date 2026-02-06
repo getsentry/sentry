@@ -3,6 +3,7 @@ from typing import Any
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
+    Author,
     Comment,
     CommentActionResult,
     IssueReaction,
@@ -33,12 +34,18 @@ REACTION_MAP = {
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
+def _transform_author(raw_user: dict[str, Any] | None) -> Author | None:
+    if raw_user is None:
+        return None
+    return Author(id=str(raw_user["id"]), username=raw_user["login"])
+
+
 def _transform_comment(raw: dict[str, Any]) -> CommentActionResult:
     return CommentActionResult(
         comment=Comment(
             id=str(raw["id"]),
             body=raw["body"],
-            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+            author=_transform_author(raw.get("user")),
         ),
         provider="github",
         raw=raw,
@@ -49,7 +56,7 @@ def _transform_issue_reaction(raw: dict[str, Any]) -> IssueReaction:
     return IssueReaction(
         id=str(raw["id"]),
         content=raw["content"],
-        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        author=_transform_author(raw.get("user")),
     )
 
 

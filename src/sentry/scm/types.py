@@ -22,7 +22,7 @@ class Comment(TypedDict):
 
     id: str
     body: str
-    author: Author
+    author: Author | None
 
 
 class CommentActionResult(TypedDict):
@@ -43,7 +43,7 @@ class IssueReaction(TypedDict):
 
     id: str
     content: Reaction
-    author: Author
+    author: Author | None
 
 
 class PullRequestBranch(TypedDict):
