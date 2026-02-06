@@ -13,12 +13,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
