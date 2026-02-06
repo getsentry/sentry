@@ -1,6 +1,5 @@
 from unittest import mock
 
-import pytest
 import sentry_sdk
 
 from sentry.integrations.jira.integration import JiraIntegration
@@ -23,7 +22,6 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -39,15 +37,6 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         super().setUp()
         self.login_as(self.user)
         self.workflow = self.create_workflow()
-
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [1],
-            }
-        ):
-            yield
 
     def setup_pd_service(self) -> PagerDutyServiceDict:
         service_info = {
