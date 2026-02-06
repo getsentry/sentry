@@ -1,7 +1,9 @@
 minVersion: '0.23.1'
 releaseBranchPrefix: releases
 changelog: CHANGES
-changelogPolicy: auto
+changelog: 
+  filePath: CHANGES
+  policy: auto
 statusProvider:
   name: github
   config:
