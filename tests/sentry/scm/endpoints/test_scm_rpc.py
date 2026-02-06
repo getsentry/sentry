@@ -52,6 +52,62 @@ class TestScmRpc(APITestCase):
                 "message": "Hello, World! You are from organization 42 and repository 57."
             }
 
+    def test_no_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    def test_wrong_name_in_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=f"not_rpcsignature {generate_request_signature(path, orjson.dumps(data))}",
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    def test_wrong_signature_version_in_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature rpc42:foobar")
+        assert response.status_code == 401
+        assert response.json() == {
+            "detail": "SCM RPC signature validation failed: invalid signature prefix"
+        }
+
+    def test_wrong_signature_in_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION="rpcsignature rpc0:wrong-signature"
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "SCM RPC signature validation failed: wrong secret"}
+
+    def test_signature_with_more_colons_in_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION="rpcsignature rpc0:signature:with:colons"
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "SCM RPC signature validation failed: wrong secret"}
+
+    def test_signature_without_prefix_in_authorization_header(self) -> None:
+        path = reverse("sentry-api-0-scm-rpc-service", kwargs={"method_name": "say_hello"})
+        data = {"args": {"name": "World", "organization_id": 42, "repository_id": 57}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION="rpcsignature signature-without-prefix"
+        )
+        assert response.status_code == 401
+        assert response.json() == {
+            "detail": "SCM RPC signature validation failed: invalid signature format"
+        }
+
     def test_invalid_endpoint(self) -> None:
         response = self.call("not_a_method", {"args": {}})
         assert response.status_code == 404

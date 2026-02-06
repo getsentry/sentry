@@ -62,15 +62,20 @@ class ScmRpcSignatureAuthentication(StandardAuthentication):
         return auth[0].lower() == self.token_name
 
     def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
-        if not compare_request_signature(request.path_info, request.body, token):
-            raise AuthenticationFailed("Invalid signature")
+        signature_validation_error = get_signature_validation_error(
+            request.path_info, request.body, token
+        )
+        if signature_validation_error:
+            raise AuthenticationFailed(
+                f"SCM RPC signature validation failed: {signature_validation_error}"
+            )
 
         sentry_sdk.get_isolation_scope().set_tag("scm_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
 
-def compare_request_signature(url: str, body: bytes, signature: str) -> bool:
+def get_signature_validation_error(url: str, body: bytes, signature: str) -> str | None:
     """
     Compare request data + signature signed by one of the shared secrets.
 
@@ -82,31 +87,25 @@ def compare_request_signature(url: str, body: bytes, signature: str) -> bool:
             "Cannot validate RPC request signatures without SCM_RPC_SHARED_SECRET"
         )
 
-    if not signature.startswith("rpc0:"):
-        logger.error("SCM RPC signature validation failed: invalid signature prefix")
-        return False
+    signature_parts = signature.split(":", 1)
+    if len(signature_parts) != 2:
+        return "invalid signature format"
+
+    signature_prefix, signature_data = signature_parts
+
+    if signature_prefix != "rpc0":
+        return "invalid signature prefix"
 
     if not body:
-        logger.error("SCM RPC signature validation failed: no body")
-        return False
+        return "no body"
 
-    try:
-        # We aren't using the version bits currently.
-        _, signature_data = signature.split(":", 2)
+    for key in settings.SCM_RPC_SHARED_SECRET:
+        computed = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
+        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
+        if is_valid:
+            return None
 
-        signature_input = body
-
-        for key in settings.SCM_RPC_SHARED_SECRET:
-            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
-            is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-            if is_valid:
-                return True
-    except Exception:
-        logger.exception("SCM RPC signature validation failed")
-        return False
-
-    logger.error("SCM RPC signature validation failed")
-    return False
+    return "wrong secret"
 
 
 @internal_region_silo_endpoint
