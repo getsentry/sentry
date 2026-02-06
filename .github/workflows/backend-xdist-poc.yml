@@ -40,10 +40,12 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Remove --reruns from PYTEST_ADDOPTS (incompatible with xdist)
+        run: |
+          echo "PYTEST_ADDOPTS=$(echo "$PYTEST_ADDOPTS" | sed 's/--reruns=[0-9]*//')" >> "$GITHUB_ENV"
+
       - name: Run tests with xdist -n2 --dist=loadfile
         run: |
-          # Strip --reruns from PYTEST_ADDOPTS (incompatible with xdist)
-          export PYTEST_ADDOPTS=$(echo "$PYTEST_ADDOPTS" | sed 's/--reruns=[0-9]*//')
           echo "PYTEST_ADDOPTS=$PYTEST_ADDOPTS"
           python3 -b -m pytest \
             tests \
