@@ -13,13 +13,8 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
-from sentry import options
 from sentry.constants import DataCategory
-from sentry.sentry_metrics.indexer.strings import (
-    SHARED_TAG_STRINGS,
-    SPAN_METRICS_NAMES,
-    TRANSACTION_METRICS_NAMES,
-)
+from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, SPAN_METRICS_NAMES
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -44,12 +39,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     See https://develop.sentry.dev/application-architecture/dynamic-sampling/outcomes/.
     """
-
-    #: The IDs of the metrics used to count transactions or spans
-    metric_ids_for_types = {
-        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
-        SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
-    }
 
     span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
     span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
@@ -82,43 +71,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
-        metric_id = generic_metric["metric_id"]
-        if metric_id not in self.metric_ids_for_types and not metric_id == self.span_metric_id:
-            return {}
-
-        if generic_metric["org_id"] in options.get(
-            "ingest.billing_metrics_consumer.use_only_span_metric_orgs"
-        ):
-            return self._count_processed_items_with_span_usage(generic_metric)
-        else:
-            return self._count_processed_items_independent_metrics(generic_metric)
-
-    def _count_processed_items_independent_metrics(
-        self, generic_metric: GenericMetric
-    ) -> Mapping[DataCategory, int]:
-        """
-        Calculates outcome counts from separate usage metrics for spans and transactions.
-        """
-        metric_id = generic_metric["metric_id"]
-        try:
-            data_category = self.metric_ids_for_types[metric_id]
-        except KeyError:
-            return {}
-
-        value = generic_metric["value"]
-        try:
-            quantity = max(int(value), 0)  # type: ignore[arg-type]
-        except TypeError:
-            # Unexpected value type for this metric ID, skip.
-            return {}
-
-        items = {data_category: quantity}
-
-        return items
-
-    def _count_processed_items_with_span_usage(
-        self, generic_metric: GenericMetric
-    ) -> Mapping[DataCategory, int]:
         """
         Solely calculates the outcome counts based on the span usage metric.
 
