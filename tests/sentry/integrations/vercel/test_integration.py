@@ -18,6 +18,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -507,8 +508,6 @@ class VercelIntegrationTest(IntegrationTestCase):
         SentryAppInstallationForProvider.objects.filter(
             organization_id=self.organization.id, provider="vercel"
         ).delete()
-
-        from sentry.organizations.services.organization.serial import serialize_rpc_organization
 
         with assume_test_silo_mode(SiloMode.REGION):
             org = serialize_rpc_organization(self.organization)
