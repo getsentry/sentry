@@ -228,11 +228,6 @@ export function useSortedFilterKeyItems({
     return merged;
   }, [filterKeys, asyncKeys]);
 
-  // When async fetching is active, debounce the filter value used for fuzzy search
-  // so it only runs once (after the API response lands) instead of on every keystroke.
-  const debouncedFilterValue = useDebouncedValue(filterValue);
-  const effectiveFilterValue = shouldFetchAsync ? debouncedFilterValue : filterValue;
-
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
     const searchKeyItems: FilterKeySearchItem[] = flatKeys.map(key => {
       const fieldDef = getFieldDefinition(key.key);
@@ -260,7 +255,7 @@ export function useSortedFilterKeyItems({
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
   return useMemo(() => {
-    if (!effectiveFilterValue || !search) {
+    if (!filterValue || !search) {
       if (!filterKeySections.length) {
         return flatKeys
           .map(key => createItem(key, getFieldDefinition(key.key)))
@@ -277,7 +272,7 @@ export function useSortedFilterKeyItems({
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(effectiveFilterValue);
+    const searched = search.search(filterValue);
 
     const keyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
@@ -408,9 +403,9 @@ export function useSortedFilterKeyItems({
   }, [
     allKeysLookup,
     disallowFreeText,
-    effectiveFilterValue,
     enableAISearch,
     filterKeySections,
+    filterValue,
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
