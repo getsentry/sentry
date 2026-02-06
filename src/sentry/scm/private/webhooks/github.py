@@ -112,9 +112,6 @@ def parse_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
             ),
             "body": e.comment.body,
             "id": str(e.comment.id),
-            # TODO: REMOVE THESE
-            "provider": "github",
-            "raw": {},
         },
         "subscription_event": event,
     }
@@ -168,12 +165,10 @@ def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEven
         "pull_request": {
             "author": {"id": e.pull_request.user.id, "username": e.pull_request.user.login},
             "base": {"name": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
-            "head": {"name": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
             "description": e.pull_request.body,
+            "head": {"name": e.pull_request.head.ref, "sha": e.pull_request.head.sha},
             "id": str(e.number),
             "is_private_repo": e.pull_request.head.repo.private,
-            "raw": {},  # TODO: Remove this and have Alex wrap his PR type like I have with event.
-            "provider": "github",  # TODO: Remove this and have Alex wrap his PR type like I have with event.
             "title": e.pull_request.title,
         },
         "subscription_event": event,

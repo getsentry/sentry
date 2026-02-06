@@ -17,11 +17,6 @@ class Author(TypedDict):
     username: str
 
 
-class CheckRun(TypedDict):
-    external_id: str
-    html_url: str
-
-
 class Comment(TypedDict):
     """Provider-agnostic representation of an issue or pull-request comment."""
 
@@ -61,7 +56,6 @@ class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
     head: PullRequestBranch
-    is_private_repo: bool
 
 
 class PullRequestActionResult(TypedDict):
@@ -217,11 +211,16 @@ class SubscriptionEventSentryMeta(TypedDict):
 type CheckRunAction = Literal["completed", "created", "requested_action", "rerequested"]
 
 
+class CheckRunData(TypedDict):
+    external_id: str
+    html_url: str
+
+
 class CheckRunEvent(TypedDict):
     action: CheckRunAction
     """The action that triggered the event. An enumeration of string values."""
 
-    check_run: CheckRun
+    check_run: CheckRunData
     """"""
 
     subscription_event: SubscriptionEvent
@@ -240,6 +239,12 @@ type CommentAction = Literal["created", "deleted", "edited", "pinned", "unpinned
 type CommentType = Literal["issue", "pull_request"]
 
 
+class CommentData(TypedDict):
+    id: str
+    body: str | None
+    author: Author | None
+
+
 class CommentEvent(TypedDict):
     """ """
 
@@ -249,7 +254,7 @@ class CommentEvent(TypedDict):
     comment_type: CommentType
     """"""
 
-    comment: Comment
+    comment: CommentData
     """"""
 
     subscription_event: SubscriptionEvent
@@ -277,6 +282,16 @@ type PullRequestAction = Literal[
 ]
 
 
+class PullRequestData(TypedDict):
+    id: str
+    title: str
+    description: str | None
+    head: PullRequestBranch
+    base: PullRequestBranch
+    is_private_repo: bool
+    author: Author | None
+
+
 class PullRequestEvent(TypedDict):
     """
     Pull request event type. This event is received when an action was performed on a pull-request.
@@ -286,7 +301,7 @@ class PullRequestEvent(TypedDict):
     action: PullRequestAction
     """The action that triggered the event. An enumeration of string values."""
 
-    pull_request: PullRequest
+    pull_request: PullRequestData
     """The pull-request that was acted upon."""
 
     subscription_event: SubscriptionEvent
