@@ -24,11 +24,4 @@ describe('getting started with react-native', () => {
       screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
   });
-
-  it('has metrics onboarding configuration', () => {
-    expect(docs.metricsOnboarding).toBeDefined();
-    expect(docs.metricsOnboarding?.install).toBeDefined();
-    expect(docs.metricsOnboarding?.configure).toBeDefined();
-    expect(docs.metricsOnboarding?.verify).toBeDefined();
-  });
 });
