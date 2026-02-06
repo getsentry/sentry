@@ -74,8 +74,8 @@ jobs:
           #   - With 4/18 split: Tier 1 should be ~20 min, Tier 2 ~15 min
           # Tier 2 needs more shards because of ~4-5 min setup overhead
           # and per-test Snuba HTTP call overhead (reset_snuba, store_event).
-          TIER1_SHARDS = 4
-          TIER2_SHARDS = 18
+          TIER1_SHARDS = 6
+          TIER2_SHARDS = 16
 
           tier1_files = int(os.environ["TIER1_COUNT"])
           tier2_files = int(os.environ["TIER2_COUNT"])
