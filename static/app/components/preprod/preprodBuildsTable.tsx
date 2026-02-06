@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, type ReactNode} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +8,10 @@ import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  BuildDetailsSizeAnalysisState,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
 import {PreprodBuildsDisplay} from './preprodBuildsDisplay';
@@ -49,21 +52,31 @@ export function PreprodBuildsTable({
   hasSearchQuery,
   showProjectColumn = false,
 }: PreprodBuildsTableProps) {
+  const filteredBuilds = useMemo(
+    () =>
+      builds.filter(b => b.size_info?.state !== BuildDetailsSizeAnalysisState.NOT_RAN),
+    [builds]
+  );
+
   const isDistributionDisplay = display === PreprodBuildsDisplay.DISTRIBUTION;
   const emptyStateDocUrl = isDistributionDisplay
     ? 'https://docs.sentry.io/product/build-distribution/'
     : 'https://docs.sentry.io/product/size-analysis/';
 
   const hasMultiplePlatforms = useMemo(() => {
-    const platforms = new Set(builds.map(b => b.app_info?.platform).filter(Boolean));
+    const platforms = new Set(
+      filteredBuilds.map(b => b.app_info?.platform).filter(Boolean)
+    );
     return platforms.size > 1;
-  }, [builds]);
+  }, [filteredBuilds]);
 
   const labels = useMemo(
-    () => getLabels(builds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
-    [builds, hasMultiplePlatforms]
+    () =>
+      getLabels(filteredBuilds[0]?.app_info?.platform ?? undefined, hasMultiplePlatforms),
+    [filteredBuilds, hasMultiplePlatforms]
   );
-  let tableContent: React.ReactNode | undefined;
+
+  let tableContent: ReactNode | undefined;
   if (isLoading) {
     tableContent = (
       <SimpleTable.Empty>
@@ -72,7 +85,7 @@ export function PreprodBuildsTable({
     );
   } else if (error) {
     tableContent = <SimpleTable.Empty>{getErrorMessage(error)}</SimpleTable.Empty>;
-  } else if (builds.length === 0) {
+  } else if (filteredBuilds.length === 0) {
     tableContent = (
       <SimpleTable.Empty>
         <Text as="p">
@@ -92,7 +105,7 @@ export function PreprodBuildsTable({
     <Fragment>
       {isDistributionDisplay ? (
         <PreprodBuildsDistributionTable
-          builds={builds}
+          builds={filteredBuilds}
           content={tableContent}
           onRowClick={onRowClick}
           organizationSlug={organizationSlug}
@@ -100,7 +113,7 @@ export function PreprodBuildsTable({
         />
       ) : (
         <PreprodBuildsSizeTable
-          builds={builds}
+          builds={filteredBuilds}
           content={tableContent}
           labels={labels}
           onRowClick={onRowClick}
