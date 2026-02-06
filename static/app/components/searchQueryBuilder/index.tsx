@@ -36,6 +36,8 @@ export type GetTagValues = (
   searchQuery: string
 ) => Promise<string[]>;
 
+export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
+
 export interface SearchQueryBuilderProps {
   /**
    * A complete mapping of all possible filter keys.
@@ -118,6 +120,12 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+  /**
+   * When provided, enables async fetching of filter keys.
+   * The combobox will call this function with the current search query
+   * and display the returned keys alongside any static filterKeys.
+   */
+  getTagKeys?: GetTagKeys;
 
   /**
    * Allows for customization of the invalid token messages.
