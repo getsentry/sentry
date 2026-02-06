@@ -97,7 +97,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
     @staticmethod
     def _generate_org_slug(region_name: str, slug: str) -> str:
-        slug_base = slug.replace("_", "-").strip("-")
+        slug_base = slug.replace("_", "-")
         surrogate_org_slug = OrganizationSlugReservation()
         slugify_instance(surrogate_org_slug, slug_base, reserved=RESERVED_ORGANIZATION_SLUGS)
 
