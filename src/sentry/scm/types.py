@@ -211,7 +211,7 @@ class SubscriptionEventSentryMeta(TypedDict):
 type CheckRunAction = Literal["completed", "created", "requested_action", "rerequested"]
 
 
-class CheckRunData(TypedDict):
+class CheckRunEventData(TypedDict):
     external_id: str
     html_url: str
 
@@ -220,7 +220,7 @@ class CheckRunEvent(TypedDict):
     action: CheckRunAction
     """The action that triggered the event. An enumeration of string values."""
 
-    check_run: CheckRunData
+    check_run: CheckRunEventData
     """"""
 
     subscription_event: SubscriptionEvent
@@ -239,7 +239,7 @@ type CommentAction = Literal["created", "deleted", "edited", "pinned", "unpinned
 type CommentType = Literal["issue", "pull_request"]
 
 
-class CommentData(TypedDict):
+class CommentEventData(TypedDict):
     id: str
     body: str | None
     author: Author | None
@@ -254,7 +254,7 @@ class CommentEvent(TypedDict):
     comment_type: CommentType
     """"""
 
-    comment: CommentData
+    comment: CommentEventData
     """"""
 
     subscription_event: SubscriptionEvent
@@ -282,7 +282,7 @@ type PullRequestAction = Literal[
 ]
 
 
-class PullRequestData(TypedDict):
+class PullRequestEventData(TypedDict):
     id: str
     title: str
     description: str | None
@@ -301,7 +301,7 @@ class PullRequestEvent(TypedDict):
     action: PullRequestAction
     """The action that triggered the event. An enumeration of string values."""
 
-    pull_request: PullRequestData
+    pull_request: PullRequestEventData
     """The pull-request that was acted upon."""
 
     subscription_event: SubscriptionEvent
