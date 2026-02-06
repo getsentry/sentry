@@ -249,7 +249,7 @@ describe('useReplaySummary', () => {
       // Update the segment count and expect a POST.
       mockReplayRecord.count_segments = 2;
       mockReplay.getReplay = jest.fn().mockReturnValue(mockReplayRecord);
-      rerender();
+      rerender(mockReplay);
 
       await waitFor(() => {
         expect(mockPostRequest).toHaveBeenCalledWith(

@@ -1,4 +1,4 @@
-import {render, renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useIsMountedRef} from './useIsMountedRef';
 
@@ -9,12 +9,12 @@ describe('useIsMounted', () => {
     expect(result.current).toBeInstanceOf(Object);
   });
 
-  function TestComponent() {
-    const isMountedRef = useIsMountedRef();
-    return isMountedRef.current;
-  }
   it('should return false within first render', () => {
-    const {result} = render(<TestComponent />);
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
+    const {result} = renderHook(() => {
+      const isMountedRef = useIsMountedRef();
+      return isMountedRef.current;
+    });
 
     expect(result.current).toBe(false);
   });

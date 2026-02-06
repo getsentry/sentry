@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 
-import {render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useResettableState} from 'sentry/utils/useResettableState';
 import {
@@ -67,12 +67,15 @@ describe('QueryParamsContext', () => {
 
     describe('useSetQueryParamsCrossEvents', () => {
       it('should set the crossEvents', () => {
-        function QueryParamsCrossEvents() {
-          const setCrossEvents = useSetQueryParamsCrossEvents();
-          setCrossEvents([{query: 'bar', type: 'logs'}]);
-          return useQueryParamsCrossEvents();
-        }
-        render(<QueryParamsCrossEvents />);
+        renderHookWithProviders(
+          // eslint-disable-next-line @sentry/no-renderHook-arrow-function
+          () => {
+            const setCrossEvents = useSetQueryParamsCrossEvents();
+            setCrossEvents([{query: 'bar', type: 'logs'}]);
+            return useQueryParamsCrossEvents();
+          },
+          {additionalWrapper: Wrapper}
+        );
 
         expect(mockSetQueryParams).toHaveBeenCalled();
         expect(mockSetQueryParams).toHaveBeenCalledWith({
