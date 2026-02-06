@@ -67,6 +67,7 @@ class TestGitHubProviderGetIssueComments:
         assert len(comments) == 2
         assert comments[0]["comment"]["id"] == "101"
         assert comments[0]["comment"]["body"] == "First comment"
+        assert comments[0]["comment"]["author"] is not None
         assert comments[0]["comment"]["author"]["id"] == "1"
         assert comments[0]["comment"]["author"]["username"] == "user1"
         assert comments[1]["comment"]["id"] == "102"
@@ -95,6 +96,7 @@ class TestGitHubProviderGetIssueComments:
         assert len(comments) == 1
         assert comments[0]["comment"]["id"] == "1"
         assert comments[0]["comment"]["body"] is None
+        assert comments[0]["comment"]["author"] is not None
         assert comments[0]["comment"]["author"]["username"] == "testuser"
 
     def test_calls_client_with_correct_args(self):
@@ -267,6 +269,7 @@ class TestGitHubProviderGetIssueReactions:
         assert len(reactions) == 2
         assert reactions[0]["id"] == "1"
         assert reactions[0]["content"] == "heart"
+        assert reactions[0]["author"] is not None
         assert reactions[0]["author"]["id"] == "123"
         assert reactions[0]["author"]["username"] == "testuser"
         assert reactions[1]["id"] == "2"
