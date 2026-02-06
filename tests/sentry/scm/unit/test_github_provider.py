@@ -65,11 +65,11 @@ class TestGitHubProviderGetIssueComments:
         comments = provider.get_issue_comments(repository, "42")
 
         assert len(comments) == 2
-        assert comments[0]["id"] == "101"
-        assert comments[0]["body"] == "First comment"
-        assert comments[0]["author"]["id"] == "1"
-        assert comments[0]["author"]["username"] == "user1"
-        assert comments[1]["id"] == "102"
+        assert comments[0]["comment"]["id"] == "101"
+        assert comments[0]["comment"]["body"] == "First comment"
+        assert comments[0]["comment"]["author"]["id"] == "1"
+        assert comments[0]["comment"]["author"]["username"] == "user1"
+        assert comments[1]["comment"]["id"] == "102"
 
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
@@ -173,8 +173,8 @@ class TestGitHubProviderGetPullRequestComments:
         comments = provider.get_pull_request_comments(repository, "42")
 
         assert len(comments) == 1
-        assert comments[0]["id"] == "201"
-        assert comments[0]["body"] == "PR comment"
+        assert comments[0]["comment"]["id"] == "201"
+        assert comments[0]["comment"]["body"] == "PR comment"
 
 
 class TestGitHubProviderCreatePullRequestComment:

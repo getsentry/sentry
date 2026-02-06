@@ -107,9 +107,9 @@ def make_scm():
 
 def _check_issue_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["id"] == "101"
-    assert result[0]["body"] == "Test comment"
-    assert result[0]["author"]["username"] == "testuser"
+    assert result[0]["comment"]["id"] == "101"
+    assert result[0]["comment"]["body"] == "Test comment"
+    assert result[0]["comment"]["author"]["username"] == "testuser"
 
 
 def _check_pull_request(result: Any) -> None:
@@ -121,9 +121,9 @@ def _check_pull_request(result: Any) -> None:
 
 def _check_pull_request_comments(result: Any) -> None:
     assert len(result) == 1
-    assert result[0]["id"] == "201"
-    assert result[0]["body"] == "PR review comment"
-    assert result[0]["author"]["username"] == "reviewer"
+    assert result[0]["comment"]["id"] == "201"
+    assert result[0]["comment"]["body"] == "PR review comment"
+    assert result[0]["comment"]["author"]["username"] == "reviewer"
 
 
 def _check_comment_reactions(result: Any) -> None:

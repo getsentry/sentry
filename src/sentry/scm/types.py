@@ -16,6 +16,10 @@ class Comment(TypedDict):
     id: str
     body: str
     author: Author
+
+
+class CommentActionResult(TypedDict):
+    comment: Comment
     provider: ProviderName
     raw: dict[str, Any]
 
@@ -64,7 +68,9 @@ class Provider(Protocol):
         self, repository: Repository, pull_request_id: str
     ) -> PullRequestActionResult: ...
 
-    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]: ...
+    def get_issue_comments(
+        self, repository: Repository, issue_id: str
+    ) -> list[CommentActionResult]: ...
 
     def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None: ...
 
@@ -72,7 +78,7 @@ class Provider(Protocol):
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
-    ) -> list[Comment]: ...
+    ) -> list[CommentActionResult]: ...
 
     def create_pull_request_comment(
         self, repository: Repository, pull_request_id: str, body: str

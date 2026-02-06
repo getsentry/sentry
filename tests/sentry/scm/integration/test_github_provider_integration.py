@@ -72,10 +72,10 @@ class TestGitHubProviderIntegration(TestCase):
         comments = self.provider.get_issue_comments(self.repository, "1347")
 
         assert len(comments) == 1
-        assert comments[0]["id"] == "1"
-        assert comments[0]["body"] == "Me too"
-        assert comments[0]["author"]["id"] == "1"
-        assert comments[0]["author"]["username"] == "octocat"
+        assert comments[0]["comment"]["id"] == "1"
+        assert comments[0]["comment"]["body"] == "Me too"
+        assert comments[0]["comment"]["author"]["id"] == "1"
+        assert comments[0]["comment"]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -209,9 +209,9 @@ class TestGitHubProviderIntegration(TestCase):
         comments = self.provider.get_pull_request_comments(self.repository, "1")
 
         assert len(comments) == 1
-        assert comments[0]["id"] == "10"
-        assert comments[0]["body"] == "Great stuff!"
-        assert comments[0]["author"]["username"] == "octocat"
+        assert comments[0]["comment"]["id"] == "10"
+        assert comments[0]["comment"]["body"] == "Great stuff!"
+        assert comments[0]["comment"]["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

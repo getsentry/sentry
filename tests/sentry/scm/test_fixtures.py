@@ -5,6 +5,7 @@ from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
 from sentry.scm.types import (
     Comment,
+    CommentActionResult,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -100,12 +101,16 @@ class BaseTestProvider(Provider):
 
     # Issue comments
 
-    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
+    def get_issue_comments(
+        self, repository: Repository, issue_id: str
+    ) -> list[CommentActionResult]:
         return [
-            Comment(
-                id="101",
-                body="Test comment",
-                author={"id": "1", "username": "testuser"},
+            CommentActionResult(
+                comment=Comment(
+                    id="101",
+                    body="Test comment",
+                    author={"id": "1", "username": "testuser"},
+                ),
                 provider="test",
                 raw={},
             )
@@ -121,12 +126,14 @@ class BaseTestProvider(Provider):
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
-    ) -> list[Comment]:
+    ) -> list[CommentActionResult]:
         return [
-            Comment(
-                id="201",
-                body="PR review comment",
-                author={"id": "2", "username": "reviewer"},
+            CommentActionResult(
+                comment=Comment(
+                    id="201",
+                    body="PR review comment",
+                    author={"id": "2", "username": "reviewer"},
+                ),
                 provider="test",
                 raw={},
             )

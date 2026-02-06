@@ -4,6 +4,7 @@ from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     Comment,
+    CommentActionResult,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -31,11 +32,13 @@ REACTION_MAP = {
 REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
-def _transform_comment(raw: dict[str, Any]) -> Comment:
-    return Comment(
-        id=str(raw["id"]),
-        body=raw["body"],
-        author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+def _transform_comment(raw: dict[str, Any]) -> CommentActionResult:
+    return CommentActionResult(
+        comment=Comment(
+            id=str(raw["id"]),
+            body=raw["body"],
+            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+        ),
         provider="github",
         raw=raw,
     )
@@ -76,7 +79,9 @@ class GitHubProvider(Provider):
             allocation_policy=REFERRER_ALLOCATION,
         )
 
-    def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
+    def get_issue_comments(
+        self, repository: Repository, issue_id: str
+    ) -> list[CommentActionResult]:
         try:
             raw_comments = self.client.get_issue_comments(repository["name"], issue_id)
         except ApiError as e:
@@ -106,7 +111,7 @@ class GitHubProvider(Provider):
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
-    ) -> list[Comment]:
+    ) -> list[CommentActionResult]:
         try:
             raw_comments = self.client.get_pull_request_comments(
                 repository["name"], pull_request_id
