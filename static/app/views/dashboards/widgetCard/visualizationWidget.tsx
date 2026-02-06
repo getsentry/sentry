@@ -235,7 +235,7 @@ function VisualizationWidgetContent({
         )?.value;
 
         if (tableDataRows) {
-          // If the there is one column, the table results will an array with multiple elemtents
+          // If there is one column, the table results will be an array with multiple elements
           // [{column: 'value', aggregate: 123}, {column: 'value', aggregate: 123}]
           if (columns.length === 1) {
             if (firstColumnGroupByValue && firstColumn) {
