@@ -53,7 +53,9 @@ def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory
             last_triggered=r["last_triggered"],
             event_id=r["event_id"],
             detector=(
-                detector_lookup.get(r["group_detector_id"]) if r["group_detector_id"] is not None else None
+                detector_lookup.get(r["group_detector_id"])
+                if r["group_detector_id"] is not None
+                else None
             ),
         )
         for r in results
