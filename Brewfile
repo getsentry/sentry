@@ -9,6 +9,8 @@ brew 'qemu'
 brew 'docker'
 brew 'docker-buildx'
 
+### If updating below this line, please also update REQUIRED_APT_PKGS in devenv/post_fetch.py ###
+
 # required for pnpm test -u
 brew 'watchman'
 
