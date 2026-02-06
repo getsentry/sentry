@@ -34,7 +34,7 @@ jobs:
 
       - name: Run test suite with service classification
         env:
-          PYTEST_ADDOPTS: "${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json"
+          PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json'
         run: |
           python3 -b -m pytest \
             tests \
