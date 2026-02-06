@@ -611,3 +611,102 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
                 renderable=self.slack_renderable,
                 slack_user_id=self.slack_user_id,
             )
+
+    def test_get_thread_history_missing_scope_returns_empty(self) -> None:
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_success(self, mock_conversations_replies: MagicMock) -> None:
+        self.integration.metadata["scopes"] = ["channels:history"]
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [
+                {"ts": self.thread_ts, "text": "Original message"},
+                {"ts": "1712345679.000001", "text": "Reply 1"},
+                {"ts": "1712345680.000002", "text": "Reply 2"},
+            ],
+        }
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 3
+        assert result[0]["text"] == "Original message"
+        mock_conversations_replies.assert_called_once_with(
+            channel=self.channel_id,
+            ts=self.thread_ts,
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    def test_get_thread_history_error_returns_empty_list(
+        self, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = ["channels:history"]
+        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id, thread_ts=self.thread_ts
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_add")
+    def test_add_reaction_missing_scope_is_noop(self, mock_reactions_add: MagicMock) -> None:
+        self.installation.add_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
+        mock_reactions_add.assert_not_called()
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_add")
+    def test_add_reaction_success(self, mock_reactions_add: MagicMock) -> None:
+        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.installation.add_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
+        mock_reactions_add.assert_called_once_with(
+            channel=self.channel_id, timestamp=self.thread_ts, name="thinking_face"
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_add")
+    def test_add_reaction_already_reacted_is_idempotent(
+        self, mock_reactions_add: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = ["reactions:write"]
+        mock_response = MagicMock()
+        mock_response.get.return_value = "already_reacted"
+        mock_reactions_add.side_effect = SlackApiError("already_reacted", mock_response)
+
+        self.installation.add_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_remove")
+    def test_remove_reaction_missing_scope_is_noop(self, mock_reactions_remove: MagicMock) -> None:
+        self.installation.remove_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
+        mock_reactions_remove.assert_not_called()
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_remove")
+    def test_remove_reaction_success(self, mock_reactions_remove: MagicMock) -> None:
+        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.installation.remove_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
+        mock_reactions_remove.assert_called_once_with(
+            channel=self.channel_id, timestamp=self.thread_ts, name="thinking_face"
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_remove")
+    def test_remove_reaction_no_reaction_is_idempotent(
+        self, mock_reactions_remove: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = ["reactions:write"]
+        mock_response = MagicMock()
+        mock_response.get.return_value = "no_reaction"
+        mock_reactions_remove.side_effect = SlackApiError("no_reaction", mock_response)
+        self.installation.remove_reaction(
+            channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
+        )
