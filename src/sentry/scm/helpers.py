@@ -6,7 +6,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError
+from sentry.scm.errors import SCMCodedError, SCMUnhandledException
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
@@ -132,4 +132,7 @@ def exec_provider_fn[T](
     if provider.is_rate_limited(organization_id, referrer):
         raise SCMCodedError(provider, organization_id, referrer, code="rate_limit_exceeded")
 
-    return provider_fn(repository, provider)
+    try:
+        return provider_fn(repository, provider)
+    except KeyError as e:
+        raise SCMUnhandledException from e

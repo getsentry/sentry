@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
-from sentry.scm.errors import SCMProviderException, SCMUnhandledException
+from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import Comment, Provider, PullRequest, Reaction, Referrer, Repository
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -69,11 +69,9 @@ class GitHubProvider(Provider):
     def get_issue_comments(self, repository: Repository, issue_id: str) -> list[Comment]:
         try:
             raw_comments = self.client.get_issue_comments(repository["name"], issue_id)
-            return [_transform_comment(c) for c in raw_comments]
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
+        return [_transform_comment(c) for c in raw_comments]
 
     def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None:
         try:
@@ -90,11 +88,9 @@ class GitHubProvider(Provider):
     def get_pull_request(self, repository: Repository, pull_request_id: str) -> PullRequest:
         try:
             raw = self.client.get_pull_request(repository["name"], pull_request_id)
-            return _transform_pull_request(raw)
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
+        return _transform_pull_request(raw)
 
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
@@ -103,11 +99,9 @@ class GitHubProvider(Provider):
             raw_comments = self.client.get_pull_request_comments(
                 repository["name"], pull_request_id
             )
-            return [_transform_comment(c) for c in raw_comments]
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
+        return [_transform_comment(c) for c in raw_comments]
 
     def create_pull_request_comment(
         self, repository: Repository, pull_request_id: str, body: str
@@ -138,8 +132,6 @@ class GitHubProvider(Provider):
             )
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
 
     def delete_comment_reaction(
         self, repository: Repository, comment_id: str, reaction_id: str
@@ -152,11 +144,9 @@ class GitHubProvider(Provider):
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
         try:
             raw_reactions = self.client.get_issue_reactions(repository["name"], issue_id)
-            return [_transform_issue_reaction(r) for r in raw_reactions]
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
+        return [_transform_issue_reaction(r) for r in raw_reactions]
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
@@ -165,8 +155,6 @@ class GitHubProvider(Provider):
             self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
         except ApiError as e:
             raise SCMProviderException from e
-        except KeyError as e:
-            raise SCMUnhandledException from e
 
     def delete_issue_reaction(
         self, repository: Repository, issue_id: str, reaction_id: str

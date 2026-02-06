@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from sentry.integrations.github.client import GitHubReaction
-from sentry.scm.errors import SCMProviderException, SCMUnhandledException
+from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import Repository
 from tests.sentry.scm.test_fixtures import (
@@ -80,13 +80,13 @@ class TestGitHubProviderGetIssueComments:
 
         assert ("get_issue_comments", ("test-org/test-repo", "42"), {}) in client.calls
 
-    def test_raises_scm_provider_exception_on_missing_user(self):
+    def test_raises_key_error_on_missing_user(self):
         client = FakeGitHubApiClient()
         client.issue_comments = [{"id": 1, "body": "test", "created_at": "x", "updated_at": "x"}]
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        with pytest.raises(SCMProviderException):
+        with pytest.raises(KeyError):
             provider.get_issue_comments(repository, "42")
 
 
@@ -274,13 +274,13 @@ class TestGitHubProviderGetIssueReactions:
 
         assert reactions == ["heart", "+1"]
 
-    def test_raises_scm_unhandled_exception_on_malformed_response(self):
+    def test_raises_key_error_on_malformed_response(self):
         client = FakeGitHubApiClient()
         client.issue_reactions = [{"id": 1}]
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        with pytest.raises(SCMUnhandledException):
+        with pytest.raises(KeyError):
             provider.get_issue_reactions(repository, "42")
 
 
