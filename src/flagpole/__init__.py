@@ -8,7 +8,8 @@ features:
   organizations:fury-mode:
     enabled: True
     name: sentry organizations
-    owner: hybrid-cloud
+    owner:
+      team: hybrid-cloud
     segments:
       - name: sentry orgs
         rollout: 50
@@ -35,7 +36,8 @@ A segment with multiple conditions looks like:
 features:
   organizations:fury-mode:
     enabled: True
-    owner: hybrid-cloud
+    owner:
+      team: hybrid-cloud
     description: sentry organizations
     segments:
       - name: sentry organizations
@@ -101,7 +103,7 @@ class Feature:
     name: str
     "The feature name."
 
-    owner: str | OwnerInfo
+    owner: OwnerInfo
     "The owner of this feature."
 
     enabled: bool = dataclasses.field(default=True)
@@ -143,15 +145,11 @@ class Feature:
         try:
             segments = [Segment.from_dict(segment) for segment in segment_data]
 
-            raw_owner = config_dict.get("owner", "")
-            owner: str | OwnerInfo
-            if isinstance(raw_owner, dict):
-                owner = OwnerInfo(
-                    team=raw_owner["team"],
-                    email=raw_owner.get("email"),
-                )
-            else:
-                owner = str(raw_owner)
+            raw_owner = config_dict.get("owner", {})
+            owner = OwnerInfo(
+                team=raw_owner.get("team", ""),
+                email=raw_owner.get("email"),
+            )
 
             feature = cls(
                 name=name,
