@@ -104,14 +104,19 @@ jobs:
             /tmp/tier2-tests.txt
           retention-days: 1
 
-  # Tier 1: Postgres + Redis + Redis-cluster (fast setup, no Snuba)
+  # Tier 1: Postgres + Redis + Redis-cluster + Kafka (fast setup, no Snuba/Clickhouse)
   tier1-test:
     needs: split-tiers
     name: "tier1 (${{ matrix.instance }})"
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
-    # Redis-cluster via services block (temporary; long-term: add to devservices mode)
+    # Services not available via devservices migrations mode, started via services block.
+    # Redis-cluster: temporary; long-term add to a new devservices backend-ci-light mode.
+    # Kafka + Zookeeper: Kafka is bundled with Snuba in devservices and can't be started
+    # separately. Using services block avoids starting the full Snuba stack (~4-5 min).
+    # Kafka is needed because application code (e.g., invalidate_project_config via
+    # on_commit hooks) produces to Kafka as a side effect of normal model operations.
     services:
       redis-cluster:
         image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
@@ -124,6 +129,19 @@ jobs:
           - 7005:7005
         env:
           IP: 0.0.0.0
+      zookeeper:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+      kafka:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+        ports:
+          - 9092:9092
 
     strategy:
       fail-fast: false
@@ -133,10 +151,6 @@ jobs:
     env:
       MATRIX_INSTANCE_TOTAL: ${{ needs.split-tiers.outputs.tier1-shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
-      # Mock Kafka producers - Tier 1 tests don't need Kafka but application
-      # code triggers produces as side effects of normal model operations.
-      # See docs/service-classification-investigation.md for tradeoff analysis.
-      SENTRY_MOCK_KAFKA_PRODUCERS: "1"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -157,9 +171,8 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
-          echo "Running tier 1 (Postgres + Redis, no Snuba) tests..."
+          echo "Running tier 1 (Postgres + Redis + Kafka, no Snuba) tests..."
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
-          echo "Kafka producers mocked: SENTRY_MOCK_KAFKA_PRODUCERS=$SENTRY_MOCK_KAFKA_PRODUCERS"
           make test-python-ci
 
       - name: Inspect failure

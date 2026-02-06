@@ -451,20 +451,21 @@ Test settings explicitly set `TASKWORKER_ALWAYS_EAGER = False` (in `src/sentry/t
 
 Setting it to `True` globally would change test behavior and could introduce false passes/failures.
 
-### Kafka Resolution: Mock Approach (Chosen for PoC)
+### Kafka Resolution: Mock Approach (Tried and Rejected)
 
-For Tier 1 tests, Kafka produces are purely side effects - the tests don't check whether the messages were delivered, and no consumer processes them even in the current `backend-ci` setup. The mock approach patches `SingletonProducer.produce` to return an immediately-resolved future, skipping the actual Kafka produce.
+Initially tried mocking `SingletonProducer.produce` to return immediately-resolved futures. This fixed the Kafka timeout failures but introduced new problems:
 
-This is safe for Tier 1 because:
-- Tasks already don't execute (no consumer in either tier)
-- The produce is fire-and-forget (`wait_for_delivery=False` by default)
-- Tests that explicitly need Kafka use `requires_kafka` and are in Tier 2
+1. **Broke tests that mock Kafka producers themselves.** Tests like `test_emit_click_events_environment_handling` use `mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")` and assert the mock was called. Our higher-level mock on `SingletonProducer.produce` intercepted calls before they reached the test's own mock, causing `assert producer.called` to fail.
 
-**Risk:** If a Tier 1 test is added that subtly depends on Kafka produce succeeding (without using `requires_kafka`), the mock would silently swallow it. The test would pass but behavior would be wrong. Over time this could mask regressions.
+2. **Caused thread leak detection changes.** `test_capture_event_allowlisted` expected thread leak level `info` but got `warning`, likely because our mock changed the threading behavior (Kafka producer threads that normally exist were absent).
 
-### Alternative: Kafka via GitHub Actions `services:` block
+3. **Caused task registration failures.** `test_taskworker_schedule_parameters` couldn't find `sentry.tasks.send_ping`, possibly due to different initialization paths.
 
-A more robust production alternative: start a real Kafka container alongside Tier 1 using GitHub Actions `services:` block. The Relay repo already uses this pattern:
+**Lesson learned:** Mocking infrastructure at a high level is fragile. Tests that mock the same infrastructure at a different level will conflict. The mock approach has a fundamental composability problem.
+
+### Kafka Resolution: Services Block (Chosen)
+
+Switched to starting real Kafka + Zookeeper via GitHub Actions `services:` block:
 
 ```yaml
 services:
@@ -483,15 +484,20 @@ services:
       - 9092:9092
 ```
 
-**Tradeoffs:**
+This approach:
+- Provides real Kafka infrastructure (~10-15s startup)
+- Zero behavioral differences from current `backend-ci` CI
+- No mocking conflicts with test-level mocks
+- Already proven in the Relay repo's CI
+- `services:` containers start before any steps, so Kafka is ready before `sentry init`
+
+**Tradeoffs considered:**
 
 | Approach | Startup Cost | Risk | Production-ready? |
 |----------|-------------|------|-------------------|
-| Mock `SingletonProducer.produce` | 0s | Silent behavioral drift | Acceptable for PoC |
-| Kafka via `services:` block | ~10-15s | None (real infrastructure) | Yes |
-| `TASKWORKER_ALWAYS_EAGER=True` | 0s | Changes task execution behavior | No |
-
-If the mock approach proves problematic, switching to the `services:` block approach requires only a workflow change - no code changes needed.
+| Mock `SingletonProducer.produce` | 0s | Conflicts with test mocks, behavioral drift | No - rejected |
+| Kafka via `services:` block | ~10-15s | None (real infrastructure) | Yes - chosen |
+| `TASKWORKER_ALWAYS_EAGER=True` | 0s | Changes task execution behavior, bypasses BurstTaskRunner | No - rejected |
 
 ## Validation
 
