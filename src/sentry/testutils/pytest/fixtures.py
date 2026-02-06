@@ -340,11 +340,16 @@ _snuba_dirty = True  # Start dirty to ensure first reset runs
 _original_requests_post = None
 
 
+def _is_snuba_write_url(url: str) -> bool:
+    """Check if a URL is a Snuba write endpoint."""
+    return "/insert" in url or "/eventstream" in url
+
+
 def _monitoring_requests_post(*args, **kwargs):
     """Wrapper around requests.post that detects Snuba writes."""
     global _snuba_dirty
-    url = args[0] if args else kwargs.get("url", "")
-    if "/insert" in str(url):
+    url = str(args[0] if args else kwargs.get("url", ""))
+    if _is_snuba_write_url(url):
         _snuba_dirty = True
     assert _original_requests_post is not None
     return _original_requests_post(*args, **kwargs)
@@ -364,7 +369,7 @@ def _install_snuba_write_monitoring():
 
         def _monitoring_urlopen(method, url, *args, **kwargs):
             global _snuba_dirty
-            if "/insert" in str(url):
+            if _is_snuba_write_url(str(url)):
                 _snuba_dirty = True
             return _original_urlopen(method, url, *args, **kwargs)
 
