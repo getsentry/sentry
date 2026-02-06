@@ -55,7 +55,7 @@ export function NewDetectorLayout<
   });
 
   const [formModel] = useState(() => new FormModel());
-  const {onBlur, onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const initialData = useMemo(() => {
     return {
@@ -79,7 +79,6 @@ export function NewDetectorLayout<
     initialData,
     onSubmit: formSubmitHandler,
     onFieldChange,
-    onBlur,
     mapFormErrors,
   };
 

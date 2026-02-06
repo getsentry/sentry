@@ -47,11 +47,6 @@ export interface FormProps extends Pick<
    */
   model?: FormModel;
   /**
-   * Handler for blur events on the form element (via event bubbling).
-   * Used for form-wide validation on field blur.
-   */
-  onBlur?: React.FocusEventHandler<HTMLFormElement>;
-  /**
    * Callback fired when the form is cancelled via the cancel button.
    */
   onCancel?: (e: React.MouseEvent) => void;
@@ -130,7 +125,6 @@ function Form({
   initialData,
   mapFormErrors,
   model,
-  onBlur,
   onCancel,
   onFieldChange,
   onPreSubmit,
@@ -243,7 +237,6 @@ function Form({
     <FormContext value={contextData}>
       <form
         onSubmit={handleSubmit}
-        onBlur={onBlur}
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >

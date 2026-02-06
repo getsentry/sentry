@@ -63,7 +63,7 @@ export function EditDetectorLayout<
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const [formModel] = useState(() => new FormModel());
-  const {onBlur, onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -79,7 +79,6 @@ export function EditDetectorLayout<
     initialData,
     onSubmit: handleFormSubmit,
     onFieldChange,
-    onBlur,
     mapFormErrors,
   };
 

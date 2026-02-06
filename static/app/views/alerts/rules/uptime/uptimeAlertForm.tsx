@@ -114,7 +114,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
     : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
-  const {onBlur, onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -210,7 +210,6 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={mapAssertionFormErrors}
       onFieldChange={onFieldChange}
-      onBlur={onBlur}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);

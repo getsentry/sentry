@@ -56,7 +56,7 @@ export default function MonitorCreateForm() {
       transformData: transformMonitorFormData,
     })
   );
-  const {onBlur, onFieldChange} = useFormEagerValidation(form.current);
+  const {onFieldChange} = useFormEagerValidation(form.current);
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -94,7 +94,6 @@ export default function MonitorCreateForm() {
       apiMethod="POST"
       model={form.current}
       onFieldChange={onFieldChange}
-      onBlur={onBlur}
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,

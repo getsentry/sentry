@@ -184,7 +184,7 @@ function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
-  const {onBlur, onFieldChange} = useFormEagerValidation(form.current);
+  const {onFieldChange} = useFormEagerValidation(form.current);
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -241,7 +241,6 @@ function MonitorForm({
       apiMethod={apiMethod}
       model={form.current}
       onFieldChange={onFieldChange}
-      onBlur={onBlur}
       initialData={
         monitor
           ? {
