@@ -379,8 +379,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Workflow Engine (ACI)
 
 ## Integrations
-/src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
-/tests/sentry/sentry_apps                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/src/sentry/sentry_apps/                                             @getsentry/ecosystem
+/tests/sentry/sentry_apps                                            @getsentry/ecosystem
 /src/sentry/utils/sentry_apps/                                       @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
@@ -388,38 +388,44 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
 /src/sentry/identity/                                                @getsentry/enterprise
 
-/src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
-/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/                                            @getsentry/ecosystem
+/src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/coding-workflows
 /src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
 /src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
 /src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
-/src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/issue-detection-backend
+/src/sentry/integrations/utils/stacktrace_link.py                    @getsentry/issue-detection-backend
+/src/sentry/integrations/bitbucket/                                  @getsentry/coding-workflows
+/src/sentry/integrations/bitbucket_server/                           @getsentry/coding-workflows
+/src/sentry/integrations/cursor/                                     @getsentry/coding-workflows
+/src/sentry/integrations/github/                                     @getsentry/coding-workflows
+/src/sentry/integrations/github_enterprise/                          @getsentry/coding-workflows
+/src/sentry/integrations/gitlab/                                     @getsentry/coding-workflows
 
-/src/sentry/mail/                                                    @getsentry/alerts-notifications
-/src/sentry/notifications/                                           @getsentry/alerts-notifications @getsentry/ecosystem
-/src/sentry/notifications/models/                                    @getsentry/ecosystem
-/src/sentry/notifications/notifications/                             @getsentry/ecosystem
-/src/sentry/notifications/platform/                                  @getsentry/ecosystem
-/src/sentry/pipeline/                                                @getsentry/ecosystem
+/src/sentry/mail/                                                    @getsentry/notification-platform
+/src/sentry/notifications/                                           @getsentry/notification-platform
+/src/sentry/notifications/models/                                    @getsentry/notification-platform
+/src/sentry/notifications/notifications/                             @getsentry/notification-platform
+/src/sentry/notifications/platform/                                  @getsentry/notification-platform
+/src/sentry/pipeline/                                                @getsentry/enterprise
 /src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/shared_integrations/                                     @getsentry/ecosystem
-/src/sentry/workflow_engine/tasks/actions.py                         @getsentry/ecosystem
+/src/sentry/workflow_engine/tasks/actions.py                         @getsentry/alerts-create-issues
 
 /src/sentry/users/models/identity.py                                 @getsentry/enterprise
 
-/src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
-/src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
-/src/sentry/tasks/user_report.py                                     @getsentry/alerts-notifications
-/src/sentry/tasks/summaries/weekly_reports.py                        @getsentry/alerts-notifications
+/src/sentry/tasks/digests.py                                         @getsentry/notification-platform
+/src/sentry/tasks/email.py                                           @getsentry/notification-platform
+/src/sentry/tasks/user_report.py                                     @getsentry/notification-platform
+/src/sentry/tasks/summaries/weekly_reports.py                        @getsentry/notification-platform
 
-/src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
+/src/sentry_plugins/                                                 @getsentry/ecosystem
 
 /tests/sentry_plugins/                                               @getsentry/ecosystem
 /tests/sentry/integrations/                                          @getsentry/ecosystem
 
 # To find matching files -> find . -name "*sentry_app*.py"
-*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
-*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+*sentry_app*.py                                                      @getsentry/ecosystem
+*sentryapp*.py                                                       @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 *docintegration*.py                                                  @getsentry/ecosystem
 
@@ -663,12 +669,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsAdmin/views/relocation*            @getsentry/hybrid-cloud
 
 ## Ecosystem
-/src/sentry/api/endpoints/notifications/notification_actions*           @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
-/static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
-/src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
-/src/sentry/data_secrecy/                                               @getsentry/ecosystem
-/tests/sentry/data_secrecy/                                             @getsentry/ecosystem
+/src/sentry/api/endpoints/notifications/notification_actions*           @getsentry/notification-platform
+/src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/coding-workflows
+/static/app/components/modals/inviteMissingMembersModal/                @getsentry/coding-workflows
+/src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/coding-workflows
+/src/sentry/data_secrecy/                                               @getsentry/enterprise
+/tests/sentry/data_secrecy/                                             @getsentry/enterprise
 /static/app/views/settings/organizationDataForwarding/                  @getsentry/ecosystem
 /static/app/views/settings/organizationIntegrations/                    @getsentry/ecosystem
 /static/app/views/settings/organizationDeveloperSettings/               @getsentry/ecosystem
