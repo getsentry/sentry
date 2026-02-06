@@ -23,7 +23,10 @@ export default function SeerWizardSetupBanner() {
     return null;
   }
 
-  if (data?.isSeerConfigured) {
+  if (
+    data?.isSeerConfigured ||
+    (data?.needsConfigReminder && !data?.isCodeReviewEnabled)
+  ) {
     return null;
   }
 
