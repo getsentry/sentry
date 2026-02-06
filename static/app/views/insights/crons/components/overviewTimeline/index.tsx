@@ -187,6 +187,7 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
@@ -209,6 +210,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 3/-1;

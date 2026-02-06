@@ -280,6 +280,7 @@ const LinkedIssueName = styled('div')`
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
 `;
 

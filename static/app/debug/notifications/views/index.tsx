@@ -98,6 +98,7 @@ const SidebarContainer = styled('nav')`
   top: ${HEADER_HEIGHT}px;
   overflow-y: auto;
   max-height: calc(100dvh - ${HEADER_HEIGHT}px);
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   scrollbar-width: thin;
   scrollbar-color: ${p => p.theme.tokens.border.primary}
