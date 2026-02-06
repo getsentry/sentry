@@ -24,7 +24,6 @@ from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 from sentry.scm.actions import SourceCodeManager
 from sentry.silo.base import SiloMode
-from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -183,16 +182,9 @@ class ScmRpcServiceEndpoint(Endpoint):
 
         try:
             result = self._dispatch_to_source_code_manager(method_name, arguments)
-        except (NotFound, ValidationError):
+        except Exception:
             sentry_sdk.capture_exception()
             raise
-        except Exception as e:
-            if in_test_environment():
-                raise
-            if settings.DEBUG:
-                raise Exception(f"Problem processing SCM rpc endpoint {method_name}") from e
-            sentry_sdk.capture_exception()
-            raise ValidationError() from e
         else:
             return Response(data=result)
 
