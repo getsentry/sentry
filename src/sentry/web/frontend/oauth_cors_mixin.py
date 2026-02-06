@@ -68,16 +68,23 @@ class OAuthCORSMixin:
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = self.cors_allowed_headers
 
-        # For OPTIONS preflight, we don't have the app yet, so allow all origins
-        # The actual POST request will validate the origin against allowed_origins
-        if not self.application:
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-            else:
-                response["Access-Control-Allow-Origin"] = "*"
+        # Native clients (no Origin header) don't need CORS headers
+        if not origin:
             return response
 
-        # For POST requests, validate origin against allowed_origins
+        # For OPTIONS preflight, we don't have the app yet, so allow all origins
+        # The actual POST request will validate the origin against allowed_origins
+        if request.method == "OPTIONS":
+            response["Access-Control-Allow-Origin"] = origin
+            return response
+
+        # For POST requests without a validated app (error responses), don't set
+        # Access-Control-Allow-Origin. This is secure: browsers will block
+        # cross-origin scripts from reading the error response.
+        if not self.application:
+            return response
+
+        # For POST requests with a validated app, check allowed_origins
         allowed = self.application.get_allowed_origins()
         if not allowed or origin not in allowed:
             # Origin not in allowed list - don't set Access-Control-Allow-Origin
