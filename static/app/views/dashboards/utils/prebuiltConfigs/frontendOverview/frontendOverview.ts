@@ -3,7 +3,10 @@ import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
+import {
+  DASHBOARD_TITLE,
+  FRONTEND_SDK_NAMES,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
@@ -16,16 +19,24 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 const BASE_QUERY = new MutableSearch('');
+BASE_QUERY.addOp('(');
 BASE_QUERY.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 BASE_QUERY.addFilterValue('span.op', `[${FRONTEND_OVERVIEW_PAGE_OPS.join(',')}]`);
+BASE_QUERY.addOp('OR');
+BASE_QUERY.addFilterValue('sdk.name', `[${FRONTEND_SDK_NAMES.join(',')}]`);
+BASE_QUERY.addOp(')');
 BASE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const TABLE_QUERY = new MutableSearch('');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 TABLE_QUERY.addFilterValue(
   'span.op',
   `[${[...FRONTEND_OVERVIEW_PAGE_OPS, ...WEB_VITALS_OPS].join(',')}]`
 );
+TABLE_QUERY.addOp('OR');
+TABLE_QUERY.addFilterValue('sdk.name', `[${FRONTEND_SDK_NAMES.join(',')}]`);
+TABLE_QUERY.addOp(')');
 TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const ASSETS_BY_TIME_SPENT_QUERY = getResourcesEventViewQuery(
