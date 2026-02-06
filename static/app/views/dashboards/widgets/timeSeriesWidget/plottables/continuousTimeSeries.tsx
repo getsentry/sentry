@@ -66,7 +66,7 @@ export abstract class ContinuousTimeSeries<
 
   /**
    * Continuous time series names need to be unique to disambiguate them from other series. We use both the `yAxis` and the `groupBy` to create the name. This makes it possible to pass in two different time series with the same `yAxis` as long as they have different `groupBy` information.
-   * For cases where we have multiple time series with the same `yAxis` and no`groupBy` (for example dashboards with multiple filters), we can manually set the name.
+   * For cases where we have multiple time series with the same `yAxis` and no `groupBy` (for example dashboards with multiple filters), we can manually set the name.
    */
   get name(): string {
     return this.config?.name ?? formatTimeSeriesName(this.timeSeries);
