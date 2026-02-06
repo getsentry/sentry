@@ -106,6 +106,9 @@ describe('GroupUptimeChecks', () => {
     expect(screen.getByText(statusToText[uptimeCheck.checkStatus])).toBeInTheDocument();
     expect(screen.getByText(`${uptimeCheck.durationMs}ms`)).toBeInTheDocument();
     expect(screen.getByText(getShortEventId(uptimeCheck.traceId))).toBeInTheDocument();
+    expect(
+      screen.getByText(getShortEventId(uptimeCheck.traceItemId))
+    ).toBeInTheDocument();
     expect(screen.getByText(uptimeCheck.regionName)).toBeInTheDocument();
 
     // Span counts also need to load (includes 7 system spans)
@@ -134,9 +137,11 @@ describe('GroupUptimeChecks', () => {
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 
     const traceId = getShortEventId(uptimeCheck.traceId);
+    const traceItemId = getShortEventId(uptimeCheck.traceItemId);
 
     // 10 user spans + 7 system spans = 17 total
     expect(await screen.findByText('17 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: traceItemId})).toBeInTheDocument();
   });
 });
