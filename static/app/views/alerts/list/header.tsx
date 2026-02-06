@@ -64,7 +64,6 @@ function AlertHeader({activeTab}: Props) {
             size="sm"
             priority="primary"
             referrer="alert_stream"
-            showPermissionGuide
             projectSlug={
               selection.projects.length === 1
                 ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug

@@ -67,7 +67,8 @@ const StyledAlert = styled(Alert)`
   align-items: center;
   margin-top: ${space(3)};
 
-  ${StyledButton} svg {
+  button svg,
+  a svg {
     color: ${p => p.theme.colors.white};
   }
 

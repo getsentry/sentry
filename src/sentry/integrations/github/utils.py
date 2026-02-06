@@ -157,6 +157,6 @@ def should_create_or_increment_contributor_seat(
     )
 
 
-def is_github_rate_limit_sensitive(organization: Organization) -> bool:
+def is_github_rate_limit_sensitive(organization_slug: str) -> bool:
     """Check if an organization is in the list of GitHub rate-limit sensitive organizations."""
-    return organization.slug in options.get("github-app.rate-limit-sensitive-orgs")
+    return organization_slug in options.get("github-app.rate-limit-sensitive-orgs")

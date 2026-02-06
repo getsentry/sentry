@@ -15,7 +15,7 @@ const styles = (theme: Theme) => css`
   }
 
   .loading .loading-indicator {
-    border-color: ${theme.tokens.background.transparent.neutral.muted};
+    border-color: ${theme.tokens.border.transparent.neutral.muted};
     border-left-color: ${theme.tokens.graphics.accent.vibrant};
   }
 

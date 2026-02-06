@@ -670,6 +670,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -3959,6 +3966,14 @@ register(
 # Organization slug allowlist to enable Autopilot for specific organizations.
 register(
     "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable missing SDK integration detector for specific projects.
+register(
+    "autopilot.missing-sdk-integration.projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
