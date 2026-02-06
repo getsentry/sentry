@@ -220,7 +220,8 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${space(1)};
     height: ${space(1)};
-    background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 

@@ -51,12 +51,12 @@ const ProgressBarTrack = styled('div')`
   position: absolute;
   width: 100%;
   height: 2px;
-  background-color: ${p => p.theme.tokens.background.tertiary};
+  background-color: ${p => p.theme.tokens.graphics.neutral.moderate};
 `;
 
 const ProgressBarFill = styled('div')`
   height: 100%;
-  background-color: ${p => p.theme.tokens.background.accent.vibrant};
+  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
   opacity: 0.7;
   transition: width 1s ease-in-out;
 `;

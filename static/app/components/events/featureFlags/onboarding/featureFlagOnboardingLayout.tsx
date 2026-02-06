@@ -137,6 +137,7 @@ const Divider = styled('div')`
     height: 1px;
     left: 0;
     right: 0;
-    background: ${p => p.theme.tokens.background.secondary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.primary};
   }
 `;

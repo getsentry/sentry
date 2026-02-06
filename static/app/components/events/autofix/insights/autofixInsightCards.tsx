@@ -152,7 +152,8 @@ const InsightsContainerWithLines = styled('div')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.background.secondary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.primary};
   margin-left: 16px;
 `;
 

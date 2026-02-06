@@ -172,7 +172,8 @@ const StyledTimelineItem = styled(Timeline.Item)`
     width: 1px;
     top: -2px;
     bottom: -9px;
-    background: ${p => p.theme.tokens.background.secondary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }
   &:first-child::before {

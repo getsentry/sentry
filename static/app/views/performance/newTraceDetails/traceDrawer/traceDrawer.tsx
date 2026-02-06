@@ -599,7 +599,8 @@ const TabSeparator = styled('span')`
   margin-right: ${space(0.5)};
   height: 16px;
   width: 1px;
-  background-color: ${p => p.theme.tokens.background.secondary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
 
@@ -633,7 +634,8 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      background-color: ${p => p.theme.tokens.background.secondary};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-color: ${p => p.theme.tokens.border.primary};
     }
   }
 

@@ -200,7 +200,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   }
 
   .group-detail:before {
-    background: ${theme.tokens.background.secondary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {

@@ -248,7 +248,8 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${space(2)});
     width: 1px;
-    background: ${p => p.theme.tokens.background.secondary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }
 `;

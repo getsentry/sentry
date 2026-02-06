@@ -87,7 +87,8 @@ const Box = styled(motion.div)`
   display: block;
   width: 128px;
   height: 128px;
-  background: ${p => p.theme.tokens.background.accent.vibrant};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.accent.vibrant};
   border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   border-radius: ${p => p.theme.radius.md};
 `;

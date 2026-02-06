@@ -935,7 +935,8 @@ const IssueMessage = styled(EventMessage)`
 const MetaSeparator = styled('div')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.tokens.background.tertiary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.secondary};
 `;
 
 const StyledMarkedText = styled(MarkedText)`
@@ -1031,7 +1032,8 @@ const TagMiniBar = styled('div')`
   border-radius: 3px;
   overflow: hidden;
   background: ${p => p.theme.tokens.background.secondary};
-  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
 `;
 
 const DenseTagChip = styled('div')`

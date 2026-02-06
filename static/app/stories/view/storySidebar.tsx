@@ -47,7 +47,8 @@ const SidebarContainer = styled('nav')`
     display: block;
     content: '';
     height: 1px;
-    background: ${p => p.theme.tokens.background.tertiary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.secondary};
     margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {

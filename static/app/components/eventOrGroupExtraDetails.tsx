@@ -191,7 +191,8 @@ const GroupExtra = styled('div')`
 const Separator = styled('div')`
   height: 10px;
   width: 1px;
-  background-color: ${p => p.theme.tokens.background.tertiary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background-color: ${p => p.theme.tokens.border.secondary};
   border-radius: 1px;
 `;
 

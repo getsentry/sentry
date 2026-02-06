@@ -806,7 +806,8 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      background-color: ${p => p.theme.tokens.background.secondary};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
 
@@ -831,7 +832,8 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    background-color: ${p => p.theme.tokens.background.secondary};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
   }
@@ -1583,7 +1585,8 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: ${p => p.theme.tokens.background.secondary};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;
       width: 6px;
