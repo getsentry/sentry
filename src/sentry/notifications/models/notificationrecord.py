@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 
 
 @region_silo_model
-class NotificationRecord(Model):
+class NotificationRecord(DefaultFieldsModel):
     """
     Tracks individual messages sent via the notification platform.
 
@@ -28,6 +28,7 @@ class NotificationRecord(Model):
         related_name="records",
         null=True,
         on_delete=models.CASCADE,
+        db_index=False,
     )
 
     # Provider identification
@@ -40,12 +41,9 @@ class NotificationRecord(Model):
     # Error tracking - populated when send fails
     error_details = models.JSONField(null=True)
 
-    date_added = models.DateTimeField(default=timezone.now)
-    date_updated = models.DateTimeField(auto_now=True)
-
     class Meta:
         app_label = "notifications"
-        db_table = "sentry_notificationrecord"
+        db_table = "notifications_notificationrecord"
         indexes = [
             # For looking up messages by thread
             models.Index(
