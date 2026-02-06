@@ -5,44 +5,78 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface AutofixStartBoxProps {
   groupId: string;
   onSend: (message: string, stoppingPoint?: AutofixStoppingPoint) => void;
 }
 
-const STOPPING_POINT_OPTIONS = [
-  {
-    key: AutofixStoppingPoint.ROOT_CAUSE,
-    label: t('Start Root Cause Analysis'),
-    value: AutofixStoppingPoint.ROOT_CAUSE,
-  },
-  {
-    key: AutofixStoppingPoint.SOLUTION,
-    label: t('Plan a Solution'),
-    value: AutofixStoppingPoint.SOLUTION,
-  },
-  {
-    key: AutofixStoppingPoint.CODE_CHANGES,
-    label: t('Write Code Changes'),
-    value: AutofixStoppingPoint.CODE_CHANGES,
-  },
-  {
-    key: AutofixStoppingPoint.OPEN_PR,
-    label: t('Draft a Pull Request'),
-    value: AutofixStoppingPoint.OPEN_PR,
-  },
-] as const;
+function getStoppingPointOptions(organization: Organization) {
+  const enableSeerCoding = organization.enableSeerCoding !== false;
+  return [
+    {
+      key: AutofixStoppingPoint.ROOT_CAUSE,
+      label: t('Start Root Cause Analysis'),
+      value: AutofixStoppingPoint.ROOT_CAUSE,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.SOLUTION,
+      label: t('Plan a Solution'),
+      value: AutofixStoppingPoint.SOLUTION,
+      disabled: false,
+      tooltip: undefined,
+    },
+    {
+      key: AutofixStoppingPoint.CODE_CHANGES,
+      label: t('Write Code Changes'),
+      value: AutofixStoppingPoint.CODE_CHANGES,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
+    },
+    {
+      key: AutofixStoppingPoint.OPEN_PR,
+      label: t('Draft a Pull Request'),
+      value: AutofixStoppingPoint.OPEN_PR,
+      disabled: !enableSeerCoding,
+      tooltip: enableSeerCoding
+        ? undefined
+        : tct(
+            '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+            {
+              settings: (
+                <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              ),
+            }
+          ),
+    },
+  ] as const;
+}
 
 export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
+  const organization = useOrganization();
   const [message, setMessage] = useState('');
   const [selectedStoppingPoint, setSelectedStoppingPoint] =
     useLocalStorageState<AutofixStoppingPoint>(
@@ -61,19 +95,21 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 
   const {primaryOption, dropdownOptions} = useMemo(() => {
+    const options = getStoppingPointOptions(organization);
     const primary =
-      STOPPING_POINT_OPTIONS.find(opt => opt.value === selectedStoppingPoint) ??
-      STOPPING_POINT_OPTIONS[0];
-    const dropdown = STOPPING_POINT_OPTIONS.filter(
-      opt => opt.value !== selectedStoppingPoint
-    ).map(opt => ({
-      key: opt.key,
-      label: opt.label,
-      onAction: () =>
-        handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
-    }));
+      options.find(opt => opt.value === selectedStoppingPoint) ?? options[0];
+    const dropdown = options
+      .filter(opt => opt.value !== selectedStoppingPoint)
+      .map(opt => ({
+        key: opt.key,
+        label: opt.label,
+        disabled: opt.disabled ?? false,
+        tooltip: opt.tooltip,
+        onAction: () =>
+          handleSubmit({preventDefault: () => {}} as React.FormEvent, opt.value),
+      }));
     return {primaryOption: primary, dropdownOptions: dropdown};
-  }, [selectedStoppingPoint, handleSubmit]);
+  }, [organization, selectedStoppingPoint, handleSubmit]);
 
   return (
     <Wrapper>
@@ -132,23 +168,30 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               size="sm"
             />
             <ButtonBar merged gap="0">
-              <StyledButton
-                type="submit"
-                priority="primary"
-                analyticsEventKey={
-                  message
-                    ? 'autofix.give_instructions_clicked'
-                    : 'autofix.start_fix_clicked'
-                }
-                analyticsEventName={
-                  message
-                    ? 'Autofix: Give Instructions Clicked'
-                    : 'Autofix: Start Fix Clicked'
-                }
-                analyticsParams={{group_id: groupId}}
+              <Tooltip
+                title={primaryOption.tooltip}
+                skipWrapper
+                disabled={!primaryOption.disabled}
               >
-                {primaryOption.label}
-              </StyledButton>
+                <StyledButton
+                  type="submit"
+                  priority="primary"
+                  disabled={primaryOption.disabled}
+                  analyticsEventKey={
+                    message
+                      ? 'autofix.give_instructions_clicked'
+                      : 'autofix.start_fix_clicked'
+                  }
+                  analyticsEventName={
+                    message
+                      ? 'Autofix: Give Instructions Clicked'
+                      : 'Autofix: Start Fix Clicked'
+                  }
+                  analyticsParams={{group_id: groupId}}
+                >
+                  {primaryOption.label}
+                </StyledButton>
+              </Tooltip>
               <DropdownMenu
                 items={dropdownOptions}
                 trigger={(triggerProps, isOpen) => (

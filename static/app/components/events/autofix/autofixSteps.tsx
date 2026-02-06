@@ -152,8 +152,8 @@ function Step({
 
 export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   const organization = useOrganization();
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
+
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
   const {repos} = useAutofixRepos(groupId);
@@ -221,8 +221,8 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
           .slice(0, index)
           .some(s => s.type === AutofixStepType.SOLUTION);
         const hideStep =
-          (codingDisabled && hasSolutionStepBefore) ||
-          (codingDisabled && step.type === AutofixStepType.CHANGES);
+          (!enableSeerCoding && hasSolutionStepBefore) ||
+          (!enableSeerCoding && step.type === AutofixStepType.CHANGES);
 
         const previousStep = index > 0 ? steps[index - 1] : null;
         const previousStepErrored =
