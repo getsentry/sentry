@@ -40,9 +40,9 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Remove --reruns from PYTEST_ADDOPTS (incompatible with xdist)
+      - name: Upgrade pytest-rerunfailures for xdist compatibility
         run: |
-          echo "PYTEST_ADDOPTS=$(echo "$PYTEST_ADDOPTS" | sed 's/--reruns=[0-9]*//')" >> "$GITHUB_ENV"
+          pip install 'pytest-rerunfailures>=16.1'
 
       - name: Run tests with xdist -n2 --dist=loadfile
         run: |
