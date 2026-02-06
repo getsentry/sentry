@@ -525,6 +525,51 @@ For tests that can't be automatically classified and fail due to environment dif
 
 The classification can be validated empirically: run Tier 1 tests with only the Tier 1 services. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
+## pytest-xdist Investigation
+
+### Feasibility
+
+- **94.8%** of Tier 2 tests (10,186 of 10,742) use regular `TestCase` (transaction rollback) - xdist-safe from a DB perspective
+- **5.2%** (556 tests) use `TransactionTestCase` (flush DB) - but with xdist each worker gets its own database, so DB flushing only affects the worker's own DB. Not a problem.
+- **Snuba is shared** across all xdist workers - the main isolation concern. Using `--dist=loadfile` groups all tests from the same file on one worker, minimizing cross-contamination.
+
+### Obstacles Encountered and Resolved
+
+#### 1. Non-deterministic test collection (`PYTEST_XDIST_TESTRUNUID`)
+
+xdist requires all workers to collect identical test lists. Sentry generates a random region name in `_configure_test_env_regions()` which can affect test parametrization. Each worker generated a different name, causing "Different tests were collected between gw0 and gw1" errors.
+
+**Fix:** Use `PYTEST_XDIST_TESTRUNUID` (shared across all workers per session) as a deterministic seed for the region name random generator. The name still changes per run but is consistent across workers.
+
+#### 2. Leftover `transaction_test` marker
+
+A previous PoC left `@pytest.mark.transaction_test` marker code in `sentry.py` without registering the marker in `pyproject.toml`. In normal runs this produces a warning, but xdist treats unregistered markers as errors during collection, crashing workers with `INTERNALERROR`.
+
+**Fix:** Removed the leftover marker code.
+
+#### 3. pytest-rerunfailures socket timeout with xdist
+
+`pytest-rerunfailures` creates a TCP socket server/client when xdist is detected, used for crash recovery (segfault reruns). This causes `TimeoutError: timed out` on `conn.recv(1)` in every run. Tested with both v15.0 and v16.1 - same result.
+
+**Root cause deep dive:** The socket communication is gated by `HAS_PYTEST_HANDLECRASHITEM` in `pytest_configure`. When xdist is present AND the xdist version supports `pytest_handlecrashitem`, rerunfailures creates:
+- Master: `ServerStatusDB` - TCP socket server on localhost
+- Workers: `ClientStatusDB` - TCP client connecting to master
+
+The socket tracks rerun counts per test for crash recovery. The timeout likely comes from:
+- `localhost` resolving to different IP families (IPv4/IPv6) on server vs client
+- Possible interference with our `socket.send`/`sendall` patches from the service classifier plugin
+- Single-byte `recv(1)` protocol being fragile under load
+
+**Critical insight:** The socket is ONLY needed for crash recovery (segfault/SIGKILL reruns). Normal `--reruns` works without it - each xdist worker handles retries locally via the `pytest_runtest_protocol` hook's `while need_to_run` loop. Disabling the socket only loses the ability to rerun tests that kill the entire worker process.
+
+**Fix:** Set `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False` in `tests/conftest.py`. This forces rerunfailures to use the in-memory `StatusDB()` instead of the socket-based one. Normal reruns continue working.
+
+### Performance Data
+
+- Tier 2 tests: 1,021ms/test average (3.8x slower than Tier 1's 268ms/test)
+- With `-n2 --dist=loadfile`: expected ~40-50% speedup per shard (2 parallel workers)
+- Potential to combine with tiering for compound improvement
+
 ## Expected Impact
 
-~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20ts) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
+~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20s) instead of the full Snuba stack (setup time: ~2.5-3 min). Combined with intelligent sharding using the same 22 shard count as today, and potentially xdist parallelism within shards, this reduces total CI wall-clock time while using the same runner resources.

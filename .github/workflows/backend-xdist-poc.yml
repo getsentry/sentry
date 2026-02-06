@@ -30,6 +30,9 @@ jobs:
     env:
       MATRIX_INSTANCE_TOTAL: 22
       TEST_GROUP_STRATEGY: roundrobin
+      # Fixed hash seed ensures deterministic dict/set iteration across xdist workers,
+      # preventing "Different tests were collected" errors from parametrized tests.
+      PYTHONHASHSEED: "0"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
