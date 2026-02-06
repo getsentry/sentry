@@ -14,7 +14,7 @@ describe('xamarin onboarding docs', () => {
           version: '1.99.9',
         },
       },
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 
     // Renders main headings
