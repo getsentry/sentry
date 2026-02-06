@@ -44,6 +44,10 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +121,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
     def get(self, request: Request, project, rule) -> Response:
         """
         ## Deprecated
@@ -168,6 +173,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
     def put(self, request: Request, project, rule) -> Response:
         """
         ## Deprecated
@@ -376,6 +382,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
     def delete(self, request: Request, project, rule) -> Response:
         """
         ## Deprecated
@@ -389,6 +396,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        report_used_legacy_models()
         with transaction.atomic(router.db_for_write(Rule)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             RuleActivity.objects.create(

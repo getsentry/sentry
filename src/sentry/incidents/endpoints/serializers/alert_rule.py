@@ -493,6 +493,8 @@ class CombinedRuleSerializer(Serializer):
             report_used_legacy_models()
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
+            # Mark that we're using legacy Rule models
+            report_used_legacy_models()
             updated_attrs["type"] = "rule"
         elif isinstance(obj, Detector) and obj.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
             updated_attrs["type"] = "uptime"
