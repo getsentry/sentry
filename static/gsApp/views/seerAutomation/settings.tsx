@@ -1,4 +1,5 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Form from 'sentry/components/forms/form';
@@ -82,10 +83,31 @@ export default function SeerAutomationSettings() {
                 {
                   name: 'autoOpenPrs',
                   label: t('Allow Root Cause Analysis to create PRs by Default'),
-                  help: t(
-                    'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                  help: (
+                    <Stack gap="sm">
+                      {t(
+                        'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                      )}
+                      {organization.enableSeerCoding === false && (
+                        <Alert variant="warning">
+                          {tct(
+                            '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+                            {
+                              settings: (
+                                <Link
+                                  to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                                />
+                              ),
+                            }
+                          )}
+                        </Alert>
+                      )}
+                    </Stack>
                   ),
                   type: 'boolean',
+                  disabled: !canWrite || organization.enableSeerCoding === false,
+                  setValue: (value: boolean): boolean =>
+                    organization.enableSeerCoding === false ? false : value,
                 },
                 {
                   visible: false, // TODO(ryan953): Disabled until the backend is fully ready
