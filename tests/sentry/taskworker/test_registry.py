@@ -19,6 +19,15 @@ from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 
 
+@pytest.fixture
+def real_send_task():
+    """Restore real send_task for tests that directly test send_task behavior."""
+    original = TaskNamespace._original_send_task  # type: ignore[attr-defined]
+    TaskNamespace.send_task = original  # type: ignore[method-assign]
+    yield
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
 def test_namespace_register_task() -> None:
     namespace = TaskNamespace(
         name="tests",
@@ -112,7 +121,7 @@ def test_namespace_get_unknown() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_send_task_no_retry() -> None:
+def test_namespace_send_task_no_retry(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
         application="sentry",
@@ -200,7 +209,7 @@ def test_namespace_send_task_with_auto_compression() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_send_task_with_retry() -> None:
+def test_namespace_send_task_with_retry(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
         application="sentry",
@@ -231,7 +240,7 @@ def test_namespace_send_task_with_retry() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_with_retry_send_task() -> None:
+def test_namespace_with_retry_send_task(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
         application="sentry",
@@ -262,7 +271,7 @@ def test_namespace_with_retry_send_task() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_with_wait_for_delivery_send_task() -> None:
+def test_namespace_with_wait_for_delivery_send_task(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
         application="sentry",

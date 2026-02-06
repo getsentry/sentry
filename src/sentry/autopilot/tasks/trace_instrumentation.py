@@ -12,8 +12,8 @@ from sentry.models.project import Project
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.tools import get_trace_waterfall
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.llm_issue_detection.detection import TraceMetadataWithSpanCount
 from sentry.tasks.llm_issue_detection.trace_data import (
     get_project_top_transaction_traces_for_llm_detection,
 )
@@ -151,7 +151,9 @@ def _build_instrumentation_prompt(trace_json: str, project_slug: str) -> str:
     )
 
 
-def sample_trace_for_instrumentation_analysis(project: Project) -> TraceMetadata | None:
+def sample_trace_for_instrumentation_analysis(
+    project: Project,
+) -> TraceMetadataWithSpanCount | None:
     """
     Sample ONE trace for instrumentation analysis.
     Uses top transaction sampling with random time offset.

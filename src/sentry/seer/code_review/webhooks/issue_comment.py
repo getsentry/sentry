@@ -91,7 +91,7 @@ def handle_issue_comment_event(
         # We shouldn't ever need to delete :eyes: from the PR description unless Seer fails to do so.
         # But if we're already deleting :tada: we might as well delete :eyes: if we come across it.
         reactions_to_delete = [GitHubReaction.HOORAY, GitHubReaction.EYES]
-        if is_github_rate_limit_sensitive(organization):
+        if is_github_rate_limit_sensitive(organization.slug):
             reactions_to_delete = []
 
         delete_existing_reactions_and_add_reaction(
