@@ -132,7 +132,7 @@ For controlled tabs, use `value` and `onChange` to manage the active tab externa
 export function ControlledDemo() {
   const [selected, setSelected] = useState('two');
   return (
-    <>
+    <Fragment>
       <p>Selected: {selected}</p>
       <Tabs value={selected} onChange={setSelected}>
         <TabList>
@@ -146,7 +146,7 @@ export function ControlledDemo() {
           <TabPanels.Item key="three">Content 3</TabPanels.Item>
         </TabPanels>
       </Tabs>
-    </>
+    </Fragment>
   );
 }
 

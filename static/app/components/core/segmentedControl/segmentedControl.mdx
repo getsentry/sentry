@@ -42,14 +42,14 @@ const [value, setValue] = useState('one');
 export function BasicDemo() {
   const [value, setValue] = useState('two');
   return (
-    <>
+    <Fragment>
       <p>Selected: {value}</p>
       <SegmentedControl value={value} onChange={setValue}>
         <SegmentedControl.Item key="one">One</SegmentedControl.Item>
         <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
         <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
       </SegmentedControl>
-    </>
+    </Fragment>
   );
 }
 
