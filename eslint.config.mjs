@@ -445,6 +445,7 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-inline-render-hook-callback': 'error',
       '@sentry/no-static-translations': 'error',
     },
   },
