@@ -481,8 +481,8 @@ describe('UsageOverviewTable', () => {
 
     await screen.findByRole('columnheader', {name: 'Feature'});
 
-    const allRows = document.querySelectorAll('[data-test-id^="product-row"]');
-    const rowTestIds = Array.from(allRows).map(row => row.getAttribute('data-test-id')!);
+    const allRows = screen.getAllByTestId(/^product-row/);
+    const rowTestIds = allRows.map(row => row.getAttribute('data-test-id')!);
 
     const enabledRows = rowTestIds.filter(id => !id.startsWith('product-row-disabled-'));
     const disabledRows = rowTestIds.filter(id => id.startsWith('product-row-disabled-'));
