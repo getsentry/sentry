@@ -6,11 +6,8 @@ from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
 from django.db import router, transaction
-from django.http import HttpRequest, HttpResponse, HttpResponseBase
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
@@ -26,6 +23,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.oauth")
@@ -55,73 +53,10 @@ class _TokenInformation(TypedDict):
 
 
 @control_silo_view
-class OAuthTokenView(View):
-    # Set during post() for CORS origin validation
-    application: ApiApplication | None = None
-
-    # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
-    # never_cache at dispatch so every response from this endpoint is marked
-    # appropriately without repeating headers across handlers.
-    @csrf_exempt
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs) -> HttpResponseBase:
-        # Handle CORS preflight for browser-based public clients
-        response: HttpResponseBase
-        if request.method == "OPTIONS":
-            response = HttpResponse(status=200)
-            response["Access-Control-Max-Age"] = "3600"
-        else:
-            response = super().dispatch(request, *args, **kwargs)
-
-        return self._add_cors_headers(request, response)
-
-    def _add_cors_headers(
-        self, request: HttpRequest, response: HttpResponseBase
-    ) -> HttpResponseBase:
-        """Add CORS headers for browser-based public OAuth clients.
-
-        The token endpoint is used by public clients (SPAs, CLIs running in browsers)
-        that need CORS support for the device code flow.
-
-        Origin validation:
-        - The application must have allowed_origins configured
-        - Only origins in allowed_origins are permitted
-        - For OPTIONS preflight, we allow all origins since we don't have the app yet
-
-        Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
-        any cookie-based auth from being used with this endpoint.
-        """
-        origin = request.META.get("HTTP_ORIGIN")
-
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-
-        # For OPTIONS preflight, we don't have the app yet, so allow all origins
-        # The actual POST request will validate the origin against allowed_origins
-        if not self.application:
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-            else:
-                response["Access-Control-Allow-Origin"] = "*"
-            return response
-
-        # For POST requests, validate origin against allowed_origins
-        allowed = self.application.get_allowed_origins()
-        if not allowed or origin not in allowed:
-            # Origin not in allowed list - don't set Access-Control-Allow-Origin
-            # This causes the browser to block the response
-            logger.warning(
-                "oauth.token-cors-rejected",
-                extra={
-                    "origin": origin,
-                    "allowed_origins": allowed,
-                    "client_id": self.application.client_id,
-                },
-            )
-            return response
-
-        response["Access-Control-Allow-Origin"] = origin
-        return response
+class OAuthTokenView(OAuthCORSMixin, View):
+    # CORS configuration for browser-based public clients
+    cors_allowed_headers = "Content-Type, Authorization"
+    cors_log_tag = "oauth.token-cors-rejected"
 
     # Note: the reason parameter is for internal use only
     def error(self, request: HttpRequest, name, reason=None, status=400):

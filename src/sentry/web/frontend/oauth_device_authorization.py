@@ -3,10 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, HttpResponseBase
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpRequest, HttpResponse
 from django.views.generic.base import View
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -19,12 +16,13 @@ from sentry.models.apidevicecode import (
 from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
-class OAuthDeviceAuthorizationView(View):
+class OAuthDeviceAuthorizationView(OAuthCORSMixin, View):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
 
@@ -50,68 +48,8 @@ class OAuthDeviceAuthorizationView(View):
     Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
     """
 
-    # Set during post() for CORS origin validation
-    application: ApiApplication | None = None
-
-    @csrf_exempt
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs) -> HttpResponseBase:
-        # Handle CORS preflight for browser-based public clients
-        if request.method == "OPTIONS":
-            response: HttpResponseBase = HttpResponse(status=200)
-            response["Access-Control-Max-Age"] = "3600"
-        else:
-            response = super().dispatch(request, *args, **kwargs)
-
-        return self._add_cors_headers(request, response)
-
-    def _add_cors_headers(
-        self, request: HttpRequest, response: HttpResponseBase
-    ) -> HttpResponseBase:
-        """Add CORS headers for browser-based public OAuth clients.
-
-        The device authorization endpoint is used by public clients (SPAs, CLIs running
-        in browsers) that need CORS support.
-
-        Origin validation:
-        - The application must have allowed_origins configured
-        - Only origins in allowed_origins are permitted
-        - For OPTIONS preflight, we allow all origins since we don't have the app yet
-
-        Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
-        any cookie-based auth from being used with this endpoint.
-        """
-        origin = request.META.get("HTTP_ORIGIN")
-
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type"
-
-        # For OPTIONS preflight, we don't have the app yet, so allow all origins
-        # The actual POST request will validate the origin against allowed_origins
-        if not self.application:
-            if origin:
-                response["Access-Control-Allow-Origin"] = origin
-            else:
-                response["Access-Control-Allow-Origin"] = "*"
-            return response
-
-        # For POST requests, validate origin against allowed_origins
-        allowed = self.application.get_allowed_origins()
-        if not allowed or origin not in allowed:
-            # Origin not in allowed list - don't set Access-Control-Allow-Origin
-            # This causes the browser to block the response
-            logger.warning(
-                "oauth.device-authorization-cors-rejected",
-                extra={
-                    "origin": origin,
-                    "allowed_origins": allowed,
-                    "client_id": self.application.client_id,
-                },
-            )
-            return response
-
-        response["Access-Control-Allow-Origin"] = origin
-        return response
+    cors_allowed_headers = "Content-Type"
+    cors_log_tag = "oauth.device-authorization-cors-rejected"
 
     def error(
         self,
@@ -222,7 +160,9 @@ class OAuthDeviceAuthorizationView(View):
 
         # Build the verification URIs
         verification_uri = absolute_uri("/oauth/device/")
-        verification_uri_complete = f"{verification_uri}?user_code={device_code.user_code}"
+        verification_uri_complete = (
+            f"{verification_uri}?user_code={device_code.user_code}"
+        )
 
         # Calculate expires_in from the expiration time
         expires_in = int(DEFAULT_EXPIRATION.total_seconds())
