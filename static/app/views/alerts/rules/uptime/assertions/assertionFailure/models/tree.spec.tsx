@@ -44,7 +44,10 @@ describe('Assertion Failure Tree model', () => {
         children: [
           makeNotOp({
             id: 'op-2',
-            operand: makeOrOp({children: [makeStatusCodeOp({id: 'op-3', value: 200})]}),
+            operand: makeOrOp({
+              id: 'op-3',
+              children: [makeStatusCodeOp({id: 'op-4', value: 200})],
+            }),
           }),
         ],
       }),
@@ -62,9 +65,10 @@ describe('Assertion Failure Tree model', () => {
           makeNotOp({
             id: 'op-2',
             operand: makeAndOp({
+              id: 'op-3',
               children: [
-                makeStatusCodeOp({id: 'op-3', value: 200}),
-                makeJsonPathOp({id: 'op-4'}),
+                makeStatusCodeOp({id: 'op-4', value: 200}),
+                makeJsonPathOp({id: 'op-5'}),
               ],
             }),
           }),

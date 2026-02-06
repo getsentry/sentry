@@ -13,15 +13,15 @@ AND - op-1
 
 exports[`Assertion Failure Tree model Merges logical ops - non-root 1`] = `
 "
-(negated) AND - bd67e86b-6eea-a536-32df-35196ff83a42
-  STATUS CODE - op-3
-  JSON PATH - op-4
+(negated) AND - op-3
+  STATUS CODE - op-4
+  JSON PATH - op-5
 "
 `;
 
 exports[`Assertion Failure Tree model Merges logical ops - root 1`] = `
 "
-(negated) OR - f82d9236-6a49-16be-a18d-3fc914aa5f30
-  STATUS CODE - op-3
+(negated) OR - op-3
+  STATUS CODE - op-4
 "
 `;
