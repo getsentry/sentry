@@ -197,17 +197,19 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     Configure Seer settings for a new or existing organization migrating to new Seer pricing.
 
     Sets:
-    - Org-level: enable_seer_coding=True - to override old check
     - Project-level (all projects): seer_scanner_automation=True, autofix_automation_tuning="medium" or "off"
     - Seer API (all projects): automated_run_stopping_point="code_changes" or "open_pr"
+
+    Ignores:
+    - Org-level: enable_seer_coding
     """
+
     organization = Organization.objects.get(id=organization_id)
 
     sentry_sdk.set_tag("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
 
     # Set org-level options
-    organization.update_option("sentry:enable_seer_coding", True)
     organization.update_option(
         "sentry:default_autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
     )
