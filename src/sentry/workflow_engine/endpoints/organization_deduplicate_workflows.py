@@ -107,7 +107,7 @@ class WorkflowData:
         return json.dumps(workflow_data, sort_keys=True)  # type: ignore[arg-type]
 
 
-def deduplicate_workflows(organization: Organization):
+def deduplicate_workflows(organization: Organization) -> None:
     workflows = (
         Workflow.objects.filter(organization=organization)
         .select_related("when_condition_group")
@@ -202,6 +202,6 @@ class OrganizationDeduplicateWorkflowsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
 
-    def put(self, request: Request, organization: Organization):
+    def put(self, request: Request, organization: Organization) -> Response:
         deduplicate_workflows(organization)
         return Response("Successfully deduplicated workflows.")
