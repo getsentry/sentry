@@ -83,8 +83,8 @@ class OAuthTokenView(View):
         that need CORS support for the device code flow.
 
         Origin validation:
-        - If the application has allowed_origins configured, only those origins are permitted
-        - If allowed_origins is empty/not set, all origins are allowed (backwards compatible)
+        - The application must have allowed_origins configured
+        - Only origins in allowed_origins are permitted
         - For OPTIONS preflight, we allow all origins since we don't have the app yet
 
         Note: Access-Control-Allow-Credentials is intentionally NOT set to prevent
@@ -95,25 +95,29 @@ class OAuthTokenView(View):
         response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
         response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
-        if not origin:
-            response["Access-Control-Allow-Origin"] = "*"
+        # For OPTIONS preflight, we don't have the app yet, so allow all origins
+        # The actual POST request will validate the origin against allowed_origins
+        if not self.application:
+            if origin:
+                response["Access-Control-Allow-Origin"] = origin
+            else:
+                response["Access-Control-Allow-Origin"] = "*"
             return response
 
-        # For POST requests with a validated application, check allowed_origins
-        if self.application:
-            allowed = self.application.get_allowed_origins()
-            if allowed and origin not in allowed:
-                # Origin not in allowed list - don't set Access-Control-Allow-Origin
-                # This causes the browser to block the response
-                logger.warning(
-                    "oauth.token-cors-rejected",
-                    extra={
-                        "origin": origin,
-                        "allowed_origins": allowed,
-                        "client_id": self.application.client_id,
-                    },
-                )
-                return response
+        # For POST requests, validate origin against allowed_origins
+        allowed = self.application.get_allowed_origins()
+        if not allowed or origin not in allowed:
+            # Origin not in allowed list - don't set Access-Control-Allow-Origin
+            # This causes the browser to block the response
+            logger.warning(
+                "oauth.token-cors-rejected",
+                extra={
+                    "origin": origin,
+                    "allowed_origins": allowed,
+                    "client_id": self.application.client_id,
+                },
+            )
+            return response
 
         response["Access-Control-Allow-Origin"] = origin
         return response
