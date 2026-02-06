@@ -11,7 +11,7 @@ resources:
     WAI-ARIA Slider: https://www.w3.org/WAI/ARIA/apg/patterns/slider/
 ---
 
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Slider} from '@sentry/scraps/slider';
@@ -85,7 +85,7 @@ The `step` prop restricts which values can be selected. This creates discrete st
 export function StepDemo() {
   const [value, setValue] = useState(0);
   return (
-    <>
+    <Fragment>
       <Stack as="label" align="center" gap="md">
         Every 10th value (value: {value})
         <Slider value={value} onChange={setValue} defaultValue={0} step={10} />
@@ -94,7 +94,7 @@ export function StepDemo() {
         Steps of 25 (value: {value})
         <Slider value={value} onChange={setValue} min={100} max={200} step={25} />
       </Stack>
-    </>
+    </Fragment>
   );
 }
 
@@ -117,7 +117,7 @@ Use the `formatLabel` callback to customize how the value is displayed:
 export function FormatDemo() {
   const [value, setValue] = useState(50);
   return (
-    <>
+    <Fragment>
       <Stack as="label" align="center" gap="md">
         Percentage format
         <Slider value={value} onChange={setValue} formatLabel={v => `${v}%`} />
@@ -133,7 +133,7 @@ export function FormatDemo() {
           formatLabel={v => `$${v}`}
         />
       </Stack>
-    </>
+    </Fragment>
   );
 }
 
