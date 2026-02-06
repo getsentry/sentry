@@ -35,7 +35,7 @@ The `FeatureBadge` component should be used to annotate new features as they mov
   <FeatureBadge type="new" />
   <FeatureBadge type="experimental" />
 </Storybook.Demo>
-```jsx import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+```jsx import {FeatureBadge} from '@sentry/scraps/badge';
 
 <FeatureBadge type="alpha" />
 <FeatureBadge type="beta" />
@@ -74,7 +74,8 @@ The `AlertBadge` component displays an indicator for all Alert types that Sentry
   <AlertBadge isIssue />
   <AlertBadge isDisabled />
 </Storybook.Demo>
-```jsx import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+```jsx import {AlertBadge} from '@sentry/scraps/badge';
+
 <AlertBadge status={IncidentStatus.OPENED} />
 <AlertBadge status={IncidentStatus.CLOSED} />
 <AlertBadge status={IncidentStatus.WARNING} />
@@ -123,7 +124,7 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 <Storybook.Demo>
   <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 </Storybook.Demo>
-```jsx import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+```jsx import {DeployBadge} from '@sentry/scraps/badge';
 
 <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 ```
