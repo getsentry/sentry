@@ -113,9 +113,9 @@ export default function SeerAutomationSettings() {
                 {
                   visible: false, // TODO(ryan953): Disabled until the backend is fully ready
                   name: 'allowBackgroundAgentDelegation',
-                  label: t('Allow Delegation to Background Agents'),
+                  label: t('Allow Delegation to External Coding Agents'),
                   help: tct(
-                    'Enable this to allow projects to use Agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
+                    'Enable this to allow projects to use coding agents other than Seer for automation tasks. [docs:Read the docs] to learn more.',
                     {
                       docs: (
                         <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
