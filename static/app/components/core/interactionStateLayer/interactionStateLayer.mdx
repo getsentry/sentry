@@ -2,6 +2,7 @@
 title: InteractionStateLayer
 description: A low-level primitive component that adds visual hover, focus, and active states to interactive elements using opacity overlays.
 source: '@sentry/scraps/interactionStateLayer'
+status: 'deprecated'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/interactionStateLayer/index.tsx
@@ -24,6 +25,9 @@ export {documentation};
 `<InteractionStateLayer>` is a low-level primitive that adds visual feedback for hover, focus, and active states to interactive elements. It uses opacity-based overlays that respect contrast requirements, making it suitable for various background colors.
 
 Use `<InteractionStateLayer>` when building custom interactive components that need standard hover/focus/active visual feedback. Most Sentry UI components (Button, Checkbox, etc.) already include this layer internally.
+
+> [!WARNING]
+> `<InteractionStateLayer>` is deprecated. Standard components have this functionality built-in.
 
 ```jsx
 <div style={{position: 'relative'}} tabIndex={0}>
@@ -50,12 +54,11 @@ export function BasicDemo() {
   );
 }
 
-const PanelContent = () => (
-
-<>
-  <h4>With InteractionStateLayer</h4>
-  <p>Hover or focus this panel to see the effect</p>
-</>
+export const PanelContent = () => (
+  <React.Fragment>
+    <h4>With InteractionStateLayer</h4>
+    <p>Hover or focus this panel to see the effect</p>
+  </React.Fragment>
 );
 
 <Storybook.Demo>
@@ -210,9 +213,11 @@ Don't use `<InteractionStateLayer>` when:
 - Combine with other visual cues (borders, shadows, colors)
 - Test with different background colors to ensure visibility
 
-const StyledPanel = styled('div')`  position: relative;
+export const StyledPanel = styled('div')`
+  position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.radius.md};
   padding: ${space(1)};
   max-width: 300px;
-  cursor: pointer;`;
+  cursor: pointer;
+`;
