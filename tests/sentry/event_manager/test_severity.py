@@ -66,6 +66,8 @@ class TestGetEventSeverity(TestCase):
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
             "handled": True,
+            "org_id": self.project.organization_id,
+            "project_id": self.project.id,
         }
 
         mock_urlopen.assert_called_with(
@@ -118,6 +120,8 @@ class TestGetEventSeverity(TestCase):
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
                 "handled": None,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
             }
 
             mock_urlopen.assert_called_with(
