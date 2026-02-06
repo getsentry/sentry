@@ -210,10 +210,60 @@ Python socket patching **cannot** detect these. However:
 | **Objectstore**   | Static (`requires_objectstore` fixture)  | Only 4 files, 100% coverage by fixture                                 |
 | **Bigtable**      | Static (known file paths)                | Only 4 files                                                           |
 
+## First CI Run Results
+
+Ran the classifier across 22 shards on the full backend suite (32,772 tests). Initial results:
+
+| Service | Tests | % |
+|---------|-------|---|
+| postgres | 23,682 | 72% |
+| redis | 1,478 | 4.5% |
+| snuba | 444 | 1.4% |
+| kafka | 254 | 0.8% |
+| symbolicator | 64 | 0.2% |
+| bigtable | 36 | 0.1% |
+| objectstore | 13 | <0.1% |
+| redis-cluster | 3 | <0.1% |
+
+| Tier | Tests | % |
+|------|-------|---|
+| postgres_only | 22,337 | 68% |
+| no_services | 8,651 | 26% |
+| other_services | 1,340 | 4% |
+| snuba_tier | 444 | 1.4% |
+
+### Sanity Check Failures
+
+The Snuba count (444) was suspiciously low. Sanity checking revealed:
+
+- 2,329 tests live in `tests/snuba/` directory
+- Only 114 of those were detected as needing Snuba
+- 2,215 tests in `tests/snuba/` were classified as postgres-only
+
+Investigation showed these tests inherit from `SnubaTestCase` (via `DiscoverSavedQueryBase` etc.), which triggers the `reset_snuba` fixture on every test. This fixture makes HTTP calls to Snuba during setup. However, the tests themselves don't query Snuba in the test body.
+
+### Root Cause: pytest Hook Ordering
+
+The `reset_snuba` fixture runs during **fixture setup**, which happens inside `pytest_runtest_setup`. Our plugin's `pytest_runtest_setup` hook was running **after** pytest's internal one (which triggers fixture setup), so `_current_test` wasn't set when `reset_snuba` made its Snuba HTTP calls.
+
+The 114 tests that WERE detected as needing Snuba likely made Snuba calls during the test body itself (after `_current_test` was set by `pytest_runtest_call`).
+
+### Fix Applied
+
+Added `@pytest.hookimpl(tryfirst=True)` to `pytest_runtest_setup` to ensure our hook runs BEFORE pytest's internal setup (which triggers fixtures). This ensures `_current_test` is set when `reset_snuba` fires.
+
+Also added `@pytest.hookimpl(trylast=True)` to `pytest_runtest_teardown` to clear `_current_test` AFTER fixture teardown completes.
+
+### Other Observations
+
+- **26% of tests (8,651) need no services at all** - these are pure unit tests (parametrized function-level tests without DB access). Our static Postgres detection only catches class-based `TestCase` subclasses and function tests with `db`/`transactional_db` fixtures, so function tests using `@django_db_all` or `@pytest.mark.django_db` may be miscounted.
+- **Redis (1,478 tests)** was higher than expected. The default `server.py` uses `DummyCache`, but CI settings may override this to use Redis-backed caching, meaning more tests hit Redis at runtime than static analysis would suggest. This validates the runtime approach for Redis.
+- **Kafka (254 tests)** detected via static `requires_kafka` markers. Higher than the 20 files we estimated because each file contains multiple tests.
+
 ## Validation
 
 The classification can be validated empirically: run "postgres-only" tier tests with only Postgres running. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
 ## Expected Impact
 
-If classification is accurate, ~79% of backend tests can run with just Postgres (setup time: ~30s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time.
+If classification is accurate, ~68% of backend tests can run with just Postgres (setup time: ~30s) instead of the full Snuba stack (setup time: 4-5min). An additional ~26% may need no services at all. Combined with intelligent sharding, this could significantly reduce CI wall-clock time.

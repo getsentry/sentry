@@ -186,20 +186,25 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         _test_services[node_id].update(static_services)
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Track which test is about to run (includes setup phase)."""
+    """Track which test is about to run. tryfirst ensures this runs BEFORE fixture setup."""
     global _current_test
     if _enabled:
         _current_test = _get_test_node_id(item)
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_call(item: pytest.Item) -> None:
+    """Ensure _current_test is set during test execution."""
+    global _current_test
+    if _enabled:
+        _current_test = _get_test_node_id(item)
+
+
+@pytest.hookimpl(trylast=True)
 def pytest_runtest_teardown(item: pytest.Item, nextitem: pytest.Item | None) -> None:
-    """Keep tracking through teardown, then clear."""
-    # _current_test stays set during teardown so we capture teardown service usage too
-
-
-def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str]) -> None:
-    """Clear current test after it fully completes (including teardown)."""
+    """Clear _current_test AFTER teardown and fixture cleanup."""
     global _current_test
     if _enabled:
         _current_test = None
