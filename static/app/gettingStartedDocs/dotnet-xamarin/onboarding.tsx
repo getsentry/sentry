@@ -6,7 +6,6 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
-import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -234,7 +233,6 @@ export const onboarding: OnboardingConfig = {
           ),
         },
         logsVerify(params),
-        metricsVerify(params),
       ],
     },
     {
