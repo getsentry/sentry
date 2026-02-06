@@ -21,7 +21,12 @@ import {
   type ProductTrial,
   type Subscription,
 } from 'getsentry/types';
-import {checkIsAddOn, getBilledCategory, hasBillingAccess} from 'getsentry/utils/billing';
+import {
+  checkIsAddOn,
+  formatReservedWithUnits,
+  getBilledCategory,
+  hasBillingAccess,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
@@ -224,20 +229,47 @@ function ProductTrialCta({
     );
   }
 
+  const metricHistory = subscription.categories[billedCategory];
+
+  // ignore products with 0 or unlimited reserved volume or that are reserved budget-based
+  const hasUsedUpReserved =
+    metricHistory?.usageExceeded && (metricHistory?.reserved ?? 0) > 0;
+
   return (
     <Cta
-      title={tct('Try unlimited [productName], free for 14 days', {productName})}
-      subtitle={t(
-        'Trial starts immediately, no usage will be billed during this period.'
-      )}
+      title={
+        hasUsedUpReserved
+          ? tct('Want to expand your [productName] usage?', {productName})
+          : tct('Try unlimited [productName], free for 14 days', {productName})
+      }
+      subtitle={
+        hasUsedUpReserved
+          ? tct(
+              'Activate a [productName] trial and get unlimited usage for 2 weeks on top of the [reservedVolume]/month included in your plan.',
+              {
+                productName,
+                reservedVolume: formatReservedWithUnits(
+                  metricHistory?.reserved ?? 0,
+                  billedCategory,
+                  {
+                    isAbbreviated: true,
+                    useUnitScaling: false,
+                  }
+                ),
+              }
+            )
+          : t('Trial starts immediately, no usage will be billed during this period.')
+      }
       buttons={
         <Fragment>
           <StartTrialButton
             size="md"
-            style={isBanner ? {width: '100%'} : undefined}
+            style={{
+              width: isBanner ? '100%' : undefined,
+            }}
             icon={<IconLightning />}
             organization={organization}
-            source="usage-overview"
+            source={hasUsedUpReserved ? 'usage-overview-alt' : 'usage-overview'}
             requestData={{
               productTrial: {
                 category: potentialProductTrial.category,
@@ -251,7 +283,9 @@ function ProductTrialCta({
             busy={trialButtonBusy}
             disabled={trialButtonBusy}
           >
-            {t('Activate free trial')}
+            {hasUsedUpReserved
+              ? tct('Start your unlimited [productName] trial', {productName})
+              : t('Activate free trial')}
           </StartTrialButton>
           <FindOutMoreButton
             href="https://docs.sentry.io/pricing/#product-trials"
