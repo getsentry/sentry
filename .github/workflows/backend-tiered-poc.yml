@@ -68,19 +68,25 @@ jobs:
           python3 - <<'SCRIPT'
           import json, math, os
 
-          TESTS_PER_SHARD = 1200
-          MAX_SHARDS = 22
+          # Use the same total shard count as the normal backend CI (22)
+          # to prove improvement without using more resources.
+          TOTAL_SHARDS = 22
 
           tier1_files = int(os.environ["TIER1_COUNT"])
           tier2_files = int(os.environ["TIER2_COUNT"])
 
-          # Estimate tests per file (avg ~15 tests per file based on 32772 tests / 2226 files)
-          TESTS_PER_FILE = 15
-          tier1_tests = tier1_files * TESTS_PER_FILE
-          tier2_tests = tier2_files * TESTS_PER_FILE
+          # Weight Tier 2 files higher to account for:
+          # 1. ~4-5 min setup overhead (vs ~20s for Tier 1)
+          # 2. Individually slower tests (Snuba queries, event ingestion)
+          # Weight factor of 2.5x means Tier 2 gets ~2.5x more shards per file
+          # than Tier 1, so both tiers finish around the same wall-clock time.
+          TIER2_WEIGHT = 3.5
+          tier1_weighted = tier1_files
+          tier2_weighted = tier2_files * TIER2_WEIGHT
+          total_weighted = tier1_weighted + tier2_weighted
 
-          tier1_shards = min(max(1, math.ceil(tier1_tests / TESTS_PER_SHARD)), MAX_SHARDS)
-          tier2_shards = min(max(1, math.ceil(tier2_tests / TESTS_PER_SHARD)), MAX_SHARDS)
+          tier2_shards = max(1, min(TOTAL_SHARDS - 1, round(TOTAL_SHARDS * tier2_weighted / total_weighted)))
+          tier1_shards = TOTAL_SHARDS - tier2_shards
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"tier1-shard-count={tier1_shards}\n")
@@ -88,8 +94,9 @@ jobs:
             f.write(f"tier2-shard-count={tier2_shards}\n")
             f.write(f"tier2-shard-indices={json.dumps(list(range(tier2_shards)))}\n")
 
-          print(f"Tier 1: {tier1_files} files, ~{tier1_tests} tests, {tier1_shards} shards")
-          print(f"Tier 2: {tier2_files} files, ~{tier2_tests} tests, {tier2_shards} shards")
+          print(f"Total shards: {TOTAL_SHARDS} (same as backend CI)")
+          print(f"Tier 1: {tier1_files} files, {tier1_shards} shards (~{tier1_files//tier1_shards} files/shard)")
+          print(f"Tier 2: {tier2_files} files, {tier2_shards} shards (~{tier2_files//tier2_shards} files/shard)")
           SCRIPT
         env:
           TIER1_COUNT: ${{ steps.split.outputs.tier1-test-count }}

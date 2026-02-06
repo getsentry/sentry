@@ -527,4 +527,4 @@ The classification can be validated empirically: run Tier 1 tests with only the 
 
 ## Expected Impact
 
-~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
+~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20ts) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
