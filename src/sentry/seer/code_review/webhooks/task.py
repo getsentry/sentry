@@ -64,7 +64,7 @@ def schedule_task(
     # Convert enum keys and values to strings for Celery serialization.
     # This ensures all nested structures are properly serialized and will deserialize correctly.
     serialized_event = convert_enum_keys_to_strings(transformed_event)
-    
+
     process_github_webhook_event.delay(
         github_event=github_event.value,
         event_payload=serialized_event,
