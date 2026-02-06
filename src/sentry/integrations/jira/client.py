@@ -33,7 +33,7 @@ class JiraCloudClient(ApiClient):
     PRIORITIES_URL = "/rest/api/2/priority"
     PROJECTS_PAGINATED_URL = "/rest/api/2/project/search"
     PROJECT_URL = "/rest/api/2/project"
-    SEARCH_URL = "/rest/api/2/search/jql/"
+    SEARCH_URL = "/rest/api/3/search/jql"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
     USER_URL = "/rest/api/2/user"
