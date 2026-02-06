@@ -74,6 +74,23 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    # OpenStack Swift transaction IDs
+    ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
+    (
+        "swift_txn_id - in message",
+        "Failed with txid tx69f60bc9f7634a01988e6-0052d9544b in region",
+        "Failed with txid <swift_txn_id> in region",
+    ),
+    (
+        "swift_txn_id - with suffix",
+        "tx274a77a8975c4a66aeb24-0052d95365-cluster01",
+        "<swift_txn_id>",
+    ),
+    (
+        "swift_txn_id - not matching prefix",
+        "ab274a77a8975c4a66aeb24-0052d95365",
+        "<hex>-0052d95365",
+    ),
     ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
     ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
     ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),
