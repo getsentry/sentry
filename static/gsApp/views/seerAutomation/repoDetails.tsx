@@ -33,7 +33,11 @@ export default function SeerRepoDetails() {
     enabled: showNewSeer(organization),
   });
 
-  if (!showNewSeer(organization)) {
+  const hasSeer =
+    organization.features.includes('seat-based-seer-enabled') ||
+    organization.features.includes('seer-added') ||
+    organization.features.includes('code-review-beta');
+  if (!hasSeer) {
     return <NotFound />;
   }
 
