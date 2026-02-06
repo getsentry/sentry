@@ -635,7 +635,6 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         ]
 
     def semver_package_autocomplete_function(self):
-        assert self.snuba_params.organization_id is not None
         packages = (
             Release.objects.filter(
                 organization_id=self.snuba_params.organization_id,
