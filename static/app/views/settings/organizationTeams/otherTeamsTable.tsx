@@ -53,14 +53,14 @@ export function OtherTeamsTable({
     // User is a member of all teams
     return (
       <SimpleTable.Empty>
-        <div>
-          {t("You're a member of all teams.")}{' '}
+        <Flex gap="sm">
+          {t("You're a member of all teams.")}
           {canCreateTeams && (
             <Button priority="link" onClick={() => openCreateTeamModal({organization})}>
               {t('Create another team')}
             </Button>
           )}
-        </div>
+        </Flex>
       </SimpleTable.Empty>
     );
   };
