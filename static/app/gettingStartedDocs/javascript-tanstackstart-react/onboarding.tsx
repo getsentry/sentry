@@ -218,7 +218,7 @@ export default createServerEntry(
               language: 'typescript',
               filename: 'vite.config.ts',
               code: `import { defineConfig } from "vite";
-import { sentryTanstackStart } from "@sentry/tanstackstart-react";
+import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 export default defineConfig({
