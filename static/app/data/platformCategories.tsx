@@ -412,6 +412,7 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
+  'react-native',
   'go',
   'go-echo',
   'go-fasthttp',

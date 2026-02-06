@@ -505,12 +505,14 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
+            # Find PR in artifacts - look for artifact with data.type == 'pull'
             pr_artifact = next(
-                (a for a in (task_status.artifacts or []) if a.data.type == "pull"),
+                (a for a in (task_status.artifacts or []) if a.data and a.data.type == "pull"),
                 None,
             )
 
-            if pr_artifact:
+            if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
+                # Get PR info from GraphQL using the global_id
                 pr_info = client.get_pr_from_graphql(pr_artifact.data.global_id)
                 if pr_info:
                     pr_url = pr_info.url
@@ -523,7 +525,8 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                     )
 
-                    is_task_done = task_status.status in ("completed", "succeeded")
+                    # Status: queued, in_progress, completed, failed, timed_out
+                    is_task_done = task_status.status == "completed"
                     new_status = (
                         CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
                     )
@@ -544,7 +547,7 @@ def poll_github_copilot_agents(
                         },
                     )
 
-            elif task_status.status in ("failed", "error"):
+            elif task_status.status in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,
