@@ -42,7 +42,7 @@ jobs:
 
       - name: Upgrade pytest-rerunfailures for xdist compatibility
         run: |
-          pip install 'pytest-rerunfailures>=16.1'
+          pip install --index-url https://pypi.org/simple/ 'pytest-rerunfailures>=16.1'
 
       - name: Run tests with xdist -n2 --dist=loadfile
         run: |
