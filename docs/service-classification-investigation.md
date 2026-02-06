@@ -396,10 +396,107 @@ Each tier is independently sharded:
 
 Both tiers run in parallel. Wall-clock time is dominated by Tier 2, but Tier 1 finishes much faster, freeing runners sooner.
 
+## First Tiered CI Run
+
+### Results
+
+Tier 2 (Full Snuba stack): **All 9 shards passed.** No issues.
+
+Tier 1 (Postgres + Redis only): **~97% pass rate.** Three categories of failures:
+
+#### Category 1: `requires_snuba` misclassification (setup errors)
+
+Tests using `pytestmark = [requires_snuba]` were not detected by our classifier because `_requires_snuba` was missing from the static detection fixture map. The fixture is session-scoped (runs once), so runtime socket detection didn't catch it either.
+
+**Fix:** Added `_requires_snuba` to `FIXTURE_SERVICE_MAP` in the classifier plugin. These tests now correctly go to Tier 2.
+
+#### Category 2: Redis-cluster tests (setup errors)
+
+Tests parametrized with `[cluster]` (e.g., `TestRedisHashSortedSetBuffer[cluster]`) need Redis-cluster (ports 7000-7005). The `migrations` devservices mode only starts `[postgres, redis]`, not `redis-cluster`.
+
+**Fix:** Start redis-cluster via GitHub Actions `services:` block in Tier 1 (temporary; long-term solution is a new devservices mode `backend-ci-light`).
+
+#### Category 3: Kafka timeouts (test failures)
+
+3-6 tests per shard fail with `KafkaError{code=_MSG_TIMED_OUT}`. These are NOT tests that explicitly need Kafka. They trigger Kafka produces as a side effect of normal application code.
+
+### Deep Dive: Kafka as an Implicit Dependency
+
+#### What is Kafka in this context?
+
+Kafka is a message queue. Sentry's taskworker system uses it to dispatch asynchronous tasks. When application code calls `task.apply_async()`, it produces a message to a Kafka topic. In production, a separate worker (taskbroker) consumes and executes the task. In CI tests, **no consumer runs** - even in the current `backend-ci` mode. The messages go to Kafka and are never read.
+
+#### Why do "simple" tests trigger Kafka?
+
+Django model managers have `post_save`/`post_delete` hooks that call `schedule_invalidate_project_config()`, which wraps `invalidate_project_config.apply_async()` in `transaction.on_commit()`. This fires whenever these common models are saved:
+
+- `ProjectKey` (created in almost every test via fixtures)
+- `ProjectOption`
+- `OrganizationOption`
+- `ReleaseProject`
+
+So any test that creates a project, sets an option, or creates a release triggers a Kafka produce on transaction commit.
+
+#### Why does it timeout instead of failing fast?
+
+The `SingletonProducer` (in `src/sentry/utils/arroyo_producer.py`) tracks up to 1,000 futures. When Kafka is down, all futures fail. Once 1,000 accumulate, the producer blocks on `future.result()` of the oldest future, which times out with `MSG_TIMED_OUT`. Most tests don't hit this limit (< 1,000 Kafka produces per test), but a few long-running tests do.
+
+#### Why not set `TASKWORKER_ALWAYS_EAGER=True`?
+
+Test settings explicitly set `TASKWORKER_ALWAYS_EAGER = False` (in `src/sentry/testutils/pytest/sentry.py`). This is deliberate because:
+
+- Tests use `BurstTaskRunner` to control when tasks execute. `TASKWORKER_ALWAYS_EAGER=True` would bypass this, executing tasks immediately and changing execution order.
+- Some tests assert tasks were queued but NOT executed.
+- `TaskRunner()` context manager sets `ALWAYS_EAGER=True` when tests explicitly want synchronous execution.
+
+Setting it to `True` globally would change test behavior and could introduce false passes/failures.
+
+### Kafka Resolution: Mock Approach (Chosen for PoC)
+
+For Tier 1 tests, Kafka produces are purely side effects - the tests don't check whether the messages were delivered, and no consumer processes them even in the current `backend-ci` setup. The mock approach patches `SingletonProducer.produce` to return an immediately-resolved future, skipping the actual Kafka produce.
+
+This is safe for Tier 1 because:
+- Tasks already don't execute (no consumer in either tier)
+- The produce is fire-and-forget (`wait_for_delivery=False` by default)
+- Tests that explicitly need Kafka use `requires_kafka` and are in Tier 2
+
+**Risk:** If a Tier 1 test is added that subtly depends on Kafka produce succeeding (without using `requires_kafka`), the mock would silently swallow it. The test would pass but behavior would be wrong. Over time this could mask regressions.
+
+### Alternative: Kafka via GitHub Actions `services:` block
+
+A more robust production alternative: start a real Kafka container alongside Tier 1 using GitHub Actions `services:` block. The Relay repo already uses this pattern:
+
+```yaml
+services:
+  zookeeper:
+    image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+    env:
+      ZOOKEEPER_CLIENT_PORT: 2181
+  kafka:
+    image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+    env:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+    ports:
+      - 9092:9092
+```
+
+**Tradeoffs:**
+
+| Approach | Startup Cost | Risk | Production-ready? |
+|----------|-------------|------|-------------------|
+| Mock `SingletonProducer.produce` | 0s | Silent behavioral drift | Acceptable for PoC |
+| Kafka via `services:` block | ~10-15s | None (real infrastructure) | Yes |
+| `TASKWORKER_ALWAYS_EAGER=True` | 0s | Changes task execution behavior | No |
+
+If the mock approach proves problematic, switching to the `services:` block approach requires only a workflow change - no code changes needed.
+
 ## Validation
 
-The classification can be validated empirically: run Tier 1 tests with only Postgres + Redis running (no Snuba). Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
+The classification can be validated empirically: run Tier 1 tests with only the Tier 1 services. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
 ## Expected Impact
 
-~71% of backend tests can run with just Postgres + Redis (setup time: ~10s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
+~71% of backend tests can run with just Postgres + Redis + Redis-cluster (setup time: ~15s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.

@@ -40,6 +40,7 @@ SERVICE_PORTS: dict[int, str] = {
 
 # --- Static detection: known fixture names that indicate service requirements ---
 FIXTURE_SERVICE_MAP: dict[str, str] = {
+    "_requires_snuba": "snuba",
     "_requires_kafka": "kafka",
     "_requires_symbolicator": "symbolicator",
     "_requires_objectstore": "objectstore",

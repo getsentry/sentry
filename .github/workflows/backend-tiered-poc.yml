@@ -104,12 +104,27 @@ jobs:
             /tmp/tier2-tests.txt
           retention-days: 1
 
-  # Tier 1: Postgres + Redis only (fast setup)
+  # Tier 1: Postgres + Redis + Redis-cluster (fast setup, no Snuba)
   tier1-test:
     needs: split-tiers
     name: "tier1 (${{ matrix.instance }})"
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+
+    # Redis-cluster via services block (temporary; long-term: add to devservices mode)
+    services:
+      redis-cluster:
+        image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+        ports:
+          - 7000:7000
+          - 7001:7001
+          - 7002:7002
+          - 7003:7003
+          - 7004:7004
+          - 7005:7005
+        env:
+          IP: 0.0.0.0
+
     strategy:
       fail-fast: false
       matrix:
@@ -118,6 +133,10 @@ jobs:
     env:
       MATRIX_INSTANCE_TOTAL: ${{ needs.split-tiers.outputs.tier1-shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
+      # Mock Kafka producers - Tier 1 tests don't need Kafka but application
+      # code triggers produces as side effects of normal model operations.
+      # See docs/service-classification-investigation.md for tradeoff analysis.
+      SENTRY_MOCK_KAFKA_PRODUCERS: "1"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -138,8 +157,9 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
-          echo "Running tier 1 (Postgres + Redis) tests..."
+          echo "Running tier 1 (Postgres + Redis, no Snuba) tests..."
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
+          echo "Kafka producers mocked: SENTRY_MOCK_KAFKA_PRODUCERS=$SENTRY_MOCK_KAFKA_PRODUCERS"
           make test-python-ci
 
       - name: Inspect failure

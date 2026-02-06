@@ -12,4 +12,5 @@ pytest_plugins = [
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.thread_leaks.pytest",
     "sentry.testutils.pytest.service_classifier",
+    "sentry.testutils.pytest.kafka_mock",
 ]
