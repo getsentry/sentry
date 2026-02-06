@@ -250,22 +250,10 @@ class TestActionService(TestCase):
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
 
-    def test_update_action_status_for_sentry_app__installation_uuid(self) -> None:
+    def test_update_action_status_for_sentry_app__sentry_app_id(self) -> None:
         sentry_app_installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
             organization=self.organization,
-        )
-        installation_uuid_action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            config={
-                "target_identifier": sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP,
-            },
-        )
-        dcg = self.create_data_condition_group()
-        self.create_data_condition_group_action(
-            action=installation_uuid_action, condition_group=dcg
         )
 
         sentry_app_id_action = self.create_action(
@@ -276,8 +264,8 @@ class TestActionService(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
-        dcg2 = self.create_data_condition_group()
-        self.create_data_condition_group_action(action=sentry_app_id_action, condition_group=dcg2)
+        dcg = self.create_data_condition_group()
+        self.create_data_condition_group_action(action=sentry_app_id_action, condition_group=dcg)
 
         # make a new org to ensure we are not disabling actions related to the same sentry app based on a different installation being removed
         org2 = self.create_organization()
@@ -298,36 +286,22 @@ class TestActionService(TestCase):
 
         action_service.update_action_status_for_sentry_app_via_uuid(
             organization_id=self.organization.id,
-            sentry_app_install_uuid=sentry_app_installation.uuid,
             sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            installation_uuid_action.refresh_from_db()
             sentry_app_id_action.refresh_from_db()
             sentry_app_id_action2.refresh_from_db()
-            assert installation_uuid_action.status == ObjectStatus.DISABLED
             assert sentry_app_id_action.status == ObjectStatus.DISABLED
             assert sentry_app_id_action2.status == ObjectStatus.ACTIVE
 
-    def test_update_action_status_for_sentry_app__installation_uuid__region(self) -> None:
+    def test_update_action_status_for_sentry_app__sentry_app_id__region(self) -> None:
         sentry_app_installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
             organization=self.organization,
         )
-        installation_uuid_action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            config={
-                "target_identifier": sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP,
-            },
-        )
-        dcg = self.create_data_condition_group()
-        self.create_data_condition_group_action(
-            action=installation_uuid_action, condition_group=dcg
-        )
+
         sentry_app_id_action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
@@ -336,8 +310,8 @@ class TestActionService(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
-        dcg2 = self.create_data_condition_group()
-        self.create_data_condition_group_action(action=sentry_app_id_action, condition_group=dcg2)
+        dcg = self.create_data_condition_group()
+        self.create_data_condition_group_action(action=sentry_app_id_action, condition_group=dcg)
 
         # make a new org to ensure we are not disabling actions related to the same sentry app
         org2 = self.create_organization()
@@ -358,16 +332,13 @@ class TestActionService(TestCase):
 
         action_service.update_action_status_for_sentry_app_via_uuid__region(
             region_name="us",
-            sentry_app_install_uuid=sentry_app_installation.uuid,
             sentry_app_id=sentry_app_installation.sentry_app.id,
             organization_id=self.organization.id,
             status=ObjectStatus.DISABLED,
         )
         with assume_test_silo_mode(SiloMode.REGION):
-            installation_uuid_action.refresh_from_db()
             sentry_app_id_action.refresh_from_db()
             sentry_app_id_action2.refresh_from_db()
-            assert installation_uuid_action.status == ObjectStatus.DISABLED
             assert sentry_app_id_action.status == ObjectStatus.DISABLED
             assert sentry_app_id_action2.status == ObjectStatus.ACTIVE
 
