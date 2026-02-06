@@ -230,6 +230,7 @@ const SubSectionSeparator = styled('hr')`
   border: none;
   margin: 0;
   margin-bottom: ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
 `;
 

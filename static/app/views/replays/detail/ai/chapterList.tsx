@@ -268,6 +268,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 

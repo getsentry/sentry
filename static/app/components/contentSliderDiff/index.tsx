@@ -186,7 +186,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 50%;
     transform: translateX(-50%);
   }

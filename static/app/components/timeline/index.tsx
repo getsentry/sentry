@@ -165,6 +165,7 @@ const Container = styled('div')`
     width: 1px;
     top: 0;
     bottom: 0;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

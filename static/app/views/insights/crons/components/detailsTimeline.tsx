@@ -159,6 +159,7 @@ const Header = styled('div')`
   z-index: 1;
 
   > :last-child {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

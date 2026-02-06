@@ -203,6 +203,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;
