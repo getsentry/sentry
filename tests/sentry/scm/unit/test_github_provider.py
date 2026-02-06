@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from sentry.integrations.github.client import GitHubReaction
-from sentry.scm.errors import SCMProviderException
+from sentry.scm.errors import SCMProviderException, SCMUnhandledException
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import Repository
 from tests.sentry.scm.test_fixtures import (
@@ -261,17 +261,27 @@ class TestGitHubProviderDeleteCommentReaction:
 
 
 class TestGitHubProviderGetIssueReactions:
-    def test_returns_reactions_from_client(self):
+    def test_returns_transformed_reactions(self):
         client = FakeGitHubApiClient()
         client.issue_reactions = [
             make_github_reaction(reaction_id=1, content="heart"),
+            make_github_reaction(reaction_id=2, content="+1"),
         ]
         provider = GitHubProvider(client)
         repository = make_repository()
 
         reactions = provider.get_issue_reactions(repository, "42")
 
-        assert reactions == client.issue_reactions
+        assert reactions == ["heart", "+1"]
+
+    def test_raises_scm_unhandled_exception_on_malformed_response(self):
+        client = FakeGitHubApiClient()
+        client.issue_reactions = [{"id": 1}]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        with pytest.raises(SCMUnhandledException):
+            provider.get_issue_reactions(repository, "42")
 
 
 class TestGitHubProviderCreateIssueReaction:

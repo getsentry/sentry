@@ -33,6 +33,10 @@ def _transform_comment(raw: dict[str, Any]) -> Comment:
     )
 
 
+def _transform_issue_reaction(raw: dict[str, Any]) -> Reaction:
+    return raw["content"]
+
+
 def _transform_pull_request(raw: dict[str, Any]) -> PullRequest:
     return PullRequest(
         id=str(raw["id"]),
@@ -147,9 +151,12 @@ class GitHubProvider(Provider):
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[Reaction]:
         try:
-            return self.client.get_issue_reactions(repository["name"], issue_id)
+            raw_reactions = self.client.get_issue_reactions(repository["name"], issue_id)
+            return [_transform_issue_reaction(r) for r in raw_reactions]
         except ApiError as e:
             raise SCMProviderException from e
+        except KeyError as e:
+            raise SCMUnhandledException from e
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
