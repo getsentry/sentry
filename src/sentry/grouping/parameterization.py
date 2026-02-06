@@ -161,6 +161,16 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
     ParameterizationRegex(
+        name="salesforce_id",
+        raw_pattern=r"""
+            # Salesforce record IDs: 15 or 18 character alphanumeric strings
+            # containing both letters and digits
+            # https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/field_types.htm
+            (\b(?!0[xX])(?=[a-zA-Z0-9]*[a-zA-Z])(?=[a-zA-Z0-9]*[0-9])[a-zA-Z0-9]{18}\b) |
+            (\b(?!0[xX])(?=[a-zA-Z0-9]*[a-zA-Z])(?=[a-zA-Z0-9]*[0-9])[a-zA-Z0-9]{15}\b)
+        """,
+    ),
+    ParameterizationRegex(
         name="hex",
         raw_pattern=r"""
             # Hex value with `0x/0X` prefix (any length, with any mix of numbers and/or letters -
