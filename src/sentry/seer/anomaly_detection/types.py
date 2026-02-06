@@ -33,6 +33,9 @@ class AnomalyDetectionConfig(TypedDict):
     sensitivity: str
     direction: str
     expected_seasonality: str
+    aggregate: NotRequired[
+        str
+    ]  # only "count" or "other" - for applying static threshold to count metrics
 
 
 class StoreDataRequest(TypedDict):

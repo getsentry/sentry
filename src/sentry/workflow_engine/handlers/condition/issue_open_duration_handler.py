@@ -3,8 +3,11 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.models.groupopenperiod import get_latest_open_period
-from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.filters.age_comparison import timeranges
+from sentry.workflow_engine.handlers.condition.utils.age import (
+    AgeComparisonType,
+    age_comparison_map,
+)
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 

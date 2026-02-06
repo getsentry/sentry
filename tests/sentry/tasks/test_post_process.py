@@ -163,23 +163,6 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     ):
         pass
 
-    @pytest.fixture(autouse=True)
-    def with_feature_flags(self):
-        # post-process tests in this file specifically test using these issue type ids
-        # error, 2 perf issue types, generic, feedback
-        with override_options(
-            {
-                "workflow_engine.issue_alert.group.type_id.ga": [
-                    1,
-                    1006,
-                    2001,
-                    1018,
-                    6001,
-                ]
-            }
-        ):
-            yield
-
 
 class CorePostProcessGroupTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
@@ -4481,12 +4464,10 @@ class PostProcessGroupInstrumentationIssueTest(
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.process_workflow_engine_issue_alerts")
     def test_instrumentation_issues_do_not_trigger_alerts(
         self,
         mock_process_workflow_engine_issue_alerts,
-        mock_process_rules,
     ):
         """Instrumentation issues should not trigger process_rules or process_workflow_engine_issue_alerts."""
         event = self.create_event(
@@ -4501,5 +4482,4 @@ class PostProcessGroupInstrumentationIssueTest(
             event=event,
         )
 
-        mock_process_rules.assert_not_called()
         mock_process_workflow_engine_issue_alerts.assert_not_called()

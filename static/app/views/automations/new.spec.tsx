@@ -10,6 +10,7 @@ import {
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionHandlerGroupType,
@@ -39,12 +40,92 @@ describe('AutomationNewSettings', () => {
         ActionHandlerFixture({
           type: ActionType.SLACK,
           handlerGroup: ActionGroup.NOTIFICATION,
-          integrations: [{id: '1', name: 'My Slack Workspace'}],
+          integrations: [{id: 'slack-1', name: 'My Slack Workspace'}],
         }),
         ActionHandlerFixture({
           type: ActionType.EMAIL,
           handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: undefined,
+        }),
+        ActionHandlerFixture({
+          type: ActionType.DISCORD,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'discord-1', name: 'My Discord Server'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.MSTEAMS,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'msteams-1', name: 'My MS Teams'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.PAGERDUTY,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [
+            {
+              id: 'pagerduty-1',
+              name: 'My PagerDuty',
+              services: [{id: 'pd-service-1', name: 'PD Service'}],
+            },
+          ],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.OPSGENIE,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [
+            {
+              id: 'opsgenie-1',
+              name: 'My Opsgenie',
+              services: [{id: 'og-team-1', name: 'Ops Team'}],
+            },
+          ],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.WEBHOOK,
+          handlerGroup: ActionGroup.NOTIFICATION,
           integrations: [],
+          services: [{slug: 'webhook-service', name: 'Webhook Service'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.SENTRY_APP,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: [],
+          sentryApp: {
+            id: 'sentry-app-1',
+            installationId: 'installation-id',
+            installationUuid: 'installation-uuid',
+            name: 'My Sentry App',
+            status: 0,
+          },
+        }),
+        ActionHandlerFixture({
+          type: ActionType.GITHUB,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'github-1', name: 'GitHub Org'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.GITHUB_ENTERPRISE,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'github-enterprise-1', name: 'GitHub Enterprise'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.JIRA,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'jira-1', name: 'Jira Cloud'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.JIRA_SERVER,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'jira-server-1', name: 'Jira Server'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.AZURE_DEVOPS,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'azure-1', name: 'Azure DevOps'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.PLUGIN,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: undefined,
         }),
       ],
     });
@@ -183,7 +264,7 @@ describe('AutomationNewSettings', () => {
                       targetIdentifier: '',
                       targetDisplay: '#alerts',
                     },
-                    integrationId: '1',
+                    integrationId: 'slack-1',
                     data: {},
                     status: 'active',
                   },
@@ -227,4 +308,199 @@ describe('AutomationNewSettings', () => {
       source: 'full',
     });
   });
+
+  it('submits correct payloads for each action type', async () => {
+    const created = AutomationFixture({
+      id: '456',
+      name: 'Automation with every action type',
+    });
+    const saveWorkflow = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: created,
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    const addAction = async (label: string) => {
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
+    };
+
+    await addAction('Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
+      delay: null,
+    });
+
+    await addAction('Discord');
+    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
+      delay: null,
+    });
+
+    await addAction('MS Teams');
+    const targets = screen.getAllByRole('textbox', {name: 'Target'});
+    const msTeamsTarget = targets.at(-1);
+    expect(msTeamsTarget).toBeDefined();
+    await userEvent.type(msTeamsTarget as HTMLElement, 'alerts-team', {delay: null});
+
+    await addAction('Pagerduty');
+    await addAction('Opsgenie');
+
+    await addAction('Notify on preferred channel');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Notification target type'}),
+      'Member'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
+
+    await addAction('Send a notification via an integration');
+    await addAction('My Sentry App');
+    await addAction('GitHub');
+    await addAction('GitHub Enterprise');
+    await addAction('Jira');
+    await addAction('Jira Server');
+    await addAction('Azure DevOps');
+    await addAction('Legacy integrations');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    const EXPECTED_ACTION_PAYLOADS: Record<ActionType, any> = {
+      slack: {
+        type: 'slack',
+        integrationId: 'slack-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#alerts',
+        },
+      },
+      discord: {
+        type: 'discord',
+        integrationId: 'discord-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '123',
+          targetDisplay: null,
+        },
+      },
+      msteams: {
+        type: 'msteams',
+        integrationId: 'msteams-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: 'alerts-team',
+        },
+      },
+      pagerduty: {
+        type: 'pagerduty',
+        integrationId: 'pagerduty-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: 'pd-service-1',
+          targetDisplay: 'PD Service',
+        },
+        data: {priority: 'default'},
+      },
+      opsgenie: {
+        type: 'opsgenie',
+        integrationId: 'opsgenie-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: 'og-team-1',
+          targetDisplay: 'Ops Team',
+        },
+        data: {priority: 'P1'},
+      },
+      email: {
+        type: 'email',
+        config: {
+          targetType: 'user',
+          targetIdentifier: '1',
+          targetDisplay: null,
+        },
+        data: {},
+      },
+      webhook: {
+        type: 'webhook',
+        config: {
+          targetType: null,
+          targetIdentifier: 'webhook-service',
+          targetDisplay: null,
+        },
+      },
+      sentry_app: {
+        type: 'sentry_app',
+        config: {
+          targetType: 'sentry_app',
+          targetIdentifier: 'sentry-app-1',
+          targetDisplay: 'My Sentry App',
+          sentryAppIdentifier: 'sentry_app_id',
+        },
+      },
+      github: {
+        type: 'github',
+        integrationId: 'github-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      github_enterprise: {
+        type: 'github_enterprise',
+        integrationId: 'github-enterprise-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      jira: {
+        type: 'jira',
+        integrationId: 'jira-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      jira_server: {
+        type: 'jira_server',
+        integrationId: 'jira-server-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      vsts: {
+        type: 'vsts',
+        integrationId: 'azure-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      plugin: {
+        type: 'plugin',
+        config: {
+          targetType: null,
+          targetIdentifier: '',
+          targetDisplay: null,
+        },
+      },
+    };
+
+    await waitFor(() => expect(saveWorkflow).toHaveBeenCalled());
+    const actionsData: Action[] =
+      saveWorkflow.mock.calls[0]?.[1]?.data?.actionFilters?.[0]?.actions ?? [];
+    expect(actionsData).toHaveLength(Object.keys(EXPECTED_ACTION_PAYLOADS).length);
+
+    actionsData.forEach(action => {
+      const expectedAction = EXPECTED_ACTION_PAYLOADS[action.type];
+      expect(expectedAction).toBeDefined();
+      expect(action).toEqual(expect.objectContaining(expectedAction));
+    });
+  }, 10000);
 });
