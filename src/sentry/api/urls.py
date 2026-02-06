@@ -669,7 +669,6 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
@@ -2583,18 +2582,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     r"^has-chunks/$",
                     OrganizationProfilingHasChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-has-chunks",
-                ),
-            ],
-        ),
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dynamic-sampling/",
-        include(
-            [
-                re_path(
-                    r"^custom-rules/$",
-                    CustomRulesEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic_sampling-custom_rules",
                 ),
             ],
         ),

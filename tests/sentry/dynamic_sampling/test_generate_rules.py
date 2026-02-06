@@ -16,11 +16,6 @@ from sentry.dynamic_sampling.rules.utils import (
     RuleType,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.models.dynamicsampling import (
-    CUSTOM_RULE_DATE_FORMAT,
-    CUSTOM_RULE_START,
-    CustomDynamicSamplingRule,
-)
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -923,100 +918,6 @@ def test_generate_rules_trace_health_checks_feature_enabled(
         assert rules[0]["condition"]["inner"][0]["op"] == "glob"
         assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
         assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
-
-    _validate_rules(default_old_project)
-
-
-@django_db_all
-@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old_project) -> None:
-    """
-    Tests the generation of custom rules ( from CustomDynamicSamplingRule models )
-    """
-    get_blended_sample_rate.return_value = 0.5
-    # turn off other biases
-    default_old_project.update_option(
-        "sentry:dynamic_sampling_biases",
-        [
-            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
-            {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
-            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
-            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
-        ],
-    )
-
-    # no custom rule requests ==> no custom rules
-    rules = generate_rules(default_old_project)
-    # only the BOOST_LOW_VOLUME_PROJECTS_RULE should be around (always on)
-    assert len(rules) == 1
-    assert rules[0]["id"] == 1000
-
-    # create some custom rules for the project
-    start = datetime.now(tz=timezone.utc) - timedelta(hours=1)
-    end = datetime.now(tz=timezone.utc) + timedelta(hours=1)
-    start_str = start.strftime(CUSTOM_RULE_DATE_FORMAT)
-    end_str = end.strftime(CUSTOM_RULE_DATE_FORMAT)
-
-    # a project rule
-    condition = {"op": "eq", "name": "environment", "value": "prod1"}
-    CustomDynamicSamplingRule.update_or_create(
-        condition=condition,
-        start=start,
-        end=end,
-        project_ids=[default_old_project.id],
-        organization_id=default_old_project.organization.id,
-        num_samples=100,
-        sample_rate=0.5,
-        query="environment:prod1",
-    )
-    # and an organization rule
-    condition = {"op": "eq", "name": "environment", "value": "prod2"}
-    CustomDynamicSamplingRule.update_or_create(
-        condition=condition,
-        start=start,
-        end=end,
-        project_ids=[],
-        organization_id=default_old_project.organization.id,
-        num_samples=100,
-        sample_rate=0.5,
-        query="environment:prod2",
-    )
-
-    rules = generate_rules(default_old_project)
-    # now we should have 3 rules the 2 custom rules and the BOOST_LOW_VOLUME_PROJECTS_RULE
-    assert len(rules) == 3
-
-    # check which is the org rule and which is the proj rule:
-    # project rule should have the first id (i.e. 3001) since it was the first created
-
-    if rules[0]["id"] == CUSTOM_RULE_START + 1:
-        project_rule = rules[0]
-        org_rule = rules[1]
-    else:
-        project_rule = rules[1]
-        org_rule = rules[0]
-
-    # we have the project rule correctly built
-    assert project_rule == {
-        "samplingValue": {"type": "reservoir", "limit": 100},
-        "type": "transaction",
-        "id": CUSTOM_RULE_START + 1,
-        "condition": {"op": "eq", "name": "environment", "value": "prod1"},
-        "timeRange": {"start": start_str, "end": end_str},
-    }
-    # we have the org rule correctly built
-    assert org_rule == {
-        "samplingValue": {"type": "reservoir", "limit": 100},
-        "type": "transaction",
-        "id": CUSTOM_RULE_START + 2,
-        "condition": {"op": "eq", "name": "environment", "value": "prod2"},
-        "timeRange": {"start": start_str, "end": end_str},
-    }
-
-    # check the last one is the BOOST_LOW_VOLUME_PROJECTS_RULE
-    assert rules[2]["id"] == 1000
 
     _validate_rules(default_old_project)
 
