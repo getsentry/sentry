@@ -75,6 +75,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -307,8 +308,10 @@ const appConfig: Configuration = {
         test: /\.(js|jsx|ts|tsx)$/,
         // Avoids recompiling core-js based on usage imports
         exclude: /node_modules[\\/]core-js/,
-        loader: 'builtin:swc-loader',
-        options: swcReactLoaderConfig,
+        use: [
+          {loader: 'builtin:swc-loader', options: swcReactLoaderConfig},
+          // {loader: 'babel-loader'},
+        ],
       },
       {
         test: /\.mdx?$/,
@@ -645,6 +648,9 @@ if (
       // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
       // since ngrok urls are public and can be accessed by anyone.
       // '.ngrok.io',
+
+      // Needed if you want to use ngrok w/ backend
+      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
     ],
     static: {
       directory: './src/sentry/static/sentry',
