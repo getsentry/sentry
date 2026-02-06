@@ -339,7 +339,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_build_group_block_noa(self) -> None:
         rule = self.create_project_rule(project=self.project)
 
