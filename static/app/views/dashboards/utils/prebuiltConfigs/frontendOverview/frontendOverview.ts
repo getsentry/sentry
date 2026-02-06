@@ -19,8 +19,12 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 const BASE_QUERY = new MutableSearch('');
-BASE_QUERY.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+BASE_QUERY.addOp('(');
 BASE_QUERY.addFilterValue('span.op', `[${FRONTEND_OVERVIEW_PAGE_OPS.join(',')}]`);
+BASE_QUERY.addOp('OR');
+BASE_QUERY.addFilterValue('sdk.name', `[${FRONTEND_SDK_NAMES.join(',')}]`);
+BASE_QUERY.addOp(')');
+BASE_QUERY.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 BASE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const TABLE_QUERY = new MutableSearch('');
