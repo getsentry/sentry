@@ -10,6 +10,10 @@ export class NotOpTreeNode extends TreeNode<NotOp> {
     return [this.value.operand];
   }
 
+  printNode(): string {
+    return `NOT - ${this.id}`;
+  }
+
   renderRow(): ReactNode {
     return <NotOpRow />;
   }
