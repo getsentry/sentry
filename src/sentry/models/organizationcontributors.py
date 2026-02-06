@@ -44,3 +44,7 @@ class OrganizationContributors(DefaultFieldsModel):
                 name="sentry_oc_org_date_upd_idx",
             ),
         ]
+
+    @property
+    def is_bot(self) -> bool:
+        return self.alias is not None and self.alias.endswith("[bot]")
