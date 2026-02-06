@@ -12,6 +12,7 @@ import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBy
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface UseGroupByFieldsProps {
+  booleanTags: TagCollection;
   /**
    * All the group bys that are in use. They will be injected if
    * they dont exist already.
@@ -26,6 +27,7 @@ interface UseGroupByFieldsProps {
 export function useGroupByFields({
   numberTags,
   stringTags,
+  booleanTags,
   groupBys,
   traceItemType,
   hideEmptyOption,
@@ -38,9 +40,16 @@ export function useGroupByFields({
       ...Object.entries(stringTags)
         .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
         .map(([_, tag]) => optionFromTag(tag, traceItemType)),
+      ...Object.entries(booleanTags)
+        .filter(([key, _]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+        .map(([_, tag]) => optionFromTag(tag, traceItemType)),
       ...groupBys
         .filter(
-          groupBy => groupBy && !(groupBy in numberTags) && !(groupBy in stringTags)
+          groupBy =>
+            groupBy &&
+            !(groupBy in numberTags) &&
+            !(groupBy in stringTags) &&
+            !(groupBy in booleanTags)
         )
         .map(groupBy =>
           optionFromTag(
@@ -69,7 +78,7 @@ export function useGroupByFields({
           ]),
       ...options,
     ];
-  }, [numberTags, stringTags, groupBys, hideEmptyOption, traceItemType]);
+  }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
 }
 
 function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {

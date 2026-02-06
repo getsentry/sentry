@@ -17,6 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -27,7 +28,7 @@ import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-const ENDPOINT = '/users/me/subscriptions/';
+const ENDPOINT = getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}});
 
 export type Subscription = {
   email: string;

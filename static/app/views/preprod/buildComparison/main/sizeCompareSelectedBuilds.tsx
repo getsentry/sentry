@@ -19,21 +19,12 @@ interface BuildButtonProps {
   buildDetails: BuildDetailsApiResponse;
   icon: React.ReactNode;
   label: string;
-  projectType: string | null;
   slot: 'head' | 'base';
   onRemove?: () => void;
 }
 
-function BuildButton({
-  buildDetails,
-  icon,
-  label,
-  onRemove,
-  slot,
-  projectType,
-}: BuildButtonProps) {
+function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonProps) {
   const organization = useOrganization();
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
   const buildId = buildDetails.id;
@@ -42,10 +33,14 @@ function BuildButton({
   const dateBuilt = buildDetails.app_info?.date_built;
   const dateAdded = buildDetails.app_info?.date_added;
 
+  const projectId = buildDetails.project_id;
+
+  const project = ProjectsStore.getById(String(projectId));
+
   const buildUrl =
     getSizeBuildPath({
       organizationSlug: organization.slug,
-      projectId,
+      projectId: String(projectId),
       baseArtifactId: buildId,
     }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;
@@ -75,10 +70,10 @@ function BuildButton({
         trackAnalytics('preprod.builds.compare.go_to_build_details', {
           organization,
           build_id: buildId,
-          project_slug: projectId,
           platform,
-          project_type: projectType,
           slot,
+          project_slug: project?.slug,
+          project_type: project?.platform ?? null,
         })
       }
     >
@@ -201,8 +196,7 @@ export function SizeCompareSelectedBuilds({
   const organization = useOrganization();
   const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
   const platform = headBuildDetails.app_info?.platform ?? null;
-  const project = ProjectsStore.getBySlug(projectId);
-  const projectType = project?.platform ?? null;
+  const project = ProjectsStore.getById(projectId);
 
   return (
     <ComparisonContainer>
@@ -211,7 +205,6 @@ export function SizeCompareSelectedBuilds({
         icon={<IconLock size="xs" locked />}
         label={t('Head')}
         slot="head"
-        projectType={projectType}
       />
 
       <Text>{t('vs')}</Text>
@@ -223,7 +216,6 @@ export function SizeCompareSelectedBuilds({
           label={t('Base')}
           onRemove={onClearBaseBuild}
           slot="base"
-          projectType={projectType}
         />
       ) : (
         <SelectBuild>
@@ -237,10 +229,10 @@ export function SizeCompareSelectedBuilds({
             if (baseBuildDetails) {
               trackAnalytics('preprod.builds.compare.trigger_comparison', {
                 organization,
-                project_slug: projectId,
+                project_slug: project?.slug,
                 platform,
                 build_id: headBuildDetails.id,
-                project_type: projectType,
+                project_type: project?.platform ?? null,
               });
               onTriggerComparison();
             }

@@ -9,14 +9,11 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {HeaderCheckOp, HeaderOperand} from 'sentry/views/alerts/rules/uptime/types';
 
-import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
+import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
 import {
   getHeaderKeyCombinedLabelAndTooltip,
-  getHeaderKeyComparisonOptions,
   getHeaderOperandValue,
   getHeaderValueCombinedLabelAndTooltip,
-  getHeaderValueComparisonOptions,
-  HEADER_OPERAND_OPTIONS,
   shouldShowHeaderValueInput,
 } from './utils';
 
@@ -29,9 +26,12 @@ interface AssertionOpHeaderProps {
 export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeaderProps) {
   const inputId = useId();
 
-  const headerKeyComparisonOptions = getHeaderKeyComparisonOptions(COMPARISON_OPTIONS);
-  const headerValueComparisonOptions =
-    getHeaderValueComparisonOptions(COMPARISON_OPTIONS);
+  const headerKeyComparisonOptions = COMPARISON_OPTIONS.filter(
+    opt => !['less_than', 'greater_than'].includes(opt.value)
+  );
+  const headerValueComparisonOptions = COMPARISON_OPTIONS.filter(opt =>
+    ['equals', 'not_equal'].includes(opt.value)
+  );
 
   const showValueInput = shouldShowHeaderValueInput(value);
 
@@ -41,10 +41,10 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
   const valueOperandValue = getHeaderOperandValue(value.value_operand);
 
   const {combinedLabel: keyCombinedLabel, combinedTooltip: keyCombinedTooltip} =
-    getHeaderKeyCombinedLabelAndTooltip(value, headerKeyComparisonOptions);
+    getHeaderKeyCombinedLabelAndTooltip(value);
 
   const {combinedLabel: valueCombinedLabel, combinedTooltip: valueCombinedTooltip} =
-    getHeaderValueCombinedLabelAndTooltip(value, headerValueComparisonOptions);
+    getHeaderValueCombinedLabelAndTooltip(value);
 
   const keyInput = (
     <Container flexGrow={1}>
@@ -100,7 +100,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                       : {header_op: 'glob', pattern: {value: keyOperandValue}};
                   onChange({...value, key_operand: newOperand});
                 }}
-                options={HEADER_OPERAND_OPTIONS}
+                options={STRING_OPERAND_OPTIONS}
               />
             </CompositeSelect>
           </InputGroup.LeadingItems>
@@ -159,7 +159,7 @@ export function AssertionOpHeader({value, onChange, onRemove}: AssertionOpHeader
                         : {header_op: 'glob', pattern: {value: valueOperandValue}};
                     onChange({...value, value_operand: newOperand});
                   }}
-                  options={HEADER_OPERAND_OPTIONS}
+                  options={STRING_OPERAND_OPTIONS}
                 />
               )}
             </CompositeSelect>

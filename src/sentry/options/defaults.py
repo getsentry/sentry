@@ -670,6 +670,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -695,6 +702,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.rate-limit-sensitive-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2268,9 +2281,25 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# List of organization IDs that should be using span metrics for boost low volume transactions.
+# List of organization IDs that should be using segment metrics for boost low volume transactions.
 register(
-    "dynamic-sampling.transactions.span-metric-orgs",
+    "dynamic-sampling.transactions.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
     default=[],
     type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3435,13 +3464,6 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.rollout",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
@@ -3450,13 +3472,6 @@ register(
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3937,6 +3952,14 @@ register(
 # Organization slug allowlist to enable Autopilot for specific organizations.
 register(
     "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable missing SDK integration detector for specific projects.
+register(
+    "autopilot.missing-sdk-integration.projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

@@ -92,7 +92,7 @@ function SortableWidget(props: Props) {
       dashboardCreator
     ) && !isPrebuiltDashboard;
 
-  const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget);
+  const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget, dashboardFilters);
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&

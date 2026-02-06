@@ -549,12 +549,51 @@ AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS = {
 }
 
 
+class AutoTriggerRateLimitConfig(TypedDict):
+    limit: int
+    key: str
+    window: int
+
+
+def _get_autofix_rate_limit_config(project: Project) -> AutoTriggerRateLimitConfig:
+    """Returns the computed rate limit for autotriggered autofix runs for a project."""
+    limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
+
+    # The more selective automation is, the higher the limit we allow.
+    # This is to protect projects with extreme settings from starting too many runs
+    # while allowing big projects with reasonable settings to run more often.
+    option = project.get_option("sentry:autofix_automation_tuning")
+    multiplier = AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.get(option, 1)
+    limit *= multiplier
+    return AutoTriggerRateLimitConfig(limit=limit, key="autofix.auto_triggered", window=60 * 60)
+
+
 def is_seer_autotriggered_autofix_rate_limited(
+    project: Project, organization: Organization
+) -> bool:
+    """
+    Read-only check of whether the autofix rate limit has been reached.
+    Does NOT increment the counter. Safe to call from non-triggering code paths.
+    """
+    if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
+        return False
+
+    config = _get_autofix_rate_limit_config(project)
+    current = ratelimits.backend.current_value(
+        key=config["key"],
+        project=project,
+        window=config["window"],
+    )
+    return current >= config["limit"]
+
+
+def is_seer_autotriggered_autofix_rate_limited_and_increment(
     project: Project, organization: Organization
 ) -> bool:
     """
     Check if Seer Autofix automation is rate limited for a given project and organization.
     Calling this method increments the counter used to enforce the rate limit, and tracks rate limited outcomes.
+    Only call this when you are actually about to trigger an automation run.
 
     Args:
         project: The project to check.
@@ -566,27 +605,20 @@ def is_seer_autotriggered_autofix_rate_limited(
     if features.has("organizations:unlimited-auto-triggered-autofix-runs", organization):
         return False
 
-    limit = options.get("seer.max_num_autofix_autotriggered_per_hour", 20)
-
-    # The more selective automation is, the higher the limit we allow.
-    # This is to protect projects with extreme settings from starting too many runs
-    # while allowing big projects with reasonable settings to run more often.
-    option = project.get_option("sentry:autofix_automation_tuning")
-    multiplier = AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS.get(option, 1)
-    limit *= multiplier
+    config = _get_autofix_rate_limit_config(project)
 
     is_rate_limited, current, _ = ratelimits.backend.is_limited_with_value(
         project=project,
-        key="autofix.auto_triggered",
-        limit=limit,
-        window=60 * 60,  # 1 hour
+        key=config["key"],
+        limit=config["limit"],
+        window=config["window"],
     )
     if is_rate_limited:
         logger.info(
             "Autofix auto-trigger rate limit hit",
             extra={
                 "auto_run_count": current,
-                "auto_run_limit": limit,
+                "auto_run_limit": config["limit"],
                 "org_slug": organization.slug,
                 "project_slug": project.slug,
             },

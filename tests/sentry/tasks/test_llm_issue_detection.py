@@ -47,7 +47,7 @@ class LLMIssueDetectionTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
     @patch(
-        "sentry.tasks.llm_issue_detection.detection.get_project_top_transaction_traces_for_llm_detection"
+        "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
     def test_detect_llm_issues_no_transactions(self, mock_get_transactions, mock_seer_request):
         mock_get_transactions.return_value = []
@@ -322,25 +322,25 @@ class TestGetValidTraceIdsBySpanCount:
             # All valid
             (
                 {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 100}]},
-                {"a", "b"},
+                {"a": 50, "b": 100},
             ),
             # Some below lower limit
             (
                 {"data": [{"trace": "a", "count()": 10}, {"trace": "b", "count()": 50}]},
-                {"b"},
+                {"b": 50},
             ),
             # Some above upper limit
             (
                 {"data": [{"trace": "a", "count()": 50}, {"trace": "b", "count()": 600}]},
-                {"a"},
+                {"a": 50},
             ),
             # Empty result
-            ({"data": []}, set()),
+            ({"data": []}, {}),
         ],
     )
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     def test_filters_by_span_count(
-        self, mock_spans_query: Mock, query_result: dict, expected: set
+        self, mock_spans_query: Mock, query_result: dict, expected: dict[str, int]
     ) -> None:
         mock_spans_query.return_value = query_result
         mock_snuba_params = Mock()
@@ -363,7 +363,7 @@ class TestGetProjectTopTransactionTracesForLLMDetection(
     @patch("sentry.tasks.llm_issue_detection.trace_data.get_valid_trace_ids_by_span_count")
     def test_returns_deduped_transaction_traces(self, mock_span_count) -> None:
         # Mock span count check to return all traces as valid
-        mock_span_count.side_effect = lambda trace_ids, *args: set(trace_ids)
+        mock_span_count.side_effect = lambda trace_ids, *args: {tid: 50 for tid in trace_ids}
 
         trace_id_1 = uuid.uuid4().hex
         span1 = self.create_span(

@@ -15,7 +15,6 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AGENT_MODELS = 'agent-models',
   AGENT_TOOLS = 'agent-tools',
-  AI_GENERATIONS = 'ai-generations',
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',

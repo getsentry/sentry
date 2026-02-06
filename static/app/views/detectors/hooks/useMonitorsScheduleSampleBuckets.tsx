@@ -5,8 +5,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';
 
-interface UseMonitorsScheduleSampleBucketsOptions
-  extends UseMonitorsScheduleSamplesOptions {
+interface UseMonitorsScheduleSampleBucketsOptions extends UseMonitorsScheduleSamplesOptions {
   /**
    * The end timestamp of the sample window in seconds
    */
