@@ -16,12 +16,20 @@ env:
 
 jobs:
   classify:
-    name: classify test service dependencies
+    name: classify (${{ matrix.instance }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 60
     permissions:
       contents: read
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 22
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -32,7 +40,7 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run test suite with service classification
+      - name: Run tests with service classification (shard ${{ steps.setup.outputs.matrix-instance-number }} of 22)
         env:
           PYTEST_ADDOPTS: '${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json'
         run: |
@@ -48,6 +56,80 @@ jobs:
 
       - name: Upload classification report
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: classification-shard-${{ matrix.instance }}
+          path: test-service-classification.json
+          retention-days: 90
+
+  merge-reports:
+    name: merge classification reports
+    needs: classify
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: classification-shard-*
+          path: shards/
+
+      - name: Merge shard reports
+        run: |
+          python3 - <<'SCRIPT'
+          import json
+          import os
+          from collections import defaultdict
+          from pathlib import Path
+
+          merged_tests = {}
+          for shard_dir in sorted(Path("shards").iterdir()):
+              report_file = shard_dir / "test-service-classification.json"
+              if not report_file.exists():
+                  print(f"WARNING: {report_file} not found, skipping")
+                  continue
+              report = json.loads(report_file.read_text())
+              for test_id, services in report.get("tests", {}).items():
+                  merged_tests[test_id] = services
+
+          # Build summary
+          service_counts = defaultdict(int)
+          tier_counts = defaultdict(int)
+          for test_id, services in merged_tests.items():
+              for service in services:
+                  service_counts[service] += 1
+              if "snuba" in services:
+                  tier_counts["snuba_tier"] += 1
+              elif set(services) - {"postgres"}:
+                  tier_counts["other_services"] += 1
+              elif "postgres" in services:
+                  tier_counts["postgres_only"] += 1
+              else:
+                  tier_counts["no_services"] += 1
+
+          merged = {
+              "total_tests": len(merged_tests),
+              "summary": {
+                  "service_counts": dict(service_counts),
+                  "tier_counts": dict(tier_counts),
+              },
+              "tests": dict(sorted(merged_tests.items())),
+          }
+
+          Path("test-service-classification.json").write_text(
+              json.dumps(merged, indent=2) + "\n"
+          )
+
+          print(f"Merged {len(merged_tests)} tests from {len(list(Path('shards').iterdir()))} shards")
+          print(f"\nService counts:")
+          for svc, count in sorted(service_counts.items(), key=lambda x: -x[1]):
+              print(f"  {svc}: {count}")
+          print(f"\nTier breakdown:")
+          for tier, count in sorted(tier_counts.items(), key=lambda x: -x[1]):
+              print(f"  {tier}: {count}")
+          SCRIPT
+
+      - name: Upload merged report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-service-classification
