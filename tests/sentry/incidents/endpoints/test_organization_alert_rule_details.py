@@ -1434,8 +1434,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule_dict["extrapolation_mode"] = "server_weighted"
 
         with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, alert_rule.id, status_code=200, **alert_rule_dict
+            self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
             )
 
     def test_invalid_extrapolation_mode_save_not_migrated_alert(self) -> None:
@@ -1457,9 +1457,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             resp = self.get_error_response(
                 self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
             )
+
         assert (
-            resp.data[0]
-            == "Invalid extrapolation_mode for this alert type. Allowed modes are: client_and_server_weighted, unknown."
+            resp.data["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: none. Allowed modes are: client_and_server_weighted, unknown."
         )
 
     def test_update_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
