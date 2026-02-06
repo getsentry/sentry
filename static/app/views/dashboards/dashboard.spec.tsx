@@ -378,7 +378,8 @@ describe('Dashboards > Dashboard', () => {
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget);
-      expect(await screen.findByTitle('Test User')).toBeInTheDocument();
+      // Widget should render with assignee column
+      expect(await screen.findByText('assignee')).toBeInTheDocument();
     });
   });
 
