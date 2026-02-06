@@ -10,6 +10,10 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 
 @region_silo_endpoint
@@ -20,6 +24,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-task-details")
     def get(self, request: Request, project, task_uuid) -> Response:
         """
         Retrieve the status of the async task
@@ -38,6 +43,9 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         context = {"status": status, "rule": None, "error": None}
 
         if rule_id and status == "success":
+            # Mark that we're using legacy Rule models (before query to track failures too)
+            report_used_legacy_models()
+
             try:
                 rule = Rule.objects.get(
                     project=project,
