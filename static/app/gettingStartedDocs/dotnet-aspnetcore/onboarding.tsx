@@ -155,6 +155,8 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
     ...(params.isPerformanceSelected
@@ -185,22 +187,6 @@ export const onboarding: OnboardingConfig = {
             ],
           },
         ] satisfies OnboardingStep[])
-      : []),
-    ...(params.isLogsSelected
-      ? [
-          {
-            title: t('Verify Logs'),
-            content: [logsVerify(params)],
-          },
-        ]
-      : []),
-    ...(params.isMetricsSelected
-      ? [
-          {
-            title: t('Verify Metrics'),
-            content: [metricsVerify(params)],
-          },
-        ]
       : []),
     {
       title: t('Samples'),

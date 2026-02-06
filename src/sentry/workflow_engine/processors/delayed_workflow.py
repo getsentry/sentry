@@ -11,7 +11,7 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import features, nodestore, options
+from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -722,17 +722,6 @@ def fire_actions_for_groups(
         },
     )
 
-    # Feature check caching to keep us within the trace budget.
-    single_processing_ff = features.has(
-        "organizations:workflow-engine-single-process-workflows", organization
-    )
-    ga_type_ids = options.get("workflow_engine.issue_alert.group.type_id.ga")
-    rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
-
-    should_trigger_actions = lambda type_id: (
-        type_id in ga_type_ids or (type_id in rollout_type_ids and single_processing_ff)
-    )
-
     total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
@@ -758,7 +747,6 @@ def fire_actions_for_groups(
                 workflow_fire_histories = create_workflow_fire_histories(
                     filtered_actions,
                     workflow_event_data,
-                    should_trigger_actions(group_event.group.type),
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )

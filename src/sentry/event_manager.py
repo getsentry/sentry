@@ -2174,6 +2174,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
+        "org_id": event.project.organization_id,
+        "project_id": event.project_id,
     }
 
     if options.get("processing.severity-backlog-test.timeout"):

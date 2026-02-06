@@ -10,7 +10,7 @@ import {
   getInstallSnippetCoreCli,
   getInstallSnippetPackageManager,
 } from 'sentry/gettingStartedDocs/dotnet/utils';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -18,9 +18,8 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: tct(
-        'Send test metrics from your app to verify metrics are arriving in Sentry.',
-        {code: <code />}
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
       ),
     },
     {
@@ -39,9 +38,7 @@ SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, SentryUnits.Duration
     {
       type: 'text',
       text: tct('For more detailed information, see the [link:metrics documentation].', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
-        ),
+        link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />,
       }),
     },
   ],

@@ -151,7 +151,7 @@ def handle_pull_request_event(
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
         # We don't ever need to delete :eyes: since we later add it back to the PR description idempotently.
         reactions_to_delete = [GitHubReaction.HOORAY]
-        if is_github_rate_limit_sensitive(organization):
+        if is_github_rate_limit_sensitive(organization.slug):
             reactions_to_delete = []
 
         delete_existing_reactions_and_add_reaction(

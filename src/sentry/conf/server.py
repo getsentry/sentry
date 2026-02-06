@@ -1095,7 +1095,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*/4", "*", "*", "*"),
     },
     "autopilot-run-trace-instrumentation-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
@@ -1287,6 +1287,7 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
+        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -2514,6 +2515,19 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "debuginfod"},
         "url": "https://debuginfod.ubuntu.com/buildid/",
         "filters": {"filetypes": ["elf_code", "elf_debug"]},
+        "is_public": True,
+    },
+    # === Gaming / Proton ===
+    # Valve's Proton compatibility layer for running Windows games on Linux.
+    # This symbol server provides debug symbols for Wine/Proton components.
+    # See: https://github.com/ValveSoftware/Proton/blob/proton_10.0/docs/DEBUGGING-WINDOWS.md
+    "proton": {
+        "type": "http",
+        "id": "sentry:proton",
+        "name": "SteamOS / Proton",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://proton-archive.steamos.cloud/",
         "is_public": True,
     },
 }

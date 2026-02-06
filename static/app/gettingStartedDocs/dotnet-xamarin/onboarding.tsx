@@ -6,6 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -232,6 +233,8 @@ export const onboarding: OnboardingConfig = {
             'You might need to open the app again for the crash report to be sent to the server.'
           ),
         },
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
     {
@@ -261,14 +264,6 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
-    ...(params.isLogsSelected
-      ? [
-          {
-            title: t('Verify Logs'),
-            content: [logsVerify(params)],
-          },
-        ]
-      : []),
     {
       title: t('Documentation'),
       content: [

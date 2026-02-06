@@ -28,6 +28,7 @@ export default function BackgroundAgentSetup({supportedIntegrations}: Props) {
 }
 
 function AddCursorIntegrationField() {
+  const organization = useOrganization();
   return (
     <FormField
       name="connectCursorIntegration"
@@ -46,7 +47,11 @@ function AddCursorIntegrationField() {
     >
       {() => (
         <Flex>
-          <LinkButton href="/settings/integrations/cursor/" priority="default" size="sm">
+          <LinkButton
+            href={`/settings/${organization.slug}/integrations/cursor/`}
+            priority="default"
+            size="sm"
+          >
             {t('Install Cursor Integration')}
           </LinkButton>
         </Flex>
