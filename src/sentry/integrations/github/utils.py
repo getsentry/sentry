@@ -131,7 +131,7 @@ def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int
     )
 
 
-def should_create_or_increment_contributor_seat(
+def should_increment_contributor_seat(
     organization: Organization, repo: Repository, contributor: OrganizationContributors
 ) -> bool:
     """

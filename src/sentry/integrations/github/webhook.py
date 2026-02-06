@@ -26,7 +26,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
+from sentry.integrations.github.utils import should_increment_contributor_seat
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -905,7 +905,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                     },
                 )
 
-                if should_create_or_increment_contributor_seat(organization, repo, contributor):
+                if should_increment_contributor_seat(organization, repo, contributor):
                     metrics.incr(
                         "github.webhook.organization_contributor.should_create",
                         sample_rate=1.0,
