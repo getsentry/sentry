@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt: string;
   src: string;
   aspectRatio?: CSSProperties['aspectRatio'];
