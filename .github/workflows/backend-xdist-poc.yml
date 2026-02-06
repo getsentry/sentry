@@ -40,10 +40,6 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Upgrade pytest-rerunfailures for xdist compatibility
-        run: |
-          .venv/bin/pip install --index-url https://pypi.org/simple/ 'pytest-rerunfailures>=16.1'
-
       - name: Run tests with xdist -n2 --dist=loadfile
         run: |
           echo "PYTEST_ADDOPTS=$PYTEST_ADDOPTS"
