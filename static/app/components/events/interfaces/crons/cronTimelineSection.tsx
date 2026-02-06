@@ -158,6 +158,7 @@ const TimelineWidthTracker = styled('div')`
 `;
 
 const EventLineTick = styled('div')<{left: number}>`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   width: 2px;
   height: 100%;

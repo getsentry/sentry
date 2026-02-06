@@ -27,6 +27,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
+  {title: t('Code Review'), key: 'code_review'},
   {
     title: (
       <Flex gap="sm" align="center">
@@ -42,7 +43,6 @@ const COLUMNS = [
     ),
     key: 'trigger',
   },
-  {title: t('Code Review'), key: 'code_review'},
 ];
 
 export default function SeerRepoTableHeader({

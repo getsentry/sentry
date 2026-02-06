@@ -334,6 +334,7 @@ const SliderTrack = styled('div', {
   width: calc(100% - 2px);
   height: 3px;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   margin-left: 1px; /* to better align track with label */
 
@@ -381,6 +382,7 @@ const SliderTick = styled('div')<{
   width: 2px;
   height: 6px;
   border-radius: 2px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   ${p =>

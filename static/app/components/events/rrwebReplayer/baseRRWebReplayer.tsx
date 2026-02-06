@@ -187,6 +187,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
     &:before {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background: ${p => p.theme.tokens.border.secondary};
       border-radius: 3px;
       display: block;
@@ -251,6 +252,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   }
 
   .rr-controller__btns button:active {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 
@@ -314,6 +316,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     height: 10px;
     border-radius: 50%;
     transition: all 200ms ease;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 2;
   }
