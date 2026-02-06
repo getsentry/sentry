@@ -1,6 +1,7 @@
 import {buildStacktraceLinkQuery} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import type {Event, Frame} from 'sentry/types/event';
 import type {CodecovResponse} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -17,7 +18,15 @@ const stacktraceCoverageQueryKey = (
   orgSlug: string,
   projectSlug: string | undefined,
   query: ReturnType<typeof buildStacktraceLinkQuery>
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-coverage/`, {query}];
+): ApiQueryKey => [
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-coverage/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug!,
+    },
+  }),
+  {query},
+];
 
 export function useStacktraceCoverage(
   {event, frame, orgSlug, projectSlug}: UseStacktraceCoverageProps,

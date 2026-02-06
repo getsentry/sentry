@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Iterator
 from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
@@ -224,3 +224,19 @@ class _HttpRequestWithSubdomain(HttpRequest):
 
 def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)
+
+
+class BodyWithLength:
+    """Wraps an HttpRequest with a __len__ so that the requests library does not assume length=0 in all cases"""
+
+    def __init__(self, request: HttpRequest):
+        self.request = request
+
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.request)
+
+    def __len__(self) -> int:
+        return int(self.request.headers.get("Content-Length", "0"))
+
+    def read(self, size: int | None = None) -> bytes:
+        return self.request.read(size)

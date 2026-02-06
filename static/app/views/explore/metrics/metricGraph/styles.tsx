@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FooterWrapper} from 'sentry/views/dashboards/widgets/widget/widget';
+import {FooterWrapper, Header} from 'sentry/views/dashboards/widgets/widget/widget';
 
 // hideFooterBorder is used to hide the top border of the footer when
 // the aggregates/samples tables are on the bottom. This is so the footer
@@ -15,4 +15,8 @@ export const WidgetWrapper = styled('div')<{hideFooterBorder?: boolean}>`
         border-top: none;
       }
     `}
+
+  ${Header} {
+    padding-top: ${p => p.theme.space.md};
+  }
 `;

@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -75,7 +76,7 @@ function Schedule() {
             defaultValue={DEFAULT_CRONTAB}
             css={css`
               input {
-                font-family: ${theme.text.familyMono};
+                font-family: ${theme.font.family.mono};
               }
             `}
             required
@@ -183,6 +184,7 @@ function Thresholds() {
         <NumberField
           name="failureIssueThreshold"
           min={1}
+          max={720}
           placeholder="1"
           defaultValue={CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD}
           help={t(
@@ -253,7 +255,7 @@ const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
 `;
 
 const LabelText = styled(Text)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -269,8 +271,8 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.xs};
-  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
   grid-column: auto / span 2;
 `;

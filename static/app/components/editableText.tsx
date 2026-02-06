@@ -2,8 +2,9 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {space} from 'sentry/styles/space';

@@ -229,7 +229,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             file_id=base_file.id,
             artifact_type=self.preprod_artifact.artifact_type,
             app_id=self.preprod_artifact.app_id,
-            app_name=self.preprod_artifact.app_name,
             build_version="0.9.0",
             build_number=41,
             commit_comparison=base_commit_comparison,
@@ -495,7 +494,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         )
         base_mobile_app_info = self.create_preprod_artifact_mobile_app_info(
             preprod_artifact=base_artifact,
-            app_name=self.preprod_artifact.app_name,
             build_version="0.9.0",
             build_number=41,
         )

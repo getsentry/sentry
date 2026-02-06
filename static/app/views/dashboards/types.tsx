@@ -9,6 +9,8 @@ import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types'
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
+export type LegendType = 'default' | 'breakdown';
+
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
 // parallel requests. Somewhat arbitrary
@@ -28,6 +30,7 @@ export enum DisplayType {
   DETAILS = 'details',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
+  CATEGORICAL_SERIES = 'categorical_series',
 }
 
 export enum WidgetType {
@@ -40,6 +43,7 @@ export enum WidgetType {
   SPANS = 'spans',
   LOGS = 'logs',
   TRACEMETRICS = 'tracemetrics',
+  PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -79,6 +83,9 @@ export type LinkedDashboard = {
   // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // List of additional datasets to apply new dashboard filters to.
+  // Typically we only apply filters to the same dataset as the widget, but this allows us to apply to other datasets when needed.
+  additionalGlobalFilterDatasetTargets?: WidgetType[];
   // Used for static dashboards that are not saved to the database
   staticDashboardId?: PrebuiltDashboardId;
 };
@@ -138,6 +145,7 @@ export type Widget = {
   exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
+  legendType?: LegendType;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   // Used for table widget column widths, currently is not saved

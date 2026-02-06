@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 
-from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.render_blocking_asset_span_detector import (
     RenderBlockingAssetSpanDetector,
 )
@@ -55,9 +54,7 @@ def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(
-    settings: dict[DetectorType, Any], event: dict[str, Any]
-) -> list[PerformanceProblem]:
+def find_problems(settings: dict[str, Any], event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = RenderBlockingAssetSpanDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -70,7 +67,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        return find_problems(self._settings, event)
+        return find_problems(self._settings[RenderBlockingAssetSpanDetector.settings_key], event)
 
     def test_detects_render_blocking_asset(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
@@ -99,7 +96,9 @@ class RenderBlockingAssetDetectorTest(TestCase):
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
-        detector = RenderBlockingAssetSpanDetector(settings, event)
+        detector = RenderBlockingAssetSpanDetector(
+            settings[RenderBlockingAssetSpanDetector.settings_key], event
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -110,7 +109,9 @@ class RenderBlockingAssetDetectorTest(TestCase):
         )
 
         settings = get_detection_settings(project.id)
-        detector = RenderBlockingAssetSpanDetector(settings, event)
+        detector = RenderBlockingAssetSpanDetector(
+            settings[RenderBlockingAssetSpanDetector.settings_key], event
+        )
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -331,7 +332,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
 def test_fingerprint_similarity(expected: bool, first_url: str, second_url: str) -> None:
     first_event = _valid_render_blocking_asset_event(first_url)
     second_event = _valid_render_blocking_asset_event(second_url)
-    settings = get_detection_settings()
+    settings = get_detection_settings()[RenderBlockingAssetSpanDetector.settings_key]
     first_problems = find_problems(settings, first_event)
     second_problems = find_problems(settings, second_event)
     assert len(first_problems) == 1

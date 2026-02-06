@@ -2,9 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Client} from 'sentry/api';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -124,50 +125,52 @@ class SelectMembers extends Component<Props, State> {
     }
   };
 
-  queryMembers = debounce((query, cb) => {
-    const {api, organization} = this.props;
+  queryMembers = debounce(
+    (query: string, cb: (...args: [Error] | [null, Member[]]) => void) => {
+      const {api, organization} = this.props;
 
-    // Because this function is debounced, the component can potentially be
-    // unmounted before this fires, in which case, `api` is null
-    if (!api) {
-      return null;
-    }
+      // Because this function is debounced, the component can potentially be
+      // unmounted before this fires, in which case, `api` is null
+      if (!api) {
+        return null;
+      }
 
-    return api
-      .requestPromise(`/organizations/${organization.slug}/members/`, {
-        query: {query},
-      })
-      .then(
-        (data: Member[]) => cb(null, data),
-        err => cb(err)
-      );
-  }, 250);
+      return api
+        .requestPromise(`/organizations/${organization.slug}/members/`, {
+          query: {query},
+        })
+        .then(
+          data => cb(null, data),
+          err => cb(err)
+        );
+    },
+    250
+  );
 
   handleLoadOptions = (): Promise<MentionableUser[]> => {
     const usersInProject = this.getMentionableUsers();
     const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     // Return a promise for `react-select`
-    return new Promise((resolve, reject) => {
-      this.queryMembers(this.state.inputValue, (err: any, result: any) => {
-        if (err) {
-          reject(err);
+    return new Promise<Member[]>((resolve, reject) => {
+      this.queryMembers(this.state.inputValue, (...errOrResult) => {
+        if (errOrResult[0]) {
+          reject(errOrResult[0]);
         } else {
-          resolve(result);
+          resolve(errOrResult[1]);
         }
       });
     })
-      .then(
-        members =>
-          // Be careful here as we actually want the `users` object, otherwise it means user
-          // has not registered for sentry yet, but has been invited
-          (members
-            ? (members as Member[])
-                .filter(({user}) => user && !usersInProjectById.includes(user.id))
-                .map(this.createUnmentionableUser)
-            : []) as MentionableUser[]
+      .then(members =>
+        // Be careful here as we actually want the `users` object, otherwise it means user
+        // has not registered for sentry yet, but has been invited
+        members
+          ? members
+              .filter(({user}) => user && !usersInProjectById.includes(user.id))
+              .map(this.createUnmentionableUser)
+          : []
       )
-      .then((members: MentionableUser[]) => {
+      .then(members => {
         const options = [...usersInProject, ...members];
         this.setState({options});
         return options;

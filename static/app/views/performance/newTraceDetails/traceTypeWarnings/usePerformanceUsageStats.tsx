@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -36,7 +37,9 @@ export function usePerformanceUsageStats({
     : '';
   const end = traceNode ? new Date(traceEndDate.getTime() + ONE_HOUR).toISOString() : '';
 
-  const pathname = `/organizations/${organization.slug}/stats_v2/`;
+  const pathname = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const endpointOptions = {
     query: {

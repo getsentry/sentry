@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DatePicker} from 'sentry/components/calendar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
@@ -18,8 +19,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 
-interface SearchBarDatePickerProps
-  extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
+interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
+  SelectOptionWithKey<string>
+> {
   handleSelectDateTime: (value: string) => void;
   isOpen: boolean;
   dateString?: string;
@@ -145,7 +147,7 @@ function SpecificDatePicker({
                 />
                 {t('Include time')}
               </CheckboxLabel>
-              <TimeUtcWrapper>
+              <Flex align="center" marginTop="md" gap="xl">
                 <TimeInput
                   disabled={!hasTime}
                   time={time ?? DEFAULT_DAY_START_TIME}
@@ -175,7 +177,7 @@ function SpecificDatePicker({
                     checked={utc}
                   />
                 </UtcPickerLabel>
-              </TimeUtcWrapper>
+              </Flex>
             </ControlsWrapper>
             <ButtonsFooter>
               <ButtonBar>
@@ -276,13 +278,6 @@ const ControlsWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const TimeUtcWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-`;
-
 const UtcPickerLabel = styled('label')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
@@ -290,7 +285,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   user-select: none;
   gap: ${space(1)};
   cursor: pointer;
@@ -306,7 +301,7 @@ const CheckboxLabel = styled('label')`
   align-items: center;
   margin: 0;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
 `;

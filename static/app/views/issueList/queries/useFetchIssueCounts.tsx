@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 
@@ -17,7 +18,9 @@ const makeFetchIssueCounts = ({
   orgSlug,
   ...requestParams
 }: FetchIssueCountsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues-count/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/issues-count/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
   {
     query: requestParams,
   },

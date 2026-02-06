@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
@@ -168,13 +169,18 @@ const GroupExtra = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   line-height: 1.2;
   min-height: ${space(2)};
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
+    position: relative;
+  }
+
+  & > a:hover {
+    color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
@@ -227,7 +233,7 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 `;
 
 const Location = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   min-width: 10px;
   line-height: 1.1;

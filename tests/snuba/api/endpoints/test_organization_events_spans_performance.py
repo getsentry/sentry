@@ -1125,7 +1125,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    "span must consist of a span op and a valid 16 character hex delimited by a colon (:)",
                     code="invalid",
                 )
             ]
@@ -1736,7 +1736,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)",
+                    "span must consist of a span op and a valid 16 character hex delimited by a colon (:)",
                     code="invalid",
                 )
             ]

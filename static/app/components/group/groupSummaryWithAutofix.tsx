@@ -2,6 +2,8 @@ import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
@@ -254,7 +256,7 @@ export function AutofixSummary({
 
   return (
     <div data-testid="autofix-summary">
-      <Content>
+      <Stack gap="md" position="relative">
         <InsightGrid>
           {insightCards.map(card => {
             if (!card.isLoading && !card.insight) {
@@ -263,13 +265,13 @@ export function AutofixSummary({
 
             return (
               <InsightCardButton key={card.id} onClick={card.onClick} role="button">
-                <InsightCard>
+                <Stack width="100%" overflow="hidden">
                   <CardTitle preview={card.isLoading}>
-                    <CardTitleSpacer>
+                    <Flex align="center" gap="sm">
                       <CardTitleIcon>{card.icon}</CardTitleIcon>
                       <CardTitleText>{card.title}</CardTitleText>
-                    </CardTitleSpacer>
-                    <CardActions>
+                    </Flex>
+                    <Flex align="center" gap="xs">
                       {!card.isLoading && card.feedbackType && autofixData?.run_id && (
                         <AutofixStepFeedback
                           stepType={card.feedbackType}
@@ -285,7 +287,7 @@ export function AutofixSummary({
                           aria-label={t('Copy to clipboard')}
                           size="xs"
                           text={card.copyText}
-                          borderless
+                          priority="transparent"
                           title={card.copyTitle}
                           onClick={e => {
                             e.stopPropagation();
@@ -294,7 +296,7 @@ export function AutofixSummary({
                           analyticsEventKey={card.copyAnalyticsEventKey}
                         />
                       )}
-                    </CardActions>
+                    </Flex>
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -326,22 +328,15 @@ export function AutofixSummary({
                       </React.Fragment>
                     )}
                   </CardContent>
-                </InsightCard>
+                </Stack>
               </InsightCardButton>
             );
           })}
         </InsightGrid>
-      </Content>
+      </Stack>
     </div>
   );
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  position: relative;
-`;
 
 const InsightCardButton = styled(motion.div)`
   border-radius: ${p => p.theme.radius.md};
@@ -379,13 +374,6 @@ const InsightGrid = styled('div')`
   }
 `;
 
-const InsightCard = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden;
-`;
-
 const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
@@ -395,17 +383,10 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   justify-content: space-between;
 `;
 
-const CardTitleSpacer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const CardTitleText = styled('p')`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-top: 1px;
 `;
 
@@ -439,10 +420,4 @@ const CardContent = styled('div')`
       text-decoration: underline;
     }
   }
-`;
-
-const CardActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

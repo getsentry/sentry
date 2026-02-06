@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -290,7 +290,7 @@ function TokenTypeCount({
 
 const FooterText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;
   min-width: 0px;
 `;

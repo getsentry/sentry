@@ -2,15 +2,18 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
+import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -23,6 +26,7 @@ function LaunchpadAdminPage() {
   const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
   const [fetchInfoArtifactId, setFetchInfoArtifactId] = useState<string>('');
   const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState<string>('');
+  const [downloadArtifactId, setDownloadArtifactId] = useState<string>('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
@@ -129,6 +133,47 @@ function LaunchpadAdminPage() {
     },
   });
 
+  const handleDownloadArtifact = async () => {
+    if (!downloadArtifactId) {
+      addErrorMessage('Artifact ID is required');
+      return;
+    }
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
+
+    try {
+      const artifactInfo = await api.requestPromise(
+        `/internal/preprod-artifact/${downloadArtifactId}/info/`,
+        {
+          method: 'GET',
+          host: region?.url,
+        }
+      );
+
+      const orgSlug = artifactInfo.artifact_info?.project?.organization_slug;
+      const projectSlug = artifactInfo.artifact_info?.project?.slug;
+      const artifactId = artifactInfo.artifact_info?.id;
+
+      if (!orgSlug || !projectSlug || !artifactId) {
+        addErrorMessage('Could not retrieve artifact details');
+        return;
+      }
+
+      await downloadPreprodArtifact({
+        organizationSlug: orgSlug,
+        projectSlug,
+        artifactId,
+        regionUrl: region.url,
+      });
+
+      setDownloadArtifactId('');
+    } catch (error) {
+      addErrorMessage(`Failed to download artifact: ${downloadArtifactId}`);
+    }
+  };
+
   const handleRerunSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!region) {
@@ -219,6 +264,11 @@ function LaunchpadAdminPage() {
     });
   };
 
+  const handleDownloadSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleDownloadArtifact();
+  };
+
   return (
     <div>
       <PageHeader title="Launchpad Admin Page" />
@@ -229,7 +279,9 @@ function LaunchpadAdminPage() {
         </Text>
 
         <CompactSelect
-          triggerProps={{prefix: 'Region'}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
           value={region ? region.url : undefined}
           options={regions.map((r: any) => ({
             label: r.name,
@@ -376,6 +428,37 @@ function LaunchpadAdminPage() {
               </Flex>
             </Container>
           </form>
+
+          <form onSubmit={handleDownloadSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Download Build</Heading>
+                <Text as="p" variant="muted">
+                  Download the build file for a specific preprod artifact.
+                </Text>
+                <label htmlFor="downloadArtifactId">
+                  <Text bold>Preprod Artifact ID:</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="downloadArtifactId"
+                  value={downloadArtifactId}
+                  onChange={e => setDownloadArtifactId(e.target.value)}
+                  placeholder="Enter preprod artifact ID"
+                />
+                <Button
+                  priority="default"
+                  type="submit"
+                  disabled={!downloadArtifactId.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Download Build
+                </Button>
+              </Flex>
+            </Container>
+          </form>
         </Grid>
 
         {fetchedArtifactInfo && (
@@ -432,7 +515,7 @@ const InfoDisplay = styled('div')`
 
   pre {
     margin: 0;
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     font-size: 12px;
     line-height: 1.4;
     color: ${p => p.theme.tokens.content.primary};

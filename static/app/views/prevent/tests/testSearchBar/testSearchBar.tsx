@@ -84,5 +84,5 @@ const Title = styled('h2')`
   white-space: nowrap;
   flex-shrink: 0;
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
 `;

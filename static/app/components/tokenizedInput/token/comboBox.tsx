@@ -13,19 +13,20 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
-} from 'sentry/components/core/compactSelect/types';
 import {
   getDisabledOptions,
   getHiddenOptions,
   itemIsSectionWithKey,
-} from 'sentry/components/core/compactSelect/utils';
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+  ListBox,
+} from '@sentry/scraps/compactSelect';
+import type {
+  SelectKey,
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from '@sentry/scraps/compactSelect';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {defined} from 'sentry/utils';
@@ -310,7 +311,7 @@ export function ComboBox({
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
   return (
-    <Wrapper>
+    <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
         size="md"
@@ -344,7 +345,7 @@ export function ComboBox({
           />
         </ListBoxOverlay>
       </StyledPositionWrapper>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -395,14 +396,6 @@ function useUpdateOverlayPositionOnContentChange({
     };
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  width: 100%;
-`;
 
 const UnstyledInput = styled(Input)`
   background: transparent;

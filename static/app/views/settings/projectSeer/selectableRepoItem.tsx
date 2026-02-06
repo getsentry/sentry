@@ -1,8 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,11 +37,11 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
         showUnderline={false}
         disabled={isSupportedProvider}
       >
-        <RepoHeader>
-          <RepoInfoWrapper>
+        <Flex justify="between" align="center" padding="md lg">
+          <Flex justify="between" align="center" width="100%">
             <RepoName>{repo.name}</RepoName>
 
-            <SelectionWrapper>
+            <Flex align="center" gap="md">
               <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
 
               <StyledCheckbox
@@ -48,9 +50,9 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
                 readOnly
                 disabled={!isSupportedProvider}
               />
-            </SelectionWrapper>
-          </RepoInfoWrapper>
-        </RepoHeader>
+            </Flex>
+          </Flex>
+        </Flex>
       </Tooltip>
     </RepoListItemContainer>
   );
@@ -89,37 +91,16 @@ const RepoListItemContainer = styled('div')<{
     `}
 `;
 
-const RepoHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-const RepoInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
-`;
-
 const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const RepoProvider = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
 const StyledCheckbox = styled(Checkbox)`
   margin: 0;
-`;
-
-const SelectionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;

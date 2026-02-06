@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
@@ -211,7 +211,7 @@ export function SpanDescription({
             <LinkHint value={spanURL} />
           </Flex>
           <CopyToClipboardButton
-            borderless
+            priority="transparent"
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
@@ -245,7 +245,7 @@ export function SpanDescription({
           {span.name}
         </Flex>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
@@ -261,7 +261,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </Flex>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
@@ -366,7 +366,7 @@ function ResourceImage(props: {
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
@@ -421,7 +421,7 @@ const StyledCodeSnippet = styled(CodeBlock)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

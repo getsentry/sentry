@@ -64,6 +64,7 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_DELETE = 41
     SENTRY_APP_INSTALLATION_DELETE = 42
     IDENTITY_UPDATE = 43
+    SENTRY_APP_NORMALIZE_ACTIONS = 44
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -329,6 +330,7 @@ class OutboxScope(IntEnum):
         10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
     )
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
+    ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
 
     def __str__(self) -> str:
         return self.name

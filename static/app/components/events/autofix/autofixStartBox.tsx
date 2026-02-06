@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {IconArrow, IconChevron, IconSeer} from 'sentry/icons';
@@ -110,9 +111,9 @@ export function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                 transform: 'rotate(30deg)',
               }}
             />
-            <StartTextRow>
+            <Flex justify="center" align="center" gap="md" width="100%">
               <IconSeer animation="waiting" variant="primary" size="xl" />
-            </StartTextRow>
+            </Flex>
           </AutofixStartText>
           <InputWrapper onSubmit={handleSubmit}>
             <StyledInput
@@ -204,17 +205,9 @@ const AutofixStartText = styled('div')`
   padding: ${space(1)};
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   position: relative;
   overflow: hidden;
-`;
-
-const StartTextRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-  justify-content: center;
 `;
 
 const BackgroundStar = styled('img')`

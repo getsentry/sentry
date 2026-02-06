@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -60,7 +61,12 @@ function traceMetricCountQueryKey({
     ).toISOString();
   }
 
-  return [`/organizations/${orgSlug}/events/`, {query}];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+    {query},
+  ];
 }
 
 /**

@@ -53,6 +53,7 @@ from sentry.snuba.models import SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.tasks import create_subscription_in_snuba
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -552,6 +553,42 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
         assert mock_ourlogs_run_timeseries_query.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:tracemetrics-alerts")
+    @with_feature("organizations:tracemetrics-enabled")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.utils.TraceMetrics.run_timeseries_query",
+        wraps=TraceMetrics.run_timeseries_query,
+    )
+    def test_anomaly_detection_alert_trace_metrics(
+        self, mock_trace_metrics_run_timeseries_query, mock_seer_request
+    ):
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "p50(value,llm.token_usage,distribution,-)"
+        data["eventTypes"] = ["trace_item_metric"]
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
+        assert mock_trace_metrics_run_timeseries_query.call_count == 1
 
     @patch(
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
@@ -1904,6 +1941,95 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert resp.data[0] == "server_weighted extrapolation mode is not supported for new alerts."
+
+    def test_owner_team_not_member_denied(self) -> None:
+        """
+        Test that members cannot assign a team they are not a member of as owner.
+        This is a regression test for an IDOR vulnerability.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(self.organization.slug, status_code=400, **data)
+        assert resp.data == {"owner": ["You can only assign teams you are a member of"]}
+
+    def test_owner_team_member_allowed(self) -> None:
+        """
+        Test that members CAN assign a team they are a member of as owner.
+        """
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{self.team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{self.team.id}"
+
+    def test_owner_team_admin_can_assign_any_team(self) -> None:
+        """
+        Test that users with team:admin scope CAN assign any team as owner.
+        """
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        admin_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=admin_user,
+            organization=self.organization,
+            role="admin",
+            teams=[self.team],
+        )
+        self.login_as(admin_user)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
+
+    def test_owner_team_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can assign any team as owner.
+        """
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, name="other-team")
+
+        user_with_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_with_team,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(user_with_team)
+
+        data = deepcopy(self.alert_rule_dict)
+        data["owner"] = f"team:{other_team.id}"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(self.organization.slug, status_code=201, **data)
+        assert resp.data["owner"] == f"team:{other_team.id}"
 
 
 @freeze_time()

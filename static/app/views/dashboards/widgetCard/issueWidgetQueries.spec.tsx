@@ -1,7 +1,6 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -22,8 +21,10 @@ describe('IssueWidgetQueries', () => {
     },
   };
 
-  const organization = OrganizationFixture();
-  const api = new MockApiClient();
+  beforeEach(() => {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(selection);
+  });
   describe('table display type', () => {
     const widget: Widget = {
       id: '1',
@@ -74,25 +75,7 @@ describe('IssueWidgetQueries', () => {
         ],
       });
 
-      render(
-        <IssueWidgetQueries
-          api={api}
-          organization={organization}
-          widget={widget}
-          selection={{
-            projects: [1],
-            environments: ['prod'],
-            datetime: {
-              period: '14d',
-              start: null,
-              end: null,
-              utc: false,
-            },
-          }}
-        >
-          {mockFunction}
-        </IssueWidgetQueries>
-      );
+      render(<IssueWidgetQueries widget={widget}>{mockFunction}</IssueWidgetQueries>);
 
       await waitFor(() =>
         expect(mockFunction).toHaveBeenCalledWith(
@@ -125,10 +108,7 @@ describe('IssueWidgetQueries', () => {
       });
       render(
         <IssueWidgetQueries
-          api={api}
-          organization={organization}
           widget={widget}
-          selection={selection}
           dashboardFilters={{[DashboardFilterKeys.RELEASE]: ['abc@1.2.0', 'abc@1.3.0']}}
         >
           {() => <div data-test-id="child" />}
@@ -195,16 +175,7 @@ describe('IssueWidgetQueries', () => {
       const mockFunction = jest.fn(() => {
         return <div />;
       });
-      render(
-        <IssueWidgetQueries
-          api={api}
-          organization={organization}
-          widget={widget}
-          selection={selection}
-        >
-          {mockFunction}
-        </IssueWidgetQueries>
-      );
+      render(<IssueWidgetQueries widget={widget}>{mockFunction}</IssueWidgetQueries>);
 
       expect(issuesTimeseriesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues-timeseries/',

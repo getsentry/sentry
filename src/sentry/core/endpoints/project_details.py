@@ -106,6 +106,15 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
+    preprodSizeStatusChecksEnabled = serializers.BooleanField(
+        help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
+    preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
+    preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
 
 @extend_schema_serializer(
@@ -142,6 +151,12 @@ class ProjectMemberSerializer(serializers.Serializer):
         "autofixAutomationTuning",
         "seerScannerAutomation",
         "debugFilesRole",
+        "preprodSizeStatusChecksEnabled",
+        "preprodSizeStatusChecksRules",
+        "preprodSizeEnabledQuery",
+        "preprodDistributionEnabledQuery",
+        "preprodSizeEnabledByCustomer",
+        "preprodDistributionEnabledByCustomer",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -556,7 +571,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked`, `autofixAutomationTuning`, and `seerScannerAutomation`.
+        `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
+        `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
+        `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
+        `preprodSizeEnabledByCustomer`, and `preprodDistributionEnabledByCustomer`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -760,6 +778,54 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if result.get("preprodSizeStatusChecksEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_size_status_checks_enabled",
+                result["preprodSizeStatusChecksEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_size_status_checks_enabled"] = result[
+                    "preprodSizeStatusChecksEnabled"
+                ]
+        if result.get("preprodSizeStatusChecksRules") is not None:
+            if project.update_option(
+                "sentry:preprod_size_status_checks_rules",
+                result["preprodSizeStatusChecksRules"],
+            ):
+                changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
+                    "preprodSizeStatusChecksRules"
+                ]
+
+        if "preprodSizeEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_size_enabled_by_customer", result["preprodSizeEnabledByCustomer"]
+            ):
+                changed_proj_settings["sentry:preprod_size_enabled_by_customer"] = result[
+                    "preprodSizeEnabledByCustomer"
+                ]
+        if "preprodSizeEnabledQuery" in result:
+            if project.update_option(
+                "sentry:preprod_size_enabled_query",
+                coerce_to_string_or_none(result["preprodSizeEnabledQuery"]),
+            ):
+                changed_proj_settings["sentry:preprod_size_enabled_query"] = result[
+                    "preprodSizeEnabledQuery"
+                ]
+        if "preprodDistributionEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_enabled_by_customer",
+                result["preprodDistributionEnabledByCustomer"],
+            ):
+                changed_proj_settings["sentry:preprod_distribution_enabled_by_customer"] = result[
+                    "preprodDistributionEnabledByCustomer"
+                ]
+        if "preprodDistributionEnabledQuery" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_enabled_query",
+                coerce_to_string_or_none(result["preprodDistributionEnabledQuery"]),
+            ):
+                changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
+                    "preprodDistributionEnabledQuery"
+                ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")
@@ -946,26 +1012,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
-                )
-            if "sentry:preprod_size_status_checks_enabled" in options:
-                project.update_option(
-                    "sentry:preprod_size_status_checks_enabled",
-                    bool(options["sentry:preprod_size_status_checks_enabled"]),
-                )
-            if "sentry:preprod_size_status_checks_rules" in options:
-                project.update_option(
-                    "sentry:preprod_size_status_checks_rules",
-                    options["sentry:preprod_size_status_checks_rules"],
-                )
-            if "sentry:preprod_size_enabled_query" in options:
-                project.update_option(
-                    "sentry:preprod_size_enabled_query",
-                    coerce_to_string_or_none(options["sentry:preprod_size_enabled_query"]),
-                )
-            if "sentry:preprod_distribution_enabled_query" in options:
-                project.update_option(
-                    "sentry:preprod_distribution_enabled_query",
-                    coerce_to_string_or_none(options["sentry:preprod_distribution_enabled_query"]),
                 )
 
         self.create_audit_entry(

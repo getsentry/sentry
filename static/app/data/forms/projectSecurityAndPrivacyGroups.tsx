@@ -1,5 +1,6 @@
+import {Link} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Link} from 'sentry/components/core/link';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -169,8 +170,8 @@ const formGroups: JsonFormObject[] = [
         'aria-label': t(
           'Enter additional field names to match against when scrubbing data. Separate multiple entries with a newline'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
       {
         name: 'safeFields',
@@ -187,8 +188,8 @@ const formGroups: JsonFormObject[] = [
         'aria-label': t(
           'Enter field names which data scrubbers should ignore. Separate multiple entries with a newline'
         ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => convertMultilineFieldValue(val),
+        getValue: extractMultilineFields,
+        setValue: convertMultilineFieldValue,
       },
     ],
   },

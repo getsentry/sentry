@@ -10,6 +10,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class OrganizationAlertRuleBaseEndpoint(OrganizationEndpoint):
@@ -55,6 +56,7 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
         # Allow orgs that have downgraded plans to delete metric alerts
         if request.method != "DELETE" and not features.has(
@@ -66,7 +68,9 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         try:
-            kwargs["alert_rule"] = AlertRule.objects.get(projects=project, id=alert_rule_id)
+            kwargs["alert_rule"] = AlertRule.objects.get(
+                projects=project, id=validated_alert_rule_id
+            )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -81,6 +85,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
         # Allow orgs that have downgraded plans to delete metric alerts
         if request.method != "DELETE" and not features.has(
@@ -90,7 +95,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
 
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
-                organization=organization, id=alert_rule_id
+                organization=organization, id=validated_alert_rule_id
             )
         except AlertRule.DoesNotExist:
             raise ResourceDoesNotExist

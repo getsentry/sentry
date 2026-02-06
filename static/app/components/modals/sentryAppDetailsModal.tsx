@@ -1,13 +1,13 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Access from 'sentry/components/acl/access';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -59,9 +60,16 @@ export default function SentryAppDetailsModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${sentryApp.slug}/features/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<IntegrationFeature[]>(
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+        path: {sentryAppIdOrSlug: sentryApp.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const installMutation = useMutation({
     mutationFn: onInstall,
@@ -159,10 +167,10 @@ export default function SentryAppDetailsModal(props: Props) {
     <Fragment>
       <Heading>
         <SentryAppAvatar sentryApp={sentryApp} size={50} />
-        <HeadingInfo>
+        <Stack gap="sm">
           <Name>{sentryApp.name}</Name>
           {!!features.length && <Features>{featureTags(features)}</Features>}
-        </HeadingInfo>
+        </Stack>
       </Heading>
       <Description>{overview}</Description>
       <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
@@ -211,15 +219,8 @@ const Heading = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const HeadingInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: ${space(0.75)};
-`;
-
 const Name = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
 `;
 
@@ -261,7 +262,7 @@ const Footer = styled('div')`
 
 const Title = styled('p')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`

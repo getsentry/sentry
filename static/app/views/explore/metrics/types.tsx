@@ -29,7 +29,7 @@ export enum TraceMetricKnownFieldKey {
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
 
-  // SDK attributes https://develop.sentry.dev/sdk/telemetry/logs/#default-attributes
+  // SDK attributes https://develop.sentry.dev/sdk/telemetry/metrics/#default-attributes
   RELEASE = 'release',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',

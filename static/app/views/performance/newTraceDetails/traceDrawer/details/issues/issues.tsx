@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,6 +11,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -27,7 +27,7 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-const issueOrderPriority: Record<keyof Theme['level'], number> = {
+const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
   error: 1,
   warning: 2,
@@ -110,7 +110,7 @@ const IconBackground = styled('div')`
   svg {
     width: 16px;
     height: 16px;
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
   }
 `;
 

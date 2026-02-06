@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -35,7 +37,9 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const endpoint = `/organizations/${orgSlug}/`;
+  const endpoint = getApiUrl(`/organizations/$organizationIdOrSlug/`, {
+    path: {organizationIdOrSlug: orgSlug},
+  });
   const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
   });

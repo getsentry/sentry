@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -89,7 +90,7 @@ const GraphLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const GraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-right: ${space(2)};
 `;
 

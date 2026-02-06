@@ -51,9 +51,9 @@ const NonShrinkingWarningIcon = styled(IconWarning)`
 `;
 
 const ErrorText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 
   @container error-panel (min-width: 360px) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;

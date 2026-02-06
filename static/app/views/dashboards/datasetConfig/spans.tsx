@@ -1,10 +1,7 @@
 import pickBy from 'lodash/pickBy';
-import trimStart from 'lodash/trimStart';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
-import {Link} from 'sentry/components/core/link';
-import type {PageFilters} from 'sentry/types/core';
+import {Link} from '@sentry/scraps/link';
+
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -12,28 +9,18 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
-  getEquationAliasIndex,
-  isEquation,
-  isEquationAlias,
   type Aggregation,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {
-  doDiscoverQuery,
-  type DiscoverQueryExtras,
-  type DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -41,8 +28,6 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -58,19 +43,23 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {
+  isGroupedMultiSeriesEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {
+  useSpansSeriesQuery,
+  useSpansTableQuery,
+} from 'sentry/views/dashboards/widgetCard/hooks/useSpansWidgetQuery';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -157,12 +146,16 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -175,6 +168,78 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     getFilterKeySections: () => filterKeySections,
     getTagValues,
   };
+}
+
+/**
+ * Generic helper to extract metadata (units or types) from events-stats series data.
+ * Handles both MultiSeriesEventsStats and GroupedMultiSeriesEventsStats responses.
+ */
+function extractSeriesMetadata<T>({
+  data,
+  getFieldMetaValue,
+  getMetaField,
+  widgetQuery,
+}: {
+  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
+  getFieldMetaValue: (meta: NonNullable<WidgetQuery['fieldMeta']>[number] | null) => T;
+  getMetaField: (seriesMeta: EventsStats['meta'], aggregate: string) => T;
+  widgetQuery: WidgetQuery;
+}): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  // Initialize from fieldMeta if available
+  widgetQuery.fieldMeta?.forEach((meta, index) => {
+    if (meta && widgetQuery.fields?.[index]) {
+      result[widgetQuery.fields[index]] = getFieldMetaValue(meta);
+    }
+  });
+
+  if (isMultiSeriesEventsStats(data)) {
+    // If there's only one aggregate and multiple groupings, series names are group names
+    // In this case, we can use the first meta value for all series
+    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
+    const isSingleAggregateMultiGroup =
+      firstMeta &&
+      widgetQuery.aggregates?.length === 1 &&
+      widgetQuery.columns?.length > 0;
+
+    if (isSingleAggregateMultiGroup) {
+      // Use hardcoded config for all series
+      Object.keys(data).forEach(seriesName => {
+        // Don't overwrite fieldMeta values
+        if (!(seriesName in result)) {
+          result[seriesName] = getFieldMetaValue(firstMeta);
+        }
+      });
+    } else {
+      Object.keys(data).forEach(seriesName => {
+        const seriesData = data[seriesName];
+        if (!seriesData?.meta) {
+          return;
+        }
+        widgetQuery.aggregates?.forEach(aggregate => {
+          // Multi-series can be keyed by aggregate or series name depending on aggregate count
+          const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
+          // Don't overwrite fieldMeta values
+          if (seriesData.meta && !(key in result)) {
+            result[key] = getMetaField(seriesData.meta, aggregate);
+          }
+        });
+      });
+    }
+  } else if (isGroupedMultiSeriesEventsStats(data)) {
+    Object.keys(data).forEach(groupName => {
+      widgetQuery.aggregates?.forEach(aggregate => {
+        const seriesData = data[groupName]?.[aggregate] as EventsStats;
+        // Don't overwrite fieldMeta values
+        if (seriesData?.meta && aggregate && !(aggregate in result)) {
+          result[aggregate] = getMetaField(seriesData.meta, aggregate);
+        }
+      });
+    });
+  }
+
+  return result;
 }
 
 export const SpansConfig: DatasetConfig<
@@ -204,33 +269,8 @@ export const SpansConfig: DatasetConfig<
     DisplayType.TOP_N,
     DisplayType.DETAILS,
   ],
-  getTableRequest: (
-    api: Client,
-    _widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => {
-    return getEventsRequest(
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer,
-      undefined,
-      undefined,
-      samplingMode
-    );
-  },
-  getSeriesRequest,
+  useSeriesQuery: useSpansSeriesQuery,
+  useTableQuery: useSpansTableQuery,
   transformTable: transformEventsResponseToTable,
   transformSeries,
   filterAggregateParams,
@@ -241,61 +281,32 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    if (field === 'transaction') {
+    if (
+      field === SpanFields.TRANSACTION &&
+      !widget?.queries?.[0]?.linkedDashboards?.some(
+        linkedDashboard => linkedDashboard.field === SpanFields.TRANSACTION
+      )
+    ) {
       return renderTransactionAsLinkable;
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getSeriesResultUnit: (data, widgetQuery) => {
-    const resultUnits: Record<string, DataUnit> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultUnits[widgetQuery.fields[index]!] = meta.valueUnit;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta?.valueUnit as DataUnit,
+      getMetaField: (seriesMeta, aggregate) => seriesMeta?.units?.[aggregate] as DataUnit,
     });
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultUnits[seriesName] = firstMeta.valueUnit;
-      });
-    }
-    return resultUnits;
   },
   getSeriesResultType: (data, widgetQuery) => {
-    const resultTypes: Record<string, AggregationOutputType> = {};
-    widgetQuery.fieldMeta?.forEach((meta, index) => {
-      if (meta && widgetQuery.fields) {
-        resultTypes[widgetQuery.fields[index]!] = meta.valueType as AggregationOutputType;
-      }
+    return extractSeriesMetadata({
+      data,
+      widgetQuery,
+      getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
+      getMetaField: (seriesMeta, aggregate) =>
+        seriesMeta?.fields?.[aggregate] as AggregationOutputType,
     });
-
-    const isMultiSeriesStats = isMultiSeriesEventsStats(data);
-
-    // if there's only one aggregate and more then one group by the series names are the name of the group, not the aggregate name
-    // But we can just assume the units is for all the series
-    // TODO: This doesn't work with multiple aggregates
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    if (
-      isMultiSeriesStats &&
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0
-    ) {
-      Object.keys(data).forEach(seriesName => {
-        resultTypes[seriesName] = firstMeta.valueType as AggregationOutputType;
-      });
-    }
-    return resultTypes;
   },
 };
 
@@ -340,68 +351,6 @@ function filterYAxisOptions() {
   };
 }
 
-function getEventsRequest(
-  api: Client,
-  query: WidgetQuery,
-  organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras,
-  samplingMode?: SamplingMode
-) {
-  const url = `/organizations/${organization.slug}/events/`;
-  const eventView = eventViewFromWidget('', query, pageFilters);
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const params: DiscoverQueryRequestParams = {
-    per_page: limit,
-    cursor,
-    referrer,
-    dataset: DiscoverDatasets.SPANS,
-    ...queryExtras,
-  };
-
-  let orderBy = query.orderby;
-
-  if (orderBy) {
-    if (isEquationAlias(trimStart(orderBy, '-'))) {
-      const equations = query.fields?.filter(isEquation) ?? [];
-      const equationIndex = getEquationAliasIndex(trimStart(orderBy, '-'));
-
-      const orderby = equations[equationIndex];
-      if (orderby) {
-        orderBy = orderBy.startsWith('-') ? `-${orderby}` : orderby;
-      }
-    }
-    params.sort = toArray(orderBy);
-  }
-
-  return doDiscoverQuery<EventsTableData>(
-    api,
-    url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-      ...(samplingMode ? {sampling: samplingMode} : {}),
-    },
-    // Tries events request up to 3 times on rate limit
-    {
-      retry: hasQueueFeature
-        ? // The queue will handle retries, so we don't need to retry here
-          undefined
-        : {
-            statusCodes: [429],
-            tries: 10,
-          },
-    }
-  );
-}
-
 function getGroupByFieldOptions(
   organization: Organization,
   tags?: TagCollection,
@@ -417,33 +366,6 @@ function getGroupByFieldOptions(
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
-}
-
-function getSeriesRequest(
-  api: Client,
-  widget: Widget,
-  queryIndex: number,
-  organization: Organization,
-  pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  samplingMode?: SamplingMode
-) {
-  const requestData = getSeriesRequestData(
-    widget,
-    queryIndex,
-    organization,
-    pageFilters,
-    DiscoverDatasets.SPANS,
-    referrer
-  );
-
-  if (samplingMode) {
-    requestData.sampling = samplingMode;
-  }
-
-  return doEventsRequest<true>(api, requestData);
 }
 
 // Filters the primary options in the sort by selector

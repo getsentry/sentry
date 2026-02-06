@@ -16,7 +16,7 @@ describe('Grouping Store', () => {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/',
+      url: '/organizations/org-slug/issues/groupId/hashes/',
       body: [
         {
           latestEvent: {
@@ -58,7 +58,7 @@ describe('Grouping Store', () => {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/similar/',
+      url: '/organizations/org-slug/issues/groupId/similar/',
       body: [
         [
           {
@@ -130,7 +130,7 @@ describe('Grouping Store', () => {
 
     it('fetches list of similar items', async () => {
       await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
+        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -179,13 +179,13 @@ describe('Grouping Store', () => {
     it('unsuccessfully fetches list of similar items', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: '/issues/groupId/similar/',
+        url: '/organizations/org-slug/issues/groupId/similar/',
         statusCode: 500,
         body: {message: 'failed'},
       });
 
       const promise = GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
+        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -204,7 +204,7 @@ describe('Grouping Store', () => {
 
     it('ignores null scores in aggregate', async () => {
       await GroupingStore.onFetch([
-        {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
+        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -218,7 +218,7 @@ describe('Grouping Store', () => {
 
     it('fetches list of hashes', () => {
       const promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -245,7 +245,7 @@ describe('Grouping Store', () => {
 
     it('handles fingerprints with seer merging information', async () => {
       await GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -269,13 +269,13 @@ describe('Grouping Store', () => {
     it('unsuccessfully fetches list of hashes items', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: '/issues/groupId/hashes/',
+        url: '/organizations/org-slug/issues/groupId/hashes/',
         statusCode: 500,
         body: {message: 'failed'},
       });
 
       const promise = GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       expect(trigger).toHaveBeenCalled();
@@ -301,7 +301,9 @@ describe('Grouping Store', () => {
       GroupingStore.init();
       mergeList = [];
       mergeState = new Map();
-      GroupingStore.onFetch([{dataKey: 'similar', endpoint: '/issues/groupId/similar/'}]);
+      GroupingStore.onFetch([
+        {dataKey: 'similar', endpoint: '/organizations/org-slug/issues/groupId/similar/'},
+      ]);
     });
 
     describe('onToggleMerge (checkbox state)', () => {
@@ -520,7 +522,7 @@ describe('Grouping Store', () => {
       unmergeList = new Map();
       unmergeState = new Map();
       await GroupingStore.onFetch([
-        {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
+        {dataKey: 'merged', endpoint: '/organizations/org-slug/issues/groupId/hashes/'},
       ]);
 
       trigger.mockClear();

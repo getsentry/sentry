@@ -200,7 +200,7 @@ const initialAutomationBuilderState: AutomationBuilderState = {
   actionFilters: [
     {
       id: '0',
-      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      logicType: DataConditionGroupLogicType.ALL,
       conditions: [],
       actions: [],
     },

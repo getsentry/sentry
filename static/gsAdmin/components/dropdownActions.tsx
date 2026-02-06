@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {IconNot} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
@@ -18,7 +20,7 @@ type Props = {
     skipConfirmModal?: boolean;
     visible?: boolean;
   }>;
-  label?: string;
+  label: string;
 };
 
 /**
@@ -84,10 +86,11 @@ function DropdownActions({actions, label}: Props) {
           onConfirm: action.onAction,
         });
       }}
-      triggerProps={{
-        'data-test-id': 'detail-actions',
-        children: label,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} data-test-id="detail-actions">
+          {label}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

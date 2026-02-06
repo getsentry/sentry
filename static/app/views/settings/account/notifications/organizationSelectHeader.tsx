@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 type OrganizationSelectHeaderProps = {
@@ -18,7 +19,7 @@ export function OrganizationSelectHeader({
   organizations,
 }: OrganizationSelectHeaderProps) {
   return (
-    <OrgControlWrapper>
+    <Flex align="center" flexGrow={1} gap="md">
       {t('Settings for Organization')}
       <StyledSelectControl
         allowEmpty
@@ -45,19 +46,12 @@ export function OrganizationSelectHeader({
           }),
         }}
       />
-    </OrgControlWrapper>
+    </Flex>
   );
 }
 
 // Resetting styles because its in a panel header
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
-  font-weight: ${p => p.theme.fontWeight.normal};
-`;
-
-const OrgControlWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  flex-grow: 1;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

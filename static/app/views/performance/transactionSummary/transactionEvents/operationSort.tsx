@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 
-import {Radio} from 'sentry/components/core/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
@@ -207,11 +207,13 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      border-bottom: 9px solid ${p => p.theme.tokens.border.primary};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      border-bottom: 9px solid ${p => p.theme.tokens.background.primary};
       top: -9px;
     }
 
     &:after {
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
@@ -221,11 +223,13 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      border-top: 9px solid ${p => p.theme.tokens.border.primary};
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      border-top: 9px solid ${p => p.theme.tokens.background.primary};
       bottom: -9px;
     }
 
     &:after {
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }
@@ -233,7 +237,7 @@ const DropdownWrapper = styled('div')`
 `;
 
 const DropdownMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -247,7 +251,7 @@ const RadioLabel = styled('label')`
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
 `;
 

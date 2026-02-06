@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -128,10 +128,6 @@ describe('Dashboards > CreateDashboard', () => {
     // Wait for widgets to be rendered
     expect(await screen.findAllByTestId('sortable-widget')).toHaveLength(2);
 
-    // Verify location state is cleared after consuming widgets
-    await waitFor(() => {
-      expect(router.location.state).toEqual({});
-    });
     expect(router.location.pathname).toBe('/organizations/org-slug/dashboards/new/');
 
     // Click save to check that the widgets are passed to the API

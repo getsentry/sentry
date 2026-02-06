@@ -2,11 +2,14 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -55,7 +58,9 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: name, size: 'xs'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={name} size="xs" />
+      )}
       value={value}
       onChange={opt => onFilter(opt.value)}
       options={allOptions}
@@ -88,7 +93,13 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
 
   return (
     <CompactSelect
-      triggerProps={{icon: <IconList size="xs" />, prefix: 'Sort By'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconList size="xs" />}
+          prefix="Sort By"
+        />
+      )}
       value={value}
       onChange={opt => onSort(opt.value, resolvedPath, query ?? {})}
       options={options.map(item => ({value: item[0], label: item[1]}))}
@@ -154,6 +165,13 @@ interface ResultGridProps extends WithRouterProps {
    * wrapping panel
    */
   inPanel?: boolean | React.ComponentType<{children?: React.ReactNode}>;
+  /**
+   * Is this endpoint cell-scoped? If true, the endpoint URL will be transformed
+   * to include /_admin/cells/${cell_id}/ prefix.
+   *
+   * @default false
+   */
+  isCellScoped?: boolean;
   /**
    * Is this a regional endpoint? If so, a region selector will be rendered
    *
@@ -229,6 +247,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       per_page: 50,
     },
     hasPagination: true,
+    isCellScoped: false,
     isRegional: false,
     useQueryString: true,
   };
@@ -238,6 +257,8 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const queryParams = this.props.location?.query ?? {};
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+
     this.state = {
       rows: [],
       loading: true,
@@ -245,7 +266,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: this.props.isRegional
+      region: needsRegion
         ? regionUrl
           ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
           : ConfigStore.get('regions')[0]
@@ -259,7 +280,8 @@ class ResultGrid extends Component<ResultGridProps, State> {
     this.fetchData();
 
     // Remove regionalUrl after setting state
-    if (this.props.isRegional && this.props.location?.query?.regionUrl) {
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    if (needsRegion && this.props.location?.query?.regionUrl) {
       browserHistory.replace({
         pathname: this.props.location.pathname,
         query: {...this.props.location.query, regionUrl: undefined},
@@ -305,7 +327,15 @@ class ResultGrid extends Component<ResultGridProps, State> {
       cursor: this.state.cursor,
     };
 
-    this.props.api.request(this.props.endpoint, {
+    // Transform endpoint to cell-scoped URL if needed
+    // Currently using region.name (e.g., "us", "de") as the cell_id.
+    // In the future when there's a cell selector, we would use the actual cell ID instead.
+    const endpoint =
+      this.props.isCellScoped && this.state.region
+        ? `/_admin/cells/${this.state.region.name}${this.props.endpoint}`
+        : this.props.endpoint;
+
+    this.props.api.request(endpoint, {
       method: this.props.method,
       host: this.state.region ? this.state.region.url : undefined,
       data: queryParams,
@@ -455,12 +485,16 @@ class ResultGrid extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+
     return (
       <ResultGridContainer data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
-          {this.props.isRegional && (
+          {needsRegion && (
             <CompactSelect
-              triggerProps={{prefix: 'Region'}}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+              )}
               value={this.state.region ? this.state.region.url : undefined}
               options={ConfigStore.get('regions').map((r: any) => ({
                 label: r.name,
@@ -491,7 +525,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
             />
           )}
           {hasSearch && (
-            <SearchBar>
+            <Flex align="center" gap="xs" width="100%">
               <SearchInput
                 type="text"
                 placeholder="Search"
@@ -507,7 +541,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
                 size="sm"
                 aria-label="Search"
               />
-            </SearchBar>
+            </Flex>
           )}
         </SortSearchForm>
         {Object.keys(ensuredFilters).length > 0 && (
@@ -566,15 +600,8 @@ const FilterList = styled('div')`
   }
 `;
 
-const SearchBar = styled('div')`
-  width: 100%;
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
 export const SearchInput = styled(Input)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(0.5)} ${space(1)};
   height: 100%;
 

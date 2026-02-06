@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {AvatarList} from '@sentry/scraps/avatar';
+
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -45,7 +46,7 @@ const FileItem = styled(ListGroupItem)`
 `;
 
 const Filename = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};

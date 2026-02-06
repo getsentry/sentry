@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -39,7 +40,16 @@ function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
   const {isPending, isError, data} = useApiQuery<Event>(
     [
-      `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: dataRow['project.name'],
+            eventId: dataRow.id,
+          },
+        }
+      ),
     ],
     {
       staleTime: tenSecondInMs,
@@ -189,7 +199,7 @@ const ErrorTitleBody = styled(ContextBody)`
 `;
 
 const EventContextBody = styled(ContextBody)`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin: 0;
   align-items: flex-start;
   flex-direction: column;

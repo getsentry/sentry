@@ -10,7 +10,8 @@ from parsimonious.exceptions import ParseError
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.fingerprinting.parser import FingerprintingVisitor, fingerprinting_grammar
-from sentry.grouping.fingerprinting.rules import FingerprintRule, FingerprintRuleMatch
+from sentry.grouping.fingerprinting.rules import FingerprintRule
+from sentry.grouping.fingerprinting.types import FingerprintRuleMatch
 from sentry.grouping.fingerprinting.utils import EventDatastore
 
 logger = logging.getLogger(__name__)

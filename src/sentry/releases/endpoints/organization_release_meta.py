@@ -84,7 +84,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         if parsed_version and release_project_ids:
             number_of_preprod_builds = PreprodArtifact.objects.filter(
                 app_id=parsed_version.app_id,
-                build_version=parsed_version.build_version,
+                mobile_app_info__build_version=parsed_version.build_version,
                 project_id__in=release_project_ids,
             ).count()
         else:

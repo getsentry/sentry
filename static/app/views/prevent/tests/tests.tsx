@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Grid} from 'sentry/components/core/layout/grid';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
@@ -206,11 +205,11 @@ const MessageContainer = styled('div')`
 `;
 
 const Subtitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 14px;
 `;
 

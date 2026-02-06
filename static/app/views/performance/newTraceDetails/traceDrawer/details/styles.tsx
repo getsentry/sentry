@@ -4,15 +4,14 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -36,6 +35,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -60,6 +60,7 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -124,7 +125,7 @@ const LegacyTitleText = styled('div')`
 `;
 
 const TitleText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
 `;
 
@@ -145,7 +146,7 @@ function SubtitleWithCopyButton({
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
-          borderless
+          priority="transparent"
           size="zero"
           text={clipboardText}
           tooltipProps={{disabled: true}}
@@ -164,7 +165,7 @@ const SubTitleWrapper = styled(FlexBox)`
 `;
 
 const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -176,7 +177,7 @@ function TitleOp({text}: {text: string}) {
           {text}
           <CopyToClipboardButton
             aria-label={t('Copy to clipboard')}
-            borderless
+            priority="transparent"
             size="zero"
             text={text}
             tooltipProps={{disabled: true}}
@@ -192,12 +193,12 @@ function TitleOp({text}: {text: string}) {
 }
 
 const Type = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const TitleOpText = styled('div')`
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -230,7 +231,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   min-width: 30px;
 
   svg {
-    fill: ${p => p.theme.white};
+    fill: ${p => p.theme.colors.white};
     width: 14px;
     height: 14px;
   }
@@ -665,7 +666,7 @@ const HiglightsDurationComparison = styled('div')<
   color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].normal};
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
   padding: ${space(0.25)} ${space(1)};
   display: inline-block;
   height: 21px;
@@ -677,13 +678,13 @@ const HighlightsDurationWrapper = styled(FlexBox)`
 `;
 
 const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: 400;
 `;
 
 const HighlightOp = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: normal;
 `;
 
@@ -692,7 +693,7 @@ const HighlightedAttributesWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   column-gap: ${space(1.5)};
   row-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   &:not(:last-child) {
     margin-bottom: ${space(1.5)};
   }
@@ -767,7 +768,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-right: ${space(1)};
 `;
 
@@ -1145,7 +1146,7 @@ function CopyableCardValueWithLink({
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
-            borderless
+            priority="transparent"
             size="zero"
             text={value}
             aria-label={t('Copy to clipboard')}
@@ -1203,10 +1204,7 @@ function MultilineText({children}: {children: string}) {
     <Fragment>
       <StyledClippedBox clipHeight={150} buttonProps={{priority: 'default', size: 'xs'}}>
         <MultilineTextWrapper {...hoverProps}>
-          <Container
-            position="absolute"
-            style={{top: theme.space.xs, right: theme.space.xs}}
-          >
+          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
             {isHovered && (
               <SegmentedControl
                 size="xs"
@@ -1255,7 +1253,7 @@ const MarkdownContainer = styled('div')`
   h4,
   h5,
   h6 {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     margin: 0;
     padding-bottom: ${p => p.theme.space.sm};
   }
@@ -1304,14 +1302,6 @@ const MultilineTextWrapper = styled('div')`
   }
 `;
 
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
-
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
@@ -1323,15 +1313,22 @@ function MultilineJSON({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = tryParseJson(value);
+  const json = useMemo(() => tryParseJson(value), [value]);
+
+  // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
+  const computedExpandedPaths = useMemo(() => {
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    return Array.from(new Set(['$', ...childPaths]));
+  }, [maxDefaultDepth, json]);
+
   return (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
           position="absolute"
+          top={theme.space.xs}
+          right={theme.space.xs}
           style={{
-            top: theme.space.xs,
-            right: theme.space.xs,
             // Ensure the segmented control is on top of the text StructuredData
             zIndex: 1,
           }}
@@ -1359,6 +1356,7 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />
       )}
@@ -1367,12 +1365,14 @@ function MultilineJSON({
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
+  min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
   pre {
     margin: 0;
     padding: 0;
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
 `;
 

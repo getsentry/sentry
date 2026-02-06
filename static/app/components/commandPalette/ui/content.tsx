@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette/ui/constants';
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

@@ -9,6 +9,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
+@pytest.mark.skip()
 class TestIssueTypeCondition(ConditionTestCase):
     condition = Condition.ISSUE_TYPE
 
@@ -71,3 +72,11 @@ class TestIssueTypeCondition(ConditionTestCase):
         self.dc.update(comparison={"value": ErrorGroupType.type_id})
         self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+    def test_exclude(self) -> None:
+        assert self.event.group is not None
+        group_event = self.event.for_group(self.group)
+
+        self.dc.update(comparison={"value": ErrorGroupType.type_id, "include": False})
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))

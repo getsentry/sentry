@@ -9,8 +9,9 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -77,7 +78,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
     aggregate = serializers.CharField(required=True, min_length=1)
 
     # This will be set to required=True once the frontend starts sending it.
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     description = serializers.CharField(required=False, allow_blank=True)
     sensitivity = serializers.CharField(required=False, allow_null=True)
@@ -151,6 +152,17 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             aggregate = data.get("aggregate")
             validate_trace_metrics_aggregate(aggregate)
 
+    def validate_deprecated_transactions_datasets(self, data):
+        new_dataset = data.get("dataset")
+        organization = self.context.get("organization")
+        if organization and features.has(
+            "organizations:discover-saved-queries-deprecation", organization
+        ):
+            if new_dataset in [Dataset.Transactions, Dataset.PerformanceMetrics]:
+                raise serializers.ValidationError(
+                    "Updating transaction-based alerts is disabled as we migrate to the spans dataset. Update the dataset to events_analytics_platform with the is_transaction:true filter instead."
+                )
+
     def validate(self, data):
         """
         Performs validation on an alert rule's data.
@@ -162,6 +174,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         data = super().validate(data)
         if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
             self.validate_eap_rule(data)
+
+        self.validate_deprecated_transactions_datasets(data)
 
         triggers = data.get("triggers", [])
         if not triggers:

@@ -109,7 +109,7 @@ def fetch_workflow_groups_paginated(
     end: datetime,
     cursor: Cursor | None = None,
     per_page: int = 25,
-) -> CursorResult[Group]:
+) -> CursorResult[WorkflowGroupHistory]:
     filtered_history = WorkflowFireHistory.objects.filter(
         workflow=workflow,
         date_added__gte=start,
@@ -140,7 +140,7 @@ def fetch_workflow_groups_paginated(
     group_count = qs.count()
 
     return cast(
-        CursorResult[Group],
+        CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
             qs,
             order_by=("-count", "-last_triggered"),

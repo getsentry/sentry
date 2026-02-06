@@ -1,11 +1,13 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -571,7 +573,7 @@ function CartDiff({
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />
@@ -620,7 +622,7 @@ const Change = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
 
@@ -630,7 +632,7 @@ const Change = styled('div')`
 `;
 
 const Added = styled(Change)<{prefersDarkMode?: boolean}>`
-  background: ${p => p.theme.green200};
+  background: ${p => p.theme.colors.green200};
 
   &::before {
     content: '+';
@@ -639,7 +641,7 @@ const Added = styled(Change)<{prefersDarkMode?: boolean}>`
   span {
     background: ${p =>
       p.prefersDarkMode
-        ? Color(p.theme.green400).lighten(0.08).alpha(0.5).string()
+        ? color(p.theme.colors.green500).lighten(0.08).alpha(0.5).string()
         : '#a8ecaa'};
   }
 `;
@@ -653,8 +655,8 @@ const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
 `;
 
 const ChangedCategory = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -671,7 +673,7 @@ const ChangeGrid = styled('div')`
 `;
 
 const ChangeSectionTitle = styled(Text)<{hasBottomMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   margin: 0;
   margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};
 `;

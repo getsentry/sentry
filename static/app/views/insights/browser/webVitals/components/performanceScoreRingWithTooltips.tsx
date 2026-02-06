@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -290,7 +290,7 @@ function PerformanceScoreRingWithTooltips({
           barWidth={barWidth}
           textCss={() => css`
             font-size: 32px;
-            font-weight: ${theme.fontWeight.bold};
+            font-weight: ${theme.font.weight.sans.medium};
             color: ${theme.tokens.content.primary};
           `}
           segmentColors={ringSegmentColors}
@@ -347,16 +347,16 @@ function calculateLabelCoordinates(
 const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   fill: ${p =>
     p.isLink ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   text-anchor: middle;
 `;
 
 const ProgressRingSubText = styled('text')`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   fill: ${p => p.theme.tokens.content.secondary};
   text-anchor: middle;
 `;
@@ -392,6 +392,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {

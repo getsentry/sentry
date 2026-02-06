@@ -116,7 +116,7 @@ const ContentWrapper = styled('div')`
   display: grid;
   column-gap: ${space(1.5)};
   grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export default GeneralInfo;

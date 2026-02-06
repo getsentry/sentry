@@ -1,12 +1,13 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -54,7 +55,7 @@ interface NumericFilterState {
   isValidValue: boolean;
   operatorOptions: Array<SelectOption<Operator>>;
   renderInputField: () => React.ReactNode;
-  renderSelectorTrigger: () => React.ReactNode;
+  renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
@@ -321,15 +322,17 @@ function NumericFilterSelector({
           </Flex>
         </MenuBodyWrap>
       }
-      triggerProps={{
-        children: filter.renderSelectorTrigger(),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {filter.renderSelectorTrigger()}
+        </OverlayTrigger.Button>
+      )}
       menuFooter={
         hasStagedChanges
           ? ({closeOverlay}: any) => (
               <FooterWrap>
                 <FooterInnerWrap>
-                  <Button borderless size="xs" onClick={closeOverlay}>
+                  <Button priority="transparent" size="xs" onClick={closeOverlay}>
                     {t('Cancel')}
                   </Button>
                   <Button
@@ -386,12 +389,12 @@ const FooterInnerWrap = styled('div')`
 
 const StyledOperatorButton = styled(Button)`
   width: 100%;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const StyledButton = styled(Button)`
   font-size: inherit;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.xs};

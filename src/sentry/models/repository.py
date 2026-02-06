@@ -165,23 +165,23 @@ class Repository(Model):
         if self.provider not in SUPPORTED_PROVIDERS:
             return
 
-        if OrganizationOption.objects.get_value(
+        enabled_code_review = OrganizationOption.objects.get_value(
             organization=self.organization_id,
             key="sentry:auto_enable_code_review",
             default=False,
-        ):
-            triggers = OrganizationOption.objects.get_value(
-                organization=self.organization_id,
-                key="sentry:default_code_review_triggers",
-                default=DEFAULT_CODE_REVIEW_TRIGGERS,
-            )
-            if not isinstance(triggers, list):
-                triggers = DEFAULT_CODE_REVIEW_TRIGGERS
+        )
+        triggers = OrganizationOption.objects.get_value(
+            organization=self.organization_id,
+            key="sentry:default_code_review_triggers",
+            default=DEFAULT_CODE_REVIEW_TRIGGERS,
+        )
+        if not isinstance(triggers, list):
+            triggers = DEFAULT_CODE_REVIEW_TRIGGERS
 
-            RepositorySettings.objects.get_or_create(
-                repository_id=self.id,
-                defaults={"enabled_code_review": True, "code_review_triggers": triggers},
-            )
+        RepositorySettings.objects.get_or_create(
+            repository_id=self.id,
+            defaults={"enabled_code_review": enabled_code_review, "code_review_triggers": triggers},
+        )
 
 
 def on_delete(instance, actor: RpcUser | None = None, **kwargs):

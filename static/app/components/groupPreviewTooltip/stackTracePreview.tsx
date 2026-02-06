@@ -101,11 +101,10 @@ type StackTracePreviewProps = {
   query?: string;
 };
 
-interface StackTracePreviewBodyProps
-  extends Pick<
-    StackTracePreviewProps,
-    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
-  > {
+interface StackTracePreviewBodyProps extends Pick<
+  StackTracePreviewProps,
+  'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
+> {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
@@ -201,7 +200,7 @@ const StackTracePreviewWrapper = styled('div')`
 const NoStackTraceWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   padding: ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
   justify-content: center;

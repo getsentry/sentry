@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -10,6 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
@@ -21,6 +22,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -32,6 +34,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
@@ -47,6 +50,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
+from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 from .utils import parse_gitlab_blob_url
@@ -110,7 +114,9 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
+class GitlabIntegration(
+    RepositoryIntegration, GitlabIssuesSpec, GitlabIssueSyncSpec, CommitContextIntegration
+):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -176,6 +182,77 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
             return ""
         _, source_path = parse_gitlab_blob_url(repo.url, url)
         return source_path
+
+    # IssueSyncIntegration methods
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        config: list[dict[str, Any]] = []
+
+        if self.check_feature_flag():
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync GitLab Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitLab, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitLab"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitLab issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitLab"),
+                        "help": _("Post comments from Sentry issues to linked GitLab issues"),
+                    },
+                ]
+            )
+
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        config = self._get_organization_config_default_values()
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     # CommitContextIntegration methods
 

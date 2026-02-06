@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Link} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
@@ -75,7 +76,7 @@ const StyledLink = styled(Link)`
   align-items: center;
   gap: ${space(0.25)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   svg {
     margin-top: 1px;
@@ -88,7 +89,7 @@ const NoTraceAvailable = styled('span')`
   gap: ${space(0.25)};
   line-height: 1.2;
   color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   svg {
     margin-top: 1px;

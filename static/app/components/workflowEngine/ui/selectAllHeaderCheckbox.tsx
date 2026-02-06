@@ -1,6 +1,6 @@
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 
 type SelectAllHeaderCheckboxProps = {

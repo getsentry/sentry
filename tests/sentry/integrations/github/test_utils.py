@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.integrations.github.utils import (
+    is_github_rate_limit_sensitive,
     parse_github_blob_url,
     should_create_or_increment_contributor_seat,
 )
@@ -38,18 +39,6 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         )
         assert result is False
 
-    def test_returns_false_for_code_review_beta_orgs(self):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
-
-        with self.feature(
-            ["organizations:seat-based-seer-enabled", "organizations:code-review-beta"]
-        ):
-            result = should_create_or_increment_contributor_seat(
-                self.organization, self.repo, self.contributor
-            )
-            assert result is False
-
     def test_returns_false_when_no_code_review_or_autofix_enabled(self):
         with self.feature("organizations:seat-based-seer-enabled"):
             result = should_create_or_increment_contributor_seat(
@@ -82,6 +71,18 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
             assert result is True
             mock_quota.assert_called_once()
 
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_true_when_autofix_enabled_and_quota_available(self, mock_quota):
+        self.create_code_mapping(project=self.project, repo=self.repo)
+        self.project.update_option("sentry:autofix_automation_tuning", "medium")
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_create_or_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+            assert result is True
+            mock_quota.assert_called_once()
+
     @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=False)
     def test_returns_false_when_quota_not_available(self, mock_quota):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
@@ -91,17 +92,6 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
                 self.organization, self.repo, self.contributor
             )
             assert result is False
-
-    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
-    def test_returns_true_when_autofix_enabled(self, mock_quota):
-        self.create_code_mapping(project=self.project, repo=self.repo)
-        self.project.update_option("sentry:autofix_automation_tuning", "medium")
-
-        with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
-                self.organization, self.repo, self.contributor
-            )
-            assert result is True
 
 
 @pytest.mark.parametrize(
@@ -140,3 +130,20 @@ def test_parse_github_blob_url(repo_url, source_url, expected_branch, expected_p
     branch, path = parse_github_blob_url(repo_url, source_url)
     assert branch == expected_branch
     assert path == expected_path
+
+
+class IsGithubRateLimitSensitiveTest(TestCase):
+    def test_returns_true_when_organization_slug_in_list(self):
+        org = self.create_organization(slug="org-1")
+        with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
+            assert is_github_rate_limit_sensitive(org.slug) is True
+
+    def test_returns_false_when_organization_slug_not_in_list(self):
+        org = self.create_organization(slug="org-3")
+        with self.options({"github-app.rate-limit-sensitive-orgs": ["org-1", "org-2"]}):
+            assert is_github_rate_limit_sensitive(org.slug) is False
+
+    def test_returns_false_when_list_is_empty(self):
+        org = self.create_organization(slug="org-1")
+        with self.options({"github-app.rate-limit-sensitive-orgs": []}):
+            assert is_github_rate_limit_sensitive(org.slug) is False

@@ -2,9 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Stack} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -26,6 +25,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -35,7 +35,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
@@ -64,21 +63,18 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {projectId} = useParams<{
-    projectId: string;
-  }>();
+  const {project: projectId, cursor} = useLocationQuery({
+    fields: {
+      project: decodeScalar,
+      cursor: decodeScalar,
+    },
+  });
   const project = ProjectsStore.getBySlug(projectId);
   const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
 
   const queryParams: Record<string, any> = {
     per_page: 25,
@@ -93,7 +89,9 @@ export function SizeCompareSelectionContent({
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/organizations/${organization.slug}/preprodartifacts/list-builds/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {query: queryParams},
       ],
       {
@@ -360,6 +358,6 @@ const BuildItemBranchTag = styled('span')`
   background-color: ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.accent};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;

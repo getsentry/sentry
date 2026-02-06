@@ -2,14 +2,14 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button, ButtonBar} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
   getArtifactsFromBlocks,
@@ -42,10 +42,12 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {readStorageValue} from 'sentry/utils/useSessionStorage';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 interface ExplorerSeerDrawerProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -60,10 +62,10 @@ interface ExplorerSeerDrawerProps {
 const drawerBreadcrumbs = (group: Group, event: Event, project: Project) => [
   {
     label: (
-      <CrumbContainer>
+      <Flex align="center" gap="md">
         <ProjectAvatar project={project} />
         <ShortId>{group.shortId}</ShortId>
-      </CrumbContainer>
+      </Flex>
     ),
   },
   {label: getShortEventId(event.id)},
@@ -92,10 +94,10 @@ function DrawerNavigator({
 }: DrawerNavigatorProps) {
   return (
     <SeerDrawerNavigator>
-      <HeaderContainer>
+      <Flex align="center" gap="sm">
         <Header>{t('Seer')}</Header>
         <IconSeer animation={iconAnimation} size="md" />
-      </HeaderContainer>
+      </Flex>
       <ButtonWrapper>
         <AutofixFeedback iconOnly />
 
@@ -154,6 +156,12 @@ export function ExplorerSeerDrawer({
     triggerCodingAgentHandoff,
   } = useExplorerAutofix(group.id);
 
+  // Check if the explorer panel is already open with this run
+  const {isOpen: isExplorerPanelOpen} = useExplorerPanel();
+  const explorerRunId = readStorageValue<number | null>('seer-explorer-run-id', null);
+  const isChatAlreadyOpen =
+    isExplorerPanelOpen && !!runState?.run_id && explorerRunId === runState.run_id;
+
   // Extract data from run state
   const blocks = useMemo(() => runState?.blocks ?? [], [runState?.blocks]);
   const artifacts = useMemo(() => getArtifactsFromBlocks(blocks), [blocks]);
@@ -198,9 +206,9 @@ export function ExplorerSeerDrawer({
   }, [runState?.run_id]);
 
   const handleCodingAgentHandoff = useCallback(
-    async (integrationId: number) => {
+    async (integration: CodingAgentIntegration) => {
       if (runState?.run_id) {
-        await triggerCodingAgentHandoff(runState.run_id, integrationId);
+        await triggerCodingAgentHandoff(runState.run_id, integration);
       }
     },
     [triggerCodingAgentHandoff, runState?.run_id]
@@ -392,6 +400,7 @@ export function ExplorerSeerDrawer({
                 status={runState.status}
                 loadingBlock={loadingBlock}
                 blocks={blocks}
+                isChatAlreadyOpen={isChatAlreadyOpen}
                 onOpenChat={handleOpenChat}
               />
             )}
@@ -405,6 +414,7 @@ export function ExplorerSeerDrawer({
               hasCodingAgents={
                 codingAgents !== undefined && Object.keys(codingAgents).length > 0
               }
+              isChatAlreadyOpen={isChatAlreadyOpen}
               onStartStep={handleStartStep}
               onCodingAgentHandoff={handleCodingAgentHandoff}
               onOpenChat={handleOpenChat}
@@ -420,7 +430,7 @@ export function ExplorerSeerDrawer({
 const DrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;
@@ -447,21 +457,18 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scroll-margin: 0 ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: column;
   direction: rtl;
-  * {
+
+  > * {
     direction: ltr;
   }
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
 const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
 `;
 
@@ -470,15 +477,9 @@ const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1;
 `;
 

@@ -91,7 +91,7 @@ describe('AssertionOpGroup', () => {
 
       await renderRootGroup(value);
 
-      expect(screen.getByRole('spinbutton')).toHaveValue(200);
+      expect(screen.getByRole('textbox')).toHaveValue('200');
     });
 
     it('adds operation in root mode', async () => {
@@ -229,7 +229,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Verify status code child rendered
-      expect(await screen.findByRole('spinbutton')).toHaveValue(200);
+      expect(await screen.findByRole('textbox')).toHaveValue('200');
 
       // Remove status code
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
@@ -241,7 +241,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Verify JSON path child rendered
-      expect(await screen.findByRole('textbox')).toBeInTheDocument();
+      expect(await screen.findByTestId('json-path-value-input')).toBeInTheDocument();
 
       // Remove JSON path
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
@@ -287,8 +287,8 @@ describe('AssertionOpGroup', () => {
       await renderGroup(value);
 
       // Verify status code input renders with correct value
-      const input = screen.getByRole('spinbutton');
-      expect(input).toHaveValue(200);
+      const input = screen.getByRole('textbox');
+      expect(input).toHaveValue('200');
     });
 
     it('updates json path child', async () => {
@@ -296,6 +296,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-1',
         op: 'json_path',
         value: '',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const value: AndOp = {
@@ -306,8 +308,8 @@ describe('AssertionOpGroup', () => {
 
       await renderGroup(value);
 
-      // Wait for the json path child textbox to render
-      const input = await screen.findByRole('textbox');
+      // Wait for the json path child input to render
+      const input = screen.getByTestId('json-path-value-input');
       await userEvent.type(input, 'x');
 
       // Verify onChange was called with the updated value
@@ -319,6 +321,8 @@ describe('AssertionOpGroup', () => {
             id: 'test-id-1',
             op: 'json_path',
             value: 'x',
+            operator: {cmp: 'equals'},
+            operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
       });
@@ -377,6 +381,8 @@ describe('AssertionOpGroup', () => {
         id: 'test-id-2',
         op: 'json_path',
         value: '$.status',
+        operator: {cmp: 'equals'},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
       const headerOp: HeaderCheckOp = {
@@ -405,8 +411,8 @@ describe('AssertionOpGroup', () => {
         <AssertionOpGroup value={value} onChange={mockOnChange} onRemove={mockOnRemove} />
       );
 
-      await screen.findByRole('spinbutton');
-      expect(screen.getByRole('spinbutton')).toHaveValue(200);
+      await screen.findByDisplayValue('200');
+      expect(screen.getByDisplayValue('200')).toBeInTheDocument();
       expect(screen.getByDisplayValue('$.status')).toBeInTheDocument();
       expect(screen.getByDisplayValue('X-Custom')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Assert Any'})).toBeInTheDocument();
@@ -440,7 +446,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Wait for nested group to render
-      await screen.findByRole('spinbutton');
+      await screen.findByDisplayValue('200');
 
       // Change the nested group type to "or"
       const assertAllButtons = screen.getAllByRole('button', {name: 'Assert All'});

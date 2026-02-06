@@ -1,10 +1,10 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metrics} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/profiling';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {onboarding} from './onboarding';
@@ -33,7 +33,9 @@ const docs: Docs<PlatformOptions> = {
     docsPlatform: 'vue',
     packageName: '@sentry/vue',
   }),
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/vue',
+  }),
 };
 
 export default docs;

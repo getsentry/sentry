@@ -1,15 +1,17 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +25,11 @@ export default function DocIntegrationDetailsView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
   const {data: doc, isPending} = useApiQuery<DocIntegration>(
-    [`/doc-integrations/${integrationSlug}/`],
+    [
+      getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+        path: {docIntegrationIdOrSlug: integrationSlug},
+      }),
+    ],
     {staleTime: Infinity, retry: false}
   );
 

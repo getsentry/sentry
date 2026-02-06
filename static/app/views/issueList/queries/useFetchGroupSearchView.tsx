@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
@@ -11,7 +12,9 @@ export const makeFetchGroupSearchViewKey = ({
   id,
   orgSlug,
 }: FetchGroupSearchViewsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/group-search-views/${id}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/group-search-views/$viewId/`, {
+    path: {organizationIdOrSlug: orgSlug, viewId: id},
+  }),
 ];
 
 export const useFetchGroupSearchView = (

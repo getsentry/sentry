@@ -6,13 +6,16 @@
 import abc
 from typing import Any
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.auth.services.auth import AuthenticationContext
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.services.region.model import (
     RpcEmptyResult,
+    RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
+    RpcServiceHookProjectsResult,
 )
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
@@ -35,6 +38,10 @@ class SentryAppRegionService(RpcService):
         from sentry.sentry_apps.services.region.impl import DatabaseBackedSentryAppRegionService
 
         return DatabaseBackedSentryAppRegionService()
+
+    def get_component_interaction_key(self, sentry_app_slug: str, component_type: str) -> str:
+        """Combines SentryApp.slug and SentryAppComponent.type to create a unique key for TSDB metrics."""
+        return f"{sentry_app_slug}:{component_type}"
 
     @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
@@ -92,6 +99,83 @@ class SentryAppRegionService(RpcService):
         external_issue_id: int,
     ) -> RpcEmptyResult:
         """Deletes a PlatformExternalIssue."""
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def get_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        auth_context: AuthenticationContext,
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Returns the service hook projects associated with an installation.
+        Validates that the caller has access to all required projects.
+        """
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def set_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        project_identifiers: list[int | str],
+        auth_context: AuthenticationContext,
+    ) -> RpcServiceHookProjectsResult:
+        """
+        Replaces all service hook projects with the given project identifiers (either ID or slug).
+        Accepts both due to a compatibility requirement with an active endpoint.
+        Validates that the caller has access to all required projects.
+        """
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def delete_service_hook_projects(
+        self,
+        *,
+        organization_id: int,
+        installation: RpcSentryAppInstallation,
+        auth_context: AuthenticationContext,
+    ) -> RpcEmptyResult:
+        """
+        Deletes service hook projects for an installation.
+        Validates that the caller has access to all required projects.
+        """
+        pass
+
+    @regional_rpc_method(
+        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
+    )
+    @abc.abstractmethod
+    def get_interaction_stats(
+        self,
+        *,
+        sentry_app: RpcSentryApp,
+        component_types: list[str],
+        since: float,
+        until: float,
+        resolution: int | None = None,
+    ) -> RpcInteractionStatsResult:
+        """Gets TSDB stats for Sentry App views and component interactions."""
+        pass
+
+    @regional_rpc_method(
+        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
+    )
+    @abc.abstractmethod
+    def record_interaction(
+        self,
+        *,
+        sentry_app: RpcSentryApp,
+        tsdb_field: str,
+        component_type: str | None = None,
+    ) -> RpcEmptyResult:
+        """Records a TSDB metric for Sentry App interactions."""
         pass
 
 

@@ -1,12 +1,14 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
@@ -81,8 +83,8 @@ export function ScreenshotCard({
 
   return (
     <StyledCard>
-      <CardHeader>
-        <ScreenshotInfo>
+      <Flex justify="between" flexShrink={0} paddingBottom="md">
+        <Stack minWidth="0">
           <Tooltip title={eventAttachment.name} showOnlyOnOverflow skipWrapper>
             <AttachmentName>{eventAttachment.name}</AttachmentName>
           </Tooltip>
@@ -96,7 +98,7 @@ export function ScreenshotCard({
               </Tooltip>
             </Link>
           </div>
-        </ScreenshotInfo>
+        </Stack>
         <DropdownMenu
           items={[
             {
@@ -126,12 +128,12 @@ export function ScreenshotCard({
               {...triggerProps}
               aria-label={t('Actions')}
               size="xs"
-              borderless
+              priority="transparent"
               icon={<IconEllipsis direction="down" size="sm" />}
             />
           )}
         />
-      </CardHeader>
+      </Flex>
       <CardBody>
         <StyledPanelBody
           onClick={() => openVisualizationModal()}
@@ -158,31 +160,18 @@ export function ScreenshotCard({
   );
 }
 
-const ScreenshotInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-`;
-
 const StyledCard = styled(Card)`
   margin: 0;
   padding: ${space(1)} ${space(1.5)};
 `;
 
 const AttachmentName = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   display: block;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const CardHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding-bottom: ${space(1)};
-  flex-shrink: 0;
 `;
 
 const CardBody = styled('div')`

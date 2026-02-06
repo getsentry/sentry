@@ -1,5 +1,5 @@
-import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 export function Acronym() {
   return (

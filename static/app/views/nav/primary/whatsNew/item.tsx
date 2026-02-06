@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
@@ -17,11 +19,10 @@ export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, st
   video: t('Video'),
 };
 
-interface BroadcastPanelItemProps
-  extends Pick<
-    Broadcast,
-    'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
-  > {}
+interface BroadcastPanelItemProps extends Pick<
+  Broadcast,
+  'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
+> {}
 
 export function WhatsNewItem({
   hasSeen,
@@ -39,7 +40,7 @@ export function WhatsNewItem({
 
   return (
     <SidebarPanelItemRoot>
-      <TextBlock>
+      <Stack align="start" marginBottom="lg">
         {category && (
           <CategoryTag variant="muted">{BROADCAST_CATEGORIES[category]}</CategoryTag>
         )}
@@ -47,7 +48,7 @@ export function WhatsNewItem({
           {title}
         </Title>
         <Message>{message}</Message>
-      </TextBlock>
+      </Stack>
       {mediaUrl && <Media src={mediaUrl} alt={title} />}
     </SidebarPanelItemRoot>
   );
@@ -64,9 +65,9 @@ const SidebarPanelItemRoot = styled('div')`
 `;
 
 const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.accent};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeight.bold}`};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.font.weight.sans.medium}`};
   &:focus-visible {
     box-shadow: none;
   }
@@ -74,13 +75,6 @@ const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
 
 const Message = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const TextBlock = styled('div')`
-  margin-bottom: ${space(1.5)};
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 `;
 
 const Media = styled('img')`

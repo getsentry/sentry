@@ -1,8 +1,9 @@
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'color'> {

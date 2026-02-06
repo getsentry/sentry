@@ -332,6 +332,7 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
+            noVisualizationPadding={canUseTimeseriesVisualization}
             onFullScreenViewClick={
               disableFullscreen
                 ? undefined
@@ -489,7 +490,7 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `You've selected a time range longer than the retention period for this dataset. Data older than [numDays] days may be unavailable.`,
+      `You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.`,
       {
         numDays: retentionLimitDays,
       }
@@ -542,9 +543,9 @@ const ErrorCard = styled(Placeholder)`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${p => p.theme.alert.danger.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.danger.border};
-  color: ${p => p.theme.alert.danger.textLight};
+  background-color: ${p => p.theme.colors.red100};
+  border: 1px solid ${p => p.theme.colors.red200};
+  color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
   margin-bottom: ${space(2)};
 `;

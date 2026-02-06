@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconSeer} from 'sentry/icons';
 
 interface SeerSearchHeaderProps {
@@ -10,20 +12,12 @@ interface SeerSearchHeaderProps {
 
 export function AskSeerSearchHeader({title, loading = false}: SeerSearchHeaderProps) {
   return (
-    <HeaderWrapper>
+    <Flex align="center" padding="lg xl" gap="md" width="100%">
       <StyledIconSeer animation={loading ? 'loading' : undefined} />
       <Text>{title}</Text>
-    </HeaderWrapper>
+    </Flex>
   );
 }
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  width: 100%;
-`;
 
 const StyledIconSeer = styled(IconSeer)`
   color: ${p => p.theme.tokens.content.accent};

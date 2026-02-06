@@ -4,28 +4,25 @@ interface BuildLinkParams {
   baseArtifactId?: string;
 }
 
-export function getBaseBuildPath(params: BuildLinkParams): string | undefined {
+export function getBaseBuildPath(
+  params: BuildLinkParams,
+  viewType?: 'size' | 'install'
+): string | undefined {
   const {organizationSlug, projectId, baseArtifactId} = params;
 
   if (!baseArtifactId) {
     return undefined;
   }
 
-  return `/organizations/${organizationSlug}/preprod/${projectId}/${baseArtifactId}/`;
+  return `/organizations/${organizationSlug}/preprod/${viewType}/${baseArtifactId}/?project=${projectId}`;
 }
 
 export function getSizeBuildPath(params: BuildLinkParams): string | undefined {
-  return getBaseBuildPath(params);
+  return getBaseBuildPath(params, 'size');
 }
 
 export function getInstallBuildPath(params: BuildLinkParams): string | undefined {
-  const basePath = getBaseBuildPath(params);
-
-  if (!basePath) {
-    return undefined;
-  }
-
-  return `${basePath}install/`;
+  return getBaseBuildPath(params, 'install');
 }
 
 export function getCompareBuildPath(params: {
@@ -36,12 +33,11 @@ export function getCompareBuildPath(params: {
 }): string {
   const {organizationSlug, projectId, headArtifactId, baseArtifactId} = params;
 
-  let path = `/organizations/${organizationSlug}/preprod/${projectId}/compare/${headArtifactId}/`;
   if (baseArtifactId) {
-    path += `${baseArtifactId}/`;
+    return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/${baseArtifactId}/?project=${projectId}`;
   }
 
-  return path;
+  return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/?project=${projectId}`;
 }
 
 export function getListBuildPath(params: {
@@ -49,7 +45,7 @@ export function getListBuildPath(params: {
   projectId: string;
 }): string {
   const {organizationSlug, projectId} = params;
-  return `/organizations/${organizationSlug}/preprod/${projectId}/`;
+  return `/organizations/${organizationSlug}/preprod/?project=${projectId}`;
 }
 
 export function formatBuildName(

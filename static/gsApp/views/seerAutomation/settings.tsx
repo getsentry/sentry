@@ -1,5 +1,5 @@
-import {Flex} from '@sentry/scraps/layout/flex';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';

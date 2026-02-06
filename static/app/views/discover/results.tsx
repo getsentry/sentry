@@ -5,15 +5,16 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -36,6 +37,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -650,7 +652,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showQueryIncompatibleWithDataset: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -723,7 +725,7 @@ export class Results extends Component<Props, State> {
                   this.setState({showTransactionsDeprecationAlert: false});
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
               />
             }
           >
@@ -974,7 +976,12 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
-      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          queryId: decodeScalar(location.query.id)!,
+        },
+      }),
     ],
     [organization, location.query.id]
   );

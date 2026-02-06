@@ -2,16 +2,15 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,15 +27,19 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {DateString} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -45,9 +48,6 @@ import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeD
 import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
 import Sidebar from './sidebar';
-
-interface AlertRuleDetailsProps
-  extends RouteComponentProps<{projectId: string; ruleId: string}> {}
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -66,14 +66,23 @@ const getIssueAlertDetailsQueryKey = ({
   projectSlug: string;
   ruleId: string;
 }): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
+  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/', {
+    path: {
+      organizationIdOrSlug: orgSlug,
+      projectIdOrSlug: projectSlug,
+      ruleId,
+    },
+  }),
   {query: {expand: 'lastTriggered'}},
 ];
 
-function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
+export default function AlertRuleDetails() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const api = useApi();
+  const location = useLocation();
+  const params = useParams<{projectId: string; ruleId: string}>();
+  const router = useRouter();
   const {projects, fetching: projectIsLoading} = useProjects();
   const project = projects.find(({slug}) => slug === params.projectId);
   const {projectId: projectSlug, ruleId} = params;
@@ -371,7 +380,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   }
 
   const {period, start, end, utc} = getDataDatetime();
-  const {cursor} = location.query;
+  const cursor = decodeScalar(location.query.cursor);
   return (
     <PageFiltersContainer
       skipInitializeUrlParams
@@ -508,8 +517,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   );
 }
 
-export default AlertRuleDetails;
-
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
@@ -519,5 +526,5 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const BoldButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

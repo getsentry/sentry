@@ -14,8 +14,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 type OriginPoint = Partial<{x: number; y: number}>;
 
 interface OverlayProps
-  extends HTMLMotionProps<'div'>,
-    React.RefAttributes<HTMLDivElement> {
+  extends HTMLMotionProps<'div'>, React.RefAttributes<HTMLDivElement> {
   /**
    * Whether the overlay should animate in/out. If true, we'll also need
    * the `placement` and `originPoint` props.
@@ -142,7 +141,7 @@ const OverlayInner = styled(motion.div)<{
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
 
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;

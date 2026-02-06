@@ -1,21 +1,19 @@
-import styled from '@emotion/styled';
-
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
-import {space} from 'sentry/styles/space';
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="name">
-    <IntegrationName>
+    <Flex align="center" gap="md">
       <SentryAppAvatar size={16} sentryApp={row} />
       <strong>
         <Link to={`/_admin/sentry-apps/${row.slug}/`}>{row.name}</Link>
       </strong>
-    </IntegrationName>
+    </Flex>
   </td>,
 
   <td key="owner" style={{textAlign: 'center'}}>
@@ -62,9 +60,3 @@ export default function SentryApps() {
     </div>
   );
 }
-
-const IntegrationName = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;

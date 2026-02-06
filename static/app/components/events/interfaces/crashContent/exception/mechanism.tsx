@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import Pill from 'sentry/components/pill';

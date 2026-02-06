@@ -210,7 +210,7 @@ function Chart({
       max: dataMax,
       type: 'value',
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter(value: number) {
           return axisLabelFormatter(value, 'number', true);
         },
@@ -278,7 +278,7 @@ function Chart({
       max: dataMax,
       type: log ? 'log' : 'value',
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter(value: number) {
           return axisLabelFormatter(
             value,
@@ -472,7 +472,7 @@ function Chart({
             splitNumber: definedAxisTicks,
             max: dataMax,
             axisLabel: {
-              color: theme.tokens.content.muted,
+              color: theme.tokens.content.secondary,
               formatter(value: number) {
                 return axisLabelFormatter(
                   value,
@@ -604,7 +604,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -63,7 +64,7 @@ const BreakdownGrid = styled('div')`
 `;
 
 const Percentage = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   text-align: right;
 `;
 
@@ -80,7 +81,7 @@ const Label = styled('span')`
   position: relative;
   color: ${p => p.theme.tokens.content.primary};
   z-index: 2;
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Bar = styled('div')<{active?: boolean}>`

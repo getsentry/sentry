@@ -1,6 +1,5 @@
 import {useCallback, useState} from 'react';
 
-import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   Confidence,
@@ -12,13 +11,11 @@ import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import useOrganization from 'sentry/utils/useOrganization';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
-import type {WidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
@@ -27,18 +24,16 @@ import {
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {
-  GenericWidgetQueriesChildrenProps,
+  GenericWidgetQueriesResult,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
-import GenericWidgetQueries from './genericWidgetQueries';
+import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
 type SpansWidgetQueriesProps = {
-  api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
-  selection: PageFilters;
+  children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
@@ -46,7 +41,8 @@ type SpansWidgetQueriesProps = {
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
-  queue?: WidgetQueryQueue;
+  // Optional selection override for widget viewer modal zoom functionality
+  selection?: PageFilters;
 };
 
 type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
@@ -108,9 +104,6 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
 
 function SpansWidgetQueriesSingleRequestImpl({
   children,
-  api,
-  queue,
-  selection,
   widget,
   cursor,
   limit,
@@ -118,9 +111,9 @@ function SpansWidgetQueriesSingleRequestImpl({
   onDataFetched,
   onDataFetchStart,
   getConfidenceInformation,
+  selection,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
-  const organization = useOrganization();
   const [confidence, setConfidence] = useState<Confidence | null>(null);
   const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
   const [isSampled, setIsSampled] = useState<boolean | null>(null);
@@ -139,33 +132,26 @@ function SpansWidgetQueriesSingleRequestImpl({
     });
   };
 
+  const props = useGenericWidgetQueries<SeriesResult, TableResult>({
+    config,
+    widget,
+    cursor,
+    limit,
+    dashboardFilters,
+    onDataFetched,
+    onDataFetchStart,
+    afterFetchSeriesData,
+    samplingMode: SAMPLING_MODE.NORMAL,
+    selection,
+  });
+
   return getDynamicText({
-    value: (
-      <GenericWidgetQueries<SeriesResult, TableResult>
-        config={config}
-        api={api}
-        queue={queue}
-        organization={organization}
-        selection={selection}
-        widget={widget}
-        cursor={cursor}
-        limit={limit}
-        dashboardFilters={dashboardFilters}
-        onDataFetched={onDataFetched}
-        onDataFetchStart={onDataFetchStart}
-        afterFetchSeriesData={afterFetchSeriesData}
-        samplingMode={SAMPLING_MODE.NORMAL}
-      >
-        {props =>
-          children({
-            ...props,
-            confidence,
-            sampleCount,
-            isSampled,
-          })
-        }
-      </GenericWidgetQueries>
-    ),
+    value: children({
+      ...props,
+      confidence,
+      sampleCount,
+      isSampled,
+    }),
     fixed: <div />,
   });
 }
