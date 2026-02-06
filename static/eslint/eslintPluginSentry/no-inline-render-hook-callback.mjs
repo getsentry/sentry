@@ -1,27 +1,6 @@
 const HOOK_RENDERERS = new Set(['renderHook', 'renderHookWithProviders']);
 
 /**
- * @param {import('estree').Expression | import('estree').Super | null | undefined} callee
- * @returns {callee is import('estree').Identifier}
- */
-function isHookRenderer(callee) {
-  return Boolean(
-    callee && callee.type === 'Identifier' && HOOK_RENDERERS.has(callee.name)
-  );
-}
-
-/**
- * @param {import('estree').CallExpression['arguments'][number] | undefined} node
- * @returns {node is import('estree').ArrowFunctionExpression | import('estree').FunctionExpression}
- */
-function isInlineFunction(node) {
-  return Boolean(
-    node &&
-    (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression')
-  );
-}
-
-/**
  * @type {import('eslint').Rule.RuleModule}
  */
 const noInlineRenderHookCallback = {
@@ -42,19 +21,27 @@ const noInlineRenderHookCallback = {
   create(context) {
     return {
       CallExpression(node) {
-        if (!isHookRenderer(node.callee)) {
+        const callee = node.callee;
+        if (callee.type !== 'Identifier' || !HOOK_RENDERERS.has(callee.name)) {
           return;
         }
 
         const callbackArg = node.arguments[0];
-        if (!isInlineFunction(callbackArg)) {
+        if (!callbackArg || callbackArg.type === 'SpreadElement') {
+          return;
+        }
+
+        if (
+          callbackArg.type !== 'ArrowFunctionExpression' &&
+          callbackArg.type !== 'FunctionExpression'
+        ) {
           return;
         }
 
         context.report({
           node: callbackArg,
           messageId: 'forbidden',
-          data: {renderer: node.callee.name},
+          data: {renderer: callee.name},
         });
       },
     };
