@@ -5,13 +5,13 @@ import pytest
 from sentry.integrations.github.utils import (
     is_github_rate_limit_sensitive,
     parse_github_blob_url,
-    should_create_or_increment_contributor_seat,
+    should_increment_contributor_seat,
 )
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.testutils.cases import TestCase
 
 
-class ShouldCreateOrIncrementContributorSeatTest(TestCase):
+class ShouldIncrementContributorSeatTest(TestCase):
     def setUp(self):
         super().setUp()
         self.integration = self.create_integration(
@@ -34,14 +34,12 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
     def test_returns_false_when_seat_based_seer_disabled(self):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
-        result = should_create_or_increment_contributor_seat(
-            self.organization, self.repo, self.contributor
-        )
+        result = should_increment_contributor_seat(self.organization, self.repo, self.contributor)
         assert result is False
 
     def test_returns_false_when_no_code_review_or_autofix_enabled(self):
         with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
+            result = should_increment_contributor_seat(
                 self.organization, self.repo, self.contributor
             )
             assert result is False
@@ -55,8 +53,20 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=repo_no_integration, enabled_code_review=True)
 
         with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
+            result = should_increment_contributor_seat(
                 self.organization, repo_no_integration, self.contributor
+            )
+            assert result is False
+
+    @patch("sentry.integrations.github.utils.quotas.backend.check_seer_quota", return_value=True)
+    def test_returns_false_when_contributor_is_bot(self, mock_quota):
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.contributor.alias = "testuser[bot]"
+        self.contributor.save()
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
             )
             assert result is False
 
@@ -65,7 +75,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
         with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
+            result = should_increment_contributor_seat(
                 self.organization, self.repo, self.contributor
             )
             assert result is True
@@ -77,7 +87,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.project.update_option("sentry:autofix_automation_tuning", "medium")
 
         with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
+            result = should_increment_contributor_seat(
                 self.organization, self.repo, self.contributor
             )
             assert result is True
@@ -88,7 +98,7 @@ class ShouldCreateOrIncrementContributorSeatTest(TestCase):
         self.create_repository_settings(repository=self.repo, enabled_code_review=True)
 
         with self.feature("organizations:seat-based-seer-enabled"):
-            result = should_create_or_increment_contributor_seat(
+            result = should_increment_contributor_seat(
                 self.organization, self.repo, self.contributor
             )
             assert result is False
