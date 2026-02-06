@@ -49,19 +49,13 @@ class IssueReaction(TypedDict):
 class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
-    name: str
     sha: str
 
 
 class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
-    id: str
-    title: str
-    description: str | None
     head: PullRequestBranch
-    base: PullRequestBranch
-    author: Author
 
 
 class PullRequestActionResult(TypedDict):

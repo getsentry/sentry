@@ -163,15 +163,7 @@ class TestGitHubProviderIntegration(TestCase):
         result = self.provider.get_pull_request(self.repository, "1347")
 
         pr = result["pull_request"]
-        assert pr["id"] == "1"
-        assert pr["title"] == "Amazing new feature"
-        assert pr["description"] == "Please pull these awesome changes in!"
-        assert pr["head"]["name"] == "new-topic"
         assert pr["head"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
-        assert pr["base"]["name"] == "master"
-        assert pr["base"]["sha"] == "6dcb09b5b57875f334f61aebed695e2e4193db5f"
-        assert pr["author"]["id"] == "1"
-        assert pr["author"]["username"] == "octocat"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

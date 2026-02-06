@@ -114,9 +114,7 @@ def _check_issue_comments(result: Any) -> None:
 
 def _check_pull_request(result: Any) -> None:
     pr = result["pull_request"]
-    assert pr["id"] == "1"
     assert pr["head"]["sha"] == "abc123"
-    assert pr["base"]["sha"] == "def456"
 
 
 def _check_pull_request_comments(result: Any) -> None:

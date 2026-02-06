@@ -80,21 +80,11 @@ class BaseTestProvider(Provider):
         self, repository: Repository, pull_request_id: str
     ) -> PullRequestActionResult:
         raw: dict[str, Any] = {
-            "id": 1,
-            "title": "Test PR",
-            "body": None,
-            "head": {"ref": "feature", "sha": "abc123"},
-            "base": {"ref": "main", "sha": "def456"},
-            "user": {"id": 1, "login": "testuser"},
+            "head": {"sha": "abc123"},
         }
         return PullRequestActionResult(
             pull_request=PullRequest(
-                id=str(raw["id"]),
-                title=raw["title"],
-                description=raw["body"],
-                head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
-                base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
-                author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+                head={"sha": raw["head"]["sha"]},
             ),
             provider="test",
             raw=raw,

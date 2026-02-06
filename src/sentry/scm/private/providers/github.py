@@ -56,12 +56,7 @@ def _transform_issue_reaction(raw: dict[str, Any]) -> IssueReaction:
 def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
     return PullRequestActionResult(
         pull_request=PullRequest(
-            id=str(raw["id"]),
-            title=raw["title"],
-            description=raw.get("body"),
-            head={"name": raw["head"]["ref"], "sha": raw["head"]["sha"]},
-            base={"name": raw["base"]["ref"], "sha": raw["base"]["sha"]},
-            author={"id": str(raw["user"]["id"]), "username": raw["user"]["login"]},
+            head={"sha": raw["head"]["sha"]},
         ),
         provider="github",
         raw=raw,
