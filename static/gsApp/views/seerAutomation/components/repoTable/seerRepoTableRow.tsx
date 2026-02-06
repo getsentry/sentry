@@ -99,19 +99,6 @@ export default function SeerRepoTableRow({
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        <Text size="sm">
-          {repository.settings?.codeReviewTriggers
-            .sort()
-            .map(triggerToLabel)
-            .map((label, index, array) => (
-              <div key={label}>
-                {label}
-                {index === array.length - 1 ? '' : ', '}
-              </div>
-            ))}
-        </Text>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
         <Switch
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
@@ -157,6 +144,19 @@ export default function SeerRepoTableRow({
             );
           }}
         />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
+        <Text size="sm">
+          {repository.settings?.codeReviewTriggers
+            .sort()
+            .map(triggerToLabel)
+            .map((label, index, array) => (
+              <div key={label}>
+                {label}
+                {index === array.length - 1 ? '' : ', '}
+              </div>
+            ))}
+        </Text>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

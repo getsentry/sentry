@@ -380,6 +380,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     left: 24px;
     bottom: unset;
     height: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 `;

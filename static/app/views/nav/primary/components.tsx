@@ -310,6 +310,7 @@ const Separator = styled('hr')`
   outline: 0;
   border: 0;
   height: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.secondary};
   margin: 0;
 `;

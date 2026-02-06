@@ -101,5 +101,5 @@ const VisiblePanel = styled('div')`
   width: 100%;
   margin: 0;
   border: 0;
-  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
 `;

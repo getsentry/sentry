@@ -183,10 +183,8 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 
 
 def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
-
-    if fingerprint_variant:
-        record_did_call_seer_metric(event, call_made=False, blocker=fingerprint_variant.type)
+    if any(key.endswith("fingerprint") and "hybrid" not in key for key in variants):
+        record_did_call_seer_metric(event, call_made=False, blocker="custom_fingerprint")
         return True
 
     return False

@@ -27,10 +27,10 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_stacktrace
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: function:"main" -> "{{ type }}{{ module }}{{ function }}"
     type: custom_fingerprint
     values:
