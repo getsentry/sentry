@@ -1,4 +1,5 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -14,6 +15,11 @@ import {
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
+
+const HookedDisableDetectorAction = HookOrDefault({
+  hookName: 'component:disabled-detector-action',
+  defaultComponent: DisableDetectorAction,
+});
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
@@ -58,7 +64,7 @@ function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
   return (
     <DetailLayout.Actions>
       <MonitorFeedbackButton />
-      <DisableDetectorAction detector={detector} />
+      <HookedDisableDetectorAction detector={detector} />
       <EditDetectorAction detector={detector} />
     </DetailLayout.Actions>
   );
