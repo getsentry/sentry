@@ -7,6 +7,6 @@ import {TreeNode} from './treeNode';
 
 export class AndOpTreeNode extends TreeNode<AndOp> {
   renderRow(): ReactNode {
-    return <AndOpRow />;
+    return <AndOpRow node={this} />;
   }
 }
