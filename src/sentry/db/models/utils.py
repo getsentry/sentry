@@ -103,9 +103,7 @@ def slugify_instance(
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    value = slugify(label)[:max_length]
-    value = value.strip("-")
-
+    value = slugify(label)[:max_length].strip("-")
     return unique_db_instance(inst, value, reserved, max_length, field_name, *args, **kwargs)
 
 
