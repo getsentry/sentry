@@ -51,7 +51,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-widget',
-      title: t('Throughput'),
+      title: t('Transaction Throughput'),
       displayType: DisplayType.LINE,
       interval: '5m',
       queries: [
@@ -69,7 +69,7 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     },
     {
       id: 'duration-widget',
-      title: t('Duration'),
+      title: t('Transaction Duration'),
       displayType: DisplayType.LINE,
       interval: '5m',
       queries: [
