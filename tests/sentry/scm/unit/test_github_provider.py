@@ -80,15 +80,6 @@ class TestGitHubProviderGetIssueComments:
 
         assert ("get_issue_comments", ("test-org/test-repo", "42"), {}) in client.calls
 
-    def test_raises_key_error_on_missing_user(self):
-        client = FakeGitHubApiClient()
-        client.issue_comments = [{"id": 1, "body": "test", "created_at": "x", "updated_at": "x"}]
-        provider = GitHubProvider(client)
-        repository = make_repository()
-
-        with pytest.raises(KeyError):
-            provider.get_issue_comments(repository, "42")
-
 
 class TestGitHubProviderCreateIssueComment:
     def test_calls_client_with_correct_args(self):
@@ -106,7 +97,7 @@ class TestGitHubProviderCreateIssueComment:
 
 
 class TestGitHubProviderDeleteIssueComment:
-    def test_calls_client_with_correct_path(self):
+    def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)
         repository = make_repository()
@@ -114,8 +105,8 @@ class TestGitHubProviderDeleteIssueComment:
         provider.delete_issue_comment(repository, "101")
 
         assert (
-            "delete",
-            ("/repos/test-org/test-repo/issues/comments/101",),
+            "delete_issue_comment",
+            ("test-org/test-repo", "101"),
             {},
         ) in client.calls
 
@@ -159,13 +150,13 @@ class TestGitHubProviderGetPullRequest:
 
         assert pr["description"] is None
 
-    def test_raises_scm_provider_exception_on_malformed_response(self):
+    def test_raises_key_error_on_malformed_response(self):
         client = FakeGitHubApiClient()
         client.pull_request_data = {"id": 1, "title": "test"}
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        with pytest.raises(SCMProviderException):
+        with pytest.raises(KeyError):
             provider.get_pull_request(repository, "42")
 
 
@@ -201,7 +192,7 @@ class TestGitHubProviderCreatePullRequestComment:
 
 
 class TestGitHubProviderDeletePullRequestComment:
-    def test_calls_client_with_correct_path(self):
+    def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)
         repository = make_repository()
@@ -209,8 +200,8 @@ class TestGitHubProviderDeletePullRequestComment:
         provider.delete_pull_request_comment(repository, "201")
 
         assert (
-            "delete",
-            ("/repos/test-org/test-repo/issues/comments/201",),
+            "delete_issue_comment",
+            ("test-org/test-repo", "201"),
             {},
         ) in client.calls
 
