@@ -157,6 +157,8 @@ export const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'curl -X GET -I https://url.of.server.aws/api/bad',
         },
+        logsVerify(params),
+        metricsVerify(params),
         {
           type: 'text',
           text: tct(
@@ -170,21 +172,5 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
-    ...(params.isLogsSelected
-      ? [
-          {
-            title: t('Verify Logs'),
-            content: [logsVerify(params)],
-          },
-        ]
-      : []),
-    ...(params.isMetricsSelected
-      ? [
-          {
-            title: t('Verify Metrics'),
-            content: [metricsVerify(params)],
-          },
-        ]
-      : []),
   ],
 };
