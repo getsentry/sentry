@@ -84,6 +84,19 @@ class TestGitHubProviderGetIssueComments:
         assert comments[0]["comment"]["body"] == "ghost comment"
         assert comments[0]["comment"]["author"] is None
 
+    def test_returns_none_body_when_body_is_none(self):
+        client = FakeGitHubApiClient()
+        client.issue_comments = [{"id": 1, "body": None, "user": {"id": 1, "login": "testuser"}}]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        comments = provider.get_issue_comments(repository, "42")
+
+        assert len(comments) == 1
+        assert comments[0]["comment"]["id"] == "1"
+        assert comments[0]["comment"]["body"] is None
+        assert comments[0]["comment"]["author"]["username"] == "testuser"
+
     def test_calls_client_with_correct_args(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)

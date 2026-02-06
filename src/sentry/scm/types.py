@@ -21,7 +21,7 @@ class Comment(TypedDict):
     """Provider-agnostic representation of an issue or pull-request comment."""
 
     id: str
-    body: str
+    body: str | None
     author: Author | None
 
 
