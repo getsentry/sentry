@@ -1,0 +1,55 @@
+name: classify test services
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/service-classification-poc
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  classify:
+    name: classify test service dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run test suite with service classification
+        env:
+          PYTEST_ADDOPTS: "${{ env.PYTEST_ADDOPTS }} --classify-services --classification-output=test-service-classification.json"
+        run: |
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            -o junit_suite_name=pytest \
+            || true
+
+      - name: Upload classification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-service-classification
+          path: test-service-classification.json
+          retention-days: 90
