@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import asdict, replace
 from datetime import datetime
 from enum import StrEnum
@@ -6,6 +6,7 @@ from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
+from django.db.models import Q
 
 from sentry import features
 from sentry.models.activity import Activity
@@ -378,6 +379,31 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
 
 
+def _get_associated_workflows(
+    detectors: Collection[Detector], environment: Environment | None
+) -> set[Workflow]:
+    """
+    Get workflows associated with detectors and environment via direct DB query.
+    Used as fallback when cache is disabled via feature flag.
+    """
+    detector_ids = [detector.id for detector in detectors]
+
+    environment_filter = (
+        (Q(environment_id=None) | Q(environment_id=environment.id))
+        if environment
+        else Q(environment_id=None)
+    )
+    return set(
+        Workflow.objects.filter(
+            environment_filter,
+            detectorworkflow__detector_id__in=detector_ids,
+            enabled=True,
+        )
+        .select_related("environment")
+        .distinct()
+    )
+
+
 @log_context.root()
 def process_workflows(
     batch_client: DelayedWorkflowClient,
@@ -450,7 +476,10 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    if features.has("organizations:workflow-engine-process-workflows-cache", organization):
+        workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    else:
+        workflows = _get_associated_workflows(event_detectors.detectors, environment)
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))

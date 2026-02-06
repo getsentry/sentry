@@ -598,6 +598,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging workflow evaluations (bypasses sample rate when enabled)
     manager.add("organizations:workflow-engine-log-evaluations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable caching for workflow detector lookups
+    manager.add("organizations:workflow-engine-process-workflows-cache", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logs to debug various metric issue things
     manager.add("organizations:workflow-engine-metric-alert-dual-processing-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Creation of Metric Alerts that use the `group_by` field in the workflow_engine
