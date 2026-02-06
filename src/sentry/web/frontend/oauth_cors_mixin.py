@@ -65,9 +65,6 @@ class OAuthCORSMixin:
         """Add CORS headers based on application's allowed_origins."""
         origin = request.META.get("HTTP_ORIGIN")
 
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = self.cors_allowed_headers
-
         # Native clients (no Origin header) don't need CORS headers
         if not origin:
             return response
@@ -75,19 +72,18 @@ class OAuthCORSMixin:
         # For OPTIONS preflight, we don't have the app yet, so allow all origins
         # The actual POST request will validate the origin against allowed_origins
         if request.method == "OPTIONS":
-            response["Access-Control-Allow-Origin"] = origin
-            return response
+            return self._set_cors_headers(response, origin)
 
         # For POST requests without a validated app (error responses), don't set
-        # Access-Control-Allow-Origin. This is secure: browsers will block
-        # cross-origin scripts from reading the error response.
+        # CORS headers. This is secure: browsers will block cross-origin scripts
+        # from reading the error response.
         if not self.application:
             return response
 
         # For POST requests with a validated app, check allowed_origins
         allowed = self.application.get_allowed_origins()
         if not allowed or ("*" not in allowed and origin not in allowed):
-            # Origin not in allowed list - don't set Access-Control-Allow-Origin
+            # Origin not in allowed list - don't set CORS headers
             # This causes the browser to block the response
             logger.warning(
                 self.cors_log_tag,
@@ -99,5 +95,13 @@ class OAuthCORSMixin:
             )
             return response
 
+        return self._set_cors_headers(response, origin)
+
+    def _set_cors_headers(
+        self, response: HttpResponseBase, origin: str
+    ) -> HttpResponseBase:
+        """Set all CORS headers on the response for a valid origin."""
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = self.cors_allowed_headers
         response["Access-Control-Allow-Origin"] = origin
         return response
