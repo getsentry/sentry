@@ -174,9 +174,7 @@ def handle_preprod_check_run_event(
         amount=approvals_created,
     )
 
-    create_preprod_status_check_task.apply_async(
-        kwargs={
-            "preprod_artifact_id": artifact.id,
-            "caller": "github_approve_webhook",
-        }
+    create_preprod_status_check_task(
+        preprod_artifact_id=artifact.id,
+        caller="github_approve_webhook",
     )
