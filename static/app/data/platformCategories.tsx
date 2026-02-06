@@ -407,6 +407,14 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'apple',
   'apple-ios',
   'apple-macos',
+  'dotnet',
+  'dotnet-aspnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-winforms',
+  'dotnet-wpf',
   'react-native',
   'go',
   'go-echo',
@@ -480,13 +488,14 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
-export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
+export const withoutMetricsSupport: Set<PlatformKey> = new Set(['dotnet-xamarin']);
 
 export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'android',
   'apple',
   'bun',
   'dart',
+  'dotnet',
   'electron',
   'go',
   'java',

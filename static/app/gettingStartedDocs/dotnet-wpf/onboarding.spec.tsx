@@ -14,7 +14,11 @@ describe('wpf onboarding docs', () => {
           version: '1.99.9',
         },
       },
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.METRICS,
+      ],
     });
 
     // Renders main headings
@@ -23,7 +27,6 @@ describe('wpf onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry

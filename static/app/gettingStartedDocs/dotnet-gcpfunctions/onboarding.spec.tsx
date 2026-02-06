@@ -14,14 +14,13 @@ describe('gcpfunctions onboarding docs', () => {
           version: '1.99.9',
         },
       },
-      selectedProducts: [ProductSolution.LOGS],
+      selectedProducts: [ProductSolution.LOGS, ProductSolution.METRICS],
     });
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify Logs'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
