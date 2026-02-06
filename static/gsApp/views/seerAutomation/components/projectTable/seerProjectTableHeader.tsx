@@ -60,7 +60,7 @@ const COLUMNS = [
         {t('Coding Agent')}
         <QuestionTooltip
           title={t(
-            'Coding agent delegation can only be changed on the individual project settings page.'
+            'Coding agent delegation can only be changed on the individual project settings page. Coding agents have more settings that are not shown here.'
           )}
           size="xs"
         />
