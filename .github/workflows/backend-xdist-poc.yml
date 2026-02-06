@@ -42,7 +42,8 @@ jobs:
 
       - name: Upgrade pytest-rerunfailures for xdist compatibility
         run: |
-          pip install --index-url https://pypi.org/simple/ 'pytest-rerunfailures>=16.1'
+          .venv/bin/pip install --index-url https://pypi.org/simple/ 'pytest-rerunfailures>=16.1'
+          .venv/bin/python -c "import pytest_rerunfailures; print(f'pytest-rerunfailures version: {pytest_rerunfailures.__version__}')"
 
       - name: Run tests with xdist -n2 --dist=loadfile
         run: |
