@@ -4,14 +4,8 @@ import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
@@ -20,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -143,7 +136,6 @@ type CreateAlertButtonProps = {
   onEnter?: () => void;
   projectSlug?: string;
   referrer?: string;
-  showPermissionGuide?: boolean;
   to?: string | LocationDescriptor;
 } & Omit<LinkButtonProps, 'to'>;
 
@@ -153,14 +145,12 @@ export default function CreateAlertButton({
   iconProps,
   referrer,
   hideIcon,
-  showPermissionGuide,
   alertOption,
   onEnter,
   to,
   ...buttonProps
 }: CreateAlertButtonProps) {
   const router = useRouter();
-  const api = useApi();
   const {projects} = useProjects();
   const shouldDirectToMonitors =
     organization.features.includes('workflow-engine-ui') &&
@@ -199,31 +189,20 @@ export default function CreateAlertButton({
     navigateTo(createAlertUrl(':projectId'), router);
   }
 
-  async function enableAlertsMemberWrite() {
-    const settingsEndpoint = `/organizations/${organization.slug}/`;
-    addLoadingMessage();
-    try {
-      await api.requestPromise(settingsEndpoint, {
-        method: 'PUT',
-        data: {
-          alertsMemberWrite: true,
-        },
-      });
-      addSuccessMessage(t('Successfully updated organization settings'));
-    } catch (err) {
-      addErrorMessage(t('Unable to update organization settings'));
-    }
-  }
-
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
     {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
-  const renderButton = (hasAccess: boolean) => (
+  const canCreateAlert =
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+
+  return (
     <LinkButton
-      disabled={!hasAccess}
-      title={hasAccess ? undefined : permissionTooltipText}
+      disabled={!canCreateAlert}
+      title={canCreateAlert ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
@@ -238,23 +217,5 @@ export default function CreateAlertButton({
     >
       {buttonProps.children ?? defaultButtonLabel}
     </LinkButton>
-  );
-
-  const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
-  const canCreateAlert =
-    isDemoModeActive() ||
-    hasEveryAccess(['alerts:write'], {organization}) ||
-    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
-  const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
-
-  return showGuide ? (
-    <GuideAnchor
-      target={hasOrgWrite ? 'alerts_write_owner' : 'alerts_write_member'}
-      onFinish={hasOrgWrite ? enableAlertsMemberWrite : undefined}
-    >
-      {renderButton(canCreateAlert)}
-    </GuideAnchor>
-  ) : (
-    renderButton(canCreateAlert)
   );
 }
