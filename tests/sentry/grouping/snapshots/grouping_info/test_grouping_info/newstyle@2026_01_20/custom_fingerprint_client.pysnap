@@ -802,17 +802,17 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "key": "app_exception_stacktrace",
       "type": "component"
     },
-    "custom_fingerprint": {
+    "custom_client_fingerprint": {
       "client_values": [
         "celery",
         "SoftTimeLimitExceeded",
         "sentry.tasks.store.process_event"
       ],
       "contributes": true,
-      "description": "custom fingerprint",
+      "description": "custom client fingerprint",
       "hash": "f30afa00b85f5cac5ee0bce01b31f08d",
       "hint": null,
-      "key": "custom_fingerprint",
+      "key": "custom_client_fingerprint",
       "type": "custom_fingerprint",
       "values": [
         "celery",
