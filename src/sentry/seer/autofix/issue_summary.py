@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -393,6 +394,10 @@ def run_automation(
     autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
     if autofix_state:
         return  # already have an autofix on this issue
+
+    # Increment the rate limit counter only when we are actually about to trigger.
+    if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
+        return
 
     stopping_point = None
     if is_seer_seat_based_tier_enabled(group.organization):

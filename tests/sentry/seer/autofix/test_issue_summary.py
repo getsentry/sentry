@@ -783,7 +783,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -809,7 +809,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -835,7 +835,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -998,7 +998,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -1030,7 +1030,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -1062,7 +1062,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary._fetch_user_preference")
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
@@ -1129,7 +1129,7 @@ class TestRunAutomationAlertEventCount(APITestCase, SnubaTestCase):
         mock_trigger.delay.assert_not_called()
 
     @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task")
