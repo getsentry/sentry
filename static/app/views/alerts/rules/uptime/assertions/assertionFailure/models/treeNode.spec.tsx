@@ -17,6 +17,10 @@ class MockTreeNode<T extends Op = Op> extends TreeNode<T> {
       </span>
     );
   }
+
+  printNode(): string {
+    return `${this.value.op} - ${this.value.id}`;
+  }
 }
 
 describe('Assertion Failure TreeNode model', () => {

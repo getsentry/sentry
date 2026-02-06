@@ -163,4 +163,19 @@ export class Tree {
       }
     }
   }
+
+  // Used for debugging and snapshot testing
+  serialize(): string {
+    return (
+      '\n' +
+      this.nodes
+        .map(node => {
+          const padding = '  '.repeat(node.depth);
+          return padding + (node.isNegated ? '(negated) ' : '') + node.printNode();
+        })
+        .filter(Boolean)
+        .join('\n') +
+      '\n'
+    );
+  }
 }
