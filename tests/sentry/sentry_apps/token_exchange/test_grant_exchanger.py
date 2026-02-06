@@ -5,7 +5,6 @@ import pytest
 
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -176,7 +175,7 @@ class TestGrantExchanger(TestCase):
     def test_application_must_exist(
         self, application: MagicMock, validate: MagicMock, mock_record: MagicMock
     ) -> None:
-        application.side_effect = ApiApplication.DoesNotExist()
+        application.return_value = None
 
         with pytest.raises(SentryAppSentryError) as e:
             self.grant_exchanger.run()

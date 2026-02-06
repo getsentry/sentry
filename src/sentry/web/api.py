@@ -1,11 +1,13 @@
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import all_silo_view
 
@@ -95,6 +97,40 @@ def mcp_json(request):
         return HttpResponse(status=404)
 
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
+
+
+@all_silo_view
+@cache_control(max_age=3600, public=True)
+def oauth_authorization_server_metadata(request: HttpRequest) -> HttpResponse:
+    """
+    OAuth 2.0 Authorization Server Metadata endpoint per RFC 8414.
+
+    Returns JSON metadata document describing the authorization server's
+    configuration, supported grant types, PKCE methods, and endpoints.
+    """
+    metadata = {
+        "issuer": absolute_uri("/"),
+        "authorization_endpoint": absolute_uri("/oauth/authorize/"),
+        "token_endpoint": absolute_uri("/oauth/token/"),
+        "userinfo_endpoint": absolute_uri("/oauth/userinfo/"),
+        "device_authorization_endpoint": absolute_uri("/oauth/device/code/"),
+        "response_types_supported": ["code"],
+        "grant_types_supported": [
+            "authorization_code",
+            "refresh_token",
+            "urn:ietf:params:oauth:grant-type:device_code",
+        ],
+        "code_challenge_methods_supported": ["S256"],
+        "token_endpoint_auth_methods_supported": [
+            "client_secret_basic",
+            "client_secret_post",
+            "none",
+        ],
+        "scopes_supported": sorted(settings.SENTRY_SCOPES),
+        "client_id_metadata_document_supported": features.has("oauth:cimd-enabled"),
+    }
+
+    return HttpResponse(json.dumps(metadata), content_type="application/json")
 
 
 @all_silo_view

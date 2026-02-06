@@ -100,7 +100,10 @@ class GrantExchanger:
         return self.grant.sentry_app_installation.id == self.install.id
 
     def _sentry_app_user_owns_grant(self) -> bool:
-        return self.grant.application.owner == self.user
+        application = self.grant.application
+        if application is None:
+            return False
+        return application.owner == self.user
 
     def _grant_is_active(self) -> bool:
         return self.grant.expires_at > datetime.now(timezone.utc)
@@ -142,9 +145,8 @@ class GrantExchanger:
 
     @property
     def application(self) -> ApiApplication:
-        try:
-            return self.grant.application
-        except ApiApplication.DoesNotExist:
+        application = self.grant.application
+        if application is None:
             raise SentryAppSentryError(
                 "Could not find application from grant",
                 status_code=401,
@@ -153,6 +155,7 @@ class GrantExchanger:
                     "grant_id": self.grant.id,
                 },
             )
+        return application
 
     @property
     def sentry_app(self) -> SentryApp:

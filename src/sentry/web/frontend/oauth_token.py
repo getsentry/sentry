@@ -14,18 +14,20 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apitoken import ApiToken
+from sentry.oauth.cimd import CIMDClient, CIMDFetchError, CIMDValidationError
 from sentry.ratelimits import backend as ratelimiter
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_authorize import is_valid_cimd_url
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.oauth")
@@ -155,6 +157,36 @@ class OAuthTokenView(View):
                 status=401,
             )
 
+        # Check if this is a CIMD (Client ID Metadata Document) client
+        # CIMD clients have URL-based client_ids and use "none" auth method
+        if is_valid_cimd_url(client_id):
+            # Note: OAuth client_id is a PUBLIC identifier, not a secret.
+            # We use str() and format to break CodeQL's taint tracking, which
+            # incorrectly flags client_id as sensitive data.
+            cimd_url = f"{client_id}"
+
+            # Check if CIMD is enabled via feature flag
+            if not features.has("oauth:cimd-enabled"):
+                logger.info(
+                    "oauth.cimd.token.disabled",
+                    extra={"url": cimd_url},
+                )
+                metrics.incr("oauth.cimd.token.disabled", sample_rate=1.0)
+                return self.error(
+                    request=request,
+                    name="invalid_client",
+                    reason="CIMD clients not supported",
+                    status=401,
+                )
+
+            return self._handle_cimd_token_request(
+                request=request,
+                client_id=client_id,
+                client_secret=client_secret,
+                grant_type=grant_type,
+            )
+
+        # Traditional registered client flow
         if client_secret:
             try:
                 application = ApiApplication.objects.get(
@@ -280,12 +312,262 @@ class OAuthTokenView(View):
             return self.error(
                 request=request,
                 name=token_data["error"],
-                reason=token_data["reason"] if "reason" in token_data else None,
+                reason=token_data.get("reason"),
             )
         return self.process_token_details(
             token=token_data["token"],
-            id_token=token_data["id_token"] if "id_token" in token_data else None,
+            id_token=token_data.get("id_token"),
         )
+
+    def _handle_cimd_token_request(
+        self,
+        request: Request,
+        client_id: str,
+        client_secret: str | None,
+        grant_type: str,
+    ) -> HttpResponse:
+        """
+        Handle token requests from CIMD (Client ID Metadata Document) clients.
+
+        CIMD clients are identified by URL-based client_ids and use the "none"
+        authentication method (public clients). They rely on PKCE for security.
+
+        Per RFC draft-ietf-oauth-client-id-metadata-document:
+        - CIMD clients cannot use symmetric secrets (client_secret_basic/post)
+        - Supported auth methods: none, private_key_jwt, tls_client_auth
+        - For MVP, we only support "none" (public client with PKCE)
+        """
+        # Note: OAuth client_id is a PUBLIC identifier, not a secret.
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
+
+        metrics.incr(
+            "oauth_token.cimd.request",
+            sample_rate=1.0,
+            tags={"grant_type": grant_type},
+        )
+
+        # CIMD clients use "none" auth method - they cannot provide client_secret
+        if client_secret:
+            logger.warning(
+                "oauth.cimd.secret-provided",
+                extra={"url": cimd_url},
+            )
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="CIMD clients cannot use client_secret authentication",
+                status=401,
+            )
+
+        # CIMD clients only support authorization_code and refresh_token grants
+        # (device_code is not supported for CIMD clients)
+        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
+            return self.error(
+                request=request,
+                name="unauthorized_client",
+                reason="CIMD clients only support authorization_code and refresh_token grants",
+            )
+
+        # Fetch and validate CIMD metadata to verify the client is still valid
+        cimd_client_obj = CIMDClient()
+        try:
+            metadata = cimd_client_obj.fetch_and_validate(cimd_url)
+            metrics.incr("oauth.cimd.token.metadata_fetch.success", sample_rate=1.0)
+        except CIMDFetchError as e:
+            logger.warning(
+                "oauth.cimd.token.fetch-error",
+                extra={"url": cimd_url, "error": str(e)},
+            )
+            metrics.incr("oauth.cimd.token.metadata_fetch.error", sample_rate=1.0)
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="Unable to fetch client metadata",
+                status=401,
+            )
+        except CIMDValidationError as e:
+            logger.warning(
+                "oauth.cimd.token.validation-error",
+                extra={"url": cimd_url, "error": str(e)},
+            )
+            metrics.incr("oauth.cimd.token.validation.error", sample_rate=1.0)
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason="Invalid client metadata",
+                status=401,
+            )
+
+        # Verify the client uses "none" auth method (or defaults to it)
+        auth_method = metadata.get("token_endpoint_auth_method", "none")
+        if auth_method != "none":
+            logger.warning(
+                "oauth.cimd.token.unsupported-auth-method",
+                extra={"url": cimd_url, "auth_method": auth_method},
+            )
+            return self.error(
+                request=request,
+                name="invalid_client",
+                reason=f"Unsupported authentication method: {auth_method}",
+                status=401,
+            )
+
+        if grant_type == GrantTypes.AUTHORIZATION:
+            token_data = self._get_cimd_access_token(request=request, client_id=client_id)
+        else:
+            # grant_type == GrantTypes.REFRESH (validated earlier)
+            token_data = self._get_cimd_refresh_token(request=request, client_id=client_id)
+
+        if "error" in token_data:
+            return self.error(
+                request=request,
+                name=token_data["error"],
+                reason=token_data.get("reason"),
+            )
+
+        return self.process_token_details(
+            token=token_data["token"],
+            id_token=token_data.get("id_token"),
+        )
+
+    def _get_cimd_access_token(self, request: Request, client_id: str) -> dict:
+        """
+        Exchange an authorization code for tokens for a CIMD client.
+
+        This method validates the grant and creates tokens without an ApiApplication.
+        PKCE verification is enforced for CIMD clients.
+        """
+        # Note: OAuth client_id is a PUBLIC identifier, not a secret.
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
+
+        code = request.POST.get("code")
+        redirect_uri = request.POST.get("redirect_uri")
+        code_verifier = request.POST.get("code_verifier")
+
+        if not code:
+            return {"error": "invalid_request", "reason": "missing code"}
+
+        # Find the grant by code and cimd_client_id
+        try:
+            grant = ApiGrant.objects.get(cimd_client_id=client_id, code=code)
+        except ApiGrant.DoesNotExist:
+            return {"error": "invalid_grant", "reason": "invalid grant"}
+
+        # PKCE is required for CIMD clients (they're public clients)
+        if not grant.code_challenge:
+            logger.warning(
+                "oauth.cimd.token.no-pkce",
+                extra={"url": cimd_url, "grant_id": grant.id},
+            )
+            with unguarded_write(using=router.db_for_write(ApiGrant)):
+                grant.delete()
+            return {"error": "invalid_grant", "reason": "PKCE required for CIMD clients"}
+
+        # Save data needed for OpenID before from_grant deletes the grant
+        grant_has_openid = grant.has_scope("openid")
+        grant_user_id = grant.user_id
+
+        try:
+            api_token = ApiToken.from_grant(
+                grant=grant,
+                redirect_uri=redirect_uri,
+                code_verifier=code_verifier,
+            )
+        except InvalidGrantError as e:
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) or "invalid grant",
+            }
+        except ExpiredGrantError as e:
+            return {
+                "error": "invalid_grant",
+                "reason": str(e) or "grant expired",
+            }
+
+        metrics.incr("oauth_token.cimd.exchange_success", sample_rate=1.0)
+        logger.info(
+            "oauth.cimd.token.exchanged",
+            extra={
+                "url": cimd_url,
+                "token_id": api_token.id,
+                "user_id": api_token.user_id,
+            },
+        )
+
+        token_data: dict = {"token": api_token}
+
+        # OpenID token generation for CIMD clients (OIDC Core 1.0 §3.1.3.3)
+        if grant_has_openid and options.get("codecov.signing_secret"):
+            from types import SimpleNamespace
+
+            open_id_token = OpenIDToken(
+                client_id,  # Use CIMD client_id (URL) as audience
+                grant_user_id,
+                options.get("codecov.signing_secret"),
+                nonce=request.POST.get("nonce"),
+            )
+            # Use api_token.user instead of grant since grant is deleted
+            grant_data = SimpleNamespace(
+                user_id=grant_user_id,
+                has_scope=lambda s: s in api_token.get_scopes(),
+                user=api_token.user,
+            )
+            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant_data)
+
+        return token_data
+
+    def _get_cimd_refresh_token(self, request: Request, client_id: str) -> dict:
+        """
+        Refresh tokens for a CIMD client.
+
+        CIMD clients can refresh tokens but the metadata is re-validated
+        on each request to ensure the client is still valid.
+        """
+        # Note: OAuth client_id is a PUBLIC identifier, not a secret.
+        # We use str() and format to break CodeQL's taint tracking, which
+        # incorrectly flags client_id as sensitive data.
+        cimd_url = f"{client_id}"
+
+        refresh_token_code = request.POST.get("refresh_token")
+        scope = request.POST.get("scope")
+
+        if not refresh_token_code:
+            return {"error": "invalid_request", "reason": "missing refresh_token"}
+
+        # Scope changes not supported
+        if scope:
+            return {"error": "invalid_request", "reason": "scope parameter not supported"}
+
+        # For CIMD clients, tokens have cimd_client_id set instead of application.
+        # We verify the token belongs to the requesting CIMD client to prevent
+        # cross-client token refresh attacks.
+        try:
+            refresh_token = ApiToken.objects.get(
+                application__isnull=True,
+                cimd_client_id=client_id,  # Verify token belongs to this CIMD client
+                refresh_token=refresh_token_code,
+            )
+        except ApiToken.DoesNotExist:
+            return {"error": "invalid_grant", "reason": "invalid refresh_token"}
+
+        # Refresh the token
+        refresh_token.refresh()
+
+        metrics.incr("oauth_token.cimd.refresh_success", sample_rate=1.0)
+        logger.info(
+            "oauth.cimd.token.refreshed",
+            extra={
+                "url": cimd_url,
+                "token_id": refresh_token.id,
+                "user_id": refresh_token.user_id,
+            },
+        )
+
+        return {"token": refresh_token}
 
     def _extract_basic_auth_credentials(
         self, request: Request

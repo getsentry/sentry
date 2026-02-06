@@ -1672,3 +1672,201 @@ class OAuthAuthorizeSecurityTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user, application=self.application)
         assert grant is not None
         # organization_id may or may not be set depending on default behavior - we just verify grant exists
+
+
+@control_silo_test
+class OAuthAuthorizeCIMDUrlDetectionTest(TestCase):
+    """Tests for Client ID Metadata Document (CIMD) URL detection in authorization endpoint."""
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com"
+        )
+
+    def test_cimd_url_rejected_when_feature_disabled(self) -> None:
+        """Test that CIMD URLs are rejected when the feature flag is disabled."""
+        self.login_as(self.user)
+
+        # Valid CIMD URL with path
+        cimd_client_id = "https://myclient.example.com/oauth-metadata.json"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
+        )
+
+        # Without feature flag, CIMD should be rejected as unauthorized_client
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_cimd_url_detected_and_fetch_fails(self) -> None:
+        """Test that valid CIMD URL client_ids are detected but fail when metadata can't be fetched."""
+        self.login_as(self.user)
+
+        # Valid CIMD URL with path - but no actual metadata endpoint exists
+        cimd_client_id = "https://myclient.example.com/oauth-metadata.json"
+
+        with self.feature("oauth:cimd-enabled"):
+            resp = self.client.get(
+                f"{self.path}?response_type=code&client_id={cimd_client_id}&redirect_uri=https://myclient.example.com/callback"
+            )
+
+        # Should return 400 with safe error showing only hostname (per RFC)
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        # Error message should show only hostname, not internal error details
+        assert "Unable to verify client: myclient.example.com" in resp.context["error"]
+
+    def test_http_url_rejected(self) -> None:
+        """Test that HTTP (non-HTTPS) URLs are rejected as invalid."""
+        self.login_as(self.user)
+
+        # HTTP URL should be rejected
+        http_client_id = "http://myclient.example.com/oauth-metadata.json"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={http_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_https_url_without_path_rejected(self) -> None:
+        """Test that HTTPS URL without path component is rejected."""
+        self.login_as(self.user)
+
+        # URL without path (just domain) should be rejected
+        no_path_client_id = "https://myclient.example.com"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={no_path_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_https_url_with_only_slash_path_rejected(self) -> None:
+        """Test that HTTPS URL with only root path is rejected."""
+        self.login_as(self.user)
+
+        # URL with only "/" as path should be rejected
+        root_path_client_id = "https://myclient.example.com/"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={root_path_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_url_with_credentials_rejected(self) -> None:
+        """Test that URL with embedded credentials is rejected."""
+        self.login_as(self.user)
+
+        # URL with credentials should be rejected
+        creds_client_id = "https://user:pass@myclient.example.com/oauth.json"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={creds_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_url_with_dot_segment_rejected(self) -> None:
+        """Test that URL with path traversal segments is rejected."""
+        self.login_as(self.user)
+
+        # URL with ".." path segment should be rejected
+        traversal_client_id = "https://myclient.example.com/../oauth.json"
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={traversal_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_traditional_client_id_still_works(self) -> None:
+        """Test that traditional (non-URL) client_ids continue to work."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        # Traditional flow should work normally
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+
+    def test_invalid_traditional_client_id_returns_error(self) -> None:
+        """Test that invalid traditional client_ids return proper error."""
+        self.login_as(self.user)
+
+        # Invalid 64-char hex string that doesn't match any registered application
+        invalid_client_id = "a" * 64
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={invalid_client_id}&redirect_uri=https://example.com"
+        )
+
+        # Should return 400 with invalid client_id error
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
+
+    def test_cimd_url_with_query_string_allowed(self) -> None:
+        """Test that CIMD URL with query string is detected (query strings allowed per RFC)."""
+        self.login_as(self.user)
+
+        # URL with query string is valid per RFC (though discouraged)
+        query_client_id = "https://myclient.example.com/oauth.json?version=1"
+
+        with self.feature("oauth:cimd-enabled"):
+            resp = self.client.get(
+                f"{self.path}?response_type=code&client_id={query_client_id}&redirect_uri=https://myclient.example.com/callback"
+            )
+
+        # Should return 400 with safe error showing only hostname (per RFC)
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        # Error message should show only hostname, not internal error details
+        assert "Unable to verify client: myclient.example.com" in resp.context["error"]
+
+    def test_cimd_url_various_valid_paths(self) -> None:
+        """Test various valid CIMD URL path formats are detected as CIMD (will fail to fetch)."""
+        self.login_as(self.user)
+
+        valid_cimd_urls = [
+            "https://example.com/oauth",
+            "https://example.com/.well-known/oauth-client",
+            "https://example.com/api/v1/oauth-metadata.json",
+            "https://sub.domain.example.com/path/to/metadata",
+        ]
+
+        with self.feature("oauth:cimd-enabled"):
+            for cimd_url in valid_cimd_urls:
+                resp = self.client.get(
+                    f"{self.path}?response_type=code&client_id={cimd_url}&redirect_uri=https://example.com/callback"
+                )
+
+                # All should be detected as CIMD and return 400 (fetch fails)
+                # Error shows safe message with hostname only (per RFC)
+                assert resp.status_code == 400, f"URL {cimd_url} should be detected as valid CIMD"
+                assert "Unable to verify client:" in resp.context["error"]

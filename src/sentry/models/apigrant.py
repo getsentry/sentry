@@ -38,12 +38,20 @@ class ApiGrant(Model):
     A grant represents a token with a short lifetime that can
     be swapped for an access token, as described in :rfc:`4.1.2`
     of the OAuth 2 spec.
+
+    For CIMD (Client ID Metadata Document) clients, the `application` field is
+    null and `cimd_client_id` contains the URL-based client identifier.
     """
 
     __relocation_scope__ = RelocationScope.Global
 
     user = FlexibleForeignKey("sentry.User")
-    application = FlexibleForeignKey("sentry.ApiApplication")
+    # Nullable for CIMD clients where client_id is a URL (cimd_client_id)
+    application = FlexibleForeignKey("sentry.ApiApplication", null=True)
+    # URL-based client_id for CIMD clients (mutually exclusive with application)
+    # Stored as a URL string, max length per RFC is effectively unbounded but
+    # we limit to 2048 chars (common URL length limit)
+    cimd_client_id = models.URLField(max_length=2048, null=True, db_index=True)
     code = models.CharField(max_length=64, db_index=True, default=generate_code)
     expires_at = models.DateTimeField(db_index=True, default=default_expiration)
     redirect_uri = models.CharField(max_length=255)
@@ -93,9 +101,10 @@ class ApiGrant(Model):
         db_table = "sentry_apigrant"
 
     def __str__(self) -> str:
-        return (
-            f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
-        )
+        base = f"api_grant_id={self.id}, user_id={self.user.id}"
+        if self.application_id:
+            return f"{base}, application_id={self.application_id}"
+        return f"{base}, cimd_client_id={self.cimd_client_id}"
 
     def get_scopes(self):
         if self.scope_list:
@@ -110,6 +119,19 @@ class ApiGrant(Model):
 
     def redirect_uri_allowed(self, uri):
         return uri == self.redirect_uri
+
+    def get_client_id(self) -> str:
+        """Return the client_id for this grant (either from application or cimd_client_id)."""
+        if self.application_id and self.application:
+            return self.application.client_id
+        if self.cimd_client_id:
+            return self.cimd_client_id
+        raise ValueError("Grant has neither application nor cimd_client_id")
+
+    @property
+    def is_cimd_grant(self) -> bool:
+        """Return True if this is a CIMD client grant."""
+        return self.cimd_client_id is not None
 
     @classmethod
     def get_lock_key(cls, grant_id) -> str:
