@@ -129,6 +129,53 @@ class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValida
         assert condition.comparison == 1
         assert condition.condition_group == result
 
+    def test_create_trigger__valid_logic_type(self) -> None:
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        result = validator.create(validator.validated_data)
+
+        assert result.conditions.count() == 1
+
+        condition = result.conditions.first()
+        assert condition is not None
+
+        assert condition.type == Condition.FIRST_SEEN_EVENT.value
+        assert condition.comparison is True
+        assert condition.condition_group == result
+
+    def test_create_trigger__invalid_logic_type(self) -> None:
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ALL,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            validator.create(validator.validated_data)
+
+        assert "Triggers' logic type must be 'any-short'" in str(exc_info.value)
+
 
 class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValidator):
     def test_update(self) -> None:
@@ -341,3 +388,108 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
             validator.update(dcg, validator.validated_data)
 
         assert "Organization context is required" in str(exc_info.value)
+
+    def test_update_trigger__valid_logic_type(self) -> None:
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.create(validator.validated_data)
+
+        valid_data["conditions"].append(
+            {
+                "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                "comparison": True,
+                "conditionResult": True,
+            }
+        )
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.update(dcg, validator.validated_data)
+
+        assert dcg.conditions.count() == 2
+
+        conditions = dcg.conditions.all()
+        condition1 = conditions[0]
+        condition2 = conditions[1]
+
+        assert condition1.type == Condition.FIRST_SEEN_EVENT
+        assert condition1.comparison is True
+        assert condition1.condition_group == dcg
+
+        assert condition2.type == Condition.ISSUE_RESOLVED_TRIGGER
+        assert condition2.comparison is True
+        assert condition2.condition_group == dcg
+
+    def test_update_trigger__invalid_logic_type(self) -> None:
+        """
+        Test that if you add another trigger with an invalid logic type we raise an error
+        """
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.create(validator.validated_data)
+
+        valid_data["conditions"].append(
+            {
+                "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                "comparison": True,
+                "conditionResult": True,
+            }
+        )
+        valid_data["logicType"] = DataConditionGroup.Type.ALL.value
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            dcg = validator.update(dcg, validator.validated_data)
+
+        assert "Triggers' logic type must be 'any-short'" in str(exc_info.value)
+
+    def test_update_trigger__only_invalid_logic_type(self) -> None:
+        """
+        Test that if the only thing you pass to the update payload is the logic type and it changes it to become invalid we raise an error
+        """
+        valid_data = {
+            "organizationId": self.organization.id,
+            "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        dcg = validator.create(validator.validated_data)
+
+        valid_data["logicType"] = DataConditionGroup.Type.ALL.value
+        validator = BaseDataConditionGroupValidator(data=valid_data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            dcg = validator.update(dcg, validator.validated_data)
+
+        assert "Triggers' logic type must be 'any-short'" in str(exc_info.value)
