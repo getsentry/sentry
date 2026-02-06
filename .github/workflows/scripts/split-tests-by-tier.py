@@ -28,12 +28,25 @@ def load_classification(path: str) -> dict:
         return json.load(f)
 
 
+# Files forced to Tier 2 due to environment-dependent behavior that only works
+# with the full backend-ci service stack. These tests don't use Snuba/Kafka
+# directly, but behave differently under the lighter migrations devservices mode.
+# See docs/service-classification-investigation.md for details.
+FORCE_TIER2_FILES: set[str] = {
+    # Thread leak detection tests depend on global sentry_sdk scope state which
+    # differs between migrations and backend-ci modes. The tests assert specific
+    # event levels (info/error) but get 'warning' in migrations mode due to
+    # scope level inheritance from the lighter initialization path.
+    "tests/sentry/testutils/thread_leaks/test_pytest.py",
+}
+
+
 def get_test_files_by_tier(classification: dict) -> dict[str, set[str]]:
     """
     Group test files into tiers based on their service dependencies.
 
     A file is assigned to the HIGHEST tier any of its tests require.
-    If any test in a file needs Snuba, the whole file goes to tier2.
+    If any test in a file needs a Tier 2 service, the whole file goes to tier2.
     """
     file_services: dict[str, set[str]] = defaultdict(set)
 
@@ -52,7 +65,9 @@ def get_test_files_by_tier(classification: dict) -> dict[str, set[str]]:
     tier2_files: set[str] = set()
 
     for file_path, services in file_services.items():
-        if services & tier2_services:
+        if file_path in FORCE_TIER2_FILES:
+            tier2_files.add(file_path)
+        elif services & tier2_services:
             tier2_files.add(file_path)
         else:
             tier1_files.add(file_path)

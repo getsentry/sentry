@@ -499,10 +499,32 @@ This approach:
 | Kafka via `services:` block | ~10-15s | None (real infrastructure) | Yes - chosen |
 | `TASKWORKER_ALWAYS_EAGER=True` | 0s | Changes task execution behavior, bypasses BurstTaskRunner | No - rejected |
 
+## Remaining Tier 1 Failures: Environment-Dependent Tests
+
+After fixing the Kafka issue (services block), the split script (tier2_services), and the `_requires_snuba` static detection, 3 tests still failed in Tier 1. All were caused by differences between the `migrations` and `backend-ci` devservices modes, not by missing service dependencies.
+
+### `test_taskworker_schedule_parameters` (Fixed)
+
+**Root cause:** The test iterates `TASKWORKER_SCHEDULES` and calls `taskregistry.get_task()` for each, but doesn't use the `load_tasks` fixture that imports task modules. In `backend-ci` mode, tasks happen to be imported by other tests or the heavier initialization path. In `migrations` mode, the lighter initialization doesn't import them, exposing the missing fixture.
+
+**Fix:** Added `load_tasks` fixture to the test (same as sibling test `test_taskworker_schedule_type`). This is a pre-existing test bug that worked by accident in `backend-ci` mode.
+
+### `test_capture_event_allowlisted` and `test_capture_event_strict_no_allowlist` (Force Tier 2)
+
+**Root cause:** These thread leak detection tests assert specific Sentry event levels (`info` for allowlisted, `error` for strict). They get `warning` instead in `migrations` mode.
+
+The `event_from_stack()` function correctly sets the level. But `capture_event()` uses a cached scope (`@functools.cache` on `get_scope()`) that forks from `sentry_sdk.get_current_scope()`. The scope state at first call differs between modes - in `migrations` mode, the lighter initialization leaves the scope in a different state that causes `scope.capture_event()` to override the event level.
+
+**Resolution:** Added to `FORCE_TIER2_FILES` list in the split script. These tests test internal test infrastructure (not application code) and are inherently sensitive to the test environment. Running them with full services is appropriate.
+
+### The `FORCE_TIER2_FILES` Pattern
+
+For tests that can't be automatically classified and fail due to environment differences (not service dependencies), the split script maintains a `FORCE_TIER2_FILES` set. This is a small, documented escape hatch. Currently contains 1 file (2 tests). Should be reviewed periodically to see if the underlying issues have been fixed.
+
 ## Validation
 
 The classification can be validated empirically: run Tier 1 tests with only the Tier 1 services. Any test that fails reveals a misclassification. The `requires_*` fixtures provide built-in fail-fast guards for their respective services.
 
 ## Expected Impact
 
-~71% of backend tests can run with just Postgres + Redis + Redis-cluster (setup time: ~15s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
+~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20s) instead of the full Snuba stack (setup time: 4-5min). Combined with intelligent sharding, this could significantly reduce CI wall-clock time and runner costs.
