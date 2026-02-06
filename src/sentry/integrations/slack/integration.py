@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -91,7 +92,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         return {"installationType": metadata_.get("installation_type", default_installation)}
 
     def _get_debug_metadata_keys(self) -> list[str]:
-        return ["domain_name", "installation_type"]
+        return ["domain_name", "installation_type", "scopes"]
 
     def send_message(self, channel_id: str, message: str) -> None:
         client = self.get_client()
@@ -168,6 +169,107 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
+    def _has_scope(self, scope: str) -> bool:
+        """Check if this installation has a specific OAuth scope."""
+        has_scope = scope in self.model.metadata.get("scopes", [])
+        if not has_scope:
+            _logger.warning(
+                "slack.missing_scope",
+                extra={"integration_id": self.model.id, "scope": scope},
+            )
+        return has_scope
+
+    def get_thread_history(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Fetch thread replies using the conversations.replies API.
+        Returns a list of message dicts, or an empty list on error.
+
+        Requires channels:history scope.
+        """
+        if not self._has_scope("channels:history"):
+            return []
+
+        client = self.get_client()
+        try:
+            response = client.conversations_replies(
+                channel=channel_id,
+                ts=thread_ts,
+            )
+            return response.get("messages", [])
+        except SlackApiError as e:
+            _logger.warning(
+                "slack.get_thread_history.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts, "error": str(e)},
+            )
+            return []
+
+    def add_reaction(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        emoji: str,
+    ) -> None:
+        """
+        Add an emoji reaction to a message.
+        Idempotent: does not raise if the reaction already exists.
+
+        Requires reactions:write scope.
+        """
+        if not self._has_scope("reactions:write"):
+            return
+
+        client = self.get_client()
+        try:
+            client.reactions_add(
+                channel=channel_id,
+                timestamp=message_ts,
+                name=emoji,
+            )
+        except SlackApiError as e:
+            if e.response.get("error") == "already_reacted":
+                return
+            _logger.warning(
+                "slack.add_reaction.error",
+                extra={"channel_id": channel_id, "message_ts": message_ts, "error": str(e)},
+            )
+
+    def remove_reaction(
+        self,
+        *,
+        channel_id: str,
+        message_ts: str,
+        emoji: str,
+    ) -> None:
+        """
+        Remove an emoji reaction from a message.
+        Idempotent: does not raise if the reaction does not exist.
+
+        Requires reactions:write scope.
+        """
+        if not self._has_scope("reactions:write"):
+            return
+
+        client = self.get_client()
+        try:
+            client.reactions_remove(
+                channel=channel_id,
+                timestamp=message_ts,
+                name=emoji,
+            )
+        except SlackApiError as e:
+            if e.response.get("error") == "no_reaction":
+                return
+            _logger.warning(
+                "slack.remove_reaction.error",
+                extra={"channel_id": channel_id, "message_ts": message_ts, "error": str(e)},
+            )
+
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value
@@ -193,6 +295,16 @@ class SlackIntegrationProvider(IntegrationProvider):
             "commands",
         ]
     )
+    # Extended scopes that require Slack marketplace approval
+    # Gated by slack.extended-scopes-enabled option
+    extended_oauth_scopes = frozenset(
+        [
+            "reactions:write",
+            "channels:history",
+            "groups:history",
+            "app_mentions:read",
+        ]
+    )
     user_scopes = frozenset(
         [
             "links:read",
@@ -200,6 +312,15 @@ class SlackIntegrationProvider(IntegrationProvider):
             "users:read.email",
         ]
     )
+
+    def _get_oauth_scopes(self) -> frozenset[str]:
+        """
+        Returns the OAuth scopes to request during installation.
+        Extended scopes are included when slack.extended-scopes-enabled is True.
+        """
+        if options.get("slack.extended-scopes-enabled"):
+            return self.identity_oauth_scopes | self.extended_oauth_scopes
+        return self.identity_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}
 
@@ -209,7 +330,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             provider_key=IntegrationProviderSlug.SLACK.value,
             pipeline_cls=IdentityPipeline,
             config={
-                "oauth_scopes": self.identity_oauth_scopes,
+                "oauth_scopes": self._get_oauth_scopes(),
                 "user_scopes": self.user_scopes,
                 "redirect_url": absolute_uri("/extensions/slack/setup/"),
             },
@@ -242,12 +363,14 @@ class SlackIntegrationProvider(IntegrationProvider):
         team_name = data["team"]["name"]
         team_id = data["team"]["id"]
 
-        scopes = sorted(self.identity_oauth_scopes)
+        # Use actual granted scopes from Slack's OAuth response
+        granted_scopes_str = data.get("scope")  # "channels:read,links:write,..."
+        scopes = granted_scopes_str.split(",") if granted_scopes_str else self._get_oauth_scopes()
         team_data = self._get_team_info(access_token)
 
         metadata = {
             "access_token": access_token,
-            "scopes": scopes,
+            "scopes": sorted(scopes),
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
             "installation_type": "born_as_bot",
