@@ -2,6 +2,9 @@ name: "[POC] backend xdist"
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mchen/service-classification-poc
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
