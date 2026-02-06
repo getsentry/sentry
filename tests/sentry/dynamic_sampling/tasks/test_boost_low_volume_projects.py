@@ -7,10 +7,10 @@ from django.utils import timezone
 from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    _get_segments_org_ids,
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
-    partition_by_measure,
     query_project_counts_by_org,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -285,82 +285,37 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (p2_2.id, 15, 7, 8) in org_2_results
 
 
-class TestPartitionByMeasure(TestCase):
-    def test_partition_by_measure_with_spans_feature(self) -> None:
+class TestGetSegmentsOrgIds(TestCase):
+    def test_get_segments_org_ids_returns_set(self) -> None:
         org = self.create_organization("test-org1")
         with self.options(
             {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [org.id],
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [org.id],
             }
         ):
-            result = partition_by_measure([org.id])
-            assert SamplingMeasure.SPANS in result
-            assert SamplingMeasure.TRANSACTIONS in result
-            assert result[SamplingMeasure.SPANS] == [org.id]
-            assert result[SamplingMeasure.TRANSACTIONS] == []
+            result = _get_segments_org_ids()
+            assert result == {org.id}
 
-    def test_partition_by_measure_without_spans_feature(self) -> None:
-        org = self.create_organization("test-org1")
+    def test_get_segments_org_ids_returns_empty_set_when_not_configured(self) -> None:
         with self.options(
             {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [],
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [],
             }
         ):
-            result = partition_by_measure([org.id])
-            assert SamplingMeasure.SPANS in result
-            assert SamplingMeasure.TRANSACTIONS in result
-            assert result[SamplingMeasure.SPANS] == []
-            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+            result = _get_segments_org_ids()
+            assert result == set()
 
-    def test_partition_by_measure_with_span_feature_flag_disabled(self) -> None:
-        org = self.create_organization("test-org1")
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": False,
-                "dynamic-sampling.measure.spans": [org.id],
-            }
-        ):
-            result = partition_by_measure([org.id])
-            assert SamplingMeasure.TRANSACTIONS in result
-            assert SamplingMeasure.SPANS not in result
-            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
-
-    def test_partition_by_measure_returns_sorted_output_multiple_orgs(self) -> None:
-        orgs = [self.create_organization(f"test-org{i}") for i in range(10)]
-        org_ids = [org.id for org in reversed(orgs)]
+    def test_get_segments_org_ids_returns_multiple_orgs(self) -> None:
+        orgs = [self.create_organization(f"test-org{i}") for i in range(3)]
+        org_ids = [org.id for org in orgs]
 
         with self.options(
             {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [orgs[2].id, orgs[7].id, orgs[5].id],
+                "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": org_ids,
             }
         ):
-            result = partition_by_measure(org_ids)
-
-            assert result[SamplingMeasure.SPANS] == sorted([orgs[2].id, orgs[7].id, orgs[5].id])
-            expected_transaction_orgs = sorted(
-                [org.id for org in orgs if org.id not in [orgs[2].id, orgs[7].id, orgs[5].id]]
-            )
-            assert result[SamplingMeasure.TRANSACTIONS] == expected_transaction_orgs
-
-    def test_partition_by_measure_returns_sorted_when_feature_disabled(self) -> None:
-        org1 = self.create_organization("test-org1")
-        org2 = self.create_organization("test-org2")
-        org3 = self.create_organization("test-org3")
-
-        org_ids = [org3.id, org1.id, org2.id]
-
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": False,
-            }
-        ):
-            result = partition_by_measure(org_ids)
-
-            assert result[SamplingMeasure.TRANSACTIONS] == sorted(org_ids)
-            assert SamplingMeasure.SPANS not in result
+            result = _get_segments_org_ids()
+            assert result == set(org_ids)
 
 
 @freeze_time(MOCK_DATETIME)
@@ -390,9 +345,8 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
 
     def test_fetch_projects_only_queries_measures_with_orgs(self) -> None:
         """
-        Confirms that when partition_by_measure returns both measures
-        (one with orgs, one empty), only the measure with orgs results
-        in a Snuba query.
+        Confirms that fetch_projects_with_total_root_transaction_count_and_rates
+        does NOT make a Snuba query when called with an empty org_ids list.
         """
         org = self.create_organization("test-org")
         self.create_project(organization=org)
@@ -411,21 +365,16 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
         ) as mock_query:
             mock_query.return_value = {"data": []}
 
-            with self.options(
-                {
-                    "dynamic-sampling.check_span_feature_flag": True,
-                    "dynamic-sampling.measure.spans": [org.id],
-                }
-            ):
-                partitioned = partition_by_measure([org.id])
-                assert partitioned[SamplingMeasure.SPANS] == [org.id]
-                assert partitioned[SamplingMeasure.TRANSACTIONS] == []
+            # Query with org should make one call
+            fetch_projects_with_total_root_transaction_count_and_rates(
+                org_ids=[org.id], measure=SamplingMeasure.SEGMENTS
+            )
+            assert mock_query.call_count == 1
 
-                for measure, org_ids in partitioned.items():
-                    fetch_projects_with_total_root_transaction_count_and_rates(
-                        org_ids=org_ids, measure=measure
-                    )
-
+            # Query with empty list should not make any additional calls
+            fetch_projects_with_total_root_transaction_count_and_rates(
+                org_ids=[], measure=SamplingMeasure.TRANSACTIONS
+            )
             assert mock_query.call_count == 1
 
     def test_only_measures_with_orgs_are_queried_per_batch(self) -> None:
@@ -446,20 +395,28 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
 
             with self.options(
                 {
-                    "dynamic-sampling.check_span_feature_flag": True,
-                    "dynamic-sampling.measure.spans": [org1.id, org2.id],
+                    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs": [
+                        org1.id,
+                        org2.id,
+                    ],
                 }
             ):
+                segments_org_ids = _get_segments_org_ids()
+                assert org1.id in segments_org_ids
+                assert org2.id in segments_org_ids
+
                 batches = [[org1.id], [org2.id]]
 
                 for batch in batches:
-                    partitioned = partition_by_measure(batch)
-                    assert partitioned[SamplingMeasure.TRANSACTIONS] == []
-
-                    for measure, org_ids in partitioned.items():
-                        fetch_projects_with_total_root_transaction_count_and_rates(
-                            org_ids=org_ids, measure=measure
-                        )
+                    # Each batch should result in one query for SEGMENTS
+                    fetch_projects_with_total_root_transaction_count_and_rates(
+                        org_ids=batch, measure=SamplingMeasure.SEGMENTS
+                    )
+                    # TRANSACTIONS should be filtered out (no query needed)
+                    filtered_for_transactions = [
+                        org_id for org_id in batch if org_id not in segments_org_ids
+                    ]
+                    assert filtered_for_transactions == []
 
             assert mock_query.call_count == 2
 

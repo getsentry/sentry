@@ -2305,6 +2305,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of organization IDs that should be using segment metrics for boost_low_volume_projects.
+register(
+    "dynamic-sampling.boost_low_volume_projects.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
