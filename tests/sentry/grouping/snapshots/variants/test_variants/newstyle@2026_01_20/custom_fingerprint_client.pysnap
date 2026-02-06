@@ -167,7 +167,7 @@ app:
             context_line*
               "raise SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
-custom_fingerprint:
+custom_client_fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
   fingerprint_info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]}
   values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]

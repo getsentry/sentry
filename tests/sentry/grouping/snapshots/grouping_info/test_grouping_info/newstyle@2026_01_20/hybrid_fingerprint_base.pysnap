@@ -51,7 +51,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
         ]
       },
       "contributes": true,
-      "description": "exception message and custom fingerprint",
+      "description": "exception message and custom client fingerprint",
       "hash": "e3d593b4335190212ca7c18b8e967fb1",
       "hint": null,
       "key": "app_exception_message_hybrid_fingerprint",

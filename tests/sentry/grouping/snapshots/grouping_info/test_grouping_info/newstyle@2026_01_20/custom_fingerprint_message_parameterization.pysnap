@@ -53,16 +53,16 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "key": "app_exception_message",
       "type": "component"
     },
-    "custom_fingerprint": {
+    "custom_client_fingerprint": {
       "client_values": [
         "{{ message }}",
         "dogs are great"
       ],
       "contributes": true,
-      "description": "custom fingerprint",
+      "description": "custom client fingerprint",
       "hash": "69d81763f9ec386fc0c0607ef62cabfa",
       "hint": null,
-      "key": "custom_fingerprint",
+      "key": "custom_client_fingerprint",
       "type": "custom_fingerprint",
       "values": [
         "FailedToFetchError: Charlie didn't bring 2 balls back!",
