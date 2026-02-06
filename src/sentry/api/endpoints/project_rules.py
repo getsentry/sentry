@@ -792,6 +792,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 break
 
         rules = Rule.objects.filter(project=project, status=ObjectStatus.ACTIVE)
+        report_used_legacy_models()
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:
