@@ -712,8 +712,8 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             type=Action.Type.SENTRY_APP,
             data={"settings": data_blob},
             config={
-                "target_identifier": self.sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_identifier": str(self.sentry_app_installation.sentry_app_id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -733,8 +733,8 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
                 "settings": data_blob,
             },
             config={
-                "target_identifier": self.sentry_app_installation2.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_identifier": str(self.sentry_app_installation2.sentry_app_id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
