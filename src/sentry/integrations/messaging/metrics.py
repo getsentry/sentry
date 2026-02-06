@@ -21,6 +21,7 @@ class MessagingInteractionType(StrEnum):
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
     LINK_TEAM = "LINK_TEAM"
     UNLINK_TEAM = "UNLINK_TEAM"
+    MENTION = "MENTION"
 
     # Interactions on Issues
     STATUS = "STATUS"

@@ -15,6 +15,7 @@ from sentry import analytics, features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -304,6 +305,78 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         return True
 
+    def on_app_mention(self, request: Request, slack_request: SlackDMRequest) -> Response:
+        """
+        Handle @mentions of the Sentry app to trigger Seer Explorer.
+        Returns 200 immediately; async task handles the actual processing.
+        """
+        event = slack_request.data.get("event", {})
+        channel_id = event.get("channel")
+        thread_ts = event.get("thread_ts")
+        message_ts = event.get("ts")
+        user_id = event.get("user")
+
+        logging_ctx = {
+            "integration_id": slack_request.integration.id,
+            "channel_id": channel_id,
+            "thread_ts": thread_ts,
+            "user_id": user_id,
+        }
+
+        # Verify the Slack user is linked to a Sentry identity
+        identity_user = slack_request.get_identity_user()
+        if not identity_user:
+            _logger.info("slack.app_mention.no_identity", extra=logging_ctx)
+            # TODO(Leander): Send a notification to the user prompting them to link accounts
+            return self.respond()
+
+        # Find all orgs with this integration that have the feature flag enabled
+        ois = integration_service.get_organization_integrations(
+            integration_id=slack_request.integration.id,
+            providers=[slack_request.integration.provider],
+            status=ObjectStatus.ACTIVE,
+        )
+        if not ois:
+            _logger.warning(
+                "slack.app_mention.no_organization",
+                extra={"integration_id": slack_request.integration.id},
+            )
+            return self.respond()
+
+        enabled_org_ids = []
+        for oi in ois:
+            org_context = organization_service.get_organization_by_id(
+                id=oi.organization_id,
+                user_id=identity_user.id,
+                include_projects=False,
+                include_teams=False,
+            )
+            if org_context and features.has(
+                "organizations:seer-slack-explorer", org_context.organization
+            ):
+                enabled_org_ids.append(oi.organization_id)
+
+        if not enabled_org_ids:
+            return self.respond()
+
+        _logger.info(
+            "slack.app_mention.received",
+            extra={
+                **logging_ctx,
+                "organization_ids": enabled_org_ids,
+                "message_ts": message_ts,
+                "sentry_user_id": identity_user.id,
+            },
+        )
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.MENTION,
+            spec=SlackMessagingSpec(),
+        ).capture():
+            pass
+
+        # TODO(ISWF-2023): Kick off async task to process the mention
+        return self.respond()
+
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
         try:
@@ -317,6 +390,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.type == "link_shared":
             if self.on_link_shared(request, slack_request):
                 return self.respond()
+        if slack_request.type == "app_mention":
+            return self.on_app_mention(request, slack_request)
 
         if slack_request.type == "message":
             if slack_request.is_bot():
