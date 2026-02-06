@@ -330,6 +330,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "integer",
                     "percentage",
                     "currency",
                     *constants.SIZE_TYPE,

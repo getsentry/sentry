@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -8,6 +8,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -79,13 +81,53 @@ function useScmIntegrations() {
   };
 }
 
-export default function PrimaryNavSeerConfigReminder() {
-  const organization = useOrganization();
+function useCanSeeReminder(organization: Organization) {
   const canWrite = useCanWriteSettings();
   const {isPending, initialStep} = useSeerOnboardingStep();
-
   const {hasOnlyNonGithubScm, isPending: isScmPending} = useScmIntegrations();
 
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasLegacySeer = organization.features.includes('seer-added');
+  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+  const hasSeer = hasSeatBasedSeer || hasLegacySeer || hasCodeReviewBeta;
+
+  const analyticsParams = useMemo(
+    () => ({
+      has_seat_based_seer: hasSeatBasedSeer,
+      has_legacy_seer: hasLegacySeer,
+      has_code_review_beta: hasCodeReviewBeta,
+      initial_step: Steps[initialStep]?.toString() ?? 'unknown',
+    }),
+    [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
+  );
+
+  if (!hasSeer) {
+    return {canSeeReminder: false, analyticsParams};
+  }
+
+  if (!canWrite && !isActiveSuperuser()) {
+    return {canSeeReminder: false, analyticsParams};
+  }
+
+  if (isPending || isScmPending || initialStep === Steps.WRAP_UP) {
+    return {canSeeReminder: false, analyticsParams};
+  }
+
+  // If org has zero SCM integrations  => show icon
+  // If org has 1 or more GitHub SCM connections => show icon
+  // If org has only BitBucket and/or GitLab SCM's => no icon
+  if (hasOnlyNonGithubScm) {
+    return {canSeeReminder: false, analyticsParams};
+  }
+
+  return {
+    canSeeReminder: true,
+    analyticsParams,
+  };
+}
+
+export default function PrimaryNavSeerConfigReminder() {
+  const organization = useOrganization();
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
@@ -97,24 +139,20 @@ export default function PrimaryNavSeerConfigReminder() {
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
-  const hasSeer = hasSeatBasedSeer || hasLegacySeer || hasCodeReviewBeta;
-  if (!hasSeer) {
-    return null;
-  }
 
-  if (!canWrite && !isActiveSuperuser()) {
-    return null;
-  }
+  const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
 
-  if (isPending || isScmPending || initialStep === Steps.WRAP_UP) {
-    return null;
-  }
+  // Track impression on mount
+  useEffect(() => {
+    if (canSeeReminder) {
+      trackAnalytics('seer.config_reminder.rendered', {
+        organization,
+        ...analyticsParams,
+      });
+    }
+  }, [canSeeReminder, analyticsParams, organization]);
 
-  // If org has zero SCM integrations  => show icon
-  // If org has 1 or more GitHub SCM connections => show icon
-  // If org has only BitBucket and/or GitLab SCM's => no icon
-  if (hasOnlyNonGithubScm) {
+  if (!canSeeReminder) {
     return null;
   }
 
@@ -122,6 +160,7 @@ export default function PrimaryNavSeerConfigReminder() {
     <Fragment>
       <SeerButton
         analyticsKey="seer-config-reminder"
+        analyticsParams={analyticsParams}
         label={t('Configure Seer')}
         buttonProps={overlayTriggerProps}
       >
@@ -157,7 +196,7 @@ export default function PrimaryNavSeerConfigReminder() {
             <Flex justify="end">
               <LinkButton
                 to={{
-                  pathname: `/organizations/${organization.slug}/settings/seer/`,
+                  pathname: `/settings/${organization.slug}/seer/`,
                   query: {
                     tab: hasSeatBasedSeer
                       ? undefined
@@ -168,6 +207,8 @@ export default function PrimaryNavSeerConfigReminder() {
                 }}
                 priority="primary"
                 onClick={() => state.close()}
+                analyticsEventName="Seer Config Reminder: Configure Now Clicked"
+                analyticsParams={analyticsParams}
               >
                 {t('Configure Now')}
               </LinkButton>

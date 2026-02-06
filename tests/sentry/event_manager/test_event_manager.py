@@ -275,7 +275,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                                 "value": "The exception was not handled due to missing onError handler in the subscribe() method call.",
                                 "module": "io.reactivex.rxjava3.exceptions",
                                 "mechanism": {
-                                    "type": "UncaughtExceptionHandler",
+                                    "type": "chained",
                                     "handled": False,
                                     "exception_id": 0,
                                 },
@@ -4387,6 +4387,8 @@ class EventProcessingErrorAnalyticsTest(TestCase, SnubaTestCase):
                     group_id=event.group_id,
                     error_type="future_timestamp",
                     platform="python",
+                    name="timestamp",
+                    value=None,
                 ),
             ]
             assert recorded_events == expected_events

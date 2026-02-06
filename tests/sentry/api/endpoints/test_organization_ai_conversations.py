@@ -300,7 +300,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 1
-        assert conversation["timestamp"] > 0
+        assert conversation["startTimestamp"] > 0
+        assert conversation["endTimestamp"] > 0
+        assert conversation["endTimestamp"] >= conversation["startTimestamp"]
         assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
         assert len(conversation["traceIds"]) == 1
         assert conversation["traceIds"][0] == trace_id
@@ -1191,3 +1193,56 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["toolNames"] == []
         assert conversation["toolCalls"] == 0
         assert conversation["toolErrors"] == 0
+
+    def test_tokens_only_counted_from_ai_client_spans(self) -> None:
+        """Test that tokens and costs are only counted from ai_client spans, not agent spans.
+
+        This prevents double counting when both agent spans (invoke_agent) and their
+        child ai_client spans have token/cost data.
+        """
+        now = before_now(days=109).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        # Agent span with tokens/cost (should NOT be counted)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            description="Test Agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+            tokens=500,
+            cost=0.05,
+        )
+
+        # ai_client span with tokens/cost (should be counted)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            tokens=100,
+            cost=0.01,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        conversation = response.data[0]
+        # Tokens and cost should only come from ai_client span (100, 0.01)
+        # NOT the sum of both spans (600, 0.06) which would be double counting
+        assert conversation["totalTokens"] == 100
+        assert conversation["totalCost"] == 0.01
+        # Verify counts are correct
+        assert conversation["llmCalls"] == 1
+        assert conversation["flow"] == ["Test Agent"]

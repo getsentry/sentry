@@ -51,6 +51,7 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
+  booleanTags?: TagCollection;
   isLoading?: boolean;
   /**
    * The width of all elements to the right of the search bar.
@@ -117,7 +118,6 @@ export function parseTagKey(tagKey: string) {
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
-  [SchemaHintsSources.AI_GENERATIONS]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
 };
 
@@ -141,6 +141,7 @@ function formatHintOperator(hint: Tag) {
 
 function SchemaHintsList({
   supportedAggregates,
+  booleanTags = {},
   numberTags,
   stringTags,
   isLoading,
@@ -170,6 +171,7 @@ function SchemaHintsList({
     const filterTags = removeHiddenSchemaHintsKeys({
       ...functionTags,
       ...numberTags,
+      ...booleanTags,
       ...stringTags,
     });
 
@@ -189,7 +191,7 @@ function SchemaHintsList({
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
-  }, [functionTags, numberTags, stringTags, source]);
+  }, [functionTags, numberTags, booleanTags, stringTags, source]);
 
   // In the bar, we can limit the schema hints shown to ONLY be ones in the list order set (eg. logs), but should still show the fullFilterTagsSorted in the drawer.
   const filterTagsSorted = useMemo(() => {

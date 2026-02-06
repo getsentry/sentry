@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -41,8 +43,12 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
-):
+    request: Request,
+    project: Project,
+    detector_type_slug: str,
+    instance: Detector | None = None,
+    partial: bool = False,
+) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
@@ -67,7 +73,9 @@ def get_detector_validator(
 @region_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
-    def convert_args(self, request: Request, detector_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, detector_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
@@ -112,7 +120,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.GET_DETECTOR,
     )
-    def get(self, request: Request, organization: Organization, detector: Detector):
+    def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -193,7 +201,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, detector: Detector):
+    def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 

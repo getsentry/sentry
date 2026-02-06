@@ -43,9 +43,9 @@ export function ReplaySummaryContextProvider({
     staleTime: 0,
     enabled: Boolean(
       replay.getReplay().id &&
-        projectSlug &&
-        hasAiSummary &&
-        (!mobileProject || hasMobileSummary)
+      projectSlug &&
+      hasAiSummary &&
+      (!mobileProject || hasMobileSummary)
     ),
   });
   useEmitTimestampChanges();

@@ -25,8 +25,7 @@ interface UseGroupEventAttachmentsOptions {
   };
 }
 
-interface MakeFetchGroupEventAttachmentsQueryKeyOptions
-  extends UseGroupEventAttachmentsOptions {
+interface MakeFetchGroupEventAttachmentsQueryKeyOptions extends UseGroupEventAttachmentsOptions {
   cursor: string | undefined;
   environment: string[] | string | undefined;
   orgSlug: string;

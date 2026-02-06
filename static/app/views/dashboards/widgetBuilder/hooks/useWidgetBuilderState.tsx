@@ -23,7 +23,7 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -390,7 +390,7 @@ function useWidgetBuilderState(): {
           setDataset(action.payload, options);
           setDisplayType(nextDisplayType, options);
 
-          if (isChartDisplayType(nextDisplayType)) {
+          if (usesTimeSeriesData(nextDisplayType)) {
             setFields([], options);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
@@ -676,7 +676,7 @@ function useWidgetBuilderState(): {
             // Check the validity of the aggregates against the new trace metric and
             // set fields and sorting accordingly
             let updatedAggregates: Column[] = [];
-            const aggregateSource = isChartDisplayType(displayType) ? yAxis : fields;
+            const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
             const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
 
             if (aggregateSource && validAggregateOptions.length > 0) {
@@ -705,7 +705,7 @@ function useWidgetBuilderState(): {
               });
 
               // Update the appropriate source
-              if (isChartDisplayType(displayType)) {
+              if (usesTimeSeriesData(displayType)) {
                 setYAxis(updatedAggregates, options);
               } else {
                 setFields(updatedAggregates, options);
@@ -722,8 +722,8 @@ function useWidgetBuilderState(): {
                 action.payload,
                 // Depending on the display type, the updated aggregates can be either
                 // the yAxis or the fields
-                isChartDisplayType(displayType) ? updatedAggregates : yAxis,
-                isChartDisplayType(displayType) ? fields : updatedAggregates
+                usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
+                usesTimeSeriesData(displayType) ? fields : updatedAggregates
               )
             ) {
               if (updatedAggregates.length > 0) {

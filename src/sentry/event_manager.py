@@ -1130,8 +1130,15 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         ):
             group_id = job["groups"][0].group.id if job["groups"] else None
             for error in processing_errors:
-                error_type = error.get("type", "unknown")
                 try:
+                    error_type = error.get("type", "unknown")
+                    error_name = error.get("name")
+                    error_value = error.get("value")
+                    # Convert non-string values to JSON and truncate
+                    if error_value is not None:
+                        if not isinstance(error_value, str):
+                            error_value = orjson.dumps(error_value).decode()
+                        error_value = error_value[:256]
                     analytics.record(
                         EventProcessingErrorRecorded(
                             organization_id=event.project.organization_id,
@@ -1140,6 +1147,8 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                             group_id=group_id,
                             error_type=error_type,
                             platform=job["data"].get("platform"),
+                            name=error_name,
+                            value=error_value,
                         )
                     )
                 except Exception:
@@ -2165,6 +2174,8 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
         "handled": is_handled(event.data),
+        "org_id": event.project.organization_id,
+        "project_id": event.project_id,
     }
 
     if options.get("processing.severity-backlog-test.timeout"):

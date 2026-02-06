@@ -35,6 +35,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -59,6 +60,7 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -1300,14 +1302,6 @@ const MultilineTextWrapper = styled('div')`
   }
 `;
 
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
-
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
@@ -1319,7 +1313,14 @@ function MultilineJSON({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
-  const json = tryParseJson(value);
+  const json = useMemo(() => tryParseJson(value), [value]);
+
+  // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
+  const computedExpandedPaths = useMemo(() => {
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    return Array.from(new Set(['$', ...childPaths]));
+  }, [maxDefaultDepth, json]);
+
   return (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
@@ -1355,6 +1356,7 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />
       )}
