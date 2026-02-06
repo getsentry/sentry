@@ -48,7 +48,7 @@ export function ConnectedTestUptimeMonitorButton({
   return (
     <TestUptimeMonitorButton
       getFormData={getFormData}
-      onValidationError={handleValidationError}
+      onValidationError={form ? handleValidationError : undefined}
       size={size}
     />
   );
