@@ -11,6 +11,7 @@ resources:
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
 ---
 
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -54,12 +55,14 @@ export function BasicDemo() {
   );
 }
 
-export const PanelContent = () => (
-  <React.Fragment>
-    <h4>With InteractionStateLayer</h4>
-    <p>Hover or focus this panel to see the effect</p>
-  </React.Fragment>
-);
+export function PanelContent() {
+  return (
+    <Fragment>
+      <h4>With InteractionStateLayer</h4>
+      <p>Hover or focus this panel to see the effect</p>
+    </Fragment>
+  );
+}
 
 <Storybook.Demo>
   <BasicDemo />
