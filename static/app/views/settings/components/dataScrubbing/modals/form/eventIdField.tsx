@@ -1,7 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
+import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -67,7 +69,7 @@ function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
       stacked
       showHelpInTooltip
     >
-      <FieldWrapper>
+      <Flex align="center" position="relative">
         <StyledInput
           type="text"
           name="eventId"
@@ -108,7 +110,7 @@ function EventIdField({disabled, eventId, onUpdateEventId}: Props) {
             status={eventData.status}
           />
         </Status>
-      </FieldWrapper>
+      </Flex>
     </FieldGroup>
   );
 }
@@ -117,7 +119,7 @@ export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   input {
     padding-right: ${space(1.5)};
   }
@@ -129,12 +131,6 @@ const Status = styled('div')`
   position: absolute;
   right: ${space(1.5)};
   top: 0;
-  display: flex;
-  align-items: center;
-`;
-
-const FieldWrapper = styled('div')`
-  position: relative;
   display: flex;
   align-items: center;
 `;

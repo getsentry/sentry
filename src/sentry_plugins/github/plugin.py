@@ -355,7 +355,7 @@ class GitHubRepositoryProvider(CorePluginMixin, RepositoryProvider):
             try:
                 resp = self._create_webhook(client, organization, data["name"])
             except Exception as e:
-                self.logger.exception(
+                self.logger.warning(
                     "github.webhook.create-failure",
                     extra={
                         "organization_id": organization.id,

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -121,12 +121,12 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
 
 const Heading = styled('span')`
   font-weight: 400;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-right: ${space(1)};
 `;
 
 const SubText = styled(TextBlock)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 `;
 

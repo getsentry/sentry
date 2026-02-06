@@ -3,11 +3,11 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type HTMLMotionProps} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
 type Motion = Theme['motion'];
@@ -87,8 +87,9 @@ const Box = styled(motion.div)`
   display: block;
   width: 128px;
   height: 128px;
-  background: ${p => p.theme.tokens.border.accent};
-  border: 1px solid ${p => p.theme.tokens.border.accent};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.accent.vibrant};
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   border-radius: ${p => p.theme.radius.md};
 `;
 

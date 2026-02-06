@@ -1013,9 +1013,11 @@ describe('getOnDemandCategories', () => {
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
     });
-    expect(categories).toHaveLength(plan.onDemandCategories.length - 2);
+    expect(categories).toHaveLength(plan.onDemandCategories.length - 4);
     expect(categories).not.toContain(DataCategory.SEER_SCANNER);
     expect(categories).not.toContain(DataCategory.SEER_AUTOFIX);
+    expect(categories).not.toContain(DataCategory.SIZE_ANALYSIS);
+    expect(categories).not.toContain(DataCategory.INSTALLABLE_BUILD);
   });
 
   it('does not filter out any categories for shared budget mode', () => {

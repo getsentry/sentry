@@ -43,19 +43,19 @@ function SeenInfo({
         showUnderline
         header={
           <div>
-            <TimeSinceWrapper>
+            <Flex justify="between" marginBottom="xs">
               {t('Any Environment')}
               <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-            </TimeSinceWrapper>
+            </Flex>
             {environment && (
-              <TimeSinceWrapper>
+              <Flex justify="between" marginBottom="xs">
                 {toTitleCase(environment)}
                 {date ? (
                   <TimeSince date={date} disabledAbsoluteTooltip />
                 ) : (
                   <span>{t('N/A')}</span>
                 )}
-              </TimeSinceWrapper>
+              </Flex>
             )}
           </div>
         }
@@ -104,15 +104,19 @@ function SeenInfo({
 }
 
 const dateTimeCss = (p: any) => css`
-  color: ${p.theme.subText};
-  font-size: ${p.theme.fontSize.md};
+  color: ${p.theme.tokens.content.secondary};
+  font-size: ${p.theme.font.size.md};
   display: flex;
   justify-content: center;
 `;
 
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledDateTime = styled(DateTime)`
@@ -136,21 +140,15 @@ const TooltipWrapper = styled('span')`
   }
 `;
 
-const TimeSinceWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-  display: flex;
-  justify-content: space-between;
-`;
-
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: ${p => p.theme.fontWeight.normal};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
   ${Body} {

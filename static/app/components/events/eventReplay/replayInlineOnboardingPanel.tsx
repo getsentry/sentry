@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
@@ -58,7 +60,7 @@ export default function ReplayInlineOnboardingPanel({
           <BannerDescription>
             {t('Watch the errors and latency issues your users face')}
           </BannerDescription>
-          <ActionButton>
+          <Flex gap="md">
             <Button
               type="button"
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
@@ -68,14 +70,14 @@ export default function ReplayInlineOnboardingPanel({
             >
               {t('Set Up Now')}
             </Button>
-          </ActionButton>
+          </Flex>
         </div>
         {!isScreenSmall && <Background image={replayInlineOnboarding} />}
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{
             showChevron: false,
-            borderless: true,
+            priority: 'transparent',
             icon: <IconClose variant="muted" />,
           }}
           size="xs"
@@ -110,8 +112,8 @@ export default function ReplayInlineOnboardingPanel({
 }
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.colors.blue400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerWrapper = styled('div')`
@@ -122,16 +124,16 @@ const BannerWrapper = styled('div')`
   margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
@@ -144,7 +146,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   display: block;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;
@@ -161,9 +163,4 @@ const Background = styled('div')<{image: any}>`
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

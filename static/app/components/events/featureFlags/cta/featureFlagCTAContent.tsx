@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,14 +29,14 @@ export default function FeatureFlagCTAContent({
 
   return (
     <Fragment>
-      <BannerContent>
+      <Stack justify="center" padding="xl">
         <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
-        <BannerDescription>
+        <Container marginBottom="lg" maxWidth="340px">
           {t(
             'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
           )}
-        </BannerDescription>
-        <ActionButton>
+        </Container>
+        <Flex gap="md">
           <Button onClick={handleSetupButtonClick} priority="primary">
             {t('Set Up Now')}
           </Button>
@@ -52,34 +53,17 @@ export default function FeatureFlagCTAContent({
           >
             {t('Read More')}
           </LinkButton>
-        </ActionButton>
-      </BannerContent>
+        </Flex>
+      </Stack>
       <BannerIllustration src={onboardingInstall} alt="" />
     </Fragment>
   );
 }
 
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
-  max-width: 340px;
-`;
-
-const BannerContent = styled('div')`
-  padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerIllustration = styled('img')`
@@ -97,9 +81,9 @@ export const BannerWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   display: flex;
   flex-direction: row;

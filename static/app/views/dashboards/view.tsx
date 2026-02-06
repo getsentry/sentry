@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,9 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DashboardState} from 'sentry/views/dashboards/types';
+import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
 import {useTimeseriesVisualizationEnabled} from 'sentry/views/dashboards/utils/useTimeseriesVisualizationEnabled';
 
 import DashboardDetail from './detail';
@@ -22,6 +24,7 @@ export default function ViewEditDashboard() {
   const api = useApi();
   const organization = useOrganization();
   const {dashboardId} = useParams<{dashboardId: string}>();
+  const location = useLocation();
 
   const orgSlug = organization.slug;
 
@@ -33,9 +36,13 @@ export default function ViewEditDashboard() {
 
   const useTimeseriesVisualization = useTimeseriesVisualizationEnabled();
 
+  // Get optimistic dashboard from location.state if available (e.g., after adding a widget)
+  const optimisticDashboard = (location.state as {dashboard?: DashboardDetails} | null)
+    ?.dashboard;
+
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards>
+      <OrgDashboards initialDashboard={optimisticDashboard}>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />

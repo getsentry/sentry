@@ -152,7 +152,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         return find_regions_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
+        # Use 0 in case of bad relations from api_application_id -- the replication ordering for
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
 
@@ -164,7 +164,11 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
                 region_name=region_name,
-                payload={"uuid": self.uuid},
+                payload={
+                    "uuid": self.uuid,
+                    "sentry_app_id": self.sentry_app_id,
+                    "organization_id": self.organization_id,
+                },
             )
             for region_name in find_all_region_names()
         ]

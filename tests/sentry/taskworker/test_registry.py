@@ -19,9 +19,19 @@ from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 
 
+@pytest.fixture
+def real_send_task():
+    """Restore real send_task for tests that directly test send_task behavior."""
+    original = TaskNamespace._original_send_task  # type: ignore[attr-defined]
+    TaskNamespace.send_task = original  # type: ignore[method-assign]
+    yield
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+
+
 def test_namespace_register_task() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -42,6 +52,7 @@ def test_namespace_register_task() -> None:
 def test_namespace_register_inherits_default_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=Retry(times=5, on=(RuntimeError,)),
     )
@@ -70,6 +81,7 @@ def test_namespace_register_inherits_default_retry() -> None:
 def test_register_inherits_default_expires_processing_deadline() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
         expires=10 * 60,
@@ -98,6 +110,7 @@ def test_register_inherits_default_expires_processing_deadline() -> None:
 def test_namespace_get_unknown() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -108,9 +121,10 @@ def test_namespace_get_unknown() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_send_task_no_retry() -> None:
+def test_namespace_send_task_no_retry(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -141,6 +155,7 @@ def test_namespace_send_task_no_retry() -> None:
 def test_namespace_send_task_with_compression() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -168,6 +183,7 @@ def test_namespace_send_task_with_compression() -> None:
 def test_namespace_send_task_with_auto_compression() -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -193,9 +209,10 @@ def test_namespace_send_task_with_auto_compression() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_send_task_with_retry() -> None:
+def test_namespace_send_task_with_retry(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=None,
     )
@@ -223,9 +240,10 @@ def test_namespace_send_task_with_retry() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_with_retry_send_task() -> None:
+def test_namespace_with_retry_send_task(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=Retry(times=3),
     )
@@ -253,9 +271,10 @@ def test_namespace_with_retry_send_task() -> None:
 
 
 @pytest.mark.django_db
-def test_namespace_with_wait_for_delivery_send_task() -> None:
+def test_namespace_with_wait_for_delivery_send_task(real_send_task: None) -> None:
     namespace = TaskNamespace(
         name="tests",
+        application="sentry",
         router=DefaultRouter(),
         retry=Retry(times=3),
     )
@@ -284,11 +303,12 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
 
 @pytest.mark.django_db
 def test_registry_get() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     ns = registry.create_namespace(name="tests")
 
     assert isinstance(ns, TaskNamespace)
     assert ns.name == "tests"
+    assert ns.application == "sentry"
     assert ns.router
     assert ns == registry.get("tests")
 
@@ -301,7 +321,7 @@ def test_registry_get() -> None:
 
 @pytest.mark.django_db
 def test_registry_get_task() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     ns = registry.create_namespace(name="tests")
 
     @ns.register(name="test.simpletask")
@@ -320,12 +340,13 @@ def test_registry_get_task() -> None:
 
 @pytest.mark.django_db
 def test_registry_create_namespace_simple() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     ns = registry.create_namespace(name="tests")
     assert ns.default_retry is None
     assert ns.default_expires is None
     assert ns.default_processing_deadline_duration == 10
     assert ns.name == "tests"
+    assert ns.application == "sentry"
     assert ns.topic == Topic.TASKWORKER
     assert ns.app_feature == "tests"
 
@@ -347,7 +368,7 @@ def test_registry_create_namespace_simple() -> None:
 
 @pytest.mark.django_db
 def test_registry_create_namespace_duplicate() -> None:
-    registry = TaskRegistry()
+    registry = TaskRegistry(application="sentry")
     registry.create_namespace(name="tests")
     with pytest.raises(ValueError, match="tests already exists"):
         registry.create_namespace(name="tests")
@@ -356,7 +377,7 @@ def test_registry_create_namespace_duplicate() -> None:
 @pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
     with override_settings(TASKWORKER_ROUTES='{"profiling":"profiles", "lol":"nope"}'):
-        registry = TaskRegistry()
+        registry = TaskRegistry(application="sentry")
 
         # namespaces without routes resolve to the default topic.
         tests = registry.create_namespace(name="tests")

@@ -12,7 +12,9 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -79,6 +81,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         "DELETE": ApiPublishStatus.UNKNOWN,
     }
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
     def get(self, request: Request, group, integration_id) -> Response:
         """
         Retrieves the config needed to either link or create an external issue for a group.
@@ -131,6 +134,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         )
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
     def post(self, request: Request, group, integration_id) -> Response:
         """
         Creates a new external issue and links it to a group.
@@ -233,6 +237,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
     def put(self, request: Request, group, integration_id) -> Response:
         """
         Links an existing external issue to a group.
@@ -336,6 +341,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
     def delete(self, request: Request, group, integration_id) -> Response:
         """
         Deletes a link between a group and an external issue.

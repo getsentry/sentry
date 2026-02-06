@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -304,12 +305,14 @@ export function getMenuOptions(
           organization,
           location,
           selection,
-          widget: {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
+          widgets: [
+            {
+              ...widget,
+              id: undefined,
+              dashboardId: undefined,
+              layout: undefined,
+            },
+          ],
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
           source: DashboardWidgetSource.DASHBOARDS,
         });

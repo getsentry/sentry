@@ -9,8 +9,9 @@ from parsimonious.exceptions import ParseError
 from rest_framework import serializers
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
@@ -30,8 +31,9 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
 )
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
+from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
@@ -76,7 +78,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
     aggregate = serializers.CharField(required=True, min_length=1)
 
     # This will be set to required=True once the frontend starts sending it.
-    owner = ActorField(required=False, allow_null=True)
+    owner = OwnerActorField(required=False, allow_null=True)
 
     description = serializers.CharField(required=False, allow_blank=True)
     sensitivity = serializers.CharField(required=False, allow_null=True)
@@ -140,6 +142,27 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             )
         return aggregate
 
+    def validate_eap_rule(self, data):
+        """
+        Validate EAP rule data.
+        """
+        event_types = data.get("event_types", [])
+
+        if SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types:
+            aggregate = data.get("aggregate")
+            validate_trace_metrics_aggregate(aggregate)
+
+    def validate_deprecated_transactions_datasets(self, data):
+        new_dataset = data.get("dataset")
+        organization = self.context.get("organization")
+        if organization and features.has(
+            "organizations:discover-saved-queries-deprecation", organization
+        ):
+            if new_dataset in [Dataset.Transactions, Dataset.PerformanceMetrics]:
+                raise serializers.ValidationError(
+                    "Updating transaction-based alerts is disabled as we migrate to the spans dataset. Update the dataset to events_analytics_platform with the is_transaction:true filter instead."
+                )
+
     def validate(self, data):
         """
         Performs validation on an alert rule's data.
@@ -149,6 +172,10 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         > or < the value depends on threshold type).
         """
         data = super().validate(data)
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            self.validate_eap_rule(data)
+
+        self.validate_deprecated_transactions_datasets(data)
 
         triggers = data.get("triggers", [])
         if not triggers:

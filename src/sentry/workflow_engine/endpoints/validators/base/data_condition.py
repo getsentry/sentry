@@ -19,7 +19,7 @@ ConditionResult = TypeVar("ConditionResult")
 
 
 class AbstractDataConditionValidator(
-    CamelSnakeSerializer,
+    CamelSnakeSerializer[Any],
     Generic[ComparisonType, ConditionResult],
 ):
     id = serializers.IntegerField(required=False)
@@ -48,7 +48,7 @@ class BaseDataConditionValidator(
 
         return self.initial_data.get("type")
 
-    def _get_handler(self) -> type[DataConditionHandler] | None:
+    def _get_handler(self) -> type[DataConditionHandler[Any]] | None:
         if self._is_operator_condition():
             return None
 

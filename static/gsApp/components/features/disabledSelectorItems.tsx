@@ -112,8 +112,8 @@ const SelectorItemLabel = styled('div')`
 `;
 
 const UpsellMessage = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;
 

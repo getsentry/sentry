@@ -69,7 +69,7 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
 @instrumented_task(
     name="sentry.tasks.check_auth_identities",
     namespace=auth_control_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=90,
     silo_mode=SiloMode.CONTROL,
 )
 def check_auth_identities(

@@ -1,0 +1,39 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Authorize Device | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <form class="form-stacked" action="." method="post" autocomplete="off">
+    {% csrf_token %}
+
+    <div>
+      <h2>Enter Device Code</h2>
+      <p>Enter the code displayed on your device to authorize it.</p>
+
+      {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
+
+      <div class="form-group">
+        <label for="user_code">Device Code</label>
+        <input type="text"
+               name="user_code"
+               id="user_code"
+               class="form-control"
+               placeholder="XXXX-XXXX"
+               maxlength="9"
+               pattern="[A-Za-z]{4}-?[A-Za-z]{4}"
+               style="text-transform: uppercase; letter-spacing: 2px; font-size: 1.5em; text-align: center;"
+               autofocus
+               required>
+        <p class="help-block">The code should be 8 letters, like ABCD-EFGH</p>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      <button type="submit" class="btn btn-primary">Continue</button>
+    </div>
+  </form>
+{% endblock %}

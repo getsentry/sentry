@@ -1,16 +1,14 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDownload} from 'sentry/icons';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 import PageHeader from 'admin/components/pageHeader';
 import ResultGrid, {type State as ResultGridState} from 'admin/components/resultGrid';
 import {prettyDate} from 'admin/utils';
-
-type Props = RouteComponentProps<unknown, unknown>;
 
 const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   <td key="org">
@@ -67,7 +65,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   </td>,
 ];
 
-function Invoices(props: Props) {
+export default function Invoices() {
   return (
     <div>
       <PageHeader title="Invoices" />
@@ -119,7 +117,7 @@ function Invoices(props: Props) {
       </Panel>
       <ResultGrid
         inPanel
-        isRegional
+        isCellScoped
         path="/_admin/invoices/"
         endpoint="/invoices/"
         method="GET"
@@ -155,10 +153,7 @@ function Invoices(props: Props) {
             ],
           },
         }}
-        {...props}
       />
     </div>
   );
 }
-
-export default Invoices;

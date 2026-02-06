@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import Panel from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
@@ -42,6 +42,10 @@ interface EventListTableProps {
      */
     pageCount?: number;
     /**
+     * Which type of pagination implementation is used by the API.
+     */
+    paginatorType?: 'offset' | 'cursor';
+    /**
      * Whether the previous page link is disabled
      */
     previousDisabled?: boolean;
@@ -71,6 +75,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
     previousDisabled,
     tableUnits = 'events',
     enabled: isPaginationEnabled = true,
+    paginatorType = 'cursor',
   } = pagination ?? {};
 
   const hasHeader = title !== undefined || isPaginationEnabled;
@@ -87,13 +92,14 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   pageCount={pageCount}
                   totalCount={totalCount}
                   tableUnits={tableUnits}
+                  paginatorType={paginatorType}
                 />
               </HeaderItem>
               <HeaderItem>
                 <ButtonBar gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -107,7 +113,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{
@@ -137,7 +143,7 @@ export const Header = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.tokens.background.primary};
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
@@ -146,14 +152,14 @@ export const Header = styled('div')`
 
 export const Title = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 export const HeaderItem = styled('div')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const StreamlineGridEditable = styled('div')`
@@ -167,7 +173,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHead} {
     min-height: unset;
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     ${GridResizer} {
       height: 36px;
     }
@@ -202,7 +208,7 @@ const StreamlineGridEditable = styled('div')`
   ${GridBodyCell} {
     min-height: unset;
     padding: ${space(1)} ${space(1.5)};
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -217,6 +223,7 @@ const StreamlineGridEditable = styled('div')`
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
+        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
         text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }
@@ -224,37 +231,49 @@ const StreamlineGridEditable = styled('div')`
 `;
 
 export const PaginationButton = styled(LinkButton)`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 export function PaginationText({
   pageCount = 0,
+  paginatorType,
   totalCount,
   tableUnits,
 }: {
   pageCount: Required<EventListTableProps>['pagination']['pageCount'];
+  paginatorType: NonNullable<EventListTableProps['pagination']>['paginatorType'];
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
   const location = useLocation();
   const currentCursor = parseCursor(location.query?.cursor);
-  const start = Math.max(currentCursor?.offset ?? 1, 1);
 
   if (pageCount === 0) {
     return null;
   }
 
+  const isOffsetPagination = paginatorType === 'offset';
+
+  const start =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + 1
+      : Math.max((currentCursor?.offset ?? 0) + 1, 1);
+  const end =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + pageCount
+      : (currentCursor?.offset ?? 0) + pageCount;
+
   return defined(totalCount)
     ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         count: totalCount.toLocaleString(),
         tableUnits,
       })
     : tct('Showing [start]-[end] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         tableUnits,
       });
 }

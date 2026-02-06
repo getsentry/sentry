@@ -1,7 +1,9 @@
 import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -72,14 +74,14 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   }, [organization, closeDrawer]);
 
   return (
-    <DrawerWrapper>
+    <Stack height="100%">
       <StyledDrawerHeader>
-        <HeaderContent>
+        <Flex justify="between" align="center" flex="1">
           {t('Abbreviated Trace')}
           <LinkButton size="xs" onClick={handleViewFullTraceClick} to={nodeDetailsLink}>
             {t('View in Full Trace')}
           </LinkButton>
-        </HeaderContent>
+        </Flex>
       </StyledDrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -93,7 +95,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </DrawerWrapper>
+    </Stack>
   );
 });
 
@@ -166,9 +168,9 @@ function AITraceView({
   const organization = useOrganization();
   if (isLoading) {
     return (
-      <LoadingContainer>
+      <Flex justify="center" align="center" flex="1" height="100%">
         <LoadingIndicator size={32}>{t('Loading trace...')}</LoadingIndicator>
-      </LoadingContainer>
+      </Flex>
     );
   }
 
@@ -181,7 +183,7 @@ function AITraceView({
   }
 
   return (
-    <SplitContainer>
+    <Flex flex="1" minHeight="0">
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
@@ -202,7 +204,7 @@ function AITraceView({
           hideNodeActions: true,
         })}
       </RightPanel>
-    </SplitContainer>
+    </Flex>
   );
 }
 
@@ -212,12 +214,6 @@ const StyledDrawerBody = styled(DrawerBody)`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-`;
-
-const SplitContainer = styled('div')`
-  display: flex;
-  flex: 1;
-  min-height: 0;
 `;
 
 const LeftPanel = styled('div')`
@@ -240,34 +236,13 @@ const RightPanel = styled('div')`
   overflow-x: hidden;
 `;
 
-const DrawerWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  flex: 1;
-`;
-
 const StyledDrawerHeader = styled(DrawerHeader)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
 `;
 
-const HeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const SpansHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin-bottom: ${p => p.theme.space.xl};
 `;

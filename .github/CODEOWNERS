@@ -213,6 +213,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_timeseries.py                 @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
+src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
@@ -225,6 +226,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/data-browsing
+tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @getsentry/data-browsing
 
 /src/sentry/api/serializers/snuba.py                                        @getsentry/data-browsing
 
@@ -253,7 +255,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/dashboards/                                                     @getsentry/dashboards
 /tests/sentry/dashboards/                                                   @getsentry/dashboards
 
-/src/sentry/api/serializers/models/dashboard.py                      @getsentry/dashboards
+/src/sentry/api/serializers/models/dashboard*                        @getsentry/dashboards
 /src/sentry/api/serializers/models/discoversavedquery.py             @getsentry/data-browsing
 /src/sentry/api/serializers/rest_framework/dashboard.py              @getsentry/dashboards
 
@@ -494,6 +496,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 
 ## Telemetry Experience
+/src/sentry/autopilot/                                                           @getsentry/telemetry-experience
+/tests/sentry/autopilot/                                                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
@@ -523,6 +527,7 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
+/static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## ML & AI
@@ -627,6 +632,13 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
+## AI Conversations (Telemetry Experience)
+# These must come after /src/sentry/api/endpoints/ catch-all above
+/src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
+/src/sentry/api/serializers/rest_framework/ai_conversations.py                   @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
+## End of AI Conversations
+
 ## Billing
 /src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 
@@ -664,8 +676,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 
 # Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/taskbroker
-/tests/sentry/taskworker/                                     @getsentry/taskbroker
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
@@ -699,22 +711,20 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
+/static/eslint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 ## End of Frontend Platform
 
-# Prevent
-/src/sentry/prevent/                                      @getsentry/coding-workflows
-/src/sentry/overwatch/                                    @getsentry/coding-workflows
-/src/sentry/overwatch_webhooks/                           @getsentry/coding-workflows
+# Coding Workflows
 /static/app/components/prevent/                           @getsentry/coding-workflows
 /static/app/views/prevent/                                @getsentry/coding-workflows
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
-# End of Prevent
-
-# Coding Workflows
+/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows
+/src/sentry/prevent/                                      @getsentry/coding-workflows
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
 /src/sentry/seer/code_review/                                                @getsentry/coding-workflows
 /tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+
 # End of Coding Workflows
 
 # Conduit

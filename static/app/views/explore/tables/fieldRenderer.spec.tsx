@@ -4,7 +4,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -22,6 +22,7 @@ const mockedEventData = {
   'transaction.span_id': 'transactionSpanId',
   'span.description': 'GET /foo',
   'span.name': 'HTTP GET /foo',
+  transaction: 'GET /foo',
 };
 
 function Wrapper({children}: {children: ReactNode}) {
@@ -49,7 +50,7 @@ describe('FieldRenderer tests', () => {
 
   const eventView = EventView.fromLocation(location);
 
-  beforeAll(() => {
+  beforeEach(() => {
     const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
     setMockDate(mockTimestamp);
 
@@ -64,7 +65,7 @@ describe('FieldRenderer tests', () => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     jest.restoreAllMocks();
     resetMockDate();
     ProjectsStore.reset();
@@ -85,61 +86,178 @@ describe('FieldRenderer tests', () => {
     expect(screen.getByText('test_op')).toBeInTheDocument();
   });
 
-  it('renders span id link to traceview', () => {
-    render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[0]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
-    );
+  describe('span timestamp is less than 30 days', () => {
+    it('renders span id link to trace view', () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[0]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
 
-    expect(screen.getByText('spanId')).toBeInTheDocument();
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
-    );
+      expect(screen.getByText('spanId')).toBeInTheDocument();
+      expect(screen.getByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      );
+    });
   });
 
-  it('renders transaction id link to traceview', () => {
-    render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[4]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
-    );
+  describe('span timestamp is greater than 30 days', () => {
+    beforeEach(() => {
+      setMockDate(new Date('2025-10-06T00:00:00').getTime());
+    });
 
-    expect(screen.getByText('transactionId')).toBeInTheDocument();
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
-    );
+    afterEach(() => {
+      resetMockDate();
+    });
+
+    it('renders span id link to similar spans', async () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[0]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(screen.getByText('spanId')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('spanId'));
+      expect(await screen.findByText(/Span is older than 30 days/)).toBeInTheDocument();
+
+      const queryString = encodeURIComponent(
+        'span.name:"HTTP GET /foo" span.description:"GET /foo"'
+      );
+      expect(await screen.findByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h`
+      );
+    });
   });
 
-  it('renders trace id link to traceview', () => {
-    render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[2]}
-          data={mockedEventData}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
-    );
+  describe('transaction timestamp is less than 30 days', () => {
+    it('renders transaction id link to trace view', () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[4]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
 
-    expect(screen.getByText('traceId')).toBeInTheDocument();
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
-    );
+      expect(screen.getByText('transactionId')).toBeInTheDocument();
+      expect(screen.getByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
+      );
+    });
+  });
+
+  describe('transaction timestamp is greater than 30 days', () => {
+    beforeEach(() => {
+      setMockDate(new Date('2025-10-06T00:00:00').getTime());
+    });
+
+    afterEach(() => {
+      resetMockDate();
+    });
+
+    it('renders transaction id link to similar transactions', async () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[4]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(screen.getByText('transactionId')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('transactionId'));
+      expect(await screen.findByText(/Span is older than 30 days/)).toBeInTheDocument();
+
+      const queryString = encodeURIComponent(
+        'is_transaction:true span.name:"HTTP GET /foo" span.description:"GET /foo"'
+      );
+      expect(await screen.findByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h`
+      );
+    });
+  });
+
+  describe('trace timestamp is less than 30 days', () => {
+    it('renders trace id link to trace view', () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[2]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(screen.getByText('traceId')).toBeInTheDocument();
+      expect(screen.getByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
+      );
+    });
+  });
+
+  describe('trace timestamp is greater than 30 days', () => {
+    beforeEach(() => {
+      setMockDate(new Date('2025-10-06T00:00:00').getTime());
+    });
+
+    afterEach(() => {
+      resetMockDate();
+    });
+
+    it('renders trace id link to trace view', async () => {
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[2]}
+            data={mockedEventData}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
+
+      expect(screen.getByText('traceId')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('traceId'));
+      expect(await screen.findByText(/Trace is older than 30 days/)).toBeInTheDocument();
+
+      const queryString = encodeURIComponent(
+        'span.name:"HTTP GET /foo" span.description:"GET /foo"'
+      );
+      expect(await screen.findByRole('link')).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/explore/traces/?mode=samples&project=1&query=${queryString}&referrer=partial-trace&statsPeriod=24h&table=trace`
+      );
+    });
   });
 
   it('renders timestamp', () => {

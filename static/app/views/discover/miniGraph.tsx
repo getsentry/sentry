@@ -209,7 +209,7 @@ class MiniGraph extends Component<Props> {
             : undefined;
 
           if (chartColors?.length && hasOther) {
-            chartColors.push(theme.tokens.content.muted);
+            chartColors.push(theme.tokens.content.secondary);
           }
 
           const chartOptions = {
@@ -228,8 +228,8 @@ class MiniGraph extends Component<Props> {
                 show: false,
               },
               axisLabel: {
-                color: theme.tokens.content.muted,
-                fontFamily: theme.text.family,
+                color: theme.tokens.content.secondary,
+                fontFamily: theme.font.family.sans,
                 fontSize: 12,
                 formatter: (value: number) =>
                   axisLabelFormatter(
@@ -284,7 +284,7 @@ const StyledGraphContainer = styled((props: any) => (
 `;
 
 const StyledErrorMessage = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: 4px;
 `;
 

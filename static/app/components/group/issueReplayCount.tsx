@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -52,7 +53,7 @@ function IssueReplayCount({group}: Props) {
 const ReplayCountLink = styled(Link)`
   display: inline-flex;
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   gap: 0 ${space(0.5)};
   position: relative;
 

@@ -16,6 +16,7 @@ from sentry.seer.explorer.client_models import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.requests import make_request
 
 
 class TestSeerExplorerClient(TestCase):
@@ -43,6 +44,22 @@ class TestSeerExplorerClient(TestCase):
         assert client.user == self.user
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_raises_when_coding_option_disabled(self, mock_access):
+        """Test that client initialization raises SeerPermissionError when enable_coding is True but org option is disabled"""
+        mock_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(SeerPermissionError):
+            SeerExplorerClient(self.organization, self.user, enable_coding=True)
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_client_init_succeeds_when_coding_option_not_set(self, mock_access):
+        """Test that client initialization succeeds when enable_coding is True and org option is not set (interpreted as True by default)"""
+        mock_access.return_value = (True, None)
+        client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+        assert client.enable_coding is True
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.requests.post")
     @patch("sentry.seer.explorer.client.collect_user_org_context")
     def test_start_run_basic(self, mock_collect_context, mock_post, mock_access):
@@ -57,7 +74,26 @@ class TestSeerExplorerClient(TestCase):
         run_id = client.start_run("Test query")
 
         assert run_id == 123
-        mock_collect_context.assert_called_once_with(self.user, self.organization)
+        mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
+        assert mock_post.called
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
+        """Test starting a new run passes request object to collect_user_org_context"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 123}
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user)
+        request, _ = make_request()
+        run_id = client.start_run("Test query", request=request)
+
+        assert run_id == 123
+        mock_collect_context.assert_called_once_with(self.user, self.organization, request=request)
         assert mock_post.called
 
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
@@ -670,8 +706,9 @@ class TestSeerExplorerClientPushChanges(TestCase):
     @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
     @patch("sentry.seer.explorer.client.fetch_run_status")
     @patch("sentry.seer.explorer.client.requests.post")
+    @patch("sentry.seer.explorer.client.time.sleep")
     @patch("sentry.seer.explorer.client.time.time")
-    def test_push_changes_timeout(self, mock_time, mock_post, mock_fetch, mock_access):
+    def test_push_changes_timeout(self, mock_time, mock_sleep, mock_post, mock_fetch, mock_access):
         """Test that push_changes raises TimeoutError after timeout"""
         mock_access.return_value = (True, None)
         mock_post.return_value = MagicMock()
@@ -686,7 +723,10 @@ class TestSeerExplorerClientPushChanges(TestCase):
         )
         mock_time.side_effect = [0, 0, 200]  # Exceeds 120s timeout
 
+        # get_option call in client init interferes with the mock time.time() - patch it
+        self.organization.get_option = MagicMock(return_value=True)
         client = SeerExplorerClient(self.organization, self.user, enable_coding=True)
+
         with pytest.raises(TimeoutError, match="PR creation timed out"):
             client.push_changes(123, poll_timeout=120.0)
 

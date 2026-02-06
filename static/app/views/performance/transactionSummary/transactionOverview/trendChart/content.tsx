@@ -70,7 +70,7 @@ function Content({
         .map(values => {
           return {
             ...values,
-            color: theme.colors.blue400,
+            color: theme.tokens.background.accent.vibrant,
             lineStyle: {
               opacity: 0.75,
               width: 1,
@@ -110,7 +110,7 @@ function Content({
       min: 0,
       minInterval: durationUnit,
       axisLabel: {
-        color: theme.tokens.content.muted,
+        color: theme.tokens.content.secondary,
         formatter: (value: number) =>
           axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
@@ -123,7 +123,7 @@ function Content({
     ? smoothedResults.map(values => {
         return {
           ...values,
-          color: theme.colors.blue400,
+          color: theme.tokens.background.accent.vibrant,
           lineStyle: {
             opacity: 1,
           },

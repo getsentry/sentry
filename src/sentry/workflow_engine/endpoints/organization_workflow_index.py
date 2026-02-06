@@ -1,12 +1,24 @@
 from datetime import datetime
 from functools import partial
+from typing import Any
 
 from django.db import router, transaction
-from django.db.models import Count, OuterRef, Q, QuerySet, Subquery
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,14 +41,21 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
@@ -45,7 +64,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -82,25 +101,45 @@ class OrganizationWorkflowPermission(OrganizationPermission):
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationWorkflowPermission,)
 
-    def convert_args(self, request: Request, workflow_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, workflow_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Workflow]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"], id=workflow_id
+                organization=kwargs["organization"], id=validated_workflow_id
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
+
+        # Check project access for workflows connected to detectors.
+        # User must have access to at least one connected project.
+        # Workflows with no detector connections are org-level and accessible
+        # to anyone with org-level workflow permissions.
+        workflow = kwargs["workflow"]
+        connected_projects = Project.objects.filter(
+            detector__detectorworkflow__workflow=workflow
+        ).distinct()
+
+        if connected_projects.exists():
+            has_access = any(
+                request.access.has_project_access(project) for project in connected_projects
+            )
+            if not has_access:
+                raise PermissionDenied
 
         return args, kwargs
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationWorkflowPermission,)
@@ -108,24 +147,17 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """
         Helper function to filter workflows based on request parameters.
+        Project filtering is ALWAYS applied to ensure users can only
+        access workflows connected to projects they have access to.
         """
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
+            ids = to_valid_int_id_list("id", raw_idlist)
             queryset = queryset.filter(id__in=ids)
 
-            # If specific IDs are provided, skip query and project filtering
-            return queryset
-
         if raw_detectorlist := request.GET.getlist("detector"):
-            try:
-                detector_ids = [int(id) for id in raw_detectorlist]
-            except ValueError:
-                raise ValidationError({"detector": ["Invalid detector ID format"]})
+            detector_ids = to_valid_int_id_list("detector", raw_detectorlist)
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
         if raw_query := request.GET.get("query"):
@@ -154,17 +186,20 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        projects = self.get_projects(request, organization)
-        if projects:
-            queryset = queryset.filter(
-                Q(detectorworkflow__detector__project__in=projects)
-                | Q(detectorworkflow__isnull=True)
-            ).distinct()
+        # Use include_all_accessible=True to get all projects the user can access,
+        # not just those explicitly requested. This filter is ALWAYS applied to ensure
+        # users with no project access only see org-level workflows (those with no
+        # detector connections). When projects is empty, only workflows with
+        # detectorworkflow__isnull=True are returned.
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        queryset = queryset.filter(
+            Q(detectorworkflow__detector__project__in=projects) | Q(detectorworkflow__isnull=True)
+        ).distinct()
 
         return queryset
 
     @extend_schema(
-        operation_id="Fetch Workflows",
+        operation_id="Fetch Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
@@ -173,20 +208,44 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             OrganizationParams.PROJECT,
         ],
         responses={
-            201: WorkflowSerializer,
+            200: inline_sentry_response_serializer(
+                "ListWorkflowSerializer", list[WorkflowSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
-        Returns a list of workflows for a given org
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Returns a list of alerts for a given organization
         """
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = self.filter_workflows(request, organization)
+
+        # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
+        priority_detector_id: int | None = None
+        if raw_priority := request.GET.get("priorityDetector"):
+            priority_detector_id = to_valid_int_id("priorityDetector", raw_priority)
+
+            is_priority = Exists(
+                DetectorWorkflow.objects.filter(
+                    workflow=OuterRef("pk"),
+                    detector_id=priority_detector_id,
+                )
+            )
+            queryset = queryset.annotate(
+                priority_detector_id=Case(
+                    When(condition=is_priority, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
 
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
@@ -214,22 +273,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     last_triggered=Coalesce(latest_fire_subquery, long_ago)
                 )
 
-        queryset = queryset.order_by(*sort_by.db_order_by)
+        order_by = sort_by.db_order_by
+        if priority_detector_id is not None:
+            order_by = ("priority_detector_id", *sort_by.db_order_by)
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=sort_by.db_order_by,
+            order_by=order_by,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
             count_hits=True,
         )
 
     @extend_schema(
-        operation_id="Create a Workflow",
+        operation_id="Create an Alert for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
+        request=WorkflowValidator,
         responses={
             201: WorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -237,16 +299,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request, organization):
+    def post(self, request: Request, organization: Organization) -> Response:
         """
-        Creates a workflow for an organization
-        `````````````````````````````````````
-        :param string name: The name of the workflow
-        :param bool enabled: Whether the workflow is enabled or not
-        :param object config: The configuration of the workflow
-        :param object triggers: The Data Condition and DataConditionGroup for the when condition of a workflow
-        :param object action_filters: The Data Conditions, Data Condition Group, and Actions to invoke when a workflow is triggered
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Creates an alert for an organization
         """
         validator = WorkflowValidator(
             data=request.data,
@@ -273,23 +332,37 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        operation_id="Mutate an Organization's Workflows",
-        description=("Currently supports bulk enabling/disabling workflows."),
+        operation_id="Mutate an Organization's Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
         ],
         responses={
-            200: RESPONSE_SUCCESS,
-            201: WorkflowSerializer,
+            200: inline_sentry_response_serializer(
+                "ListWorkflowSerializer", list[WorkflowSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        request=inline_serializer(
+            name="BulkUpdateAlerts",
+            fields={
+                "enabled": serializers.BooleanField(
+                    help_text="Whether to enable or disable the alerts"
+                )
+            },
+        ),
+        examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request, organization):
+    def put(self, request: Request, organization: Organization) -> Response:
         """
-        Mutates workflows for a given org
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Bulk enable or disable alerts for a given Organization
         """
         if not (
             request.GET.getlist("id")
@@ -330,9 +403,12 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Workflows",
+        operation_id="Bulk Delete Alerts",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
         ],
         responses={
             200: RESPONSE_SUCCESS,
@@ -343,9 +419,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
-        Deletes workflows for a given org
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
+        Bulk delete alerts for a given organization
         """
         if not (
             request.GET.getlist("id")

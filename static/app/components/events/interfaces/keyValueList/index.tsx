@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {ValueLink} from 'sentry/components/keyValueData';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -83,7 +85,9 @@ function KeyValueList({
                     {actionButton ? (
                       <ValueWithButtonContainer>
                         {valueContainer}
-                        <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
+                        <Flex align="start" height="100%">
+                          {actionButton}
+                        </Flex>
                       </ValueWithButtonContainer>
                     ) : (
                       valueContainer
@@ -131,7 +135,7 @@ const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.secondary};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;
@@ -144,12 +148,6 @@ const ValueWithButtonContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr max-content;
   }
-`;
-
-const ActionButtonWrapper = styled('div')`
-  height: 100%;
-  display: flex;
-  align-items: flex-start;
 `;
 
 const Table = styled('table')`

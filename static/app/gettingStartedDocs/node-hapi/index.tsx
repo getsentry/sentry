@@ -1,6 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {logs} from './logs';
@@ -15,7 +15,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReport,
   logsOnboarding: logs,
   profilingOnboarding: profiling,
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring(),
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,
 };

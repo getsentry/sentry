@@ -6,12 +6,12 @@ import type {LocationDescriptor} from 'history';
 
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
+import type {LinkButtonProps} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
@@ -190,9 +190,9 @@ const Hero = styled('div')`
   }
 
   p {
-    font-size: ${p => p.theme.fontSize.lg};
+    font-size: ${p => p.theme.font.size.lg};
     text-wrap: balance;
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 
   img {
@@ -248,7 +248,7 @@ const CardLink = styled(Link)`
   width: calc(100% * 3 / 5);
   aspect-ratio: 2/1;
   padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.muted};
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
@@ -280,7 +280,7 @@ const CardTitle = styled('span')`
   width: 100%;
   height: 24px;
   font-size: 24px;
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: currentColor;
 `;
 

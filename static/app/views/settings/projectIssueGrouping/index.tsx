@@ -1,5 +1,6 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
@@ -10,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventGroupingConfig} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -23,7 +25,12 @@ export default function ProjectIssueGrouping() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
-  const queryKey = `/projects/${organization.slug}/${project.slug}/grouping-configs/`;
+  const queryKey = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/grouping-configs/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    }
+  );
   const {
     data: groupingConfigs,
     isPending,

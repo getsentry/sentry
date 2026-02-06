@@ -3,10 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {ProjectContextProvider} from 'sentry/views/projects/projectContext';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/modal', () => ({
+jest.mock('sentry/actionCreators/redirectToProject', () => ({
   redirectToProject: jest.fn(),
 }));
 
@@ -60,7 +61,7 @@ describe('projectContext component', () => {
     expect(loading).not.toBeInTheDocument();
   });
 
-  it('fetches data again if projectId changes', () => {
+  it('fetches data again if projectId changes', async () => {
     let fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -82,7 +83,7 @@ describe('projectContext component', () => {
 
     const {rerender} = render(projectContext);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     // Nothing should happen if we update and projectId is the same
     rerender(projectContext);
@@ -107,7 +108,7 @@ describe('projectContext component', () => {
       </ProjectContextProvider>
     );
 
-    expect(fetchMock).toHaveBeenCalled();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   });
 
   it('fetches data again if projects list changes', async () => {
@@ -155,5 +156,32 @@ describe('projectContext component', () => {
     );
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('redirects when project was renamed (API returns different slug)', async () => {
+    // Simulate a renamed project: request with old slug, API returns project with new slug
+    // This happens because the backend follows the redirect internally
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: ProjectFixture({slug: 'renamed-project'}),
+    });
+
+    render(
+      <ProjectContextProvider
+        api={new MockApiClient()}
+        loadingProjects={false}
+        projects={[]}
+        organization={org}
+        projectSlug={project.slug}
+      >
+        {null}
+      </ProjectContextProvider>
+    );
+
+    await waitFor(() => {
+      expect(redirectToProject).toHaveBeenCalledWith('renamed-project');
+    });
   });
 });

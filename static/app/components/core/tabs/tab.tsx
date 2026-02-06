@@ -6,13 +6,14 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {DOMAttributes, Node, Orientation} from '@react-types/shared';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
 import type {Theme} from 'sentry/utils/theme';
 
 import {tabsShouldForwardProp} from './utils';
 
-export interface BaseTabProps {
+interface BaseTabProps {
   children: React.ReactNode;
   disabled: boolean;
   hidden: boolean;
@@ -35,8 +36,8 @@ const StyledTabWrap = styled('li', {
 }>`
   color: ${p =>
     p.selected
-      ? p.theme.tokens.component.link.accent.default
-      : p.theme.tokens.component.link.muted.default};
+      ? p.theme.tokens.interactive.link.accent.rest
+      : p.theme.tokens.interactive.link.neutral.rest};
   white-space: nowrap;
   cursor: pointer;
 
@@ -120,35 +121,36 @@ const innerWrapStyles = ({
 
   li:focus-visible & {
     outline: none;
-    box-shadow: inset 0 0 0 2px ${theme.focusBorder};
+    box-shadow: inset 0 0 0 2px ${theme.tokens.focus.default};
   }
 
   li:not([aria-disabled]):hover & {
     background-color: ${selected
       ? variant === 'floating'
-        ? theme.colors.blue200
-        : theme.colors.blue100
-      : theme.colors.gray100};
+        ? theme.tokens.interactive.transparent.accent.selected.background.hover
+        : theme.tokens.interactive.transparent.accent.selected.background.rest
+      : theme.tokens.interactive.transparent.neutral.background.hover};
     color: ${selected
-      ? theme.tokens.component.link.accent.hover
-      : theme.tokens.component.link.muted.hover};
+      ? theme.tokens.interactive.link.accent.hover
+      : theme.tokens.interactive.link.neutral.hover};
   }
 
   li:not([aria-disabled]):active & {
     background-color: ${selected
       ? variant === 'floating'
-        ? theme.colors.blue300
-        : theme.colors.blue200
-      : theme.colors.gray200};
+        ? theme.tokens.interactive.transparent.accent.selected.background.active
+        : theme.tokens.interactive.transparent.accent.selected.background.hover
+      : theme.tokens.interactive.transparent.neutral.background.active};
     color: ${selected
-      ? theme.tokens.component.link.accent.active
-      : theme.tokens.component.link.muted.active};
+      ? theme.tokens.interactive.link.accent.active
+      : theme.tokens.interactive.link.neutral.active};
   }
 
   ${variant === 'floating' &&
   selected &&
   css`
-    background-color: ${theme.colors.blue100};
+    background-color: ${theme.tokens.interactive.transparent.accent.selected.background
+      .rest};
   `}
 `;
 
@@ -159,7 +161,8 @@ const StyledTabSelectionIndicator = styled('div')<{
   position: absolute;
   border-radius: 1px;
   pointer-events: none;
-  background: ${p => (p.selected ? p.theme.colors.blue400 : 'transparent')};
+  background: ${p =>
+    p.selected ? p.theme.tokens.graphics.accent.vibrant : 'transparent'};
 
   li[aria-disabled] & {
     opacity: 0.6;
@@ -185,7 +188,7 @@ const StyledTabSelectionIndicator = styled('div')<{
         `};
 `;
 
-interface TabProps extends AriaTabProps {
+export interface TabProps extends AriaTabProps {
   item: Node<any>;
   orientation: Orientation;
   /**

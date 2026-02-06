@@ -49,7 +49,7 @@ class QuotaTest(TestCase):
             name="test monitor",
             status=ObjectStatus.ACTIVE,
         )
-        assert self.backend.assign_seat(DataCategory.MONITOR_SEAT, monitor) == Outcome.ACCEPTED
+        assert self.backend.assign_seat(seat_object=monitor) == Outcome.ACCEPTED
 
     def test_check_accept_monitor_checkin(self) -> None:
         monitor = Monitor.objects.create(
@@ -102,14 +102,6 @@ class QuotaTest(TestCase):
                 "scope": "organization",
                 "categories": ["transaction"],
                 "reasonCode": "go_away",
-            },
-        ),
-        (
-            QuotaConfig(limit=0, scope=QuotaScope.GLOBAL, reason_code="come back!"),
-            {
-                "limit": 0,
-                "scope": "global",
-                "reasonCode": "come back!",
             },
         ),
     ],

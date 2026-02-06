@@ -2,7 +2,7 @@ import React from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Image} from './image';
+import {Image} from '@sentry/scraps/image';
 
 describe('Image', () => {
   it('forwards ref', () => {
@@ -35,5 +35,12 @@ describe('Image', () => {
     img.dispatchEvent(new Event('error'));
 
     expect(img).toHaveAttribute('src', 'https://example.com/image.png');
+  });
+
+  it('renders with aspect-ratio prop', () => {
+    render(
+      <Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />
+    );
+    expect(screen.getByRole('img')).toBeInTheDocument();
   });
 });

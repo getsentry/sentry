@@ -87,13 +87,14 @@ describe('ExplorerPanel', () => {
   const organization = OrganizationFixture({
     features: ['seer-explorer'],
     hideAiFeatures: false,
+    openMembership: true,
   });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
-    // This matches the real behavior when no run ID is provided.
+    // This matches the real behavior when no run ID is provided to the endpoint.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/explorer-chat/`,
       method: 'GET',
@@ -124,7 +125,7 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Feature Flag and Organization Checks', () => {
-    it('renders when feature flag is enabled', () => {
+    it('renders when feature flag and open membership are enabled', () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
@@ -135,6 +136,8 @@ describe('ExplorerPanel', () => {
     it('does not render when feature flag is disabled', () => {
       const disabledOrg = OrganizationFixture({
         features: [],
+        hideAiFeatures: false,
+        openMembership: true,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
@@ -148,6 +151,21 @@ describe('ExplorerPanel', () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
+        openMembership: true,
+      });
+
+      const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
+        organization: disabledOrg,
+      });
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('does not render when open membership is disabled', () => {
+      const disabledOrg = OrganizationFixture({
+        features: ['seer-explorer'],
+        hideAiFeatures: false,
+        openMembership: false,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
@@ -173,6 +191,40 @@ describe('ExplorerPanel', () => {
       expect(
         screen.getByPlaceholderText('Type your message or / command and press Enter ↵')
       ).toBeInTheDocument();
+    });
+
+    it('shows error when hook returns isError=true', () => {
+      const useSeerExplorerSpy = jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({
+          runId: 123,
+          sessionData: null, // should always be null when isError
+          sendMessage: jest.fn(),
+          deleteFromIndex: jest.fn(),
+          startNewSession: jest.fn(),
+          isPolling: false,
+          isError: true, // isError
+          isPending: false,
+          deletedFromIndex: null,
+          interruptRun: jest.fn(),
+          interruptRequested: false,
+          wasJustInterrupted: false,
+          clearWasJustInterrupted: jest.fn(),
+          switchToRun: jest.fn(),
+          respondToUserInput: jest.fn(),
+          createPR: jest.fn(),
+        });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      expect(
+        screen.getByText('Error loading this session (ID=123).')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer anything about your application./)
+      ).not.toBeInTheDocument();
+
+      useSeerExplorerSpy.mockRestore();
     });
   });
 
@@ -212,10 +264,13 @@ describe('ExplorerPanel', () => {
         deleteFromIndex: jest.fn(),
         startNewSession: jest.fn(),
         isPolling: false,
+        isError: false,
         isPending: false,
         deletedFromIndex: null,
         interruptRun: jest.fn(),
         interruptRequested: false,
+        wasJustInterrupted: false,
+        clearWasJustInterrupted: jest.fn(),
         runId: null,
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),

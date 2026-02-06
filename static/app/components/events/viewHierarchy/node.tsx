@@ -63,7 +63,7 @@ const NodeTitle = styled('span')<{focused?: boolean}>`
   ${({focused, theme}) =>
     focused &&
     css`
-      color: ${theme.white};
+      color: ${theme.colors.white};
     `}
 `;
 
@@ -86,10 +86,10 @@ const IconWrapper = styled('button')<{collapsible: boolean; isExpanded: boolean}
           }
         `
       : css`
-          background: ${p.theme.colors.blue400};
-          border: 1px solid ${p.theme.colors.blue400};
+          background: ${p.theme.tokens.background.accent.vibrant};
+          border: 1px solid ${p.theme.tokens.border.accent.vibrant};
           &:hover {
-            background: ${p.theme.colors.blue200};
+            background: ${p.theme.tokens.background.transparent.accent.muted};
           }
         `}
 `;

@@ -112,7 +112,9 @@ def merge_groups(
             # work for this group.
             from_object_ids.remove(from_object_id)
 
-            similarity.merge(group.project, new_group, [group], allow_unsafe=True)
+            # Don't do MinHash work if we use embeddings-based similarity.
+            if not group.project.get_option("sentry:similarity_backfill_completed"):
+                similarity.merge(group.project, new_group, [group], allow_unsafe=True)
 
             environment_ids = list(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)

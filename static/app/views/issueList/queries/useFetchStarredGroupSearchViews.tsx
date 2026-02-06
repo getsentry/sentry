@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 type FetchStarredGroupSearchViewsParameters = {
@@ -6,5 +7,8 @@ type FetchStarredGroupSearchViewsParameters = {
 
 export const makeFetchStarredGroupSearchViewsKey = ({
   orgSlug,
-}: FetchStarredGroupSearchViewsParameters): ApiQueryKey =>
-  [`/organizations/${orgSlug}/group-search-views/starred/`, {}] as const;
+}: FetchStarredGroupSearchViewsParameters): ApiQueryKey => [
+  getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/starred/', {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
+];

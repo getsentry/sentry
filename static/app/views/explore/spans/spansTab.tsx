@@ -2,9 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -60,7 +62,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
-// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+// eslint-disable-next-line boundaries/element-types
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 interface SpansTabOnboardingProps {
@@ -173,7 +175,13 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
+        {tourProps => (
+          <div {...tourProps}>
+            {controlSectionExpanded && (
+              <ExploreToolbar width={300} extras={toolbarExtras} />
+            )}
+          </div>
+        )}
       </TourElement>
     </ExploreControlSection>
   );
@@ -288,7 +296,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ExploreContentSection expanded={controlSectionExpanded}>
+    <ExploreContentSection>
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -307,7 +315,7 @@ function SpanTabContentSection({
         >
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
-        <ActionButtonsGroup>
+        <Flex gap="xs">
           <Feature features="organizations:tracing-export-csv">
             <SpansExport
               aggregatesTableResult={aggregatesTableResult}
@@ -315,7 +323,7 @@ function SpanTabContentSection({
             />
           </Feature>
           <SettingsDropdown />
-        </ActionButtonsGroup>
+        </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
       <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
@@ -335,30 +343,34 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-          setTab={setTab}
-          rawSpanCounts={rawSpanCounts}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        {props => (
+          <div {...props}>
+            <ExploreCharts
+              confidences={confidences}
+              query={query}
+              extrapolate={extrapolate}
+              timeseriesResult={timeseriesResult}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
+              samplingMode={timeseriesSamplingMode}
+              setTab={setTab}
+              rawSpanCounts={rawSpanCounts}
+            />
+            <ExploreTables
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+              tracesTableResult={tracesTableResult}
+              confidences={confidences}
+              tab={tab}
+              setTab={(newTab: Mode | Tab) => {
+                if (newTab === Mode.AGGREGATE) {
+                  setControlSectionExpanded(true);
+                }
+                setTab(newTab);
+              }}
+            />
+          </div>
+        )}
       </TourElement>
     </ExploreContentSection>
   );
@@ -366,11 +378,6 @@ function SpanTabContentSection({
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-const ActionButtonsGroup = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const ChevronButton = styled(Button)<{expanded: boolean}>`
@@ -386,7 +393,7 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
       margin-left: -13px;
 
       &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
+        border-left-color: ${p.theme.tokens.border.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
       }

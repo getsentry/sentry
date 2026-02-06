@@ -48,8 +48,8 @@ export const EmptyStreamWrapper = styled('div')`
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.xl};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xl};
   line-height: 1em;
 `;
 

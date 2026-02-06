@@ -246,7 +246,7 @@ const HasFeatureIndicator = styled((p: any) => (
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.green300};
+  color: ${p => p.theme.colors.green400};
   font-weight: bold;
   text-transform: uppercase;
   font-size: 0.8em;
@@ -287,8 +287,8 @@ const FeatureGroupHeading = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.gray200};
-  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.colors.gray200};
+  background: ${p => p.theme.tokens.background.secondary};
   font-size: 0.9em;
   padding: 8px 8px 8px 12px;
 `;
@@ -312,7 +312,7 @@ const FeatureDescription = styled('li')`
   padding: 8px 12px;
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.gray200};
+    border-bottom: 1px solid ${p => p.theme.colors.gray200};
   }
 `;
 

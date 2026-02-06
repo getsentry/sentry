@@ -713,13 +713,19 @@ class DashboardDetail extends Component<Props, State> {
     const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
     const mergedWidget = assignTempId({...baseWidget, ...widget});
 
-    const newWidgets = defined(index)
-      ? [
-          ...currentDashboard.widgets.slice(0, index),
-          mergedWidget,
-          ...currentDashboard.widgets.slice(index + 1),
-        ]
-      : [...currentDashboard.widgets, mergedWidget];
+    // Always ensure added widgets in the save flow have a layout
+    // This sets the layout for the request, as well as the optimistic
+    // update on save
+    const newWidgets = assignDefaultLayout(
+      defined(index)
+        ? [
+            ...currentDashboard.widgets.slice(0, index),
+            mergedWidget,
+            ...currentDashboard.widgets.slice(index + 1),
+          ]
+        : [...currentDashboard.widgets, mergedWidget],
+      calculateColumnDepths(getDashboardLayout(currentDashboard.widgets))
+    );
 
     try {
       if (this.isEditingDashboard) {
@@ -734,7 +740,7 @@ class DashboardDetail extends Component<Props, State> {
         newlyAddedWidget: mergedWidget,
       });
 
-      this.handleCloseWidgetBuilder();
+      this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
       addErrorMessage(t('Failed to save widget'));
     }
@@ -759,20 +765,44 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleCloseWidgetBuilder = () => {
-    const {organization, navigate, location, params} = this.props;
+  handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
+    const {organization, navigate, location, params, dashboard} = this.props;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     this.setState({
       isWidgetBuilderOpen: false,
       openWidgetTemplates: undefined,
     });
+
+    // Build the state to persist through the route change.
+    // This prevents losing data when the component remounts during navigation.
+    let navigationState: {dashboard?: DashboardDetails; widgets?: Widget[]} | undefined;
+
+    if (dashboardState === DashboardState.CREATE && defined(newWidgets)) {
+      // For new dashboards, persist the widgets
+      navigationState = {widgets: newWidgets};
+    } else if (dashboardState === DashboardState.VIEW && newWidgets) {
+      // For existing dashboards in view mode, persist the full dashboard with new widgets
+      // so it can be displayed immediately while the API update happens in the background
+      const currentDashboard = modifiedDashboard ?? dashboard;
+      navigationState = {
+        dashboard: {
+          ...currentDashboard,
+          widgets: newWidgets,
+        },
+      };
+    }
+
     navigate(
       getDashboardLocation({
         organization,
         dashboardId: params.dashboardId,
         location,
       }),
-      {preventScrollReset: true}
+      {
+        preventScrollReset: true,
+        state: navigationState,
+      }
     );
   };
 
@@ -801,12 +831,7 @@ class DashboardDetail extends Component<Props, State> {
             ...getCurrentPageFilters(location),
             filters: getDashboardFiltersFromURL(location) ?? modifiedDashboard.filters,
           };
-          createDashboard(
-            api,
-            organization.slug,
-            newModifiedDashboard,
-            this.isPreview
-          ).then(
+          createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
@@ -957,6 +982,7 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboard={dashboard}
                   dashboardPermissions={dashboard.permissions}
                   dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
@@ -974,6 +1000,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     eventView={EventView.fromLocation(location)}
                     location={location}
+                    hideLoadingIndicator
                   >
                     {metricsDataSide => (
                       <MEPSettingProvider
@@ -1150,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                           organization={organization}
                           eventView={eventView}
                           location={location}
+                          hideLoadingIndicator
                         >
                           {metricsDataSide => (
                             <MEPSettingProvider
@@ -1166,6 +1194,7 @@ class DashboardDetail extends Component<Props, State> {
                                 />
                               ) : null}
                               <FiltersBar
+                                dashboard={modifiedDashboard ?? dashboard}
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}
@@ -1332,18 +1361,17 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-interface DashboardDetailWithInjectedPropsProps
-  extends Omit<
-    Props,
-    | 'theme'
-    | 'navigate'
-    | 'api'
-    | 'organization'
-    | 'projects'
-    | 'location'
-    | 'params'
-    | 'router'
-  > {}
+interface DashboardDetailWithInjectedPropsProps extends Omit<
+  Props,
+  | 'theme'
+  | 'navigate'
+  | 'api'
+  | 'organization'
+  | 'projects'
+  | 'location'
+  | 'params'
+  | 'router'
+> {}
 
 export default function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps

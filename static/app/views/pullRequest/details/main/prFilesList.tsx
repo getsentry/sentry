@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import type {PullRequestDetailsSuccessResponse} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
 
@@ -184,7 +184,7 @@ const DiffTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   margin: 0;
 `;
 
@@ -203,11 +203,11 @@ const DiffRow = styled('tr')`
 
     .old-line-number {
       background-color: ${p => p.theme.tokens.background.primary};
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
     .new-line-number {
       background-color: #d1f4db;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -226,7 +226,7 @@ const DiffRow = styled('tr')`
     .old-line-number,
     .new-line-number {
       background-color: #ffd7d5;
-      color: ${p => p.theme.subText};
+      color: ${p => p.theme.tokens.content.secondary};
     }
   }
 
@@ -239,11 +239,11 @@ const DiffRow = styled('tr')`
   }
 
   &.header {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.tokens.background.secondary};
 
     td {
-      color: ${p => p.theme.colors.blue400};
-      font-weight: ${p => p.theme.fontWeight.bold};
+      color: ${p => p.theme.tokens.content.accent};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
     }
   }
 `;
@@ -254,7 +254,7 @@ const LineNumber = styled('td')`
   text-align: right;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background-color: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-size: 10px;
   user-select: none;
   vertical-align: top;

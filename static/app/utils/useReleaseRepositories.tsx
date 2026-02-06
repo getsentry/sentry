@@ -1,4 +1,5 @@
 import type {Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -15,7 +16,16 @@ function getReleaseRepositoriesQueryKey({
   release: string;
 }): ApiQueryKey {
   return [
-    `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(release)}/repositories/`,
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/repositories/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          version: release,
+        },
+      }
+    ),
   ];
 }
 

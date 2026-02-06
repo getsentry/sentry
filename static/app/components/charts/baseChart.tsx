@@ -98,8 +98,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -404,7 +403,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.getColorPalette(theme.chart.colors.length));
+      : theme.chart.getColorPalette('all'));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -706,13 +705,13 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
-    font-family: ${p.theme.text.family};
+    color: ${p.theme.tokens.content.secondary};
+    font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
     border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
-    font-size: ${p.theme.fontSize.sm};
+    font-size: ${p.theme.font.size.sm};
   }
   .tooltip-release.tooltip-series > div,
   .tooltip-release.tooltip-footer {
@@ -722,7 +721,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.primary};
   }
   .tooltip-release-timerange {
-    font-size: ${p.theme.fontSize.xs};
+    font-size: ${p.theme.font.size.xs};
     color: ${p.theme.tokens.content.primary};
   }
   .tooltip-series {
@@ -734,10 +733,14 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-label {
     margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeight.normal};
+    font-weight: ${p.theme.font.weight.sans.regular};
     color: ${p.theme.tokens.content.primary};
   }
   .tooltip-label-value {
@@ -759,7 +762,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
-    color: ${p.theme.subText};
+    color: ${p.theme.tokens.content.secondary};
   }
   .tooltip-footer {
     border-top: solid 1px ${p.theme.tokens.border.secondary};
@@ -781,11 +784,12 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
         border-top: none;
-        border-bottom: 8px solid ${p.theme.translucentBorder};
+        border-bottom: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
         bottom: -7px;
         top: auto;
       }
@@ -797,12 +801,13 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.tokens.border.transparent.neutral.muted};
       content: '';
       display: block;
       position: absolute;
@@ -814,16 +819,16 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
+    color: ${p.theme.colors.white};
     border-radius: ${p.theme.radius.md};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeight.bold};
-    font-size: ${p.theme.fontSize.sm};
+    font-weight: ${p.theme.font.weight.sans.medium};
+    font-size: ${p.theme.font.size.sm};
     line-height: 1.4;
-    font-family: ${p.theme.text.family};
+    font-family: ${p.theme.font.family.sans};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;

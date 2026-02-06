@@ -3,10 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
@@ -222,7 +223,7 @@ function DeprecatedLine({
               </div>
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
-          <DefaultLineTagWrapper>
+          <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -257,7 +258,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -322,14 +323,14 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                borderless
+                priority="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
               <div style={{width: 26, height: 20}} />
             )}
-          </DefaultLineTagWrapper>
+          </FrameActions>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -380,17 +381,28 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  min-width: 0;
+  flex: 1;
+  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
 
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  min-width: 0;
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+`;
+
+const FrameActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  flex-shrink: 0;
+  margin-left: auto;
 `;
 
 const DefaultLine = styled('div')<{
@@ -403,15 +415,35 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p =>
-    p.isSubFrame ? `${p.theme.colors.surface200}` : `${p.theme.colors.surface300}`};
+    p.isSubFrame
+      ? `${p.theme.colors.surface200}`
+      : `${p.theme.tokens.background.tertiary}`};
   min-height: 40px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p => p.theme.font.family.sans};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    &:has([data-has-setup]) {
+      flex-wrap: wrap;
+      row-gap: ${p => p.theme.space.xs};
+
+      > ${DefaultLineTitleWrapper} {
+        flex-basis: 100%;
+      }
+
+      > ${FrameActions} {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        row-gap: ${p => p.theme.space.xs};
+      }
+    }
   }
 `;
 
@@ -419,25 +451,19 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const DefaultLineTagWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const ToggleContextButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ToggleButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -448,5 +474,5 @@ const SourceMapDebuggerButtonText = styled('span')`
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
   padding: 0 ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;

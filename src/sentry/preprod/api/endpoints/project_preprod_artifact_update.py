@@ -21,7 +21,13 @@ from sentry.preprod.authentication import (
     LaunchpadRpcPermission,
     LaunchpadRpcSignatureAuthentication,
 )
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeMetrics,
+)
+from sentry.preprod.producer import PreprodFeature
+from sentry.preprod.quotas import should_run_distribution, should_run_size
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -270,25 +276,25 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             head_artifact.state = PreprodArtifact.ArtifactState.FAILED
             updated_fields.append("state")
 
-        if "build_version" in data:
-            head_artifact.build_version = data["build_version"]
-            updated_fields.append("build_version")
-
-        if "build_number" in data:
-            head_artifact.build_number = data["build_number"]
-            updated_fields.append("build_number")
-
         if "app_id" in data:
             head_artifact.app_id = data["app_id"]
             updated_fields.append("app_id")
 
-        if "app_name" in data:
-            head_artifact.app_name = data["app_name"]
-            updated_fields.append("app_name")
-
+        mobile_app_info_updates = {}
+        if "build_version" in data:
+            mobile_app_info_updates["build_version"] = data["build_version"]
+        if "build_number" in data:
+            mobile_app_info_updates["build_number"] = data["build_number"]
         if "app_icon_id" in data:
-            head_artifact.app_icon_id = data["app_icon_id"]
-            updated_fields.append("app_icon_id")
+            mobile_app_info_updates["app_icon_id"] = data["app_icon_id"]
+        if "app_name" in data:
+            mobile_app_info_updates["app_name"] = data["app_name"]
+
+        if mobile_app_info_updates:
+            PreprodArtifactMobileAppInfo.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                defaults=mobile_app_info_updates,
+            )
 
         extras_updates = {}
 
@@ -358,28 +364,83 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
 
             head_artifact.save(update_fields=updated_fields + ["date_updated"])
 
+            logger.info(
+                "preprod.artifact.processed",
+                extra={
+                    "preprod_artifact_id": head_artifact.id,
+                    "artifact_type": head_artifact.artifact_type,
+                    "app_id": head_artifact.app_id,
+                    "build_configuration": (
+                        head_artifact.build_configuration.name
+                        if head_artifact.build_configuration
+                        else None
+                    ),
+                    "project_id": project.id,
+                    "organization_id": project.organization_id,
+                    "organization_slug": project.organization.slug,
+                },
+            )
+
             create_preprod_status_check_task.apply_async(
                 kwargs={
                     "preprod_artifact_id": artifact_id_int,
+                    "caller": "artifact_update_endpoint",
                 }
             )
 
+        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        build_version = mobile_app_info.build_version if mobile_app_info else None
+        build_number = mobile_app_info.build_number if mobile_app_info else None
         if (
             head_artifact.app_id
-            and head_artifact.build_version
+            and build_version
             and head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
         ):
             find_or_create_release(
                 project=project,
                 package=head_artifact.app_id,
-                version=head_artifact.build_version,
-                build_number=head_artifact.build_number,
+                version=build_version,
+                build_number=build_number,
             )
+
+        # Determine which features can run based on quota and filters
+        requested_features: list[PreprodFeature] = []
+
+        can_run_size, size_skip_reason = should_run_size(head_artifact)
+        if can_run_size:
+            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
+        else:
+            # Update size metrics record to NOT_RAN with appropriate error code
+            if size_skip_reason == "quota":
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.NO_QUOTA
+                error_message = "Size analysis quota exceeded"
+            elif size_skip_reason == "disabled":
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+                error_message = "Size analysis disabled for this project"
+            else:
+                error_code = PreprodArtifactSizeMetrics.ErrorCode.SKIPPED
+                error_message = "Size analysis filtered out by project settings"
+
+            PreprodArtifactSizeMetrics.objects.update_or_create(
+                preprod_artifact=head_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                defaults={
+                    "identifier": None,
+                    "state": PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                    "error_code": error_code,
+                    "error_message": error_message,
+                },
+            )
+
+        can_run_distro, _ = should_run_distribution(head_artifact)
+        if can_run_distro:
+            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
 
         return Response(
             {
                 "success": True,
                 "artifactId": head_artifact_id,
                 "updatedFields": updated_fields,
+                "requestedFeatures": [feature.value for feature in requested_features],
             }
         )

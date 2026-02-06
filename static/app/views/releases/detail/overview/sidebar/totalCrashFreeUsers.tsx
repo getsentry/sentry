@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
@@ -33,9 +34,16 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
-      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
-        version
-      )}/stats/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            version,
+          },
+        }
+      ),
       {
         query: {
           ...normalizeDateTimeParams(
@@ -114,7 +122,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
 }
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
 `;
 
@@ -131,7 +139,7 @@ const Row = styled('div')`
     width: ${DOT_SIZE}px;
     height: ${DOT_SIZE}px;
     border-radius: 100%;
-    background-color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     position: absolute;
     top: 0;
     left: -${Math.floor(DOT_SIZE / 2)}px;
@@ -152,9 +160,14 @@ const InnerRow = styled('div')`
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   padding-bottom: ${space(0.25)};
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const Percent = styled(Text)`

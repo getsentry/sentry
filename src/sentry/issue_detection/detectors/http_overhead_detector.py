@@ -51,8 +51,14 @@ class HTTPOverheadDetector(PerformanceDetector):
     type = DetectorType.HTTP_OVERHEAD
     settings_key = DetectorType.HTTP_OVERHEAD
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
-        super().__init__(settings, event)
+    def __init__(
+        self,
+        settings: dict[str, Any],
+        event: dict[str, Any],
+        organization: Organization | None = None,
+        detector_id: int | None = None,
+    ) -> None:
+        super().__init__(settings, event, organization, detector_id)
 
         self.location_to_indicators: dict[str, list[list[ProblemIndicator]]] = defaultdict(list)
 
@@ -123,7 +129,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         return True
 
     def _store_performance_problem(self, location: str) -> None:
-        delay_threshold = self.settings.get("http_request_delay_threshold")
+        delay_threshold = self.settings["http_request_delay_threshold"]
 
         max_delay = -1.0
         chain = None
@@ -150,6 +156,19 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         location_span_ids = [span["span_id"] for span in location_spans]
 
+        evidence_data = {
+            "parent_span_ids": [],
+            "cause_span_ids": [],
+            "offender_span_ids": location_span_ids,
+            "op": "http",
+            "transaction_name": self._event.get("transaction", ""),
+            "repeating_spans": get_span_evidence_value(example_span),
+            "repeating_spans_compact": get_span_evidence_value(example_span, include_op=False),
+            "num_repeating_spans": str(len(location_spans)),
+        }
+        if self.detector_id is not None:
+            evidence_data["detector_id"] = self.detector_id
+
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "http",
@@ -158,16 +177,7 @@ class HTTPOverheadDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=location_span_ids,
-            evidence_data={
-                "parent_span_ids": [],
-                "cause_span_ids": [],
-                "offender_span_ids": location_span_ids,
-                "op": "http",
-                "transaction_name": self._event.get("transaction", ""),
-                "repeating_spans": get_span_evidence_value(example_span),
-                "repeating_spans_compact": get_span_evidence_value(example_span, include_op=False),
-                "num_repeating_spans": str(len(location_spans)),
-            },
+            evidence_data=evidence_data,
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",

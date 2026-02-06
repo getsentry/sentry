@@ -1,10 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import type {
@@ -143,6 +143,7 @@ export function PagePerformanceTable() {
         <AlignCenter>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t('The overall performance rating of this page.')}
@@ -154,7 +155,7 @@ export function PagePerformanceTable() {
             }
           >
             <SortLink
-              title={<TooltipHeader>{t('Perf Score')}</TooltipHeader>}
+              title={t('Perf Score')}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -169,6 +170,7 @@ export function PagePerformanceTable() {
         <AlignRight>
           <StyledTooltip
             isHoverable
+            showUnderline
             title={
               <span>
                 {t(
@@ -183,7 +185,7 @@ export function PagePerformanceTable() {
           >
             <SortLink
               align="right"
-              title={<TooltipHeader>{col.name}</TooltipHeader>}
+              title={col.name}
               direction={sort?.field === col.key ? sort.kind : undefined}
               canSort={canSort}
               generateSortLink={generateSortLink}
@@ -374,10 +376,6 @@ const GridContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const TooltipHeader = styled('span')`
-  ${p => p.theme.tooltipUnderline()};
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
@@ -395,5 +393,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

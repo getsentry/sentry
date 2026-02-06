@@ -70,8 +70,7 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>,
-    rtl.RenderOptions {
+  extends Pick<ProviderOptions, 'organization' | 'additionalWrapper'>, rtl.RenderOptions {
   /**
    * @deprecated do not use this option for new tests
    *
@@ -83,6 +82,7 @@ interface BaseRenderOptions<T extends boolean = boolean>
 type LocationConfig = {
   pathname: string;
   query?: Record<string, string | number | string[]>;
+  state?: any;
 };
 
 export type RouterConfig = {
@@ -340,14 +340,23 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
-  if (location.query) {
-    return {
-      pathname: location.pathname,
-      search: parseQueryString(location.query),
-    };
+  if (!location.query && !location.state) {
+    return location.pathname;
   }
 
-  return location.pathname;
+  const config: InitialEntry = {
+    pathname: location.pathname,
+  };
+
+  if (location.query) {
+    config.search = parseQueryString(location.query);
+  }
+
+  if (location.state) {
+    config.state = location.state;
+  }
+
+  return config;
 }
 
 function parseQueryString(query: Record<string, string | number | string[]> | undefined) {
@@ -555,11 +564,11 @@ export * from '@testing-library/react';
 
 export {
   // eslint-disable-next-line import/export
+  fireEvent,
+  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   renderHookWithProviders,
   userEvent,
-  // eslint-disable-next-line import/export
-  fireEvent,
   waitForDrawerToHide,
 };

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenLiteral} from 'sentry/components/arithmeticBuilder/token';
 import {
@@ -15,7 +17,6 @@ import {
   nextTokenKeyOfKind,
   tokenizeExpression,
 } from 'sentry/components/arithmeticBuilder/tokenizer';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
@@ -336,7 +337,7 @@ const LeftGridCell = styled(GridCell)`
 const DeleteButton = styled('button')`
   background: none;
   border: none;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   outline: none;
   user-select: none;
   padding-right: ${space(0.5)};

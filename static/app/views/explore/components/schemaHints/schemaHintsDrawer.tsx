@@ -2,8 +2,10 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {InputGroup} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
@@ -173,7 +175,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
     <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
-        <HeaderContainer>
+        <Stack marginBottom="xl" gap="md">
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
             <InputGroup.LeadingItems disablePointerEvents>
@@ -188,7 +190,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
               autoFocus
             />
           </StyledInputGroup>
-        </HeaderContainer>
+        </Stack>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
           <ScrollContainer ref={scrollContainerRef}>
             <AllItemsContainer height={virtualizer.getTotalSize()}>
@@ -225,13 +227,6 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: ${space(2)};
-  gap: ${space(1)};
-`;
-
 const CheckboxLabelContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -243,9 +238,13 @@ const CheckboxLabelContainer = styled('div')`
 `;
 
 const CheckboxLabel = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin: 0;
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
@@ -264,11 +263,13 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &:active {
-    background-color: ${p => p.theme.colors.gray100};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 
   & > label {
@@ -278,8 +279,11 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
   }
 
   & > label > span {
+    display: block;
     width: 100%;
-    ${p => p.theme.overflowEllipsis};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -312,7 +316,7 @@ const NoAttributesMessage = styled('div')`
   justify-content: center;
   align-items: center;
   margin-top: ${space(4)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledInputGroup = styled(InputGroup)`

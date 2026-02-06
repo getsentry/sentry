@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
@@ -208,7 +210,7 @@ function ViewHierarchy({
   const viewHierarchyContent = (
     <Fragment>
       <RenderingSystem platform={platform} system={viewHierarchy.rendering_system} />
-      <Content>
+      <Flex gap="md" height="700px">
         <Left hasRight={showWireframe}>
           <TreeContainer>
             <div ref={hoveredGhostRowRef} />
@@ -238,7 +240,7 @@ function ViewHierarchy({
             />
           </Right>
         )}
-      </Content>
+      </Flex>
     </Fragment>
   );
 
@@ -254,13 +256,6 @@ export {ViewHierarchy};
 const Container = styled('div')`
   position: relative;
   margin-left: ${space(2)};
-`;
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  height: 700px;
 `;
 
 const Left = styled('div')<{hasRight?: boolean}>`

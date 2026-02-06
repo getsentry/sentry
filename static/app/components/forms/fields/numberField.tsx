@@ -2,8 +2,8 @@ import type React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Input} from 'sentry/components/core/input';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Input, InputGroup} from '@sentry/scraps/input';
+
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
 import {space} from 'sentry/styles/space';
@@ -104,7 +104,7 @@ const HiddenValue = styled('span')`
   visibility: hidden;
 `;
 const Suffix = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.5)};
   position: absolute;
   top: 50%;

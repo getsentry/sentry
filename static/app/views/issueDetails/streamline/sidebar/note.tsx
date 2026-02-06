@@ -5,14 +5,14 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
 import type {
   CreateError,
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
@@ -205,9 +205,9 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
   }
 
   return `
-  color: ${p.theme.error};
+  color: ${p.theme.tokens.content.danger};
   margin: -1px;
-  border: 1px solid ${p.theme.error};
+  border: 1px solid ${p.theme.tokens.content.danger};
   border-radius: ${p.theme.radius.md};
 
     &:before {

@@ -1,10 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import NotAvailable from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -100,7 +101,7 @@ function ReleaseComparisonChartRow({
           {role === 'parent' && (
             <ToggleButton
               onClick={() => onExpanderToggle(type)}
-              borderless
+              priority="transparent"
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('Toggle chart group')}
@@ -114,9 +115,13 @@ function ReleaseComparisonChartRow({
 
 const Cell = styled('div')`
   text-align: right;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 const NumericCell = styled(Cell)`
@@ -167,7 +172,7 @@ const ChartTableRow = styled('label')<{
   role: ReleaseComparisonRow['role'];
 }>`
   display: contents;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 
   > * {

@@ -571,9 +571,7 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction ? (
-          <BreadCrumbs event={eventTransaction} organization={organization} />
-        ) : null}
+        {isTransaction ? <BreadCrumbs event={eventTransaction} /> : null}
 
         {isTransaction && project ? (
           <EventViewHierarchy

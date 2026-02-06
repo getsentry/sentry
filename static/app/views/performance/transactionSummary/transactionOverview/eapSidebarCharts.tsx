@@ -1,8 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Stack} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -111,5 +112,5 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 }
 
 const SideBarWidgetTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

@@ -8,11 +8,12 @@ from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.utils import ClientError
+from sentry.seer.code_review.utils import ClientError, delete_existing_reactions_and_add_reaction
 from sentry.seer.code_review.webhooks.issue_comment import (
-    _add_eyes_reaction_to_comment,
+    GitHubIssueCommentAction,
     is_pr_review_command,
 )
+from sentry.seer.code_review.webhooks.pull_request import PullRequestAction
 from sentry.seer.code_review.webhooks.task import (
     DELAY_BETWEEN_RETRIES,
     MAX_RETRIES,
@@ -46,7 +47,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             "Without this, the task will fail immediately despite times=3."
         )
 
-        assert task.retry._times == 3, "Task should retry 3 times"
+        assert task.retry._times == 5, "Task should retry 5 times"
         assert task.retry._delay == 60, "Task should delay 60 seconds between retries"
 
         from urllib3.exceptions import MaxRetryError
@@ -377,7 +378,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         mock_request.side_effect = MaxRetryError(None, "test", reason="Connection failed")  # type: ignore[arg-type]
 
-        # With MAX_RETRIES=3, there are 2 delays between 3 attempts: (3-1) * 60s = 120s
+        # With MAX_RETRIES=5, there are 4 delays between 5 attempts: (5-1) * 60s = 240s
         enqueued_at_str = (
             datetime.now(timezone.utc)
             - timedelta(seconds=DELAY_BETWEEN_RETRIES * (MAX_RETRIES - 1))
@@ -409,18 +410,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert "tags" in call_kwargs
         assert "status" in call_kwargs["tags"]
 
-        # With MAX_RETRIES=3, there are 2 delays: (3-1) * 60s = 120s
-        # Allow tolerance for test execution time (3 attempts add overhead)
-        expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 120,000ms
+        # With MAX_RETRIES=5, there are 4 delays: (5-1) * 60s = 240s
+        # Allow tolerance for test execution time (5 attempts add overhead)
+        expected_latency_ms = (MAX_RETRIES - 1) * DELAY_BETWEEN_RETRIES * 1000  # 240,000ms
         assert (
             expected_latency_ms - 1000 <= call_args[1] <= expected_latency_ms + 5000
         ), f"Expected latency ~{expected_latency_ms}ms, got {call_args[1]}ms"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
-    @patch("sentry.seer.code_review.webhooks.task.metrics")
-    def test_check_run_and_pr_events_processed_separately(
-        self, mock_metrics: MagicMock, mock_request: MagicMock
-    ) -> None:
+    def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
         """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
@@ -440,10 +438,17 @@ class ProcessGitHubWebhookEventTest(TestCase):
             "request_type": "pr-review",
             "external_owner_id": "456",
             "data": {
-                "repo": {},
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                },
                 "pr_id": 123,
                 "bug_prediction_specific_information": {
                     "organization_id": 789,
+                    "organization_slug": "test-org",
                 },
                 "config": {
                     "features": {
@@ -453,6 +458,8 @@ class ProcessGitHubWebhookEventTest(TestCase):
                     "trigger_comment_id": None,
                     "trigger_comment_type": None,
                     "trigger_user": None,
+                    # Note: trigger_at and sentry_received_trigger_at intentionally
+                    # omitted to test backward compatibility with old payloads
                 },
             },
         }
@@ -463,7 +470,255 @@ class ProcessGitHubWebhookEventTest(TestCase):
             enqueued_at_str=self.enqueued_at_str,
         )
 
-        assert not mock_request.called
+        assert mock_request.call_count == 1
+        pr_call = mock_request.call_args
+        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
+        """Test that validation converts enum keys to strings for JSON serialization.
+
+        This test verifies the fix for the Pydantic v1 enum key serialization bug:
+        - Pydantic v1 converts string keys to enum members during parsing
+        - JSON serialization requires string keys, not enum objects
+        - The convert_enum_keys_to_strings function handles this conversion
+        """
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {
+                        "bug_prediction": True,
+                    },
+                    "trigger": "on_new_commit",
+                    "trigger_comment_id": None,
+                    "trigger_comment_type": None,
+                    "trigger_user": None,
+                    # Note: trigger_at and sentry_received_trigger_at intentionally
+                    # omitted to test backward compatibility with old payloads
+                },
+            },
+        }
+
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        # Verify the request was made
+        assert mock_request.call_count == 1
+
+        # Get the actual payload that was sent
+        import orjson
+
+        sent_body = mock_request.call_args[1]["body"]
+        sent_payload = orjson.loads(sent_body)
+
+        # Verify that features keys are strings, not enum objects
+        features = sent_payload["data"]["config"]["features"]
+        assert "bug_prediction" in features
+        assert features["bug_prediction"] is True
+
+        # Verify all keys in features dict are strings
+        for key in features.keys():
+            assert isinstance(key, str), f"Expected string key, got {type(key)}"
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_pr_review_validation_passes_without_organization_id(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that PR review validation passes without organization_id (it's optional)."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-review",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                    # organization_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should not raise validation error
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        assert mock_request.call_count == 1
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_pr_closed_validation_fails_without_organization_id(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that PR closed validation fails without organization_id (it's required)."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-closed",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                    "integration_id": "99999",
+                    # organization_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should raise validation error
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError) as exc_info:
+            process_github_webhook_event._func(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event_payload=event_payload,
+                enqueued_at_str=self.enqueued_at_str,
+            )
+
+        # Verify the error is about organization_id
+        errors = exc_info.value.errors()
+        assert any("organization_id" in str(error) for error in errors)
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_pr_closed_validation_fails_without_integration_id(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that PR closed validation fails without integration_id (it's required)."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-closed",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                    "organization_id": 789,
+                    # integration_id intentionally omitted
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should raise validation error
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError) as exc_info:
+            process_github_webhook_event._func(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event_payload=event_payload,
+                enqueued_at_str=self.enqueued_at_str,
+            )
+
+        # Verify the error is about integration_id
+        errors = exc_info.value.errors()
+        assert any("integration_id" in str(error) for error in errors)
+
+    @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
+    def test_pr_closed_validation_passes_with_required_fields(
+        self, mock_request: MagicMock
+    ) -> None:
+        """Test that PR closed validation passes with all required fields."""
+        mock_request.return_value = self._mock_response(200, b"{}")
+
+        event_payload = {
+            "request_type": "pr-closed",
+            "external_owner_id": "456",
+            "data": {
+                "repo": {
+                    "provider": "github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                    "external_id": "123456",
+                    "base_commit_sha": "abc123",
+                    "organization_id": 789,
+                    "integration_id": "99999",
+                },
+                "pr_id": 123,
+                "bug_prediction_specific_information": {
+                    "organization_id": 789,
+                    "organization_slug": "test-org",
+                },
+                "config": {
+                    "features": {"bug_prediction": True},
+                    "trigger": "on_new_commit",
+                    "trigger_at": "2024-01-15T10:30:00Z",
+                    "sentry_received_trigger_at": "2024-01-15T10:30:00Z",
+                },
+            },
+        }
+
+        # Should not raise validation error
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event_payload=event_payload,
+            enqueued_at_str=self.enqueued_at_str,
+        )
+
+        assert mock_request.call_count == 1
 
 
 class TestIsPrReviewCommand:
@@ -482,6 +737,15 @@ class TestIsPrReviewCommand:
 
 
 class AddEyesReactionTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def setup_mock_integration(self) -> None:
+        mock_client = MagicMock()
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+        self.mock_integration, self.mock_client = mock_integration, mock_client
+
     def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(
@@ -491,56 +755,192 @@ class AddEyesReactionTest(TestCase):
             name="owner/repo",
         )
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
+    @patch("sentry.seer.code_review.utils.logger")
     def test_logs_warning_when_integration_is_none(self, mock_logger: MagicMock) -> None:
-        _add_eyes_reaction_to_comment(
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
             integration=None,
-            organization=self.organization,
+            organization_id=self.organization.id,
             repo=self.repo,
-            comment_id="123",
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
         )
 
-        mock_logger.warning.assert_called_once()
-        assert "missing-integration" in mock_logger.warning.call_args[0][0]
+        self.mock_client.create_issue_reaction.assert_not_called()
+        mock_logger.warning.assert_called_once_with("github.webhook.missing-integration", extra={})
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.metrics")
-    def test_calls_github_api_with_eyes_reaction(self, mock_metrics: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_installation = MagicMock()
-        mock_installation.get_client.return_value = mock_client
-        mock_integration = MagicMock()
-        mock_integration.get_installation.return_value = mock_installation
-
-        _add_eyes_reaction_to_comment(
-            integration=mock_integration,
-            organization=self.organization,
+    def test_adds_reaction_to_pr(self) -> None:
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
             repo=self.repo,
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
+        )
+
+        self.mock_client.get_issue_reactions.assert_not_called()
+        self.mock_client.delete_issue_reaction.assert_not_called()
+        self.mock_client.create_issue_reaction.assert_called_once_with(
+            self.repo.name, "42", GitHubReaction.EYES
+        )
+
+    def test_adds_reaction_to_comment(self) -> None:
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action=GitHubIssueCommentAction.CREATED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
+            repo=self.repo,
+            pr_number=None,
             comment_id="123456",
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
         )
 
-        mock_client.create_comment_reaction.assert_called_once_with(
-            "owner/repo", "123456", GitHubReaction.EYES
+        self.mock_client.get_issue_reactions.assert_not_called()
+        self.mock_client.delete_issue_reaction.assert_not_called()
+        self.mock_client.create_comment_reaction.assert_called_once_with(
+            self.repo.name, "123456", GitHubReaction.EYES
         )
-        mock_metrics.incr.assert_called_once()
-        call_args = mock_metrics.incr.call_args
-        assert call_args[0][0] == "seer.code_review.webhook.issue_comment.outcome"
-        assert call_args[1]["tags"]["status"] == "reaction_added"
 
-    @patch("sentry.seer.code_review.webhooks.issue_comment.logger")
-    def test_logs_exception_on_api_error(self, mock_logger: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.create_comment_reaction.side_effect = Exception("API Error")
-        mock_installation = MagicMock()
-        mock_installation.get_client.return_value = mock_client
-        mock_integration = MagicMock()
-        mock_integration.get_installation.return_value = mock_installation
+    def test_deletes_existing_reactions_before_adding_reaction_to_pr(self) -> None:
+        self.mock_client.get_issue_reactions.return_value = [
+            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
+            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
+            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+        ]
 
-        _add_eyes_reaction_to_comment(
-            integration=mock_integration,
-            organization=self.organization,
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
             repo=self.repo,
-            comment_id="123456",
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
         )
 
-        mock_logger.exception.assert_called_once()
-        assert "reaction-failed" in mock_logger.exception.call_args[0][0]
+        assert self.mock_client.delete_issue_reaction.call_count == 2
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "3")
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "4")
+        self.mock_client.create_issue_reaction.assert_called_once_with(
+            self.repo.name, "42", GitHubReaction.EYES
+        )
+
+    def test_deletes_existing_reactions_before_adding_reaction_to_comment(self) -> None:
+        self.mock_client.get_issue_reactions.return_value = [
+            {"id": 1, "user": {"login": "other-user"}, "content": "hooray"},
+            {"id": 2, "user": {"login": "sentry[bot]"}, "content": "heart"},
+            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"},
+            {"id": 4, "user": {"login": "sentry[bot]"}, "content": "eyes"},
+        ]
+
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            github_event_action=GitHubIssueCommentAction.CREATED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
+            repo=self.repo,
+            pr_number="42",
+            comment_id="123456",
+            reactions_to_delete=[GitHubReaction.HOORAY, GitHubReaction.EYES],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
+        )
+
+        assert self.mock_client.delete_issue_reaction.call_count == 2
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "3")
+        self.mock_client.delete_issue_reaction.assert_any_call(self.repo.name, "42", "4")
+        self.mock_client.create_comment_reaction.assert_called_once_with(
+            self.repo.name, "123456", GitHubReaction.EYES
+        )
+
+    @patch("sentry.seer.code_review.utils.logger")
+    def test_logs_warning_and_adds_reaction_when_get_reactions_fails(
+        self, mock_logger: MagicMock
+    ) -> None:
+        self.mock_client.get_issue_reactions.side_effect = Exception("API Error")
+
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
+            repo=self.repo,
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
+        )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )
+        self.mock_client.create_issue_reaction.assert_called_once_with(
+            self.repo.name, "42", GitHubReaction.EYES
+        )
+
+    @patch("sentry.seer.code_review.utils.logger")
+    def test_logs_warning_and_adds_reaction_when_delete_reaction_fails(
+        self, mock_logger: MagicMock
+    ) -> None:
+        self.mock_client.get_issue_reactions.return_value = [
+            {"id": 3, "user": {"login": "sentry[bot]"}, "content": "hooray"}
+        ]
+        self.mock_client.delete_issue_reaction.side_effect = Exception("API Error")
+
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
+            repo=self.repo,
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[GitHubReaction.HOORAY],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
+        )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )
+        self.mock_client.create_issue_reaction.assert_called_once_with(
+            self.repo.name, "42", GitHubReaction.EYES
+        )
+
+    @patch("sentry.seer.code_review.utils.logger")
+    def test_logs_warning_when_create_reaction_fails(self, mock_logger: MagicMock) -> None:
+        self.mock_client.create_issue_reaction.side_effect = Exception("API Error")
+
+        delete_existing_reactions_and_add_reaction(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            github_event_action=PullRequestAction.OPENED.value,
+            integration=self.mock_integration,
+            organization_id=self.organization.id,
+            repo=self.repo,
+            pr_number="42",
+            comment_id=None,
+            reactions_to_delete=[],
+            reaction_to_add=GitHubReaction.EYES,
+            extra={},
+        )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.webhook.reaction-failed", extra={}, exc_info=True
+        )

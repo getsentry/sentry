@@ -6,6 +6,7 @@ from typing import Any
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
+from sentry.digests.types import IdentifierKey
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.options.project_option import ProjectOption
@@ -20,6 +21,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
 )
 from sentry.notifications.utils.participants import get_notification_recipients
+from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.plugins.base.structs import Notification
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
@@ -83,12 +85,26 @@ class MailAdapter:
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
-            immediate_delivery = digests.backend.add(
-                digest_key,
-                event_to_record(event, rules, notification_uuid=notification_uuid),
-                increment_delay=get_digest_option("increment_delay"),
-                maximum_delay=get_digest_option("maximum_delay"),
-            )
+            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+            rules_by_identifier_key = {
+                IdentifierKey.RULE: rules_and_workflows.rules,
+                IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
+            }
+            immediate_delivery = False
+            for identifier_key, parsed_rules in rules_by_identifier_key.items():
+                # If any of the records are added immediately, we can deliver the digest immediately
+                if parsed_rules:
+                    immediate_delivery = immediate_delivery or digests.backend.add(
+                        digest_key,
+                        event_to_record(
+                            event,
+                            parsed_rules,
+                            notification_uuid=notification_uuid,
+                            identifier_key=identifier_key,
+                        ),
+                        increment_delay=get_digest_option("increment_delay"),
+                        maximum_delay=get_digest_option("maximum_delay"),
+                    )
             if immediate_delivery:
                 deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
             else:

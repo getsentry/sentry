@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -17,6 +18,7 @@ interface Props {
 export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];
@@ -40,7 +42,7 @@ export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
     }
 
     const options = uniqueOptions.filter(Boolean).map(field => {
-      const tag = stringTags[field] ?? numberTags[field] ?? null;
+      const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
       if (tag) {
         return {
           label: tag.name,
@@ -81,7 +83,7 @@ export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
     });
 
     return options;
-  }, [fields, groupBys, mode, numberTags, stringTags, yAxes]);
+  }, [booleanTags, fields, groupBys, mode, numberTags, stringTags, yAxes]);
 
   return fieldOptions;
 }

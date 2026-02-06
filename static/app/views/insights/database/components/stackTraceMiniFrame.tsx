@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -84,12 +85,12 @@ const FrameContainer = styled('div')`
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};
 
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.md};
 
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
-  background: ${p => p.theme.colors.surface300};
+  background: ${p => p.theme.tokens.background.tertiary};
 `;
 
 const ProjectAvatarContainer = styled('div')`
@@ -101,7 +102,7 @@ const Emphasize = styled('span')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const PushRight = styled('span')`
@@ -152,7 +153,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWrapper = styled('span')`

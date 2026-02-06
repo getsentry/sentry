@@ -2,10 +2,11 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -132,7 +133,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
               <Button
                 aria-label={t('Remove file')}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
                 size="xs"
                 onClick={() => setFile(undefined)}
               />
@@ -187,13 +188,13 @@ const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
-  background-color: ${p => p.theme.colors.surface500};
+  background-color: ${p => p.theme.tokens.background.primary};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -222,7 +223,7 @@ const FinishedWell = styled('div')`
   padding: ${space(2)} ${space(3)};
   border-radius: 3px;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const UploadWell = styled('div')<{draggedOver: boolean}>`
@@ -237,7 +238,9 @@ const UploadWell = styled('div')<{draggedOver: boolean}>`
   border: 1px ${props => (props.draggedOver ? 'solid' : 'dashed')}
     ${p => p.theme.tokens.border.primary};
   background: ${props =>
-    props.draggedOver ? p => p.theme.colors.blue100 : p => p.theme.colors.surface500};
+    props.draggedOver
+      ? p => p.theme.tokens.background.transparent.accent.muted
+      : p => p.theme.tokens.background.primary};
 
   .upload-icon {
     color: ${p => p.theme.colors.gray800};

@@ -31,5 +31,5 @@ const EmptyText = styled('div')<Props>`
   margin-left: 4px;
   margin-right: 4px;
   height: ${p => (p.seriesCount > 1 ? '90px' : '150px')};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

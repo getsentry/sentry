@@ -14,8 +14,6 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import (
@@ -169,9 +167,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
             type=IssueStreamGroupType.slug,
         )
 
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @with_feature("organizations:workflow-engine-ui-links")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration(self) -> None:
         action_config = {
             "target_type": ActionTarget.USER.value,
@@ -197,9 +192,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_all_members_fallthrough(self) -> None:
         action_data = {"fallthrough_type": FallthroughChoiceType.ALL_MEMBERS.value}
         action = self.create_action(
@@ -223,9 +215,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_noone_fallthrough(self) -> None:
         action_data = {"fallthrough_type": FallthroughChoiceType.NO_ONE.value}
         action = self.create_action(
@@ -246,9 +235,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
         assert len(mail.outbox) == 0
 
-    @with_feature("organizations:workflow-engine-ui-links")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_full_integration_fallthrough_not_provided(self) -> None:
         action = self.create_action(config=self.issue_owners_action_config, type="email", data={})
         self.create_data_condition_group_action(condition_group=self.condition_group, action=action)
@@ -270,9 +256,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    @with_feature("organizations:workflow-engine-ui-links")
-    @with_feature("organizations:workflow-engine-single-process-workflows")
-    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     def test_hack_mail_workflow(self) -> None:
         colleen_workflow = self.create_user(email="colleen@workflow.com", is_active=True)
         michelle_workflow = self.create_user(email="michelle@workflow.com", is_active=True)
@@ -340,9 +323,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -368,9 +352,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -396,9 +381,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "fallthroughType": FallthroughChoiceType.NO_ONE.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -420,9 +406,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetType": ActionTargetType.ISSUE_OWNERS.value,
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with self.tasks():
@@ -453,9 +440,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(self.user.id),
         }
         Rule.objects.filter(project=event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data]},
+            condition_data=[self.condition_data],
+            action_data=[action_data],
         )
 
         with (
@@ -496,9 +484,10 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
             "targetIdentifier": str(team_workflow.id),
         }
         Rule.objects.filter(project=self.event.project).delete()
-        Rule.objects.create(
+        self.create_project_rule(
             project=self.event.project,
-            data={"conditions": [self.condition_data], "actions": [action_data, inject_workflow]},
+            condition_data=[self.condition_data],
+            action_data=[action_data, inject_workflow],
         )
 
         with self.tasks():

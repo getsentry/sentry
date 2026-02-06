@@ -2,7 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
+
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
@@ -99,11 +100,12 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
 }
 
 const FileName = styled('span')<{hasFile: boolean}>`
-  color: ${p => (p.hasFile ? p.theme.tokens.content.primary : p.theme.subText)};
+  color: ${p =>
+    p.hasFile ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
 `;
 
 const BrowseIndicator = styled('span')`
-  color: ${p => p.theme.activeText};
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
 
 const FileInput = styled(InputGroup.Input)`

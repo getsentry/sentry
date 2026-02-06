@@ -17,7 +17,9 @@ class GroupReprocessingTest(APITestCase):
             project_id=self.project.id,
         )
         self.group = event.group
-        self.url = f"/api/0/issues/{self.group.id}/reprocessing/"
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/reprocessing/"
+        )
 
     def test_reprocess_without_admin_scope_and_delete_remaining_events(
         self, mock_reprocess: MagicMock

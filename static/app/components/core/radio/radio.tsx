@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {growIn} from 'sentry/styles/animations';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
-export interface RadioProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
+export interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'size'
+> {
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
   ref?: React.Ref<HTMLInputElement>;
-  size?: 'sm';
+  size?: 'sm' | 'md';
 }
 
 const radioConfig = {
@@ -26,7 +28,7 @@ const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
   width: radioConfig[props.size ?? 'md'].outerSize,
   height: radioConfig[props.size ?? 'md'].outerSize,
 
-  borderRadius: '50%',
+  borderRadius: props.theme.radius.full,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -36,15 +38,15 @@ const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
 
   /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: '0 !important',
-  border: `1px solid ${props.theme.colors.surface100} !important`,
+  border: `1px solid ${props.theme.tokens.border.primary} !important`,
 
   '&:after': {
     content: '""',
     display: 'block',
     width: radioConfig[props.size ?? 'md'].innerSize,
     height: radioConfig[props.size ?? 'md'].innerSize,
-    borderRadius: '50%',
-    backgroundColor: props.theme.colors.white,
+    borderRadius: props.theme.radius.full,
+    backgroundColor: props.theme.tokens.content.onVibrant.light,
     transition: `all ${props.theme.motion.smooth.moderate}`,
     opacity: 0,
   },
@@ -54,8 +56,8 @@ const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
   },
 
   '&:checked': {
-    backgroundColor: props.theme.colors.chonk.blue400,
-    border: `1px solid ${props.theme.colors.chonk.blue400}`,
+    backgroundColor: props.theme.tokens.interactive.chonky.debossed.accent.background,
+    border: `1px solid ${props.theme.tokens.interactive.chonky.debossed.accent.chonk}`,
 
     '&:after': {
       animation: `${growIn} ${props.theme.motion.smooth.moderate}`,
@@ -64,7 +66,7 @@ const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
   },
 
   '&:disabled': {
-    opacity: 0.6,
+    opacity: props.theme.tokens.interactive.disabled,
     cursor: 'not-allowed',
   },
 });

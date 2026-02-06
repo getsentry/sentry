@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TooltipContext} from 'sentry/components/core/tooltip';
+import {TooltipContext} from '@sentry/scraps/tooltip';
+
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 import {ActionCell} from './actionCell';

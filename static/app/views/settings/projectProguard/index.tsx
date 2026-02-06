@@ -1,13 +1,15 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ExternalLink} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -38,7 +40,9 @@ export default function ProjectProguard() {
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {
           query: location.query.query,

@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';

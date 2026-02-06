@@ -1,4 +1,5 @@
 import type {SavedSearch} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -11,7 +12,11 @@ type FetchSavedSearchesForOrgResponse = SavedSearch[];
 const makeFetchSavedSearchesForOrgQueryKey = ({
   orgSlug,
 }: FetchSavedSearchesForOrgParameters) =>
-  [`/organizations/${orgSlug}/searches/`] as const;
+  [
+    getApiUrl('/organizations/$organizationIdOrSlug/searches/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ] as const;
 
 export const useFetchSavedSearchesForOrg = (
   {orgSlug}: FetchSavedSearchesForOrgParameters,

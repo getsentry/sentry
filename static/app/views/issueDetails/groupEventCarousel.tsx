@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
@@ -182,18 +184,22 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       disabled={isDisabled}
       options={eventNavDropdownOptions}
       value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
-      triggerProps={{
-        children: selectedValue ? (
-          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-            t('Recommended')
-          ) : undefined
-        ) : (
-          <TimeSince
-            date={event.dateCreated ?? event.dateReceived}
-            disabledAbsoluteTooltip
-          />
-        ),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps}>
+          {selectedValue ? (
+            selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+              t('Recommended')
+            ) : (
+              triggerProps.children
+            )
+          ) : (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          )}
+        </OverlayTrigger.Button>
+      )}
       menuWidth={232}
       onChange={selectedOption => {
         trackAnalytics('issue_details.event_dropdown_option_selected', {
@@ -369,7 +375,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const {copy} = useCopyToClipboard();
 
   return (
-    <CarouselAndButtonsWrapper>
+    <Flex justify="between" align="start" marginBottom="xs" gap="md">
       <div>
         <EventHeading>
           <EventIdAndTimeContainer>
@@ -384,7 +390,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                   ...getAnalyticsDataForEvent(event),
                   streamline: false,
                 }}
-                borderless
+                priority="transparent"
                 onClick={() =>
                   copy(event.id, {
                     successMessage: t('Event ID copied to clipboard'),
@@ -393,7 +399,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
               >
                 <EventId>
                   {getShortEventId(event.id)}
@@ -428,7 +433,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
-      <ActionsWrapper>
+      <Flex align="center" gap="xs">
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
@@ -453,35 +458,21 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             referrer="next-event"
           />
         </NavButtons>
-      </ActionsWrapper>
-    </CarouselAndButtonsWrapper>
+      </Flex>
+    </Flex>
   );
 }
-
-const CarouselAndButtonsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.5)};
-`;
 
 const EventHeading = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(LinkButton)`
@@ -527,7 +518,7 @@ const EventIdContainer = styled('div')`
 `;
 
 const EventTimeLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconWarning = styled(IconWarning)`
@@ -538,15 +529,15 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.lg};
   &:hover {
     > span {
       display: flex;
     }
   }
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
   }
 `;
 

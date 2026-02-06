@@ -1,0 +1,19 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: exception
+  hint: ignored because custom client fingerprint takes precedence
+  root_component:
+    app (ignored because custom client fingerprint takes precedence)
+      exception*
+        type*
+          "FailedToFetchError"
+        value* (stripped event-specific values)
+          "FailedToFetchError: Charlie didn't bring <int> balls back!"
+--------------------------------------------------------------------------
+custom_client_fingerprint:
+  hash: "69d81763f9ec386fc0c0607ef62cabfa"
+  fingerprint_info: {"client_fingerprint":["{{ message }}","dogs are great"]}
+  values: ["FailedToFetchError: Charlie didn't bring 2 balls back!","dogs are great"]

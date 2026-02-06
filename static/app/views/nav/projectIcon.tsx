@@ -2,6 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 interface ProjectIconProps {
@@ -43,19 +45,17 @@ function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProp
   }
 
   return (
-    <IconWrap className={className} data-project-icon>
+    <Stack
+      justify="center"
+      align="center"
+      flexShrink={0}
+      className={className}
+      data-project-icon
+    >
       {renderedIcons}
-    </IconWrap>
+    </Stack>
   );
 }
-
-const IconWrap = styled('div')`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
 
 const IconContainer = styled('div')`
   position: relative;

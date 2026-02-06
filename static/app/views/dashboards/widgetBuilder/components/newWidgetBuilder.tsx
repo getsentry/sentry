@@ -6,6 +6,8 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -90,6 +92,11 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
     enabled = hasTraceMetricsDashboards;
     traceItemType = TraceItemDataset.TRACEMETRICS;
     query = createTraceMetricFilter(state.traceMetric);
+  }
+
+  if (state.dataset === WidgetType.PREPROD_APP_SIZE) {
+    enabled = organization.features.includes('preprod-app-size-dashboard');
+    traceItemType = TraceItemDataset.PREPROD;
   }
 
   return (
@@ -228,7 +235,7 @@ function WidgetBuilderV2({
                         onDragMove={handleDragMove}
                         collisionDetection={closestCorners}
                       >
-                        <SurroundingWidgetContainer>
+                        <Flex justify="center" align="center" width="100%" height="100%">
                           <WidgetPreviewContainer
                             dashboardFilters={dashboardFilters}
                             dashboard={dashboard}
@@ -238,7 +245,7 @@ function WidgetBuilderV2({
                             onDataFetched={handleWidgetDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
                           />
-                        </SurroundingWidgetContainer>
+                        </Flex>
                       </DndContext>
                     )}
                   </WidgetBuilderContainer>
@@ -439,7 +446,7 @@ const fullPageCss = css`
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
-  background: ${p => p.theme.black};
+  background: ${p => p.theme.colors.black};
   will-change: opacity;
   transition: opacity 200ms;
   pointer-events: none;
@@ -523,10 +530,10 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   justify-content: center;
   width: 100%;
   height: 95%;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-style: italic;
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const WidgetPreviewPlaceholder = styled('div')`
@@ -537,14 +544,6 @@ const WidgetPreviewPlaceholder = styled('div')`
 
 const SlideoutContainer = styled('div')`
   height: 100%;
-`;
-
-const SurroundingWidgetContainer = styled('div')`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `;
 
 const FilterBarContainer = styled(motion.div)`

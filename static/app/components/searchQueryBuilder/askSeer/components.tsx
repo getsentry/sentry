@@ -7,7 +7,7 @@ export const AskSeerPane = styled('div')`
   justify-content: flex-start;
   padding: 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  background-color: ${p => p.theme.colors.blue100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   width: 100%;
 `;
 
@@ -24,9 +24,9 @@ export const AskSeerListItem = styled('div')<{
   border-radius: 0;
   background-color: none;
   box-shadow: none;
-  color: ${p => p.theme.colors.blue500};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-align: left;
   justify-content: ${p => p.justifyContent ?? 'flex-start'};
   gap: ${p => p.theme.space.md};
@@ -39,8 +39,8 @@ export const AskSeerListItem = styled('div')<{
   }
 
   &[aria-selected='true'] {
-    background: ${p => p.theme.colors.blue100};
-    color: ${p => p.theme.colors.blue500};
+    background: ${p => p.theme.tokens.background.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.accent};
   }
 `;
 
@@ -48,10 +48,12 @@ export const AskSeerLabel = styled('span')<{
   fontWeight?: 'normal' | 'bold';
   width?: 'auto';
 }>`
-  ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.colors.blue500};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.fontWeight ?? p.theme.fontWeight.bold};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.fontWeight ?? p.theme.font.weight.sans.medium};
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};

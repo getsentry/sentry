@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -7,10 +7,15 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFooterProps {
   disabledCreate?: string;
+  extras?: React.ReactNode;
   maxWidth?: string;
 }
 
-export function NewDetectorFooter({maxWidth, disabledCreate}: NewDetectorFooterProps) {
+export function NewDetectorFooter({
+  maxWidth,
+  disabledCreate,
+  extras,
+}: NewDetectorFooterProps) {
   const organization = useOrganization();
 
   return (
@@ -21,6 +26,7 @@ export function NewDetectorFooter({maxWidth, disabledCreate}: NewDetectorFooterP
       >
         {t('Back')}
       </LinkButton>
+      {extras}
       <Button
         priority="primary"
         type="submit"

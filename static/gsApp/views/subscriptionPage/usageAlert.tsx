@@ -315,7 +315,7 @@ const UsageInfo = styled('div')`
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-bottom: 0;
 `;

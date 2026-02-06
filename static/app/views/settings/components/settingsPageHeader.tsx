@@ -81,13 +81,15 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps>`
-  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeight.bold};`};
+  ${p =>
+    !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
-  color: ${p => (p.colorSubtitle ? p.theme.colors.blue500 : p.theme.colors.gray500)};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p =>
+    p.colorSubtitle ? p.theme.tokens.content.accent : p.theme.colors.gray500};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.md};
   padding: ${space(1.5)} 0 0;
 `;
 

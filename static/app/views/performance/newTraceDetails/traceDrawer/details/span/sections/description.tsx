@@ -2,10 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Image} from '@sentry/scraps/image';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
-import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -142,7 +144,7 @@ export function SpanDescription({
 
   const value =
     resolvedModule === ModuleName.DB ? (
-      <CodeSnippetWrapper>
+      <Stack flex="1">
         <StyledCodeSnippet
           language={system === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
@@ -162,7 +164,7 @@ export function SpanDescription({
         ) : (
           <MissingFrame />
         )}
-      </CodeSnippetWrapper>
+      </Stack>
     ) : hasNewSpansUIFlag &&
       resolvedModule === ModuleName.RESOURCE &&
       span.op === 'resource.img' ? (
@@ -176,7 +178,7 @@ export function SpanDescription({
               <LinkHint value={formattedDescription} />
             </span>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
@@ -275,19 +277,19 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
 
   return (
-    <ImageContainer>
-      <FilenameContainer>
+    <Stack align="center" gap="xs" width="100%">
+      <Flex justify="between" align="baseline" gap="md" width="100%">
         <span>
           {fileName} (<ResourceSize bytes={size} />)
         </span>
         <CopyToClipboardButton
-          borderless
+          priority="transparent"
           size="zero"
           text={fileName}
           aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
-      </FilenameContainer>
+      </Flex>
       {showImage && !hasError ? (
         <ImageWrapper>
           <Image
@@ -304,36 +306,14 @@ function ResourceImage(props: {
       ) : (
         <MissingImage />
       )}
-    </ImageContainer>
+    </Stack>
   );
 }
-
-const FilenameContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  justify-content: space-between;
-`;
 
 const ImageWrapper = styled('div')`
   width: 200px;
   height: 180px;
   margin: auto;
-`;
-
-const ImageContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const CodeSnippetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
@@ -351,7 +331,7 @@ const StyledCodeSnippet = styled(CodeBlock)`
 const DescriptionWrapper = styled('div')`
   display: flex;
   align-items: baseline;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   width: 100%;
   justify-content: space-between;
   flex-direction: row;

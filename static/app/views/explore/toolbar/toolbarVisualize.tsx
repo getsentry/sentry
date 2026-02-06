@@ -1,12 +1,14 @@
 import type {MouseEventHandler, ReactNode} from 'react';
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+
 import {IconHide} from 'sentry/icons/iconHide';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -24,6 +26,7 @@ import {
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
@@ -124,7 +127,7 @@ export function ToolbarVisualize({
         }
 
         return (
-          <VisualizeDropdown
+          <ToolbarVisualizeItem
             key={group}
             canDelete={canDelete}
             onDelete={() => onDelete(group)}
@@ -158,15 +161,46 @@ interface VisualizeDropdownProps {
   visualize: Visualize;
 }
 
+function ToolbarVisualizeItem({
+  canDelete,
+  label,
+  onDelete,
+  onReplace,
+  visualize,
+}: VisualizeDropdownProps) {
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const debouncedSearch = useDebouncedValue(search, 200);
+  return (
+    <TraceItemAttributeProvider
+      enabled
+      traceItemType={TraceItemDataset.SPANS}
+      search={debouncedSearch}
+    >
+      <VisualizeDropdown
+        canDelete={canDelete}
+        onDelete={onDelete}
+        onReplace={onReplace}
+        visualize={visualize}
+        label={label}
+        onSearch={setSearch}
+        onClose={() => setSearch(undefined)}
+      />
+    </TraceItemAttributeProvider>
+  );
+}
+
 function VisualizeDropdown({
   canDelete,
   onDelete,
   onReplace,
   visualize,
   label,
-}: VisualizeDropdownProps) {
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: numberTags} = useTraceItemTags('number');
+  onSearch,
+  onClose,
+}: VisualizeDropdownProps & {onClose: () => void; onSearch: (search: string) => void}) {
+  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {tags: booleanTags, isLoading: booleanTagsLoading} = useTraceItemTags('boolean');
 
   const aggregateOptions = useMemo(
     () =>
@@ -185,6 +219,7 @@ function VisualizeDropdown({
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
@@ -229,6 +264,9 @@ function VisualizeDropdown({
       onDelete={onDelete}
       parsedFunction={parsedFunction}
       label={label}
+      loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+      onSearch={onSearch}
+      onClose={onClose}
     />
   );
 }
@@ -243,7 +281,7 @@ export function getVisualizeLabel(index: number) {
   return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
-export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
   const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
@@ -252,9 +290,9 @@ export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps)
 const Label = styled('div')`
   cursor: pointer;
   border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => p.theme.colors.blue100};
-  color: ${p => p.theme.colors.blue400};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   width: 24px;
   height: 36px;
   display: flex;

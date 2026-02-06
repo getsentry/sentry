@@ -1,6 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {logs} from './logs';
@@ -16,7 +16,9 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   logsOnboarding: logs,
   metricsOnboarding: metrics,
-  agentMonitoringOnboarding: agentMonitoring,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/nestjs',
+  }),
   mcpOnboarding: mcp,
 };
 

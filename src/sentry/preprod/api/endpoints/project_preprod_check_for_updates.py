@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.db.models import Q
 from packaging.version import parse as parse_version
 from pydantic import BaseModel
 from rest_framework.request import Request
@@ -29,6 +30,7 @@ class InstallableBuildDetails(BaseModel):
     build_version: str
     build_number: int
     release_notes: str | None
+    install_groups: list[str] | None
     download_url: str
     app_name: str
     created_date: str
@@ -67,6 +69,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         provided_build_number = request.GET.get("build_number")
         provided_build_configuration = request.GET.get("build_configuration")
         provided_codesigning_type = request.GET.get("codesigning_type")
+        provided_install_groups = request.GET.getlist("install_groups")
 
         if not provided_app_id or not provided_platform or not provided_build_version:
             return Response({"error": "Missing required parameters"}, status=400)
@@ -111,11 +114,20 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
             return filter_kwargs
 
+        # Build Q object for install_groups filtering (find artifacts with any overlapping group)
+        def build_install_groups_q(groups: list[str]) -> Q | None:
+            if not groups:
+                return None
+            q = Q()
+            for group in groups:
+                q |= Q(extras__install_groups__contains=[group])
+            return q
+
         try:
             current_filter_kwargs = get_base_filters()
             current_filter_kwargs.update(
                 {
-                    "build_version": provided_build_version,
+                    "mobile_app_info__build_version": provided_build_version,
                 }
             )
 
@@ -126,32 +138,48 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             # Add build_number filter if provided
             if provided_build_number is not None:
                 try:
-                    current_filter_kwargs["build_number"] = int(provided_build_number)
+                    current_filter_kwargs["mobile_app_info__build_number"] = int(
+                        provided_build_number
+                    )
                 except ValueError:
                     return Response({"error": "Invalid build_number format"}, status=400)
 
             if build_configuration:
                 current_filter_kwargs["build_configuration"] = build_configuration
 
-            preprod_artifact = PreprodArtifact.objects.filter(**current_filter_kwargs).latest(
-                "date_added"
+            preprod_artifact = (
+                PreprodArtifact.objects.select_related("mobile_app_info")
+                .filter(**current_filter_kwargs)
+                .latest("date_added")
             )
         except PreprodArtifact.DoesNotExist:
             logger.warning(
                 "No artifact found for binary identifier with version %s", provided_build_version
             )
 
-        if preprod_artifact and preprod_artifact.build_version and preprod_artifact.build_number:
+        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+
+        if (
+            preprod_artifact
+            and mobile_app_info
+            and mobile_app_info.build_version
+            and mobile_app_info.build_number
+        ):
             current = InstallableBuildDetails(
                 id=str(preprod_artifact.id),
-                build_version=preprod_artifact.build_version,
-                build_number=preprod_artifact.build_number,
+                build_version=mobile_app_info.build_version,
+                build_number=mobile_app_info.build_number,
                 release_notes=(
                     preprod_artifact.extras.get("release_notes")
                     if preprod_artifact.extras
                     else None
                 ),
-                app_name=preprod_artifact.app_name,
+                install_groups=(
+                    preprod_artifact.extras.get("install_groups")
+                    if preprod_artifact.extras
+                    else None
+                ),
+                app_name=mobile_app_info.app_name,
                 download_url=get_download_url_for_artifact(preprod_artifact),
                 created_date=preprod_artifact.date_added.isoformat(),
             )
@@ -159,6 +187,17 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
         # Get the update object - find the highest version available
         # Get all build versions for this app and platform
         new_build_filter_kwargs = get_base_filters()
+        install_groups_q: Q | None = None
+
+        # Determine which install_groups to use for filtering updates:
+        # If provided_install_groups is given, use it; otherwise use the current artifact's groups
+        if provided_install_groups:
+            install_groups_q = build_install_groups_q(provided_install_groups)
+        elif preprod_artifact and preprod_artifact.extras:
+            current_install_groups = preprod_artifact.extras.get("install_groups")
+            if current_install_groups and isinstance(current_install_groups, list):
+                install_groups_q = build_install_groups_q(current_install_groups)
+
         if preprod_artifact:
             new_build_filter_kwargs["build_configuration"] = preprod_artifact.build_configuration
             if preprod_artifact.extras:
@@ -167,11 +206,15 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                     new_build_filter_kwargs["extras__codesigning_type"] = codesigning_type
         elif build_configuration:
             new_build_filter_kwargs["build_configuration"] = build_configuration
-        all_versions = (
-            PreprodArtifact.objects.filter(**new_build_filter_kwargs)
-            .values_list("build_version", flat=True)
-            .distinct()
-        )
+
+        # Build the base queryset
+        versions_queryset = PreprodArtifact.objects.filter(**new_build_filter_kwargs)
+        if install_groups_q:
+            versions_queryset = versions_queryset.filter(install_groups_q)
+
+        all_versions = versions_queryset.values_list(
+            "mobile_app_info__build_version", flat=True
+        ).distinct()
 
         # Find the highest semver version
         highest_version = None
@@ -187,8 +230,13 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
 
         # Get all artifacts for the highest version
         if highest_version:
-            new_build_filter_kwargs["build_version"] = highest_version
-            potential_artifacts = PreprodArtifact.objects.filter(**new_build_filter_kwargs)
+            new_build_filter_kwargs["mobile_app_info__build_version"] = highest_version
+            potential_artifacts_qs = PreprodArtifact.objects.select_related(
+                "mobile_app_info"
+            ).filter(**new_build_filter_kwargs)
+            if install_groups_q:
+                potential_artifacts_qs = potential_artifacts_qs.filter(install_groups_q)
+            potential_artifacts = potential_artifacts_qs
 
             # Filter for installable artifacts and get the one with highest build_number
             installable_artifacts = [
@@ -196,20 +244,33 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
             ]
             if len(installable_artifacts) > 0:
                 best_artifact = max(
-                    installable_artifacts, key=lambda a: (a.build_number, a.date_added)
+                    installable_artifacts,
+                    key=lambda a: (
+                        (a.mobile_app_info.build_number if a.mobile_app_info.build_number else 0),
+                        a.date_added,
+                    ),
                 )
                 if not preprod_artifact or preprod_artifact.id != best_artifact.id:
-                    if best_artifact.build_version and best_artifact.build_number:
+                    mobile_app_info = getattr(best_artifact, "mobile_app_info", None)
+                    best_build_version = mobile_app_info.build_version if mobile_app_info else None
+                    best_build_number = mobile_app_info.build_number if mobile_app_info else None
+                    best_app_name = mobile_app_info.app_name if mobile_app_info else None
+                    if best_build_version and best_build_number:
                         update = InstallableBuildDetails(
                             id=str(best_artifact.id),
-                            build_version=best_artifact.build_version,
-                            build_number=best_artifact.build_number,
+                            build_version=best_build_version,
+                            build_number=best_build_number,
                             release_notes=(
                                 best_artifact.extras.get("release_notes")
                                 if best_artifact.extras
                                 else None
                             ),
-                            app_name=best_artifact.app_name,
+                            install_groups=(
+                                best_artifact.extras.get("install_groups")
+                                if best_artifact.extras
+                                else None
+                            ),
+                            app_name=best_app_name,
                             download_url=get_download_url_for_artifact(best_artifact),
                             created_date=best_artifact.date_added.isoformat(),
                         )

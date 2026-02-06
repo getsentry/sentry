@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
@@ -180,7 +181,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const TagHeading = styled('h5')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   margin-bottom: 0;
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 `;
@@ -212,7 +213,7 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
   color: ${p => p.theme.tokens.content.primary};
   margin-bottom: ${space(0.5)};
   padding: 0 ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
 
@@ -220,22 +221,25 @@ const TagBarGlobalSelectionLink = styled(GlobalSelectionLink)`
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
     ${TagBarBackground} {
-      background: ${p => p.theme.colors.blue400};
+      background: ${p => p.theme.tokens.background.accent.vibrant};
     }
   }
 `;
 
 const TagBarLabel = styled('div')`
-  display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   flex-grow: 1;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TagBarCount = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   position: relative;
   padding-left: ${space(2)};
   padding-right: ${space(1)};

@@ -7,6 +7,7 @@ import type {
   ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import {
+  ActionGroup,
   ActionTarget,
   ActionType,
   SentryAppIdentifier,
@@ -191,6 +192,7 @@ const initialAutomationBuilderState: AutomationBuilderState = {
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
     conditions: [
       createWhenCondition(DataConditionType.FIRST_SEEN_EVENT),
+      createWhenCondition(DataConditionType.ISSUE_RESOLVED_TRIGGER),
       createWhenCondition(DataConditionType.REAPPEARED_EVENT),
       createWhenCondition(DataConditionType.REGRESSION_EVENT),
     ],
@@ -198,7 +200,7 @@ const initialAutomationBuilderState: AutomationBuilderState = {
   actionFilters: [
     {
       id: '0',
-      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      logicType: DataConditionGroupLogicType.ALL,
       conditions: [],
       actions: [],
     },
@@ -472,7 +474,10 @@ function updateIfCondition(
 
 function getActionTargetType(actionType: ActionType): ActionTarget | null {
   switch (actionType) {
+    // These action types expect a null target type.
+    // See PluginActionTranslator and WebhookActionTranslator in src/sentry/workflow_engine/typings/notification_action.py
     case ActionType.PLUGIN:
+    case ActionType.WEBHOOK:
       return null;
     case ActionType.EMAIL:
       return ActionTarget.ISSUE_OWNERS;
@@ -485,11 +490,18 @@ function getActionTargetType(actionType: ActionType): ActionTarget | null {
 
 function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
   const targetType = getActionTargetType(actionHandler.type);
-  const targetIdentifier =
+  const defaultTargetIdentifier =
     actionHandler.sentryApp?.id ??
     actionHandler.integrations?.[0]?.services?.[0]?.id ??
-    actionHandler.services?.[0]?.slug ??
-    null;
+    actionHandler.services?.[0]?.slug;
+
+  // Ticket creation actions require null (per backend schema)
+  // All other actions use empty string
+  const fallbackTargetIdentifier =
+    actionHandler.handlerGroup === ActionGroup.TICKET_CREATION ? null : '';
+
+  const targetIdentifier = defaultTargetIdentifier ?? fallbackTargetIdentifier;
+
   const targetDisplay =
     actionHandler.sentryApp?.name ??
     actionHandler.integrations?.[0]?.services?.[0]?.name ??

@@ -2,9 +2,9 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -348,7 +348,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const SuspectLabel = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const ValueWrapper = styled('div')`

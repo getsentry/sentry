@@ -4,7 +4,6 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
-from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -47,10 +46,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "fixVersions": "[10000]",
             }
         )
-        self.jira_rule.rule = Rule.objects.create(
-            project=self.project,
-            label="test rule",
-        )
+        self.jira_rule.rule = self.create_project_rule(name="test rule")
 
         self.jira_rule.data["key"] = "APP-123"
 

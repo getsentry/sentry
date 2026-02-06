@@ -96,6 +96,12 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
                 credentials.save(update_fields=["message", "message_type"])
                 return
 
+            elif result["error"]["type"] == "invalid_scope":
+                credentials.message = "Seems like the provided credentials have the wrong scope."
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
+                return
+
         # Default in case things go wrong
         logger.error(
             "Fetching the latest item id failed.",

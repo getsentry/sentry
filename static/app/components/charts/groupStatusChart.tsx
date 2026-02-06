@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
@@ -43,7 +45,7 @@ function GroupStatusChart({
 }: Props) {
   const theme = useTheme();
   const graphOptions = useMemo<{
-    colors: [string] | undefined;
+    colors: [string, string] | undefined;
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
@@ -54,14 +56,10 @@ function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const marklineColor = theme.colors.gray400;
-    const marklineLabelColor = theme.tokens.content.muted;
-    const chartColor = theme.tokens.graphics.muted;
-
     const markLine = MarkLine({
       silent: true,
       lineStyle: {
-        color: marklineColor,
+        color: theme.tokens.border.transparent.neutral.moderate,
         type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
         opacity: 0.6,
         cap: 'round', // Rounded edges for the dashes
@@ -76,43 +74,44 @@ function GroupStatusChart({
         show: true,
         position: 'end',
         opacity: 1,
-        color: marklineLabelColor,
+        color: theme.tokens.content.secondary,
         fontFamily: 'Rubik',
         fontSize: 10,
         formatter: `${formattedMarkLine}`,
       },
     });
 
-    if (showSecondaryPoints && secondaryStats?.length) {
-      const series: Series[] = [
-        {
-          seriesName: t('Total Events'),
-          data: secondaryStats.map(asChartPoint),
-          markLine: showMarkLine && max > 0 ? markLine : undefined,
-        },
-        {
-          seriesName: t('Matching Events'),
-          data: stats.map(asChartPoint),
-        },
-      ];
+    const series: Series[] =
+      showSecondaryPoints && secondaryStats?.length
+        ? [
+            {
+              seriesName: t('Total Events'),
+              data: secondaryStats.map(asChartPoint),
+              markLine: showMarkLine && max > 0 ? markLine : undefined,
+            },
+            {
+              seriesName: t('Matching Events'),
+              data: stats.map(asChartPoint),
+            },
+          ]
+        : [
+            {
+              seriesName: t('Events'),
+              data: stats.map(asChartPoint),
+              markLine: showMarkLine && max > 0 ? markLine : undefined,
+            },
+          ];
 
-      return {colors: undefined, emphasisColors: undefined, series};
-    }
-
-    const series: Series[] = [
-      {
-        seriesName: t('Events'),
-        data: stats.map(asChartPoint),
-        markLine: showMarkLine && max > 0 ? markLine : undefined,
-      },
-    ];
-
-    return {colors: [chartColor], emphasisColors: [chartColor], series};
+    return {
+      colors: [theme.tokens.dataviz.semantic.other, theme.tokens.dataviz.semantic.accent],
+      emphasisColors: [theme.tokens.dataviz.semantic.other],
+      series,
+    };
   }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>
-      <ChartWrapper>
+      <Stack>
         {loading ? (
           <Placeholder height="36px" />
         ) : (
@@ -135,7 +134,7 @@ function GroupStatusChart({
           </ChartAnimationWrapper>
         )}
         <GraphText>{groupStatus}</GraphText>
-      </ChartWrapper>
+      </Stack>
     </LazyRender>
   );
 }
@@ -155,12 +154,7 @@ const ChartAnimationWrapper = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const GraphText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

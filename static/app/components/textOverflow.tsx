@@ -52,7 +52,10 @@ const TextOverflow = styled(
     );
   }
 )`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   ${p =>
     p.ellipsisDirection === 'left' &&
     css`

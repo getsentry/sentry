@@ -3,12 +3,12 @@ import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import type {InputProps} from 'sentry/components/core/input';
-import {Input} from 'sentry/components/core/input';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import type {InputProps} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
@@ -25,7 +25,9 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import ArithmeticInput from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
@@ -594,41 +596,18 @@ class _QueryField extends Component<Props> {
     if (renderTagOverride) {
       return renderTagOverride(kind, label, meta);
     }
-    let text: string;
-    let tagVariant:
-      | Extract<TagProps['variant'], 'success' | 'info' | 'warning'>
-      | undefined;
 
-    switch (kind) {
-      case FieldValueKind.FUNCTION:
-        text = 'f(x)';
-        tagVariant = 'success';
-        break;
-      case FieldValueKind.CUSTOM_MEASUREMENT:
-      case FieldValueKind.MEASUREMENT:
-        text = 'field';
-        tagVariant = 'info';
-        break;
-      case FieldValueKind.BREAKDOWN:
-        text = 'field';
-        tagVariant = 'info';
-        break;
-      case FieldValueKind.TAG:
-        text = kind;
-        tagVariant = 'warning';
-        break;
-      case FieldValueKind.NUMERIC_METRICS:
-        text = 'f(x)';
-        tagVariant = 'success';
-        break;
-      case FieldValueKind.FIELD:
-        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagVariant = 'info';
-        break;
-      default:
-        text = kind;
-    }
-    return <Tag variant={tagVariant ?? 'muted'}>{text}</Tag>;
+    const valueType =
+      meta && 'dataType' in meta ? (meta.dataType as FieldValueType) : undefined;
+
+    return (
+      <TypeBadge
+        label={label}
+        valueKind={kind}
+        valueType={valueType}
+        deprecatedFields={DEPRECATED_FIELDS}
+      />
+    );
   }
 
   render() {
@@ -856,21 +835,21 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: ${p => p.theme.form.md.height};
   min-width: 50px;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSize.md};
+    font-size: ${p => p.theme.font.size.md};
     content: '${t('No parameter')}';
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
 const ArithmeticError = styled(Tooltip)`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;

@@ -5,8 +5,9 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
+
 import {DateRangePicker} from 'sentry/components/calendar';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -259,7 +260,7 @@ const StyledTimePicker = styled(TimePicker)`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -270,7 +271,7 @@ const UtcPicker = styled('div')`
 
 const UtcPickerLabel = styled('label')`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: inherit;
 `;
 

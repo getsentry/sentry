@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
@@ -11,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import type {Member, Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -25,7 +27,12 @@ type Props = {
 function Conditions({rule, teams, projectSlug}: Props) {
   const organization = useOrganization();
   const {data: memberList} = useApiQuery<Member[]>(
-    [`/organizations/${organization.slug}/users/`, {query: {projectSlug}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/users/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {projectSlug}},
+    ],
     {staleTime: 60000}
   );
 
@@ -160,7 +167,7 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const StatusContainer = styled('div')`
@@ -203,8 +210,8 @@ const StepContent = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ChevronContainer = styled('div')`
@@ -215,29 +222,33 @@ const ChevronContainer = styled('div')`
 
 const Badge = styled('span')`
   display: inline-block;
-  background-color: ${p => p.theme.colors.blue400};
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.5;
 `;
 
 const ConditionsBadge = styled('span')`
   display: block;
-  background-color: ${p => p.theme.colors.surface300};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
   margin-bottom: ${space(1)};
   width: fit-content;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const OverflowTableValue = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

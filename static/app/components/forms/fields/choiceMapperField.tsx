@@ -1,18 +1,21 @@
-import {Component, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   type SelectOption,
   type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
+import {Client} from 'sentry/api';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,23 +31,17 @@ interface DefaultProps {
   /**
    * Text used for the 'add row' button.
    */
-  addButtonText: NonNullable<React.ReactNode>;
+  addButtonText?: NonNullable<React.ReactNode>;
   /**
    * Automatically save even if fields are empty
    */
-  allowEmpty: boolean;
+  allowEmpty?: boolean;
   /**
    * If using mappedSelectors to specifically map different choice selectors
    * per item specify this as true.
    */
-  perItemMapping: boolean;
+  perItemMapping?: boolean;
 }
-
-const defaultProps: DefaultProps = {
-  addButtonText: t('Add Item'),
-  perItemMapping: false,
-  allowEmpty: false,
-};
 
 type MappedSelectors = Record<string, Partial<ControlProps>>;
 
@@ -115,7 +112,8 @@ export interface ChoiceMapperProps extends DefaultProps {
 }
 
 export interface ChoiceMapperFieldProps
-  extends ChoiceMapperProps,
+  extends
+    ChoiceMapperProps,
     Omit<
       InputFieldProps,
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
@@ -219,30 +217,32 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   );
 }
 
-export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
-  static defaultProps = defaultProps;
+function hasValue(value: InputFieldProps['value']) {
+  return defined(value) && !isEmptyObject(value);
+}
 
-  hasValue = (value: InputFieldProps['value']) => defined(value) && !isEmptyObject(value);
-
-  renderField = (props: ChoiceMapperFieldProps) => {
+export default function ChoiceMapperField({
+  addButtonText = t('Add Item'),
+  perItemMapping = false,
+  allowEmpty = false,
+  ...props
+}: ChoiceMapperFieldProps) {
+  const renderField = (fieldProps: ChoiceMapperFieldProps) => {
     const {
       onChange,
       onBlur,
-      addButtonText,
       addDropdown,
       mappedColumnLabel,
       columnLabels,
       mappedSelectors,
-      perItemMapping,
       disabled,
-      allowEmpty,
-    } = props;
+    } = fieldProps;
 
     const mappedKeys = Object.keys(columnLabels);
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
 
-    const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? props.value : {};
+    const valueIsEmpty = hasValue(fieldProps.value);
+    const value = valueIsEmpty ? fieldProps.value : {};
 
     const saveChanges = (nextValue: ChoiceMapperFieldProps['value']) => {
       onChange?.(nextValue, {});
@@ -322,13 +322,19 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         menuWidth={250}
         disabled={false}
         emptyMessage={noResultsMessage ?? t('No results found')}
-        triggerProps={{
-          ...restDropdownProps.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return restDropdownProps?.trigger ? (
+            restDropdownProps.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
         }}
       />
     ) : (
@@ -346,13 +352,19 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}
-        triggerProps={{
-          ...addDropdown.triggerProps,
-          children: (
-            <Flex gap="xs">
-              <IconAdd /> {addButtonText}
-            </Flex>
-          ),
+        trigger={(triggerProps, isOpen) => {
+          const mergedProps = mergeProps(triggerProps, {
+            children: (
+              <Flex gap="xs">
+                <IconAdd /> {addButtonText}
+              </Flex>
+            ),
+          });
+          return addDropdown?.trigger ? (
+            addDropdown.trigger(mergedProps, isOpen)
+          ) : (
+            <OverlayTrigger.Button {...mergedProps} />
+          );
         }}
       />
     );
@@ -370,17 +382,23 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
             <HeadingItem>{mappedColumnLabel}</HeadingItem>
           </LabelColumn>
           {mappedKeys.map((fieldKey, i) => (
-            <Heading key={fieldKey}>
+            <Flex
+              justify="between"
+              align="center"
+              flex="1 0 0"
+              marginLeft="md"
+              key={fieldKey}
+            >
               <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
               {i === mappedKeys.length - 1 && dropdown}
-            </Heading>
+            </Flex>
           ))}
         </Flex>
         {Object.keys(value).map(itemKey => (
-          <Row key={itemKey}>
+          <Flex align="center" marginTop="md" key={itemKey}>
             <LabelColumn>{value[itemKey].__label ?? valueMap[itemKey]}</LabelColumn>
             {mappedKeys.map((fieldKey, i) => (
-              <Column key={fieldKey}>
+              <Flex align="center" flex="1 0 0" marginLeft="md" key={fieldKey}>
                 <Control>
                   <Select
                     {...(perItemMapping
@@ -403,46 +421,23 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                     />
                   </Actions>
                 )}
-              </Column>
+              </Flex>
             ))}
-          </Row>
+          </Flex>
         ))}
       </Fragment>
     );
   };
 
-  render() {
-    return (
-      <FormField
-        {...this.props}
-        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
-      >
-        {this.renderField}
-      </FormField>
-    );
-  }
+  return (
+    <FormField
+      {...props}
+      inline={({model}: any) => !hasValue(model.getValue(props.name))}
+    >
+      {renderField}
+    </FormField>
+  );
 }
-
-const Heading = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  flex: 1 0 0;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Row = styled('div')`
-  display: flex;
-  margin-top: ${space(1)};
-  align-items: center;
-`;
-
-const Column = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-  align-items: center;
-  flex: 1 0 0;
-`;
 
 const Control = styled('div')`
   flex: 1;
@@ -455,7 +450,7 @@ const LabelColumn = styled('div')`
 const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Actions = styled('div')`

@@ -97,6 +97,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Organization
+register(
+    "organization.default-owner-id-cache-ttl",
+    type=Int,
+    default=300,  # 5 minutes
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
@@ -605,14 +614,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract spans only from a random fraction of transactions.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.span-extraction.sample-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Allow the Relay to skip normalization of spans for certain hosts.
 register(
@@ -669,6 +670,13 @@ register(
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Organizations that should always see the Seer config reminder
+register(
+    "seer.organizations.force-config-reminder",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Coding Workflows
 register(
@@ -685,19 +693,7 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-# if a region is in this list, it's safe to forward to overwatch
-register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-# enable verbose debug logging for overwatch webhook forwarding
-register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Control forwarding of GitHub webhook events to Overwatch
-register("github.webhook.issue-comment", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github.webhook.pr", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# List of GitHub org names that should always send directly to Seer (bypass Overwatch)
-register(
-    "seer.code-review.direct-to-seer-enabled-gh-orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -706,6 +702,12 @@ register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
 register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
 register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "github-app.rate-limit-sensitive-orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -880,6 +882,14 @@ register(
     "snuba.tagstore.cache-tagkeys-rate",
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cooldown period (in seconds) between Snuba queries for groupsnooze user count validation. Value of 0 disables the debounce check.
+register(
+    "snuba.groupsnooze.user-counts-debounce-seconds",
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
 )
 
 # Kafka Publisher
@@ -1246,6 +1256,25 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.explorer_index.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.explorer_index.killswitch.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.explorer-index.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
@@ -1354,6 +1383,14 @@ register(
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Option which rolls out counting transactions based on the span usage metric.
+register(
+    "ingest.billing_metrics_consumer.use_only_span_metric_orgs",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
@@ -2244,13 +2281,30 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Skip Snuba query when there are no orgs to query for. This is a rollout flag for a fix
-# that prevents unnecessary Snuba queries.
+# List of organization IDs that should be using segment metrics for boost low volume transactions.
 register(
-    "dynamic-sampling.skip_snuba_query_for_empty_orgs",
-    default=False,
+    "dynamic-sampling.transactions.segment-metric-orgs",
+    default=[],
+    type=Sequence,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# List of organization IDs that should be using segment metrics for recalibrate_orgs.
+register(
+    "dynamic-sampling.recalibrate_orgs.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of organization IDs that should be using segment metrics for sliding_window_org.
+register(
+    "dynamic-sampling.sliding_window_org.segment-metric-orgs",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
@@ -3069,12 +3123,72 @@ register(
     default=60,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable stuck detector to log stack traces when subprocess initialization hangs
+register(
+    "spans.buffer.flusher.use-stuck-detector",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
     type=Int,
     default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of subsegments to process in each Redis pipeline. Each
+# subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
+register(
+    "spans.buffer.pipeline-batch-size",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of spans per EVALSHA call. Large subsegments are split into
+# chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
+register(
+    "spans.buffer.max-spans-per-evalsha",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
+register(
+    "spans.buffer.evalsha-latency-threshold",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.evalsha-cumulative-logger-enabled",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# List of trace_ids to enable debug logging for. Empty = debug off.
+# When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
+register(
+    "spans.buffer.debug-traces",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# ZSET to SET migration options.
+register(
+    "spans.buffer.write-to-zset",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.write-to-set",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.read-from-set",
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3343,13 +3457,6 @@ register(
 )
 
 register(
-    "workflow_engine.exclude_issue_stream_detector",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
     type=Bool,
     default=True,
@@ -3357,21 +3464,14 @@ register(
 )
 
 register(
-    "workflow_engine.issue_alert.group.type_id.rollout",
+    "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
-    default=[],
+    default=[8001],  # MetricIssue.type_id
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "workflow_engine.group.type_id.open_periods_type_denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3849,18 +3949,17 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to enable truncation of group IDs in Snuba query
-# when search filters are selective.
-register(
-    "snuba.search.truncate-group-ids-for-selective-filters-enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Organization slug allowlist to enable Autopilot for specific organizations.
 register(
     "autopilot.organization-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Project ID allowlist to enable missing SDK integration detector for specific projects.
+register(
+    "autopilot.missing-sdk-integration.projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

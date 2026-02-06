@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -41,8 +42,8 @@ function Banner(props: BannerProps) {
       <ActionsWrapper>
         <BannerTitle>{props.title}</BannerTitle>
         <BannerDescription>{props.description}</BannerDescription>
-        <ButtonsWrapper>
-          <ActionButton>
+        <Flex align="center" gap="xs">
+          <Flex gap="md">
             <Button
               priority="primary"
               onClick={event => {
@@ -52,8 +53,8 @@ function Banner(props: BannerProps) {
             >
               {props.primaryButtonText}
             </Button>
-          </ActionButton>
-          <ActionButton>
+          </Flex>
+          <Flex gap="md">
             <LinkButton
               onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
@@ -61,15 +62,15 @@ function Banner(props: BannerProps) {
             >
               {t('Learn More')}
             </LinkButton>
-          </ActionButton>
-        </ButtonsWrapper>
+          </Flex>
+        </Flex>
       </ActionsWrapper>
       <BannerBackground image={props.image} />
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
           showChevron: false,
-          borderless: true,
+          priority: 'transparent',
           icon: <IconClose variant="muted" />,
         }}
         size="xs"
@@ -97,9 +98,9 @@ const BannerWrapper = styled('div')`
   padding: ${space(2)} ${space(3)};
   background: linear-gradient(
     90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
   );
   container-type: inline-size;
 `;
@@ -108,16 +109,10 @@ const ActionsWrapper = styled('div')`
   max-width: 50%;
 `;
 
-const ButtonsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
@@ -129,7 +124,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   display: block;
   top: ${space(1)};
   right: ${space(1)};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;
 `;
@@ -150,11 +145,6 @@ const BannerBackground = styled('div')<{image: any}>`
   @container (max-width: 840px) {
     display: none;
   }
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const TraceWarningComponents = {

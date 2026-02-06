@@ -1,15 +1,21 @@
-import {memo, useCallback, useEffect} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container, Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {ConversationSummary} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
 import {
   useConversation,
@@ -20,10 +26,11 @@ import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conve
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-const CONVERSATION_PANEL_WIDTH = 350;
-const TRACE_PANEL_WIDTH = 350;
+const LEFT_PANEL_WIDTH = 400;
 const DETAILS_PANEL_WIDTH = 500;
-const DRAWER_WIDTH = CONVERSATION_PANEL_WIDTH + TRACE_PANEL_WIDTH + DETAILS_PANEL_WIDTH;
+const DRAWER_WIDTH = LEFT_PANEL_WIDTH + DETAILS_PANEL_WIDTH;
+
+type ConversationTab = 'messages' | 'trace';
 
 interface UseConversationViewDrawerProps {
   onClose?: () => void;
@@ -45,31 +52,52 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
       setConversationDrawerQueryState({
         spanId: node.id,
       });
-      trackAnalytics('agent-monitoring.conversation-drawer.span-select', {
+      trackAnalytics('conversations.drawer.span-select', {
         organization,
       });
     },
     [setConversationDrawerQueryState, organization]
   );
 
-  const selectedNode =
-    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
-    getDefaultSelectedNode(nodes);
+  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+
+  const selectedNode = useMemo(() => {
+    if (selectedNodeKey) {
+      const found = nodes.find(node => node.id === selectedNodeKey);
+      if (found) {
+        return found;
+      }
+    }
+    return nodes.find(node => node.id === defaultNodeId);
+  }, [nodes, selectedNodeKey, defaultNodeId]);
+
+  useEffect(() => {
+    if (isLoading || !defaultNodeId) {
+      return;
+    }
+
+    const isCurrentSpanValid =
+      selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
+
+    if (!isCurrentSpanValid) {
+      setConversationDrawerQueryState({
+        spanId: defaultNodeId,
+      });
+    }
+  }, [isLoading, defaultNodeId, selectedNodeKey, nodes, setConversationDrawerQueryState]);
 
   return (
-    <DrawerWrapper>
-      <StyledDrawerHeader>
-        <HeaderContent>
-          {t('Conversation')}
-          <ConversationIdLabel>
-            {conversation.conversationId.slice(0, 8)}
-          </ConversationIdLabel>
-        </HeaderContent>
-      </StyledDrawerHeader>
+    <Flex direction="column" height="100%">
+      <DrawerHeader>
+        <ConversationSummary
+          nodes={nodes}
+          conversationId={conversation.conversationId}
+          isLoading={isLoading}
+        />
+      </DrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
           <ConversationView
-            conversation={conversation}
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
             selectedNode={selectedNode}
@@ -79,7 +107,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </DrawerWrapper>
+    </Flex>
   );
 });
 
@@ -90,9 +118,16 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions) => {
-      trackAnalytics('agent-monitoring.conversation-drawer.open', {
+    ({
+      conversation,
+      source,
+    }: {
+      conversation: UseConversationsOptions;
+      source: ConversationDrawerOpenSource;
+    }) => {
+      trackAnalytics('conversations.drawer.open', {
         organization,
+        source,
       });
 
       return openDrawer(() => <ConversationDrawerContent conversation={conversation} />, {
@@ -100,9 +135,13 @@ export function useConversationViewDrawer({
         onClose,
         shouldCloseOnInteractOutside: () => true,
         drawerWidth: `${DRAWER_WIDTH}px`,
+        drawerCss: css`
+          min-width: ${DRAWER_WIDTH}px;
+        `,
         resizable: true,
         conversationId: conversation.conversationId,
-        traceIds: conversation.traceIds,
+        startTimestamp: conversation.startTimestamp,
+        endTimestamp: conversation.endTimestamp,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -110,9 +149,16 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId, traceIds} = drawerUrlState;
-    if (conversationId && traceIds?.length && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId, traceIds});
+    const {conversationId, startTimestamp, endTimestamp} = drawerUrlState;
+    if (conversationId && !isDrawerOpen) {
+      openConversationViewDrawer({
+        conversation: {
+          conversationId,
+          startTimestamp: startTimestamp ?? undefined,
+          endTimestamp: endTimestamp ?? undefined,
+        },
+        source: 'direct_link',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -124,7 +170,6 @@ export function useConversationViewDrawer({
 }
 
 function ConversationView({
-  conversation,
   nodes,
   nodeTraceMap,
   selectedNode,
@@ -132,7 +177,6 @@ function ConversationView({
   isLoading,
   error,
 }: {
-  conversation: UseConversationsOptions;
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -141,12 +185,27 @@ function ConversationView({
   selectedNode: AITraceSpanNode | undefined;
 }) {
   const organization = useOrganization();
+  const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
+
+  const handleTabChange = useCallback(
+    (newTab: ConversationTab) => {
+      if (activeTab !== newTab) {
+        trackAnalytics('conversations.drawer.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: newTab,
+        });
+      }
+      setActiveTab(newTab);
+    },
+    [organization, activeTab]
+  );
 
   if (isLoading) {
     return (
-      <LoadingContainer>
+      <Flex justify="center" align="center" flex="1" height="100%">
         <LoadingIndicator size={32}>{t('Loading conversation...')}</LoadingIndicator>
-      </LoadingContainer>
+      </Flex>
     );
   }
 
@@ -159,20 +218,41 @@ function ConversationView({
   }
 
   return (
-    <SplitContainer>
-      <MessagesPanel
-        nodes={nodes}
-        selectedNodeId={selectedNode?.id ?? null}
-        onSelectNode={onSelectNode}
-      />
-      <TracePanel>
-        <PanelHeader>{t('AI Trace')}</PanelHeader>
-        <AISpanList
-          nodes={nodes}
-          selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-          onSelectNode={onSelectNode}
-        />
-      </TracePanel>
+    <Flex flex="1" minHeight="0">
+      <LeftPanel>
+        <StyledTabs
+          value={activeTab}
+          onChange={key => handleTabChange(key as ConversationTab)}
+        >
+          <Container padding="xs lg">
+            <TabList>
+              <TabList.Item key="messages">{t('Messages')}</TabList.Item>
+              <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
+            </TabList>
+          </Container>
+          <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
+            <FullWidthTabPanels>
+              <TabPanels.Item key="messages">
+                <MessagesPanel
+                  nodes={nodes}
+                  selectedNodeId={selectedNode?.id ?? null}
+                  onSelectNode={onSelectNode}
+                />
+              </TabPanels.Item>
+              <TabPanels.Item key="trace">
+                <Container padding="md lg">
+                  <AISpanList
+                    nodes={nodes}
+                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
+                    onSelectNode={onSelectNode}
+                    compressGaps
+                  />
+                </Container>
+              </TabPanels.Item>
+            </FullWidthTabPanels>
+          </Flex>
+        </StyledTabs>
+      </LeftPanel>
       <DetailsPanel>
         {selectedNode?.renderDetails({
           node: selectedNode,
@@ -181,11 +261,11 @@ function ConversationView({
           onTabScrollToNode: () => {},
           organization,
           replay: null,
-          traceId: nodeTraceMap.get(selectedNode.id) ?? conversation.traceIds[0] ?? '',
+          traceId: nodeTraceMap.get(selectedNode.id) ?? '',
           hideNodeActions: true,
         })}
       </DetailsPanel>
-    </SplitContainer>
+    </Flex>
   );
 }
 
@@ -197,69 +277,33 @@ const StyledDrawerBody = styled(DrawerBody)`
   flex-direction: column;
 `;
 
-const SplitContainer = styled('div')`
-  display: flex;
+const LeftPanel = styled('div')`
   flex: 1;
+  min-width: ${LEFT_PANEL_WIDTH}px;
+  min-height: 0;
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const StyledTabs = styled(Tabs)`
   min-height: 0;
 `;
 
-const TracePanel = styled('div')`
-  width: ${TRACE_PANEL_WIDTH}px;
-  min-width: ${TRACE_PANEL_WIDTH}px;
-  min-height: 0;
-  padding: 0 ${p => p.theme.space.md};
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
+const FullWidthTabPanels = styled(TabPanels)`
+  width: 100%;
+
+  > [role='tabpanel'] {
+    width: 100%;
+  }
 `;
 
 const DetailsPanel = styled('div')`
+  width: ${DETAILS_PANEL_WIDTH}px;
   min-width: ${DETAILS_PANEL_WIDTH}px;
-  flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
-`;
-
-const PanelHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: bold;
-  padding: ${p => p.theme.space.md} 0;
-  margin: 0;
-  flex-shrink: 0;
-`;
-
-const DrawerWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  flex: 1;
-`;
-
-const StyledDrawerHeader = styled(DrawerHeader)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  display: flex;
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
-const ConversationIdLabel = styled('span')`
-  color: ${p => p.theme.subText};
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
 `;

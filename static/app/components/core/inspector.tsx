@@ -3,11 +3,12 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
-import {Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {
@@ -487,9 +488,6 @@ function MenuItem(props: {
 
   const story = storyQuery.data?.[0];
 
-  const figmaLink =
-    story && isMDXStory(story) ? story.exports.frontmatter?.resources?.figma : null;
-
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -606,13 +604,22 @@ function MenuItem(props: {
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
-                    if (figmaLink) {
-                      window.open(figmaLink, '_blank');
+                    if (
+                      story &&
+                      isMDXStory(story) &&
+                      story.exports.frontmatter?.resources?.figma
+                    ) {
+                      window.open(story.exports.frontmatter?.resources?.figma, '_blank');
                       props.onAction();
                     }
                   },
                 })}
-                disabled={storyQuery.isLoading || !figmaLink}
+                disabled={
+                  storyQuery.isLoading ||
+                  !story ||
+                  !isMDXStory(story) ||
+                  !story.exports.frontmatter?.resources?.figma
+                }
                 icon={
                   storyQuery.isLoading ? (
                     <LoadingIndicator mini size={12} />

@@ -1,9 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -48,14 +49,17 @@ function ReserveAdditionalVolume({
               }).price > 0
           )
   );
+  const [reserved, setReserved] = useState<Partial<Record<DataCategory, number>>>(
+    formData.reserved
+  );
   const reservedVolumeTotal = useMemo(() => {
-    return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
+    return Object.entries(reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
         b => b.events === value
       );
       return acc + (bucket?.price ?? 0);
     }, 0);
-  }, [formData.reserved, activePlan]);
+  }, [reserved, activePlan]);
 
   const handleReservedChange = useCallback(
     (value: number, category: DataCategory) => {
@@ -95,7 +99,6 @@ function ReserveAdditionalVolume({
           <Button
             size="sm"
             priority="link"
-            borderless
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders
@@ -137,9 +140,12 @@ function ReserveAdditionalVolume({
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            formData={formData}
             subscription={subscription}
-            onReservedChange={debouncedReservedChange}
+            onReservedChange={(newReserved, category) => {
+              setReserved(prev => ({...prev, [category]: newReserved}));
+              debouncedReservedChange(newReserved, category);
+            }}
+            currentSliderValues={reserved}
           />
         </Stack>
       )}

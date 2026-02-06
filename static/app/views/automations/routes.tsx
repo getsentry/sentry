@@ -1,3 +1,5 @@
+import {Outlet} from 'react-router-dom';
+
 import Redirect from 'sentry/components/redirect';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
@@ -9,7 +11,6 @@ export const automationRoutes: SentryRouteObject = {
   children: [
     {
       component: RedirectToRuleList,
-      deprecatedRouteProps: true,
       children: [
         {index: true, component: make(() => import('sentry/views/automations/list'))},
       ],
@@ -17,7 +18,6 @@ export const automationRoutes: SentryRouteObject = {
     {
       path: 'new',
       component: RedirectToNewRule,
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -28,7 +28,6 @@ export const automationRoutes: SentryRouteObject = {
     {
       path: ':automationId/',
       component: RedirectToRuleList,
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -43,7 +42,7 @@ export const automationRoutes: SentryRouteObject = {
   ],
 };
 
-function RedirectToRuleList({children}: {children: React.ReactNode}) {
+function RedirectToRuleList() {
   const organization = useOrganization();
 
   const hasRedirectOptOut = organization.features.includes(
@@ -63,10 +62,10 @@ function RedirectToRuleList({children}: {children: React.ReactNode}) {
     );
   }
 
-  return children;
+  return <Outlet />;
 }
 
-function RedirectToNewRule({children}: {children: React.ReactNode}) {
+function RedirectToNewRule() {
   const organization = useOrganization();
 
   const hasRedirectOptOut = organization.features.includes(
@@ -86,5 +85,5 @@ function RedirectToNewRule({children}: {children: React.ReactNode}) {
     );
   }
 
-  return children;
+  return <Outlet />;
 }

@@ -430,6 +430,7 @@ class FormModel {
         method,
         data,
         success: response => resolve(response),
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         error: error => reject(error),
       })
     );
@@ -779,8 +780,9 @@ class FormModel {
       this.errors.delete(id);
     }
 
-    // Field should no longer to "saving", but is not necessarily "ready"
+    // Resets field states used in the control state
     this.setFieldState(id, FormState.SAVING, false);
+    this.setFieldState(id, FormState.READY, false);
   }
 
   /**

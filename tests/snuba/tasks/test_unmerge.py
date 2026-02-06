@@ -28,6 +28,7 @@ from sentry.tasks.unmerge import (
     get_fingerprint,
     get_group_backfill_attributes,
     get_group_creation_attributes,
+    repair_denormalizations,
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -597,3 +598,34 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
         assert destination_similar_items[1][0] == source.id
         assert destination_similar_items[1][1]["message:message:character-shingles"] < 1.0
+
+    @mock.patch("sentry.tasks.unmerge.similarity")
+    def test_repair_denormalizations_skips_similarity_when_backfilled_to_seer(
+        self, mock_similarity
+    ) -> None:
+        project = self.create_project()
+        project.update_option("sentry:similarity_backfill_completed", True)
+
+        event = self.store_event(
+            data={"message": "Test event", "fingerprint": ["test-group"]},
+            project_id=project.id,
+        )
+
+        repair_denormalizations(get_caches(), project, [event])
+
+        mock_similarity.record.assert_not_called()
+
+    @mock.patch("sentry.tasks.unmerge.similarity")
+    def test_repair_denormalizations_records_similarity_when_not_backfilled(
+        self, mock_similarity
+    ) -> None:
+        project = self.create_project()
+
+        event = self.store_event(
+            data={"message": "Test event", "fingerprint": ["test-group"]},
+            project_id=project.id,
+        )
+
+        repair_denormalizations(get_caches(), project, [event])
+
+        mock_similarity.record.assert_called_once_with(project, [event])

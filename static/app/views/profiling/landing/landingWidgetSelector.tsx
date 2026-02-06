@@ -2,8 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -83,7 +85,9 @@ export function LandingWidgetSelector({
       value={selectedWidget}
       options={options}
       onChange={onWidgetChange}
-      triggerProps={{borderless: true, size: 'zero'}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+      )}
       offset={4}
     />
   );

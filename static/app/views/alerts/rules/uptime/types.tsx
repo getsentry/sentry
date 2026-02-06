@@ -12,6 +12,7 @@ export enum UptimeMonitorMode {
 }
 
 export interface UptimeRule {
+  assertion: Assertion | null;
   body: string | null;
   downtimeThreshold: number;
   environment: string | null;
@@ -32,6 +33,7 @@ export interface UptimeRule {
 }
 
 export interface UptimeCheck {
+  assertionFailureData: Assertion | null;
   checkStatus: CheckStatus;
   checkStatusReason: CheckStatusReason | null;
   durationMs: number;
@@ -43,6 +45,7 @@ export interface UptimeCheck {
   scheduledCheckTime: string;
   timestamp: string;
   traceId: string;
+  traceItemId: string;
   uptimeCheckId: string;
 }
 
@@ -61,6 +64,10 @@ export enum CheckStatusReason {
   TLS_ERROR = 'tls_error',
   CONNECTION_ERROR = 'connection_error',
   REDIRECT_ERROR = 'redirect_error',
+  MISS_PRODUCED = 'miss_produced',
+  MISS_BACKFILL = 'miss_backfill',
+  ASSERTION_COMPILATION_ERROR = 'assertion_compilation_error',
+  ASSERTION_EVALUATION_ERROR = 'assertion_evaluation_error',
 }
 
 export enum CheckStatus {
@@ -78,3 +85,132 @@ type StatsBucket = {
 };
 
 export type CheckStatusBucket = [timestamp: number, stats: StatsBucket];
+
+// Uptime Assertion Types (matching Rust types from uptime-checker)
+
+export interface Assertion {
+  // XXX(epurkhiser): The uptime-checker would actually allow this to be any
+  // Op, but we're restricting it on the frontend to always be a AndOp.
+  root: AndOp;
+}
+
+export type Comparison =
+  | {cmp: 'always'}
+  | {cmp: 'never'}
+  | {cmp: 'less_than'}
+  | {cmp: 'greater_than'}
+  | {cmp: 'equals'}
+  | {cmp: 'not_equal'};
+
+export type HeaderOperand =
+  | {header_op: 'none'}
+  | {header_op: 'literal'; value: string}
+  | {header_op: 'glob'; pattern: {value: string}};
+
+export type JsonPathOperand =
+  | {jsonpath_op: 'none'}
+  | {jsonpath_op: 'literal'; value: string}
+  | {jsonpath_op: 'glob'; pattern: {value: string}};
+
+export interface AndOp {
+  children: Op[];
+  id: string;
+  op: 'and';
+}
+
+export interface OrOp {
+  children: Op[];
+  id: string;
+  op: 'or';
+}
+
+export interface NotOp {
+  id: string;
+  op: 'not';
+  operand: Op;
+}
+
+export interface StatusCodeOp {
+  id: string;
+  op: 'status_code_check';
+  operator: Comparison;
+  value: number;
+}
+
+export interface JsonPathOp {
+  id: string;
+  op: 'json_path';
+  operand: JsonPathOperand;
+  operator: Comparison;
+  value: string;
+}
+
+export interface HeaderCheckOp {
+  id: string;
+  key_op: Comparison;
+  key_operand: HeaderOperand;
+  op: 'header_check';
+  value_op: Comparison;
+  value_operand: HeaderOperand;
+}
+
+export type GroupOp = AndOp | OrOp;
+export type LogicalOp = GroupOp | NotOp;
+
+export type Op = LogicalOp | StatusCodeOp | JsonPathOp | HeaderCheckOp;
+
+// Preview Check Types (raw response from uptime-checker /execute_config endpoint)
+
+export enum PreviewCheckStatus {
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+  MISSED_WINDOW = 'missed_window',
+  DISALLOWED_BY_ROBOTS = 'disallowed_by_robots',
+}
+
+enum PreviewCheckStatusReasonType {
+  TIMEOUT = 'timeout',
+  DNS_ERROR = 'dns_error',
+  TLS_ERROR = 'tls_error',
+  CONNECTION_ERROR = 'connection_error',
+  REDIRECT_ERROR = 'redirect_error',
+  FAILURE = 'failure',
+  MISS_PRODUCED = 'miss_produced',
+  MISS_BACKFILL = 'miss_backfill',
+  ASSERTION_COMPILATION_ERROR = 'assertion_compilation_error',
+  ASSERTION_EVALUATION_ERROR = 'assertion_evaluation_error',
+}
+
+interface PreviewCheckStatusReason {
+  description: string;
+  type: PreviewCheckStatusReasonType;
+}
+
+export interface PreviewCheckResponse {
+  check_result?: {
+    actual_check_time_ms: number;
+    duration_ms: number | null;
+    guid: string;
+    region: string;
+    scheduled_check_time_ms: number;
+    span_id: string;
+    status: PreviewCheckStatus;
+    status_reason: PreviewCheckStatusReason | null;
+    subscription_id: string;
+    trace_id: string;
+    request_info?: {
+      http_status_code: number | null;
+      request_type: string;
+      url: string;
+    } | null;
+  };
+}
+
+export interface PreviewCheckPayload {
+  timeoutMs: number;
+  url: string;
+  assertion?: Assertion | null;
+  body?: string | null;
+  headers?: Array<[string, string]>;
+  method?: string;
+}

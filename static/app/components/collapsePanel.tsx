@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -78,10 +80,10 @@ function ShowMoreButton({
       data-test-id="collapse-show-more"
       disableBorder={disableBorder}
     >
-      <ShowMoreText>
+      <Flex align="center" flexGrow={1}>
         <StyledIconList variant="muted" />
         {tct('Show [count] [buttonTitle]', {count: items - collapseCount, buttonTitle})}
-      </ShowMoreText>
+      </Flex>
 
       <IconChevron variant="muted" direction="down" />
     </ShowMore>
@@ -94,8 +96,8 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
@@ -113,10 +115,4 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
 
 const StyledIconList = styled(IconList)`
   margin-right: ${space(1)};
-`;
-
-const ShowMoreText = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
 `;

@@ -1,4 +1,5 @@
-import Color from 'color';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import type {Series} from 'sentry/types/echarts';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -100,7 +101,7 @@ function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
     data: series.data.slice(-fogBucketCnt - 1),
     lineStyle: {
       type: 'dotted' as const,
-      color: Color(series.color).lighten(0.3).string(),
+      color: color(series.color).lighten(0.3).string(),
     },
   };
 }

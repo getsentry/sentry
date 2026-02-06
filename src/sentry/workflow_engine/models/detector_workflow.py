@@ -21,4 +21,4 @@ class DetectorWorkflow(DefaultFieldsModel):
         unique_together = (("detector", "workflow"),)
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"detector_id": self.detector.id, "workflow_id": self.workflow.id}
+        return {"detector_name": self.detector.name, "workflow_name": self.workflow.name}

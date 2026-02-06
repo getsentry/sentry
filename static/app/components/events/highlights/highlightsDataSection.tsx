@@ -2,11 +2,11 @@ import {useCallback, useMemo, useRef} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -308,14 +308,14 @@ const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
 const EmptyHighlights = styled('div')`
   padding: ${space(2)} ${space(1)};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px dashed ${p => p.theme.translucentBorder};
+  border: 1px dashed ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => p.theme.tokens.background.secondary};
   grid-column: 1 / -1;
   display: flex;
   text-align: center;
   justify-content: center;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const EmptyHighlightsContent = styled('div')`
@@ -336,7 +336,7 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const highlightModalCss = (theme: Theme) => css`

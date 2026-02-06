@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -17,6 +18,7 @@ import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -60,7 +62,9 @@ function StacktraceLinkModal({
 
   const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
-      `/organizations/${organization.slug}/derive-code-mappings/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/derive-code-mappings/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           projectId: project.id,
@@ -151,7 +155,15 @@ function StacktraceLinkModal({
       provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
       organization,
     });
-    const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
+    const parsingEndpoint = getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
+      }
+    );
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
         method: 'POST',
@@ -164,7 +176,12 @@ function StacktraceLinkModal({
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/code-mappings/`;
+      const configEndpoint = getApiUrl(
+        '/organizations/$organizationIdOrSlug/code-mappings/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+        }
+      );
       await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {
@@ -200,7 +217,7 @@ function StacktraceLinkModal({
         <h4>{t('Set up Code Mapping')}</h4>
       </Header>
       <Body>
-        <ModalContainer>
+        <Stack gap="xl">
           {error && (
             <Alert variant="danger">
               {error === 'Could not find repo'
@@ -236,7 +253,7 @@ function StacktraceLinkModal({
           </div>
           <StyledList symbol="colored-numeric">
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>
                   {hasOneSourceCodeIntegration
                     ? tct('Go to [link]', {
@@ -248,16 +265,16 @@ function StacktraceLinkModal({
                       })
                     : t('Go to your source code provider')}
                 </div>
-              </ItemContainer>
+              </Stack>
             </li>
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>{t('Find the correct repo and path for the file')}</div>
                 <TextCopyInput>{filename}</TextCopyInput>
-              </ItemContainer>
+              </Stack>
             </li>
             <li>
-              <ItemContainer>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
                 <div>
                   {suggestions.length
                     ? t('Select from one of these suggestions or paste your URL below')
@@ -270,7 +287,7 @@ function StacktraceLinkModal({
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             text={suggestion}
                             size="xs"
                             aria-label={t('Copy suggestion to clipboard')}
@@ -290,10 +307,10 @@ function StacktraceLinkModal({
                   onChange={onHandleChange}
                   placeholder={getPlaceholderUrl()}
                 />
-              </ItemContainer>
+              </Stack>
             </li>
           </StyledList>
-        </ModalContainer>
+        </Stack>
       </Body>
       <Footer>
         <ButtonBar>
@@ -329,23 +346,12 @@ const Suggestions = styled('div')`
 `;
 
 const SuggestionOverflow = styled('div')`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   direction: rtl;
-`;
-
-const ItemContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-  margin-top: ${space(0.25)};
-  flex: 1;
-  max-width: calc(100% - 25px - 8px);
-`;
-
-const ModalContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const StyledCode = styled('code')`

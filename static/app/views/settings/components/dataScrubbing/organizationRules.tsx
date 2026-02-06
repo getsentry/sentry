@@ -2,8 +2,9 @@ import {Component, createRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -121,8 +122,8 @@ const Header = styled('div')`
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
-  color: ${p => p.theme.subText};
-  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  background: ${p => p.theme.tokens.background.secondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.tokens.border.primary}`};
   ${p =>

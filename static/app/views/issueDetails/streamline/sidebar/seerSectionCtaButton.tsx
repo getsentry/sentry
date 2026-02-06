@@ -1,9 +1,12 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -230,13 +233,13 @@ export function SeerSectionCtaButton({
       priority="primary"
     >
       {getButtonText()}
-      <ChevronContainer>
+      <Flex justify="center" align="center" marginLeft="xs" width="16px" height="16px">
         {isAutofixInProgress ? (
           <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
-      </ChevronContainer>
+      </Flex>
     </StyledButton>
   );
 }
@@ -246,22 +249,13 @@ const StyledButton = styled(LinkButton)`
   width: 100%;
 `;
 
-const ChevronContainer = styled('div')`
-  margin-left: ${space(0.5)};
-  height: 16px;
-  width: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
   margin-left: ${space(1)};
 
   .loading-indicator {
-    border-color: ${p => color(p.theme.button.primary.color).alpha(0.35).string()};
-    border-left-color: ${p => p.theme.button.primary.color};
+    border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
+    border-left-color: ${p => p.theme.colors.white};
   }
 `;
 

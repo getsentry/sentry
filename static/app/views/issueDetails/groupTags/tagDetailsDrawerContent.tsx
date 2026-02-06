@@ -3,12 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -227,7 +228,7 @@ function TagDetailsValue({
   if (tagValue.value !== '') {
     if (tagKey === 'user') {
       valueComponent = (
-        <UserValue>
+        <Flex align="center" gap="sm" minWidth={0} overflow="hidden">
           {getContextIcon({
             alias: 'user',
             type: 'user',
@@ -237,9 +238,11 @@ function TagDetailsValue({
             },
             theme,
           })}
-          <div>{userValues.title}</div>
-          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-        </UserValue>
+          <Flex wrap="wrap" gap="xs" minWidth={0}>
+            <Text>{userValues.title}</Text>
+            {userValues.subtitle && <Text variant="muted">{userValues.subtitle}</Text>}
+          </Flex>
+        </Flex>
       );
     } else if (tagKey === 'device') {
       valueComponent = <DeviceName value={tagValue.value} />;
@@ -247,7 +250,7 @@ function TagDetailsValue({
   }
 
   return (
-    <Flex gap="xs" align="center">
+    <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
       <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
       {isUrl(tagValue.value) && (
         <ExternalLinkbutton
@@ -348,8 +351,8 @@ const Table = styled('div')`
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -361,13 +364,13 @@ const ColumnSort = styled(Link)`
   gap: ${space(0.5)};
   align-items: center;
   white-space: nowrap;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.tokens.content.primary};
   &:hover {
-    color: ${p => p.theme.subText};
+    color: ${p => p.theme.tokens.content.secondary};
   }
 `;
 
@@ -384,7 +387,7 @@ const Header = styled(Body)`
 
 const Row = styled(Body)`
   &:nth-child(even) {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
   }
   align-items: center;
   border-radius: 4px;
@@ -405,26 +408,20 @@ const RightAlignedValue = styled('div')`
   text-align: right;
 `;
 
-const UserSubtitle = styled('div')`
-  color: ${p => p.theme.subText};
-  display: inline-block; /* Prevent inheriting text decoration */
-`;
-
 const ValueLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  word-break: break-all;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const OverflowTimeSince = styled(TimeSince)`
-  ${p => p.theme.overflowEllipsis};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
-
-const UserValue = styled('div')`
-  display: flex;
-  gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

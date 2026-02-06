@@ -27,6 +27,7 @@ const SidebarContainer = styled('nav')`
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
@@ -46,7 +47,8 @@ const SidebarContainer = styled('nav')`
     display: block;
     content: '';
     height: 1px;
-    background: ${p => p.theme.tokens.border.muted};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.secondary};
     margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {
@@ -54,8 +56,8 @@ const SidebarContainer = styled('nav')`
   }
   h3 {
     color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
     margin: 0;
     padding: ${p => p.theme.space.md};
   }

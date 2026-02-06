@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,6 +12,7 @@ import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -36,7 +39,9 @@ const makeTraceSummaryQueryKey = (
   organizationSlug: string,
   traceSlug: string
 ): ApiQueryKey => [
-  `/organizations/${organizationSlug}/trace-summary/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/trace-summary/`, {
+    path: {organizationIdOrSlug: organizationSlug},
+  }),
   {method: 'POST', data: {traceSlug}},
 ];
 
@@ -81,7 +86,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
 
   if (traceContent.isError) {
     return (
-      <ErrorContainer>
+      <Flex align="center" padding="xl" gap="md">
         <div>{t('Error loading Trace Summary')}</div>
         <FeedbackButton
           size="xs"
@@ -93,7 +98,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
             },
           }}
         />
-      </ErrorContainer>
+      </Flex>
     );
   }
 
@@ -156,7 +161,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
       )}
 
       {feedback && (
-        <FeedbackButtonContainer>
+        <Flex justify="end" marginTop="xl">
           <FeedbackButton
             size="xs"
             feedbackOptions={{
@@ -167,7 +172,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
               },
             }}
           />
-        </FeedbackButtonContainer>
+        </Flex>
       )}
     </SummaryContainer>
   );
@@ -192,7 +197,7 @@ const StyledIcon = styled('div')`
 
 const SectionTitle = styled('h6')`
   color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   text-transform: uppercase;
   margin: 0;
@@ -200,14 +205,14 @@ const SectionTitle = styled('h6')`
 
 const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   margin-bottom: ${space(3)};
 
   code {
-    font-family: ${p => p.theme.text.familyMono};
+    font-family: ${p => p.theme.font.family.mono};
     padding: ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;
   }
@@ -215,19 +220,6 @@ const SectionContent = styled(MarkedText)`
   strong {
     font-weight: 600;
   }
-`;
-
-const ErrorContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: ${space(2)};
-`;
-
-const FeedbackButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${space(2)};
 `;
 
 const StyledList = styled('ul')`

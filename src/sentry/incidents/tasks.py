@@ -37,7 +37,7 @@ def handle_snuba_query_update(
 
     # noinspection SpellCheckingInspection
     with metrics.timer("incidents.subscription_procesor.process_update"):
-        SubscriptionProcessor(subscription).process_update(subscription_update)
+        SubscriptionProcessor.process(subscription, subscription_update)
 
 
 @instrumented_task(

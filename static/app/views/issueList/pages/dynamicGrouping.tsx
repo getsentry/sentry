@@ -1,26 +1,26 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {InlineCode} from 'sentry/components/core/code/inlineCode';
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Link} from 'sentry/components/core/link';
-import {TextArea} from 'sentry/components/core/textarea';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import useDrawer from 'sentry/components/globalDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -36,6 +36,7 @@ import {
   IconCopy,
   IconEllipsis,
   IconFire,
+  IconFocus,
   IconRefresh,
   IconSeer,
   IconStar,
@@ -46,49 +47,37 @@ import {t, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {
+  getSortedClusterIds,
+  type ClusterSortInput,
+} from 'sentry/views/issueList/dynamicGrouping/clusterSorting';
+import {
+  PENDING_CLUSTER_STATS,
+  useClusterStats,
+  useClusterStatsMap,
+  type ClusterStats,
+} from 'sentry/views/issueList/dynamicGrouping/clusterStats';
+import {
+  ClusterDetailDrawer,
+  type ClusterSummary,
+} from 'sentry/views/issueList/dynamicGrouping/topIssuesDrawer';
 import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
 
 const CLUSTERS_PER_PAGE = 20;
-
-interface AssignedEntity {
-  email: string | null;
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface ClusterSummary {
-  assignedTo: AssignedEntity[];
-  cluster_avg_similarity: number | null;
-  cluster_id: number;
-  cluster_min_similarity: number | null;
-  cluster_size: number | null;
-  description: string;
-  fixability_score: number | null;
-  group_ids: number[];
-  issue_titles: string[];
-  project_ids: number[];
-  summary: string | null;
-  tags: string[];
-  title: string;
-  code_area_tags?: string[];
-  error_type?: string;
-  error_type_tags?: string[];
-  impact?: string;
-  location?: string;
-  service_tags?: string[];
-}
+const MIN_CLUSTERS_THRESHOLD = 10;
+const clusterQueryParser = parseAsInteger.withOptions({history: 'push'});
 
 function formatClusterInfoForClipboard(cluster: ClusterSummary): string {
   const lines: string[] = [];
@@ -113,228 +102,127 @@ function formatClusterPromptForSeer(cluster: ClusterSummary): string {
   return `I'd like to investigate this cluster of issues:\n\n${message}\n\nPlease help me understand the root cause and potential fixes for these related issues.`;
 }
 
-function renderWithInlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  if (parts.length === 1) {
-    return text;
+interface PreSortParams {
+  clusterData: ClusterSummary[];
+  disableFilters: boolean;
+  dismissedClusterIds: number[];
+  filterByAssignedToMe: boolean;
+  isTeamFilterActive: boolean;
+  isUsingCustomData: boolean;
+  selectedTeamIds: Set<string>;
+  selectionProjects: Readonly<Array<string | number>>;
+  userId: string;
+  userTeamIds: Set<string>;
+}
+
+function getPreSortClusters({
+  clusterData,
+  disableFilters,
+  dismissedClusterIds,
+  filterByAssignedToMe,
+  isTeamFilterActive,
+  isUsingCustomData,
+  selectedTeamIds,
+  selectionProjects,
+  userId,
+  userTeamIds,
+}: PreSortParams): ClusterSummary[] {
+  if (isUsingCustomData && disableFilters) {
+    return clusterData;
   }
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <InlineCode key={index}>{part.slice(1, -1)}</InlineCode>;
+
+  // Apply project filter and require structured fields
+  const baseFiltered = clusterData.filter(cluster => {
+    // Only show clusters with the required structured fields
+    if (!cluster.error_type || !cluster.impact || !cluster.location) {
+      return false;
     }
-    return part;
+
+    if (dismissedClusterIds.includes(cluster.cluster_id)) {
+      return false;
+    }
+
+    if (
+      selectionProjects.length > 0 &&
+      !selectionProjects.includes(ALL_ACCESS_PROJECTS)
+    ) {
+      if (!cluster.project_ids.some(pid => selectionProjects.includes(pid))) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Find clusters assigned to current user or their teams
+  const assignedToMe = baseFiltered.filter(cluster =>
+    cluster.assignedTo?.some(
+      entity =>
+        (entity.type === 'user' && entity.id === userId) ||
+        (entity.type === 'team' && userTeamIds.has(entity.id))
+    )
+  );
+
+  // By default, show only clusters assigned to me if there are enough (>=10)
+  let result =
+    assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
+
+  // Manual filters override the default
+  if (filterByAssignedToMe) {
+    result = assignedToMe;
+  } else if (isTeamFilterActive) {
+    result = baseFiltered.filter(cluster =>
+      cluster.assignedTo?.some(
+        entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
+      )
+    );
+  }
+
+  return result;
+}
+
+interface StatusFilterParams {
+  clusterStatsById: Map<number, ClusterStats>;
+  clusters: ClusterSummary[];
+  disableFilters: boolean;
+  filterByEscalating: boolean;
+  filterByRegressed: boolean;
+  isUsingCustomData: boolean;
+}
+
+function applyStatusFilters({
+  clusterStatsById,
+  clusters,
+  disableFilters,
+  filterByEscalating,
+  filterByRegressed,
+  isUsingCustomData,
+}: StatusFilterParams): ClusterSummary[] {
+  if (isUsingCustomData && disableFilters) {
+    return clusters;
+  }
+
+  if (!filterByRegressed && !filterByEscalating) {
+    return clusters;
+  }
+
+  return clusters.filter(cluster => {
+    const stats = clusterStatsById.get(cluster.cluster_id) ?? PENDING_CLUSTER_STATS;
+    if (!stats.isPending) {
+      if (filterByRegressed && !stats.hasRegressedIssues) {
+        return false;
+      }
+      if (filterByEscalating && !stats.isEscalating) {
+        return false;
+      }
+    }
+    return true;
   });
 }
 
 interface TopIssuesResponse {
   data: ClusterSummary[];
   last_updated?: string;
-}
-
-function CompactIssuePreview({group}: {group: Group}) {
-  const {subtitle} = getTitle(group);
-
-  const items = [
-    group.project ? (
-      <ProjectBadge project={group.project} avatarSize={12} hideName disableLink />
-    ) : null,
-    group.isUnhandled ? <UnhandledTag /> : null,
-    group.count ? (
-      <Text size="xs" bold>
-        {tn('%s event', '%s events', group.count)}
-      </Text>
-    ) : null,
-    group.firstSeen || group.lastSeen ? (
-      <TimesTag lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
-    ) : null,
-  ].filter(Boolean);
-
-  return (
-    <Flex direction="column" gap="xs">
-      <IssueTitle>
-        <EventOrGroupTitle data={group} withStackTracePreview />
-      </IssueTitle>
-      <IssueMessage
-        data={group}
-        level={group.level}
-        message={getMessage(group)}
-        type={group.type}
-      />
-      {subtitle && (
-        <Text size="sm" variant="muted" ellipsis>
-          {subtitle}
-        </Text>
-      )}
-      {items.length > 0 && (
-        <Flex wrap="wrap" gap="sm" align="center">
-          {items.map((item, i) => (
-            <Fragment key={i}>
-              {item}
-              {i < items.length - 1 ? <MetaSeparator /> : null}
-            </Fragment>
-          ))}
-        </Flex>
-      )}
-    </Flex>
-  );
-}
-
-interface ClusterStats {
-  firstSeen: string | null;
-  hasRegressedIssues: boolean;
-  isEscalating: boolean;
-  isPending: boolean;
-  lastSeen: string | null;
-  newIssuesCount: number;
-  totalEvents: number;
-  totalUsers: number;
-}
-
-function useClusterStats(groupIds: number[]): ClusterStats {
-  const organization = useOrganization();
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: groupIds,
-          query: `issue.id:[${groupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-      enabled: groupIds.length > 0,
-    }
-  );
-
-  return useMemo(() => {
-    if (isPending || !groups || groups.length === 0) {
-      return {
-        totalEvents: 0,
-        totalUsers: 0,
-        firstSeen: null,
-        lastSeen: null,
-        newIssuesCount: 0,
-        hasRegressedIssues: false,
-        isEscalating: false,
-        isPending,
-      };
-    }
-
-    let totalEvents = 0;
-    let totalUsers = 0;
-    let earliestFirstSeen: Date | null = null;
-    let latestLastSeen: Date | null = null;
-
-    // Calculate new issues (first seen within last week)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    let newIssuesCount = 0;
-
-    // Check for regressed issues
-    let hasRegressedIssues = false;
-
-    // Calculate escalation by summing event stats across all issues
-    // We'll compare the first half of the 24h stats to the second half
-    let firstHalfEvents = 0;
-    let secondHalfEvents = 0;
-
-    for (const group of groups) {
-      totalEvents += parseInt(group.count, 10) || 0;
-      totalUsers += group.userCount || 0;
-
-      if (group.firstSeen) {
-        const firstSeenDate = new Date(group.firstSeen);
-        if (!earliestFirstSeen || firstSeenDate < earliestFirstSeen) {
-          earliestFirstSeen = firstSeenDate;
-        }
-        // Check if this issue is new (first seen within last week)
-        if (firstSeenDate >= oneWeekAgo) {
-          newIssuesCount++;
-        }
-      }
-
-      if (group.lastSeen) {
-        const lastSeenDate = new Date(group.lastSeen);
-        if (!latestLastSeen || lastSeenDate > latestLastSeen) {
-          latestLastSeen = lastSeenDate;
-        }
-      }
-
-      // Check for regressed substatus
-      if (group.substatus === GroupSubstatus.REGRESSED) {
-        hasRegressedIssues = true;
-      }
-
-      // Aggregate 24h stats for escalation detection
-      const stats24h = group.stats?.['24h'];
-      if (stats24h && stats24h.length > 0) {
-        const midpoint = Math.floor(stats24h.length / 2);
-        for (let i = 0; i < stats24h.length; i++) {
-          const eventCount = stats24h[i]?.[1] ?? 0;
-          if (i < midpoint) {
-            firstHalfEvents += eventCount;
-          } else {
-            secondHalfEvents += eventCount;
-          }
-        }
-      }
-    }
-
-    // Determine if escalating: second half has >1.5x events compared to first half
-    // Only consider escalating if there were events in the first half (avoid division by zero)
-    const isEscalating = firstHalfEvents > 0 && secondHalfEvents > firstHalfEvents * 1.5;
-
-    return {
-      totalEvents,
-      totalUsers,
-      firstSeen: earliestFirstSeen?.toISOString() ?? null,
-      lastSeen: latestLastSeen?.toISOString() ?? null,
-      newIssuesCount,
-      hasRegressedIssues,
-      isEscalating,
-      isPending,
-    };
-  }, [groups, isPending]);
-}
-
-function ClusterIssues({groupIds}: {groupIds: number[]}) {
-  const organization = useOrganization();
-  const previewGroupIds = groupIds.slice(0, 3);
-
-  const {data: groups, isPending} = useApiQuery<Group[]>(
-    [
-      `/organizations/${organization.slug}/issues/`,
-      {
-        query: {
-          group: previewGroupIds,
-          query: `issue.id:[${previewGroupIds.join(',')}]`,
-        },
-      },
-    ],
-    {
-      staleTime: 60000,
-    }
-  );
-
-  if (isPending || !groups || groups.length === 0) {
-    return null;
-  }
-
-  return (
-    <Flex direction="column" gap="sm">
-      {groups.map(group => (
-        <IssuePreviewLink
-          key={group.id}
-          to={`/organizations/${organization.slug}/issues/${group.id}/`}
-        >
-          <CompactIssuePreview group={group} />
-        </IssuePreviewLink>
-      ))}
-    </Flex>
-  );
 }
 
 interface ClusterCardProps {
@@ -352,10 +240,9 @@ function ClusterCard({
 }: ClusterCardProps) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const [activeTab, setActiveTab] = useState<'summary' | 'root-cause' | 'issues'>(
-    'summary'
-  );
   const clusterStats = useClusterStats(cluster.group_ids);
   const {copy} = useCopyToClipboard();
   const {projects: allProjects} = useLegacyStore(ProjectsStore);
@@ -454,15 +341,15 @@ function ClusterCard({
     });
   }, [onDismiss, cluster.cluster_id]);
 
-  const allTags = useMemo(() => {
-    return [
-      ...new Set([
-        ...(cluster.error_type_tags ?? []),
-        ...(cluster.code_area_tags ?? []),
-        ...(cluster.service_tags ?? []),
-      ]),
-    ];
-  }, [cluster.error_type_tags, cluster.code_area_tags, cluster.service_tags]);
+  const handleOpenDetails = useCallback(() => {
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {...location.query, cluster: String(cluster.cluster_id)},
+      },
+      {preventScrollReset: true}
+    );
+  }, [navigate, location.pathname, location.query, cluster.cluster_id]);
 
   // Apply filters - hide card if it doesn't match active filters
   // Only filter once stats are loaded to avoid hiding cards prematurely
@@ -477,282 +364,271 @@ function ClusterCard({
 
   return (
     <CardContainer>
-      <CardHeader>
-        {cluster.impact && (
-          <ClusterTitleLink
-            to={`/organizations/${organization.slug}/issues/top-issues/?cluster=${cluster.cluster_id}`}
-          >
-            {cluster.impact}
-            <Text
-              as="span"
-              size="md"
-              variant="muted"
-              style={{fontWeight: 'normal', marginLeft: space(1)}}
+      <Stack padding="lg" gap="md">
+        <Stack gap="sm">
+          {cluster.impact && (
+            <ClusterTitleLink
+              to={{
+                pathname: location.pathname,
+                query: {...location.query, cluster: String(cluster.cluster_id)},
+              }}
             >
-              [CLUSTER-{cluster.cluster_id}]
-            </Text>
-          </ClusterTitleLink>
-        )}
-        {!clusterStats.isPending &&
-          (clusterStats.newIssuesCount > 0 ||
-            clusterStats.hasRegressedIssues ||
-            clusterStats.isEscalating) && (
-            <ClusterStatusTags>
-              {clusterStats.newIssuesCount > 0 && (
-                <StatusTag color="purple">
-                  <IconStar size="xs" />
-                  <Text size="xs">
-                    {tn(
-                      '%s new issue this week',
-                      '%s new issues this week',
-                      clusterStats.newIssuesCount
-                    )}
-                  </Text>
-                </StatusTag>
-              )}
-              {clusterStats.hasRegressedIssues && (
-                <StatusTag color="yellow">
-                  <IconRefresh size="xs" />
-                  <Text size="xs">{t('Has regressed issues')}</Text>
-                </StatusTag>
-              )}
-              {clusterStats.isEscalating && (
-                <StatusTag color="red">
-                  <IconArrow direction="up" size="xs" />
-                  <Text size="xs">{t('Escalating')}</Text>
-                </StatusTag>
-              )}
-            </ClusterStatusTags>
+              {cluster.impact}
+            </ClusterTitleLink>
           )}
-        <StatsRow>
-          <ClusterStats>
-            <StatItem>
-              <IconFire size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalEvents.toLocaleString()}
-                  </Text>{' '}
-                  {tn('event', 'events', clusterStats.totalEvents)}
-                </Text>
-              )}
-            </StatItem>
-            <StatItem>
-              <IconUser size="xs" variant="muted" />
-              {clusterStats.isPending ? (
-                <Text size="xs" variant="muted">
-                  –
-                </Text>
-              ) : (
-                <Text size="xs">
-                  <Text size="xs" bold as="span">
-                    {clusterStats.totalUsers.toLocaleString()}
-                  </Text>{' '}
-                  {tn('user', 'users', clusterStats.totalUsers)}
-                </Text>
-              )}
-            </StatItem>
-          </ClusterStats>
           {!clusterStats.isPending &&
-            (clusterStats.firstSeen || clusterStats.lastSeen) && (
-              <TimeStats>
-                {clusterStats.lastSeen && (
-                  <StatItem>
-                    <IconClock size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('Last Seen')}
-                      date={clusterStats.lastSeen}
-                      suffix={t('ago')}
-                      unitStyle="short"
-                    />
-                  </StatItem>
+            (clusterStats.newIssuesCount > 0 ||
+              clusterStats.hasRegressedIssues ||
+              clusterStats.isEscalating) && (
+              <Flex wrap="wrap" gap="md">
+                {clusterStats.newIssuesCount > 0 && (
+                  <StatusTag color="purple">
+                    <IconStar size="xs" />
+                    <Text size="xs">
+                      {tn(
+                        '%s new issue this week',
+                        '%s new issues this week',
+                        clusterStats.newIssuesCount
+                      )}
+                    </Text>
+                  </StatusTag>
                 )}
-                {clusterStats.firstSeen && (
-                  <StatItem>
-                    <IconCalendar size="xs" variant="muted" />
-                    <TimeSince
-                      tooltipPrefix={t('First Seen')}
-                      date={clusterStats.firstSeen}
-                      suffix={t('old')}
-                      unitStyle="short"
-                    />
-                  </StatItem>
+                {clusterStats.hasRegressedIssues && (
+                  <StatusTag color="yellow">
+                    <IconRefresh size="xs" />
+                    <Text size="xs">{t('Has regressed issues')}</Text>
+                  </StatusTag>
                 )}
-              </TimeStats>
+                {clusterStats.isEscalating && (
+                  <StatusTag color="red">
+                    <IconArrow direction="up" size="xs" />
+                    <Text size="xs">{t('Escalating')}</Text>
+                  </StatusTag>
+                )}
+              </Flex>
             )}
-        </StatsRow>
-      </CardHeader>
-
-      <TabSection>
-        <TabBar>
-          <Tab isActive={activeTab === 'summary'} onClick={() => setActiveTab('summary')}>
-            {t('Summary')}
-          </Tab>
-          <Tab
-            isActive={activeTab === 'root-cause'}
-            onClick={() => setActiveTab('root-cause')}
-          >
-            {t('Root Cause')}
-          </Tab>
-          <Tab isActive={activeTab === 'issues'} onClick={() => setActiveTab('issues')}>
-            {t('Preview Issues')}
-          </Tab>
-        </TabBar>
-        <TabContent>
-          {activeTab === 'summary' && (
-            <Flex direction="column" gap="md">
-              <StructuredInfo>
-                {cluster.error_type && (
-                  <InfoRow>
-                    <InfoLabel>{t('Error')}</InfoLabel>
-                    <InfoValue>{cluster.error_type}</InfoValue>
-                  </InfoRow>
+          <Flex justify="between" align="center" gap="xl">
+            <Flex wrap="wrap" align="center" gap="md">
+              <Flex align="center" gap="xs">
+                <IconFire size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalEvents.toLocaleString()}
+                    </Text>{' '}
+                    {tn('event', 'events', clusterStats.totalEvents)}
+                  </Text>
                 )}
-                {cluster.location && (
-                  <InfoRow>
-                    <InfoLabel>{t('Location')}</InfoLabel>
-                    <InfoValue>{cluster.location}</InfoValue>
-                  </InfoRow>
+              </Flex>
+              <Flex align="center" gap="xs">
+                <IconUser size="xs" variant="muted" />
+                {clusterStats.isPending ? (
+                  <Text size="xs" variant="muted">
+                    –
+                  </Text>
+                ) : (
+                  <Text size="xs">
+                    <Text size="xs" bold as="span">
+                      {clusterStats.totalUsers.toLocaleString()}
+                    </Text>{' '}
+                    {tn('user', 'users', clusterStats.totalUsers)}
+                  </Text>
                 )}
-              </StructuredInfo>
-              {allTags.length > 0 && (
-                <TagsContainer>
-                  {allTags.map(tag => (
-                    <TagPill key={tag}>{tag}</TagPill>
-                  ))}
-                </TagsContainer>
+              </Flex>
+            </Flex>
+            {!clusterStats.isPending &&
+              (clusterStats.firstSeen || clusterStats.lastSeen) && (
+                <Flex align="center" gap="md">
+                  {clusterStats.lastSeen && (
+                    <Flex align="center" gap="xs">
+                      <IconClock size="xs" variant="muted" />
+                      <Text size="xs" variant="muted">
+                        <TimeSince
+                          tooltipPrefix={t('Last Seen')}
+                          date={clusterStats.lastSeen}
+                          suffix={t('ago')}
+                          unitStyle="short"
+                        />
+                      </Text>
+                    </Flex>
+                  )}
+                  {clusterStats.firstSeen && (
+                    <Flex align="center" gap="xs">
+                      <IconCalendar size="xs" variant="muted" />
+                      <Text size="xs" variant="muted">
+                        <TimeSince
+                          tooltipPrefix={t('First Seen')}
+                          date={clusterStats.firstSeen}
+                          suffix={t('old')}
+                          unitStyle="short"
+                        />
+                      </Text>
+                    </Flex>
+                  )}
+                </Flex>
               )}
+          </Flex>
+        </Stack>
+
+        <Stack gap="xs">
+          {cluster.error_type && (
+            <Flex align="baseline" gap="xs">
+              <InfoLabel>{t('Error')}</InfoLabel>
+              <InfoValue>{cluster.error_type}</InfoValue>
             </Flex>
           )}
-          {activeTab === 'root-cause' &&
-            (cluster.summary ? (
-              <DescriptionText>{renderWithInlineCode(cluster.summary)}</DescriptionText>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('No root cause analysis available')}
-              </Text>
-            ))}
-          {activeTab === 'issues' && <ClusterIssues groupIds={cluster.group_ids} />}
-        </TabContent>
-      </TabSection>
+          {cluster.location && (
+            <Flex align="baseline" gap="xs">
+              <InfoLabel>{t('Location')}</InfoLabel>
+              <InfoValue>{cluster.location}</InfoValue>
+            </Flex>
+          )}
+        </Stack>
 
-      <CardFooter>
-        {clusterProjects.length > 0 && (
-          <Tooltip
-            isHoverable
-            overlayStyle={{maxWidth: 300}}
-            title={
-              <Flex direction="column" gap="xs">
-                {clusterProjects.map(project => (
-                  <Flex key={project.id} align="center" gap="xs">
+        {cluster.summary && (
+          <Container background="secondary" border="primary" radius="md">
+            <Flex direction="column" padding="md lg" gap="sm">
+              <Flex align="center" gap="xs">
+                <IconFocus size="xs" variant="promotion" />
+                <Text size="sm" bold>
+                  {t('Root Cause')}
+                </Text>
+              </Flex>
+              <Text size="sm">
+                <StyledMarkedText text={cluster.summary} inline as="span" />
+              </Text>
+            </Flex>
+          </Container>
+        )}
+
+        <Container
+          position="relative"
+          style={{zIndex: 1}}
+          borderTop="muted"
+          paddingTop="md"
+          paddingLeft="sm"
+        >
+          <Flex justify="between" align="center" gap="xs">
+            {clusterProjects.length > 0 && (
+              <Tooltip
+                isHoverable
+                overlayStyle={{maxWidth: 300}}
+                title={
+                  <Flex direction="column" gap="xs">
+                    {clusterProjects.map(project => (
+                      <Flex key={project.id} align="center" gap="xs">
+                        <ProjectBadge
+                          project={project}
+                          avatarSize={12}
+                          hideName
+                          disableLink
+                        />
+                        <Text size="xs">{project.slug}</Text>
+                      </Flex>
+                    ))}
+                  </Flex>
+                }
+              >
+                <Flex align="center" gap="2xs">
+                  {clusterProjects.slice(0, 3).map(project => (
                     <ProjectBadge
+                      key={project.id}
                       project={project}
-                      avatarSize={12}
+                      avatarSize={16}
                       hideName
                       disableLink
                     />
-                    <Text size="xs">{project.slug}</Text>
-                  </Flex>
-                ))}
-              </Flex>
-            }
-          >
-            <ProjectAvatars>
-              {clusterProjects.slice(0, 3).map(project => (
-                <ProjectBadge
-                  key={project.id}
-                  project={project}
-                  avatarSize={16}
-                  hideName
-                  disableLink
-                />
-              ))}
-              {clusterProjects.length > 3 && (
-                <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
-              )}
-            </ProjectAvatars>
-          </Tooltip>
-        )}
-        <FooterActions>
-          <ButtonBar merged gap="0">
-            <SeerButton
-              size="sm"
-              priority="primary"
-              icon={<IconSeer size="xs" />}
-              onClick={handleSendToSeer}
-            >
-              {t('Explore with Seer')}
-            </SeerButton>
-            <DropdownMenu
-              items={[
-                {
-                  key: 'copy-markdown',
-                  label: t('Copy as markdown for agents'),
-                  leadingItems: <IconCopy size="sm" />,
-                  onAction: handleCopyMarkdown,
-                },
-              ]}
-              trigger={(triggerProps, isOpen) => (
-                <SeerDropdownTrigger
-                  {...triggerProps}
+                  ))}
+                  {clusterProjects.length > 3 && (
+                    <MoreProjectsCount>+{clusterProjects.length - 3}</MoreProjectsCount>
+                  )}
+                </Flex>
+              </Tooltip>
+            )}
+            <Flex align="center" gap="md">
+              <ButtonBar merged gap="0">
+                <SeerButton
                   size="sm"
                   priority="primary"
-                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                  aria-label={t('More options')}
+                  icon={<IconSeer size="xs" />}
+                  onClick={handleSendToSeer}
+                >
+                  {t('Explore with Seer')}
+                </SeerButton>
+                <DropdownMenu
+                  items={[
+                    {
+                      key: 'copy-markdown',
+                      label: t('Copy as markdown for agents'),
+                      leadingItems: <IconCopy size="sm" />,
+                      onAction: handleCopyMarkdown,
+                    },
+                  ]}
+                  trigger={(triggerProps, isOpen) => (
+                    <SeerDropdownTrigger
+                      {...triggerProps}
+                      size="sm"
+                      priority="primary"
+                      icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                      aria-label={t('More options')}
+                    />
+                  )}
+                  position="bottom-end"
                 />
-              )}
-              position="bottom-end"
-            />
-          </ButtonBar>
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${cluster.group_ids.join(',')}]`}
-          >
-            <Button size="sm">
-              {t('View All Issues') + ` (${cluster.group_ids.length})`}
-            </Button>
-          </Link>
-          <DropdownMenu
-            items={[
-              {
-                key: 'resolve',
-                label: t('Resolve All'),
-                onAction: handleResolve,
-              },
-              {
-                key: 'archive',
-                label: t('Archive All'),
-                onAction: handleArchive,
-              },
-              {
-                key: 'dismiss',
-                label: t('Dismiss'),
-                onAction: handleDismiss,
-              },
-            ]}
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                size="sm"
-                icon={<IconEllipsis size="sm" />}
-                aria-label={t('More actions')}
+              </ButtonBar>
+              <Button size="sm" onClick={handleOpenDetails}>
+                {t('View Details')}
+              </Button>
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'resolve',
+                    label: t('Resolve All'),
+                    onAction: handleResolve,
+                  },
+                  {
+                    key: 'archive',
+                    label: t('Archive All'),
+                    onAction: handleArchive,
+                  },
+                  {
+                    key: 'dismiss',
+                    label: t('Dismiss'),
+                    onAction: handleDismiss,
+                  },
+                ]}
+                trigger={triggerProps => (
+                  <Button
+                    {...triggerProps}
+                    size="sm"
+                    icon={<IconEllipsis size="sm" />}
+                    aria-label={t('More actions')}
+                  />
+                )}
+                position="bottom-end"
               />
-            )}
-            position="bottom-end"
-          />
-        </FooterActions>
-      </CardFooter>
+            </Flex>
+          </Flex>
+        </Container>
+      </Stack>
     </CardContainer>
   );
 }
 
 function DynamicGrouping() {
   const organization = useOrganization();
+  const {openDrawer, isDrawerOpen} = useDrawer();
   const user = useUser();
+  const [selectedClusterId, setSelectedClusterId] = useQueryState(
+    'cluster',
+    clusterQueryParser
+  );
   const {teams: userTeams} = useUserTeams();
+  const userTeamIds = useMemo(() => new Set(userTeams.map(team => team.id)), [userTeams]);
   const {selection} = usePageFilters();
   const [filterByAssignedToMe, setFilterByAssignedToMe] = useState(false);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
@@ -772,9 +648,12 @@ function DynamicGrouping() {
     []
   );
 
-  const handleDismissCluster = (clusterId: number) => {
-    setDismissedClusterIds(prev => [...prev, clusterId]);
-  };
+  const handleDismissCluster = useCallback(
+    (clusterId: number) => {
+      setDismissedClusterIds(prev => [...prev, clusterId]);
+    },
+    [setDismissedClusterIds]
+  );
 
   // Fetch cluster data from API
   const {data: topIssuesResponse, isPending} = useApiQuery<TopIssuesResponse>(
@@ -809,12 +688,33 @@ function DynamicGrouping() {
   };
 
   const isUsingCustomData = customClusterData !== null;
+  const clusterData = useMemo(
+    () => customClusterData ?? topIssuesResponse?.data ?? [],
+    [customClusterData, topIssuesResponse?.data]
+  );
+
+  useEffect(() => {
+    const selectedCluster = clusterData.find(
+      cluster => cluster.cluster_id === selectedClusterId
+    );
+    if (selectedClusterId === null || !selectedCluster) {
+      return;
+    }
+
+    openDrawer(() => <ClusterDetailDrawer cluster={selectedCluster} />, {
+      ariaLabel: t('Top issue details'),
+      drawerKey: 'top-issues-cluster-drawer',
+      onClose: () => {
+        void setSelectedClusterId(null, {history: 'replace'});
+      },
+      shouldCloseOnLocationChange: nextLocation => !nextLocation.query.cluster,
+    });
+  }, [clusterData, openDrawer, isDrawerOpen, selectedClusterId, setSelectedClusterId]);
 
   // Extract all unique teams from the cluster data (for dev tools filter UI)
   const teamsInData = useMemo(() => {
-    const data = topIssuesResponse?.data ?? [];
     const teamMap = new Map<string, {id: string; name: string}>();
-    for (const cluster of data) {
+    for (const cluster of clusterData) {
       for (const entity of cluster.assignedTo ?? []) {
         if (entity.type === 'team' && !teamMap.has(entity.id)) {
           teamMap.set(entity.id, {id: entity.id, name: entity.name});
@@ -822,7 +722,7 @@ function DynamicGrouping() {
       }
     }
     return Array.from(teamMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [topIssuesResponse?.data]);
+  }, [clusterData]);
 
   const isTeamFilterActive = selectedTeamIds.size > 0;
 
@@ -843,397 +743,387 @@ function DynamicGrouping() {
     }
   };
 
-  const filteredAndSortedClusters = useMemo(() => {
-    const clusterData = customClusterData ?? topIssuesResponse?.data ?? [];
-
-    if (isUsingCustomData && disableFilters) {
-      return clusterData;
-    }
-
-    // Apply project filter and require structured fields
-    const baseFiltered = clusterData.filter(cluster => {
-      // Only show clusters with the required structured fields
-      if (!cluster.error_type || !cluster.impact || !cluster.location) {
-        return false;
-      }
-
-      if (dismissedClusterIds.includes(cluster.cluster_id)) {
-        return false;
-      }
-
-      if (
-        selection.projects.length > 0 &&
-        !selection.projects.includes(ALL_ACCESS_PROJECTS)
-      ) {
-        if (!cluster.project_ids.some(pid => selection.projects.includes(pid))) {
-          return false;
-        }
-      }
-
-      return true;
+  const preSortClusters = useMemo(() => {
+    return getPreSortClusters({
+      clusterData,
+      disableFilters,
+      dismissedClusterIds,
+      filterByAssignedToMe,
+      isTeamFilterActive,
+      isUsingCustomData,
+      selectedTeamIds,
+      selectionProjects: selection.projects,
+      userId: user.id,
+      userTeamIds,
     });
-
-    // Find clusters assigned to current user or their teams
-    const assignedToMe = baseFiltered.filter(cluster =>
-      cluster.assignedTo?.some(
-        entity =>
-          (entity.type === 'user' && entity.id === user.id) ||
-          (entity.type === 'team' && userTeams.some(team => team.id === entity.id))
-      )
-    );
-
-    // By default, show only clusters assigned to me if there are enough (>=10)
-    const MIN_CLUSTERS_THRESHOLD = 10;
-    let result =
-      assignedToMe.length >= MIN_CLUSTERS_THRESHOLD ? assignedToMe : baseFiltered;
-
-    // Manual filters override the default
-    if (filterByAssignedToMe) {
-      result = assignedToMe;
-    } else if (isTeamFilterActive) {
-      result = baseFiltered.filter(cluster =>
-        cluster.assignedTo?.some(
-          entity => entity.type === 'team' && selectedTeamIds.has(entity.id)
-        )
-      );
-    }
-
-    return result.sort((a, b) => (b.fixability_score ?? 0) - (a.fixability_score ?? 0));
   }, [
-    customClusterData,
-    topIssuesResponse?.data,
+    clusterData,
     isUsingCustomData,
     disableFilters,
     selection.projects,
     filterByAssignedToMe,
     user.id,
-    userTeams,
+    userTeamIds,
     isTeamFilterActive,
     selectedTeamIds,
     dismissedClusterIds,
   ]);
 
-  const hasMoreClusters = filteredAndSortedClusters.length > visibleClusterCount;
-  const displayedClusters = hasMoreClusters
-    ? filteredAndSortedClusters.slice(0, visibleClusterCount)
-    : filteredAndSortedClusters;
+  const {clusterStatsById} = useClusterStatsMap(preSortClusters);
 
-  const totalIssues = filteredAndSortedClusters.flatMap(c => c.group_ids).length;
-  const remainingClusterCount =
-    filteredAndSortedClusters.length - displayedClusters.length;
+  const sortedClusters = useMemo(() => {
+    const filteredClusters = applyStatusFilters({
+      clusterStatsById,
+      clusters: preSortClusters,
+      disableFilters,
+      filterByEscalating,
+      filterByRegressed,
+      isUsingCustomData,
+    });
 
-  const handleShowMore = () => {
+    if (isUsingCustomData && disableFilters) {
+      return filteredClusters;
+    }
+
+    const sortInputs: ClusterSortInput[] = filteredClusters.map(cluster => ({
+      clusterId: cluster.cluster_id,
+      assignedTo: cluster.assignedTo?.map(entity => ({
+        id: entity.id,
+        type: entity.type,
+      })),
+      fixabilityScore: cluster.fixability_score,
+      issueCount: cluster.cluster_size ?? cluster.group_ids.length,
+    }));
+    const clustersById = new Map(
+      filteredClusters.map(cluster => [cluster.cluster_id, cluster])
+    );
+    const sortedClusterIds = getSortedClusterIds({
+      clusters: sortInputs,
+      clusterStatsById,
+      userId: user.id,
+      userTeamIds,
+    });
+
+    return sortedClusterIds
+      .map(clusterId => clustersById.get(clusterId))
+      .filter(Boolean) as ClusterSummary[];
+  }, [
+    preSortClusters,
+    clusterStatsById,
+    filterByRegressed,
+    filterByEscalating,
+    isUsingCustomData,
+    disableFilters,
+    user.id,
+    userTeamIds,
+  ]);
+
+  const totalIssues = sortedClusters.flatMap(c => c.group_ids).length;
+
+  const handleShowMore = useCallback(() => {
     setVisibleClusterCount(prev => prev + CLUSTERS_PER_PAGE);
-  };
+  }, []);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   if (!hasTopIssuesUI) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
+  const hasMoreClusters = sortedClusters.length > visibleClusterCount;
+  const displayedClusters = hasMoreClusters
+    ? sortedClusters.slice(0, visibleClusterCount)
+    : sortedClusters;
+  const remainingClusterCount = sortedClusters.length - displayedClusters.length;
+
   return (
     <PageFiltersContainer>
-      <PageWrapper>
-        <HeaderSection>
-          <Flex
-            align="center"
-            gap="md"
-            justify="between"
-            style={{marginBottom: space(2)}}
-          >
-            <Flex align="center" gap="md">
-              <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
-                {t('Top Issues (Experimental)')}
-              </ClickableHeading>
-              {isUsingCustomData && (
-                <CustomDataBadge>
-                  <Text size="xs" bold>
-                    {t('Using Custom Data')}
-                  </Text>
-                  <Button
-                    size="zero"
-                    borderless
-                    icon={<IconClose size="xs" />}
-                    aria-label={t('Clear custom data')}
-                    onClick={handleClearCustomData}
-                  />
-                </CustomDataBadge>
-              )}
-            </Flex>
-            <Link to={`/organizations/${organization.slug}/issues/top-issues/`}>
-              <Button size="sm">{t('View Single Card Layout')}</Button>
-            </Link>
-          </Flex>
-
-          <Flex gap="sm" align="center" style={{marginBottom: space(2)}}>
-            <ProjectPageFilter />
-            {showDevTools && (
-              <Button
-                size="sm"
-                icon={<IconUpload size="xs" />}
-                onClick={() => setShowJsonInput(!showJsonInput)}
-              >
-                {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
-              </Button>
-            )}
-            <FeedbackButton
-              size="sm"
-              feedbackOptions={{
-                messagePlaceholder: t('What do you think about the new Top Issues page?'),
-                tags: {
-                  ['feedback.source']: 'top-issues',
-                  ['feedback.owner']: 'issues',
-                },
-              }}
-            />
-          </Flex>
-
-          {showJsonInput && (
-            <JsonInputContainer>
-              <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
-                {t(
-                  'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+      <Layout.Page>
+        <Layout.Header>
+          <div>
+            <Flex align="center" gap="md" justify="between" marginBottom="xl">
+              <Flex align="center" gap="md">
+                <ClickableHeading as="h1" onClick={() => setShowDevTools(prev => !prev)}>
+                  {t('Top Issues')}
+                </ClickableHeading>
+                <FeatureBadge type="experimental" />
+                {isUsingCustomData && (
+                  <CustomDataBadge>
+                    <Text size="xs" bold>
+                      {t('Using Custom Data')}
+                    </Text>
+                    <Button
+                      size="zero"
+                      priority="transparent"
+                      icon={<IconClose size="xs" />}
+                      aria-label={t('Clear custom data')}
+                      onClick={handleClearCustomData}
+                    />
+                  </CustomDataBadge>
                 )}
-              </Text>
-              <TextArea
-                value={jsonInputValue}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  setJsonInputValue(e.target.value);
-                  setJsonError(null);
-                }}
-                placeholder={t('Paste JSON here...')}
-                rows={8}
-                monospace
-              />
-              {jsonError && (
-                <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
-                  {jsonError}
-                </Text>
-              )}
-              <Flex gap="sm" align="center" style={{marginTop: space(1.5)}}>
-                <Checkbox
-                  checked={disableFilters}
-                  onChange={e => setDisableFilters(e.target.checked)}
-                  aria-label={t('Disable filters and sorting')}
-                  size="sm"
-                />
-                <Text size="sm" variant="muted">
-                  {t('Disable filters and sorting')}
-                </Text>
               </Flex>
-              <Flex gap="sm" style={{marginTop: space(1)}}>
-                <Button size="sm" priority="primary" onClick={handleParseJson}>
-                  {t('Parse and Load')}
-                </Button>
+            </Flex>
+
+            <Flex gap="sm" align="center" marginBottom="xl">
+              <ProjectPageFilter resetParamsOnChange={['cluster']} />
+              {showDevTools && (
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setShowJsonInput(false);
+                  icon={<IconUpload size="xs" />}
+                  onClick={() => setShowJsonInput(!showJsonInput)}
+                >
+                  {showJsonInput ? t('Hide JSON Input') : t('Paste JSON')}
+                </Button>
+              )}
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={{
+                  messagePlaceholder: t('What do you think about the Top Issues drawer?'),
+                  tags: {
+                    ['feedback.source']: 'top-issues',
+                    ['feedback.owner']: 'issues',
+                  },
+                }}
+              />
+            </Flex>
+
+            {showJsonInput && (
+              <Container
+                padding="md"
+                background="secondary"
+                border="primary"
+                radius="md"
+                marginBottom="md"
+              >
+                <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                  {t(
+                    'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
+                  )}
+                </Text>
+                <TextArea
+                  value={jsonInputValue}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                    setJsonInputValue(e.target.value);
                     setJsonError(null);
                   }}
-                >
-                  {t('Cancel')}
-                </Button>
-              </Flex>
-            </JsonInputContainer>
-          )}
-
-          {isPending ? null : (
-            <Fragment>
-              <Flex justify="between" align="center">
-                <Text size="sm" variant="muted">
-                  {tn(
-                    'Viewing %s cluster containing %s issue',
-                    'Viewing %s clusters containing %s issues',
-                    filteredAndSortedClusters.length,
-                    totalIssues
-                  )}
-                  {isUsingCustomData && disableFilters && ` ${t('(filters disabled)')}`}
-                </Text>
-                {topIssuesResponse?.last_updated && (
-                  <LastUpdatedText>
-                    {t('Updated')}{' '}
-                    <StyledTimeSince
-                      date={topIssuesResponse.last_updated}
-                      suffix={t('ago')}
-                      unitStyle="short"
-                    />
-                  </LastUpdatedText>
+                  placeholder={t('Paste JSON here...')}
+                  rows={8}
+                  monospace
+                />
+                {jsonError && (
+                  <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                    {jsonError}
+                  </Text>
                 )}
-              </Flex>
+                <Flex gap="sm" align="center" marginTop="lg">
+                  <Checkbox
+                    checked={disableFilters}
+                    onChange={e => setDisableFilters(e.target.checked)}
+                    aria-label={t('Disable filters and sorting')}
+                    size="sm"
+                  />
+                  <Text size="sm" variant="muted">
+                    {t('Disable filters and sorting')}
+                  </Text>
+                </Flex>
+                <Flex gap="sm" marginTop="md">
+                  <Button size="sm" priority="primary" onClick={handleParseJson}>
+                    {t('Parse and Load')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowJsonInput(false);
+                      setJsonError(null);
+                    }}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                </Flex>
+              </Container>
+            )}
+          </div>
+        </Layout.Header>
 
-              {showDevTools && !(isUsingCustomData && disableFilters) && (
-                <Container
-                  padding="sm"
-                  border="primary"
-                  radius="md"
-                  background="primary"
-                  marginTop="md"
-                >
-                  <Disclosure>
-                    <Disclosure.Title>
-                      <Text size="sm" bold>
-                        {t('More Filters')}
-                      </Text>
-                    </Disclosure.Title>
-                    <Disclosure.Content>
-                      <Flex direction="column" gap="md" paddingTop="md">
-                        <Flex gap="sm" align="center">
-                          <Checkbox
-                            checked={filterByAssignedToMe}
-                            onChange={e => handleAssignedToMeChange(e.target.checked)}
-                            aria-label={t('Show only issues assigned to me')}
-                            size="sm"
-                            disabled={isTeamFilterActive}
-                          />
-                          <FilterLabel disabled={isTeamFilterActive}>
-                            {t('Only show issues assigned to me')}
-                          </FilterLabel>
-                        </Flex>
+        <Layout.Body>
+          <Layout.Main width="full">
+            <Stack gap="lg">
+              {isPending ? null : (
+                <div>
+                  <Flex justify="between" align="center">
+                    <Text size="sm" variant="muted">
+                      {tn(
+                        'Viewing %s cluster containing %s issue',
+                        'Viewing %s clusters containing %s issues',
+                        sortedClusters.length,
+                        totalIssues
+                      )}
+                      {isUsingCustomData &&
+                        disableFilters &&
+                        ` ${t('(filters disabled)')}`}
+                    </Text>
+                    {topIssuesResponse?.last_updated && (
+                      <LastUpdatedText>
+                        {t('Updated')}{' '}
+                        <StyledTimeSince
+                          date={topIssuesResponse.last_updated}
+                          suffix={t('ago')}
+                          unitStyle="short"
+                        />
+                      </LastUpdatedText>
+                    )}
+                  </Flex>
 
-                        {teamsInData.length > 0 && (
-                          <Flex direction="column" gap="sm">
-                            <FilterLabel disabled={filterByAssignedToMe}>
-                              {t('Filter by teams')}
-                            </FilterLabel>
-                            <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
-                              {teamsInData.map(team => (
-                                <Flex key={team.id} gap="sm" align="center">
+                  {showDevTools && !(isUsingCustomData && disableFilters) && (
+                    <Container
+                      padding="sm"
+                      border="primary"
+                      radius="md"
+                      background="primary"
+                      marginTop="md"
+                    >
+                      <Disclosure>
+                        <Disclosure.Title>
+                          <Text size="sm" bold>
+                            {t('More Filters')}
+                          </Text>
+                        </Disclosure.Title>
+                        <Disclosure.Content>
+                          <Flex direction="column" gap="md" paddingTop="md">
+                            <Flex gap="sm" align="center">
+                              <Checkbox
+                                checked={filterByAssignedToMe}
+                                onChange={e => handleAssignedToMeChange(e.target.checked)}
+                                aria-label={t('Show only issues assigned to me')}
+                                size="sm"
+                                disabled={isTeamFilterActive}
+                              />
+                              <FilterLabel disabled={isTeamFilterActive}>
+                                {t('Only show issues assigned to me')}
+                              </FilterLabel>
+                            </Flex>
+
+                            {teamsInData.length > 0 && (
+                              <Flex direction="column" gap="sm">
+                                <FilterLabel disabled={filterByAssignedToMe}>
+                                  {t('Filter by teams')}
+                                </FilterLabel>
+                                <Flex direction="column" gap="xs" paddingLeft="md">
+                                  {teamsInData.map(team => (
+                                    <Flex key={team.id} gap="sm" align="center">
+                                      <Checkbox
+                                        checked={selectedTeamIds.has(team.id)}
+                                        onChange={() => handleTeamToggle(team.id)}
+                                        aria-label={t('Filter by team %s', team.name)}
+                                        size="sm"
+                                        disabled={filterByAssignedToMe}
+                                      />
+                                      <FilterLabel disabled={filterByAssignedToMe}>
+                                        #{team.name}
+                                      </FilterLabel>
+                                    </Flex>
+                                  ))}
+                                </Flex>
+                              </Flex>
+                            )}
+
+                            <Flex direction="column" gap="sm">
+                              <FilterLabel>{t('Filter by status')}</FilterLabel>
+                              <Flex direction="column" gap="xs" paddingLeft="md">
+                                <Flex gap="sm" align="center">
                                   <Checkbox
-                                    checked={selectedTeamIds.has(team.id)}
-                                    onChange={() => handleTeamToggle(team.id)}
-                                    aria-label={t('Filter by team %s', team.name)}
+                                    checked={filterByRegressed}
+                                    onChange={e => setFilterByRegressed(e.target.checked)}
+                                    aria-label={t(
+                                      'Show only clusters with regressed issues'
+                                    )}
                                     size="sm"
-                                    disabled={filterByAssignedToMe}
                                   />
-                                  <FilterLabel disabled={filterByAssignedToMe}>
-                                    #{team.name}
+                                  <FilterLabel>{t('Has regressed issues')}</FilterLabel>
+                                </Flex>
+                                <Flex gap="sm" align="center">
+                                  <Checkbox
+                                    checked={filterByEscalating}
+                                    onChange={e =>
+                                      setFilterByEscalating(e.target.checked)
+                                    }
+                                    aria-label={t('Show only escalating clusters')}
+                                    size="sm"
+                                  />
+                                  <FilterLabel>
+                                    {t('Escalating (>1.5x events)')}
                                   </FilterLabel>
                                 </Flex>
-                              ))}
+                              </Flex>
                             </Flex>
                           </Flex>
-                        )}
-
-                        <Flex direction="column" gap="sm">
-                          <FilterLabel>{t('Filter by status')}</FilterLabel>
-                          <Flex direction="column" gap="xs" style={{paddingLeft: 8}}>
-                            <Flex gap="sm" align="center">
-                              <Checkbox
-                                checked={filterByRegressed}
-                                onChange={e => setFilterByRegressed(e.target.checked)}
-                                aria-label={t('Show only clusters with regressed issues')}
-                                size="sm"
-                              />
-                              <FilterLabel>{t('Has regressed issues')}</FilterLabel>
-                            </Flex>
-                            <Flex gap="sm" align="center">
-                              <Checkbox
-                                checked={filterByEscalating}
-                                onChange={e => setFilterByEscalating(e.target.checked)}
-                                aria-label={t('Show only escalating clusters')}
-                                size="sm"
-                              />
-                              <FilterLabel>{t('Escalating (>1.5x events)')}</FilterLabel>
-                            </Flex>
-                          </Flex>
-                        </Flex>
-                      </Flex>
-                    </Disclosure.Content>
-                  </Disclosure>
-                </Container>
+                        </Disclosure.Content>
+                      </Disclosure>
+                    </Container>
+                  )}
+                </div>
               )}
-            </Fragment>
-          )}
-        </HeaderSection>
 
-        <CardsSection>
-          {isPending ? (
-            <LoadingIndicator />
-          ) : displayedClusters.length === 0 ? (
-            <Container padding="lg" border="primary" radius="md" background="primary">
-              <Text variant="muted" align="center" as="div">
-                {t('No clusters match the current filters')}
-              </Text>
-            </Container>
-          ) : (
-            <CardsGrid>
-              <CardsColumn>
-                {displayedClusters
-                  .filter((_, index) => index % 2 === 0)
-                  .map(cluster => (
-                    <ClusterCard
-                      key={cluster.cluster_id}
-                      cluster={cluster}
-                      filterByRegressed={filterByRegressed}
-                      filterByEscalating={filterByEscalating}
-                      onDismiss={handleDismissCluster}
-                    />
-                  ))}
-              </CardsColumn>
-              <CardsColumn>
-                {displayedClusters
-                  .filter((_, index) => index % 2 === 1)
-                  .map(cluster => (
-                    <ClusterCard
-                      key={cluster.cluster_id}
-                      cluster={cluster}
-                      filterByRegressed={filterByRegressed}
-                      filterByEscalating={filterByEscalating}
-                      onDismiss={handleDismissCluster}
-                    />
-                  ))}
-              </CardsColumn>
-            </CardsGrid>
-          )}
-          {hasMoreClusters && (
-            <ShowMoreButton onClick={handleShowMore}>
-              {t('Show more clusters (%s more)', remainingClusterCount)}
-            </ShowMoreButton>
-          )}
-        </CardsSection>
-      </PageWrapper>
+              <div>
+                {isPending ? (
+                  <LoadingIndicator />
+                ) : displayedClusters.length === 0 ? (
+                  <Container
+                    padding="lg"
+                    border="primary"
+                    radius="md"
+                    background="primary"
+                  >
+                    <Text variant="muted" align="center" as="div">
+                      {t('No clusters match the current filters')}
+                    </Text>
+                  </Container>
+                ) : (
+                  <Flex gap="xl" direction={{xs: 'column', lg: 'row'}}>
+                    <Stack flex="1" gap="2xl" minWidth="0">
+                      {displayedClusters
+                        .filter((_, index) => index % 2 === 0)
+                        .map(cluster => (
+                          <ClusterCard
+                            key={cluster.cluster_id}
+                            cluster={cluster}
+                            filterByRegressed={filterByRegressed}
+                            filterByEscalating={filterByEscalating}
+                            onDismiss={handleDismissCluster}
+                          />
+                        ))}
+                    </Stack>
+                    <Stack flex="1" gap="2xl" minWidth="0">
+                      {displayedClusters
+                        .filter((_, index) => index % 2 === 1)
+                        .map(cluster => (
+                          <ClusterCard
+                            key={cluster.cluster_id}
+                            cluster={cluster}
+                            filterByRegressed={filterByRegressed}
+                            filterByEscalating={filterByEscalating}
+                            onDismiss={handleDismissCluster}
+                          />
+                        ))}
+                    </Stack>
+                  </Flex>
+                )}
+                {hasMoreClusters && (
+                  <ShowMoreButton onClick={handleShowMore}>
+                    {t('Show more clusters (%s more)', remainingClusterCount)}
+                  </ShowMoreButton>
+                )}
+              </div>
+            </Stack>
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
     </PageFiltersContainer>
   );
 }
 
-const PageWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-`;
-
-const HeaderSection = styled('div')`
-  padding: ${space(4)} ${space(4)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
 const ClickableHeading = styled(Heading)`
   cursor: pointer;
   user-select: none;
-`;
-
-const CardsSection = styled('div')`
-  flex: 1;
-  padding: ${space(2)} ${space(4)} ${space(4)};
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-const CardsGrid = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    flex-direction: column;
-  }
-`;
-
-const CardsColumn = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-  min-width: 0;
 `;
 
 const CardContainer = styled('div')`
@@ -1252,21 +1142,14 @@ const CardContainer = styled('div')`
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-    border-color: ${p => p.theme.colors.blue200};
+    border-color: ${p => p.theme.tokens.border.accent.moderate};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 `;
 
-const CardHeader = styled('div')`
-  padding: ${space(3)} ${space(3)} ${space(2)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
 const ClusterTitleLink = styled(Link)`
   margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.lg};
   font-weight: 600;
   color: ${p => p.theme.tokens.content.primary};
   line-height: 1.3;
@@ -1280,52 +1163,10 @@ const ClusterTitleLink = styled(Link)`
   }
 `;
 
-const StatsRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(2)};
-`;
-
-const ClusterStats = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const TimeStats = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(2)};
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const StatItem = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const ProjectAvatars = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-`;
-
 const MoreProjectsCount = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-left: ${space(0.25)};
-`;
-
-const ClusterStatusTags = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
@@ -1334,24 +1175,24 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.fontSize.xs};
+  font-size: ${p => p.theme.font.size.xs};
 
   ${p => {
     switch (p.color) {
       case 'purple':
-        return `
-          background: ${p.theme.colors.blue100};
-          color: ${p.theme.colors.blue400};
+        return css`
+          background: ${p.theme.tokens.background.transparent.accent.muted};
+          color: ${p.theme.tokens.content.accent};
         `;
       case 'yellow':
-        return `
-          background: ${p.theme.colors.yellow100};
-          color: ${p.theme.colors.yellow400};
+        return css`
+          background: ${p.theme.tokens.background.transparent.warning.muted};
+          color: ${p.theme.tokens.content.warning};
         `;
       case 'red':
-        return `
-          background: ${p.theme.colors.red100};
-          color: ${p.theme.colors.red400};
+        return css`
+          background: ${p.theme.tokens.background.transparent.danger.muted};
+          color: ${p.theme.tokens.content.danger};
         `;
       default:
         return '';
@@ -1359,67 +1200,10 @@ const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
   }}
 `;
 
-const TabSection = styled('div')`
-  position: relative;
-  z-index: 1;
-`;
-
-const TabBar = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Tab = styled('button')<{isActive: boolean}>`
-  background: none;
-  border: none;
-  padding: ${space(1)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 500;
-  color: ${p => (p.isActive ? p.theme.tokens.content.primary : p.theme.subText)};
-  cursor: pointer;
-  position: relative;
-  margin-bottom: -1px;
-
-  ${p =>
-    p.isActive &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 2px;
-      background: ${p.theme.colors.blue400};
-    }
-  `}
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
+const StyledMarkedText = styled(MarkedText)`
+  code:not(pre code) {
+    ${p => inlineCodeStyles(p.theme)};
   }
-`;
-
-const TabContent = styled('div')`
-  padding: ${space(2)} ${space(3)};
-`;
-
-const CardFooter = styled('div')`
-  position: relative;
-  z-index: 1;
-  padding: ${space(2)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const FooterActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const SeerButton = styled(Button)`
@@ -1433,101 +1217,24 @@ const SeerDropdownTrigger = styled(Button)`
   border-left: 1px solid rgba(255, 255, 255, 0.15);
 `;
 
-const IssuePreviewLink = styled(Link)`
-  display: block;
-  padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-
-  &:hover {
-    border-color: ${p => p.theme.colors.blue400};
-    background: ${p => p.theme.tokens.background.primary};
-  }
-`;
-
-const IssueTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: 600;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 1.4;
-  ${p => p.theme.overflowEllipsis};
-
-  em {
-    font-size: ${p => p.theme.fontSize.sm};
-    font-style: normal;
-    font-weight: ${p => p.theme.fontWeight.normal};
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const IssueMessage = styled(EventMessage)`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  opacity: 0.9;
-`;
-
-const MetaSeparator = styled('div')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.tokens.border.secondary};
-`;
-
-const DescriptionText = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  line-height: 1.5;
-`;
-
-const StructuredInfo = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
-`;
-
-const TagPill = styled('span')`
-  display: inline-block;
-  padding: ${space(0.25)} ${space(1)};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const InfoRow = styled('div')`
-  display: flex;
-  align-items: baseline;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
 const InfoLabel = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   font-weight: 500;
   min-width: 60px;
   flex-shrink: 0;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const InfoValue = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const FilterLabel = styled('span')<{disabled?: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.subText)};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p =>
+    p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.content.secondary};
 `;
 
 const ShowMoreButton = styled('button')`
@@ -1535,11 +1242,11 @@ const ShowMoreButton = styled('button')`
   width: 100%;
   margin-top: ${space(3)};
   padding: ${space(2)} ${space(3)};
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -1547,18 +1254,10 @@ const ShowMoreButton = styled('button')`
     color 0.15s ease;
 
   &:hover {
-    background: ${p => p.theme.backgroundTertiary};
-    border-color: ${p => p.theme.colors.blue400};
+    background: ${p => p.theme.tokens.background.tertiary};
+    border-color: ${p => p.theme.tokens.border.accent.vibrant};
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const JsonInputContainer = styled('div')`
-  margin-bottom: ${space(2)};
-  padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
 
 const CustomDataBadge = styled('div')`
@@ -1573,8 +1272,8 @@ const CustomDataBadge = styled('div')`
 `;
 
 const LastUpdatedText = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   white-space: nowrap;
 `;
 

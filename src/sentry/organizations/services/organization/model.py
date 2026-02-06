@@ -203,7 +203,7 @@ class RpcOrganizationFlagsUpdate(TypedDict):
 
 class RpcOrganizationInvite(RpcModel):
     id: int = -1
-    token: str = ""
+    token: str = Field(repr=False, default="")
     email: str = ""
 
 

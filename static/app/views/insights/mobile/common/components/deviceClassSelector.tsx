@@ -1,6 +1,8 @@
 import type {ComponentProps} from 'react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -38,7 +40,9 @@ export function DeviceClassSelector({
   return (
     <CompactSelect
       size={size}
-      triggerProps={{prefix: t('Device Class')}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Device Class')} />
+      )}
       value={value}
       options={options ?? []}
       onChange={newValue => {

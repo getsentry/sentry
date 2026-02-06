@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -290,7 +290,7 @@ function PerformanceScoreRingWithTooltips({
           barWidth={barWidth}
           textCss={() => css`
             font-size: 32px;
-            font-weight: ${theme.fontWeight.bold};
+            font-weight: ${theme.font.weight.sans.medium};
             color: ${theme.tokens.content.primary};
           `}
           segmentColors={ringSegmentColors}
@@ -347,16 +347,17 @@ function calculateLabelCoordinates(
 const ProgressRingContainer = styled('div')``;
 
 const ProgressRingText = styled('text')<{isLink?: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  fill: ${p => (p.isLink ? p.theme.colors.blue400 : p.theme.tokens.content.primary)};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.font.size.md};
+  fill: ${p =>
+    p.isLink ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   text-anchor: middle;
 `;
 
 const ProgressRingSubText = styled('text')`
-  font-size: ${p => p.theme.fontSize.sm};
-  fill: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  fill: ${p => p.theme.tokens.content.secondary};
   text-anchor: middle;
 `;
 
@@ -366,7 +367,7 @@ const ProgressRingDiffSubText = styled(ProgressRingSubText)<{value: number}>`
       ? p.theme.colors.green400
       : p.value > 0
         ? p.theme.colors.red400
-        : p.theme.subText};
+        : p.theme.tokens.content.secondary};
 `;
 
 // Hover element on mouse
@@ -391,12 +392,13 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p => p.theme.translucentBorder};
+    border-top: 8px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
     content: '';
     display: block;
     position: absolute;
@@ -416,7 +418,7 @@ const Dot = styled('span')<{color: string}>`
 `;
 
 const TooltipValue = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export default PerformanceScoreRingWithTooltips;

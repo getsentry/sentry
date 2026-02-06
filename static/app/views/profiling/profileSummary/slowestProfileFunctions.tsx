@@ -1,9 +1,12 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Count from 'sentry/components/count';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -110,12 +113,14 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
 
   return (
     <SlowestFunctionsContainer>
-      <SlowestFunctionsTitleContainer>
+      <Flex justify="between" align="center" marginBottom="md">
         <SlowestFunctionsTypeSelect
           value={functionType}
           options={SLOWEST_FUNCTION_OPTIONS}
           onChange={onChangeFunctionType}
-          triggerProps={TRIGGER_PROPS}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} priority="transparent" size="zero" />
+          )}
           offset={4}
         />
         <SlowestFunctionsPagination
@@ -123,7 +128,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           onCursor={handleFunctionsCursor}
           size="xs"
         />
-      </SlowestFunctionsTitleContainer>
+      </Flex>
       <SlowestFunctionsList>
         {functionsQuery.isPending ? (
           <SlowestFunctionsQueryState>
@@ -250,13 +255,6 @@ const SlowestFunctionsPagination = styled(Pagination)`
   }
 `;
 
-const SlowestFunctionsTitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
-
 const SlowestFunctionsTypeSelect = styled(CompactSelect)`
   button {
     margin: 0;
@@ -267,7 +265,7 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
 const SlowestFunctionsQueryState = styled('div')`
   text-align: center;
   padding: ${space(2)} ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SlowestFunctionRow = styled('div')`
@@ -291,12 +289,11 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   margin-top: ${space(0.25)};
 `;
 
-const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
 const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),

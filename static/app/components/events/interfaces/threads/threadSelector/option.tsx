@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -81,7 +82,10 @@ const InnerCell = styled('div')<{
   isBold?: boolean;
   isCentered?: boolean;
 }>`
-  ${p => p.theme.overflowEllipsis}
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};

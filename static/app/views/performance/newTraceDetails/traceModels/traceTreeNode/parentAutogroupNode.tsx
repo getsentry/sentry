@@ -42,13 +42,25 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
     const children: BaseNode[] = [];
     let start: BaseNode | undefined = this.head;
+    const visited = new Set<BaseNode>();
 
     while (start && start !== this.tail) {
+      // Cycle detection: stop if we've seen this node before
+      if (visited.has(start)) {
+        break;
+      }
+      visited.add(start);
       children.push(start);
       start = start.children[0];
     }
 
-    children.push(this.tail);
+    // Only add the tail if we actually reached it (no cycle detected).
+    // If a cycle was detected, we return partial segments rather than risk an infinite loop.
+    // This results in incomplete but safe rendering of the autogrouped spans.
+    // We prefer a truncated bar to a hung UI when trace data is malformed.
+    if (start === this.tail) {
+      children.push(this.tail);
+    }
 
     this._autogroupedSegments = computeCollapsedBarSpace(children);
     return this._autogroupedSegments;
@@ -164,10 +176,10 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
 
   makeBarColor(theme: Theme): string {
     if (this.errors.size > 0) {
-      return theme.colors.red400;
+      return theme.tokens.graphics.danger.vibrant;
     }
 
-    return theme.colors.blue400;
+    return theme.tokens.graphics.accent.vibrant;
   }
 
   resolveValueFromSearchKey(_key: string): any | null {

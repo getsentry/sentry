@@ -1,15 +1,13 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {Button} from '@sentry/scraps/button';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -32,7 +30,13 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoCompleted,
+  isSizeInfoRetryable,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 import {useBuildDetailsActions} from './useBuildDetailsActions';
@@ -46,6 +50,7 @@ interface BuildDetailsHeaderContentProps {
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const router = useRouter();
   const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId, projectType} = props;
   const {
@@ -84,11 +89,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getBySlug(projectId);
+  const project = ProjectsStore.getById(projectId);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(project?.id, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -98,7 +103,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(project?.id, {
+      to: makeReleasesUrl(organization.slug, projectId, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -118,14 +123,28 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     }
   }
 
+  const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
+  const canRerunStatusChecks =
+    areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
+
   const handleCompareClick = () => {
+    if (!areActionsEnabled) {
+      return;
+    }
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_type: projectType,
-      project_slug: projectId,
+      project_slug: project?.slug,
     });
+    router.push(
+      getCompareBuildPath({
+        organizationSlug: organization.slug,
+        projectId,
+        headArtifactId: buildDetailsData.id,
+      })
+    );
   };
 
   const handleConfirmDelete = () => {
@@ -134,7 +153,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
-      project_slug: projectId,
+      project_slug: project?.slug,
       project_type: projectType,
     });
   };
@@ -144,7 +163,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Layout.Title>
           <Flex align="center" gap="sm" minHeight="1lh">
@@ -164,21 +183,29 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               },
             }}
           />
-          <Link
-            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
+          <Button
+            size="sm"
+            priority="default"
+            icon={<IconTelescope />}
             onClick={handleCompareClick}
+            disabled={!areActionsEnabled}
+            title={
+              areActionsEnabled
+                ? undefined
+                : t('Size analysis must be completed to compare builds')
+            }
           >
-            <Button size="sm" priority="default" icon={<IconTelescope />}>
-              {t('Compare Build')}
-            </Button>
-          </Link>
-          <Feature features="organizations:preprod-issues">
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/preprod/`}
-            />
+            {t('Compare Build')}
+          </Button>
+          <Feature features="organizations:preprod-frontend-routes">
+            {project && (
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
+              />
+            )}
           </Feature>
           <ConfirmDelete
             message={t(
@@ -199,6 +226,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   ),
                   onAction: handleRerunStatusChecksAction,
                   textValue: t('Rerun Status Checks'),
+                  disabled: !canRerunStatusChecks,
+                  tooltip: canRerunStatusChecks
+                    ? undefined
+                    : t('Size analysis must be completed to rerun status checks'),
                 },
                 {
                   key: 'delete',

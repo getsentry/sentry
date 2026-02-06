@@ -8,12 +8,11 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
@@ -167,7 +166,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   ];
 
   const handleSetupCursorHandoff = useCallback(async () => {
-    if (!cursorIntegration) {
+    if (!cursorIntegration?.id) {
       return;
     }
 
@@ -212,7 +211,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -482,7 +481,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
                                 {
                                   integrationLink: (
-                                    <Link to="/settings/integrations/cursor/" />
+                                    <Link
+                                      to={`/settings/${organization.slug}/integrations/cursor/`}
+                                    />
                                   ),
                                   docsLink: (
                                     <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -517,7 +518,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        href="/settings/integrations/cursor/"
+                        href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
                         priority="primary"
                       >
@@ -578,7 +579,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -590,17 +591,13 @@ const StyledAlert = styled(Alert)`
   margin-bottom: ${space(2)};
 `;
 
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+function CardDescription(props: StackProps) {
+  return (
+    <Stack gap="md" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
 const CardIllustration = styled('img')`
   width: 100%;
@@ -620,35 +617,35 @@ const CursorPluginIcon = styled('div')`
   transform: translateY(3px);
 `;
 
-const StepContentRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(3)};
-`;
+function StepContentRow(props: FlexProps) {
+  return (
+    <Flex justify="between" align="center" gap="2xl" width="100%" {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
-const StepTextCol = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  flex: 0 0 75%;
-  min-width: 0;
-`;
+function StepTextCol(props: StackProps) {
+  return (
+    <Stack flex="0 0 75%" gap="xl" minWidth="0" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
-const StepImageCol = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  flex-grow: 1;
-`;
+function StepImageCol(props: FlexProps) {
+  return (
+    <Flex align="end" justify="end" flexGrow={1} {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
 const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.xl};
+  font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${space(0.5)};
   margin-left: 1px;
 `;
@@ -669,7 +666,7 @@ const CollapsedSummaryCard = styled('div')`
   padding: ${space(1)};
   margin-bottom: ${space(2)};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   font-weight: 500;
   color: ${p => p.theme.tokens.content.primary};
   transition: box-shadow 0.2s;

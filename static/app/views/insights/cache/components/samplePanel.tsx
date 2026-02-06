@@ -1,8 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -349,9 +351,9 @@ export function CacheSamplePanel() {
                 value={query.statusClass}
                 options={CACHE_STATUS_OPTIONS}
                 onChange={handleStatusClassChange}
-                triggerProps={{
-                  prefix: t('Status'),
-                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                )}
               />
             </ModuleLayout.Full>
             <ModuleLayout.Half>

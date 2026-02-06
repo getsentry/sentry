@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
@@ -18,6 +19,7 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -36,6 +38,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -50,6 +53,8 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.DISCOVER_SLACK_UNFURL.value,
 ]
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -110,6 +115,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+        logger.info(
+            "An events-stats request was made",
+            extra={
+                "referrer": request.GET.get("referrer"),
+                "organization.id": organization.id,
+                "dataset_label": request.GET.get("dataset"),
+                "external_call": bool(request.auth),
+            },
+        )
 
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
@@ -152,7 +166,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
             elif not is_valid_referrer(referrer):
                 referrer = Referrer.API_ORGANIZATION_EVENTS.value
-
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
@@ -186,6 +199,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         Spans,
                         OurLogs,
                         ProfileFunctions,
+                        PreprodSize,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -239,6 +253,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
                     return TraceMetricsSearchResolverConfig(
                         metric=metric,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                        extrapolation_mode=extrapolation_mode,
+                    )
+
+                if scoped_dataset == PreprodSize:
+                    return PreprodSizeSearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(

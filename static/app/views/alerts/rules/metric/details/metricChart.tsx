@@ -1,9 +1,13 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
@@ -26,8 +30,6 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -76,6 +78,12 @@ import {
   getTraceItemTypeForDatasetAndEventType,
 } from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
+import {
+  LOWER_THRESHOLD_SERIES_NAME,
+  UPPER_THRESHOLD_SERIES_NAME,
+  useMetricDetectorAnomalyThresholds,
+} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
@@ -346,7 +354,8 @@ export default function MetricChart({
       loading: boolean,
       timeseriesData?: Series[],
       minutesThresholdToDisplaySeconds?: number,
-      comparisonTimeseriesData?: Series[]
+      comparisonTimeseriesData?: Series[],
+      thresholdSeries?: LineSeriesOption[]
     ) => {
       const {start, end} = timePeriod;
 
@@ -402,6 +411,7 @@ export default function MetricChart({
           })
         ),
         ...getRuleChangeSeries(rule, timeseriesData, theme),
+        ...(thresholdSeries ?? []),
       ];
 
       const queryFilter =
@@ -526,6 +536,50 @@ export default function MetricChart({
     ? transformComparisonTimeseriesData(eventStats?.data ?? [])
     : [];
 
+  // Get timestamps from actual series data for anomaly threshold data
+  const metricTimestamps = useMemo(() => {
+    const firstSeries = timeSeriesData[0];
+    if (!firstSeries?.data.length) {
+      return {start: undefined, end: undefined};
+    }
+    const data = firstSeries.data;
+    const firstPoint = data[0];
+    const lastPoint = data[data.length - 1];
+
+    if (!firstPoint || !lastPoint) {
+      return {start: undefined, end: undefined};
+    }
+
+    const firstTimestamp =
+      typeof firstPoint.name === 'number'
+        ? firstPoint.name
+        : new Date(firstPoint.name).getTime();
+    const lastTimestamp =
+      typeof lastPoint.name === 'number'
+        ? lastPoint.name
+        : new Date(lastPoint.name).getTime();
+
+    return {
+      start: Math.floor(firstTimestamp / 1000),
+      end: Math.floor(lastTimestamp / 1000),
+    };
+  }, [timeSeriesData]);
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: rule.id ?? '',
+    detectionType: rule.detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series: timeSeriesData,
+    isLegacyAlert: true,
+  });
+
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    isAnomalyDetection: rule.detectionType === 'dynamic',
+    thresholdType: rule.thresholdType,
+  });
+
   return (
     <Fragment>
       {shouldUseSessionsStats
@@ -535,7 +589,8 @@ export default function MetricChart({
         isLoading,
         timeSeriesData,
         minutesThresholdToDisplaySeconds,
-        comparisonTimeseriesData
+        comparisonTimeseriesData,
+        filteredAnomalyThresholdSeries
       )}
     </Fragment>
   );
@@ -588,6 +643,33 @@ function getMetricChartTooltipFormatter({
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
+
+    // Find threshold series for anomaly detection
+    const upperThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === UPPER_THRESHOLD_SERIES_NAME
+    );
+    const lowerThresholdSeries = pointSeries.find(
+      ({seriesName: _sn}) => _sn === LOWER_THRESHOLD_SERIES_NAME
+    );
+
+    const upperThresholdValue =
+      Array.isArray(upperThresholdSeries?.data) && upperThresholdSeries.data.length > 1
+        ? (upperThresholdSeries.data[1] as number)
+        : undefined;
+
+    const lowerThresholdValue =
+      Array.isArray(lowerThresholdSeries?.data) && lowerThresholdSeries.data.length > 1
+        ? (lowerThresholdSeries.data[1] as number)
+        : undefined;
+
+    const upperThresholdFormatted =
+      upperThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(upperThresholdValue, seriesName, rule.aggregate);
+    const lowerThresholdFormatted =
+      lowerThresholdValue === undefined
+        ? undefined
+        : alertTooltipValueFormatter(lowerThresholdValue, seriesName, rule.aggregate);
     const comparisonPointYFormatted =
       comparisonPointY === undefined
         ? undefined
@@ -620,6 +702,12 @@ function getMetricChartTooltipFormatter({
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
         `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+      upperThresholdSeries &&
+        upperThresholdFormatted &&
+        `<div><span class="tooltip-label">${upperThresholdSeries.marker as string} <strong>${t('Upper Threshold')}</strong></span>${upperThresholdFormatted}</div>`,
+      lowerThresholdSeries &&
+        lowerThresholdFormatted &&
+        `<div><span class="tooltip-label">${lowerThresholdSeries.marker as string} <strong>${t('Lower Threshold')}</strong></span>${lowerThresholdFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
@@ -659,14 +747,14 @@ const StyledInlineContainer = styled(InlineContainer)`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.subText};
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.font.size.sm};
+  font-family: ${p => p.theme.font.family.sans};
   color: ${p => p.theme.tokens.content.primary};
   display: inline-grid;
   grid-template-columns: max-content max-content auto;
@@ -679,7 +767,11 @@ const Filters = styled('span')`
 
 const QueryFilters = styled('span')`
   min-width: 0px;
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const StyledSectionValue = styled(SectionValue)`

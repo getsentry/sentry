@@ -303,7 +303,8 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
-    await userEvent.click(screen.getByText('Errors'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
   }, 10_000);
@@ -604,7 +605,7 @@ describe('WidgetBuilderSlideout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should not show the query filter builder if the widget is an issue and a chart display type', () => {
+  it('should not show the query filter builder if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -634,9 +635,14 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     expect(screen.queryByLabelText('Add a search term')).not.toBeInTheDocument();
+
+    // Wait for any pending popper updates to complete
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
+    });
   });
 
-  it('should not show the group by selector if the widget is an issue and a chart display type', () => {
+  it('should not show the group by selector if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -666,5 +672,10 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     expect(screen.queryByText('Group by')).not.toBeInTheDocument();
+
+    // Wait for any pending popper updates to complete
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Issues'})).toBeInTheDocument();
+    });
   });
 });

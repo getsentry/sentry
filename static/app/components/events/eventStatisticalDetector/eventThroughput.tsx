@@ -143,7 +143,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       xAxis: {show: false, type: 'time'},
       yAxis: {
         axisLabel: {
-          color: theme.tokens.content.muted,
+          color: theme.tokens.content.secondary,
           formatter: (value: number) =>
             axisLabelFormatter(value, 'rate', true, undefined, RateUnit.PER_SECOND),
         },
@@ -373,7 +373,7 @@ function getStatsType(group: Group): 'transactions' | 'functions' | null {
 }
 
 const CurrentLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
 `;
 
 const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
@@ -382,5 +382,5 @@ const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
       ? p.theme.colors.red400
       : p.change === 'decrease'
         ? p.theme.colors.green400
-        : p.theme.subText};
+        : p.theme.tokens.content.secondary};
 `;

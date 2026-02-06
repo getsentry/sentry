@@ -35,7 +35,7 @@ describe('GroupPriority', () => {
 
     it('fetches the last priority edit when not passed in', async () => {
       MockApiClient.addMockResponse({
-        url: '/issues/1/activities/',
+        url: '/organizations/org-slug/issues/1/activities/',
         body: {
           activity: [
             ActivityFeedFixture({
@@ -61,7 +61,7 @@ describe('GroupPriority', () => {
 
     it('shows a learn more banner that may be dismissed', async () => {
       MockApiClient.addMockResponse({
-        url: '/issues/1/activities/',
+        url: '/organizations/org-slug/issues/1/activities/',
         body: {activity: []},
       });
       MockApiClient.addMockResponse({

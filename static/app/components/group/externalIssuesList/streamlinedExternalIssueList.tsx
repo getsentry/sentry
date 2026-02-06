@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {AlertLink} from 'sentry/components/core/alert/alertLink';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {AlertLink} from '@sentry/scraps/alert';
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -253,7 +253,11 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
 `;
 
 const IssueActionName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-width: 200px;
 `;
 
@@ -265,16 +269,21 @@ const LinkedIssueTooltipWrapper = styled('div')`
 `;
 
 const LinkedIssueName = styled('div')`
-  ${p => p.theme.overflowEllipsis}
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-right: ${space(0.25)};
 `;
 
 const HorizontalSeparator = styled('div')`
   width: 1px;
   height: 14px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
 `;
 
 const UnlinkButton = styled(Button)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;

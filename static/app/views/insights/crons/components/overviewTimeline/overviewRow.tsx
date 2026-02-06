@@ -3,14 +3,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -101,27 +103,27 @@ export function OverviewRow({
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
         </DetailsHeadline>
-        <DetailsContainer>
+        <Stack gap="xs">
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
             {monitor.owner ? (
               <ActorBadge actor={monitor.owner} avatarSize={12} />
             ) : (
-              <UnassignedLabel>
+              <Flex align="center" gap="xs">
                 <IconUser size="xs" />
                 {t('Unassigned')}
-              </UnassignedLabel>
+              </Flex>
             )}
           </OwnershipDetails>
           <ScheduleDetails>
             <IconTimer size="xs" />
             {scheduleAsText(monitor.config)}
           </ScheduleDetails>
-          <MonitorStatuses>
+          <Flex gap="xs">
             {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
             {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
-          </MonitorStatuses>
-        </DetailsContainer>
+          </Flex>
+        </Stack>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -262,34 +264,17 @@ const DetailsHeadline = styled('div')`
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(0.75)};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-`;
-
-const UnassignedLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const MonitorStatuses = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.font.size.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
@@ -298,8 +283,8 @@ const ScheduleDetails = styled('small')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 interface TimelineRowProps {
@@ -319,13 +304,13 @@ const TimelineRow = styled('li')<TimelineRowProps>`
       transition: background 50ms ease-in-out;
 
       &:nth-child(odd) {
-        background: ${p.theme.backgroundSecondary};
+        background: ${p.theme.tokens.background.secondary};
       }
       &:hover {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
       &:has(*:focus-visible) {
-        background: ${p.theme.backgroundTertiary};
+        background: ${p.theme.tokens.background.tertiary};
       }
     `}
 
@@ -345,7 +330,7 @@ const DetailsActions = styled('div')`
   opacity: 0;
 
   /* Align to the center of the heading text */
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
   margin: ${space(3)};
 
   /* Show when timeline is hovered / focused */
@@ -375,7 +360,7 @@ const EnvRow = styled('div')`
   gap: ${space(0.5)};
   justify-content: space-between;
   align-items: center;
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
 `;
 
 const EnvActionButton = styled(Button)`
@@ -397,7 +382,7 @@ const TimelineEnvOuterContainer = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
   opacity: var(--disabled-opacity);
 `;
 

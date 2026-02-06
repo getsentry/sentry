@@ -5,7 +5,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
@@ -208,32 +208,5 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
-  });
-
-  it('opens codecov modal', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/codecov-jwt/`,
-      method: 'GET',
-      body: {token: 'my-token'},
-    });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      planTier: PlanTier.AM1,
-      organization,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<Overview />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {open_codecov_modal: '1'},
-        },
-      },
-    });
-    renderGlobalModal();
-
-    expect(await screen.findByText('Try Code Coverage')).toBeInTheDocument();
   });
 });

@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
@@ -33,8 +32,8 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
     def test(self) -> None:
-        rule = Rule.objects.create(project=self.event.project)
-        rule_2 = Rule.objects.create(project=self.event.project)
+        rule = self.create_project_rule(project=self.event.project)
+        rule_2 = self.create_project_rule(project=self.event.project)
         history = []
 
         for i in range(3):

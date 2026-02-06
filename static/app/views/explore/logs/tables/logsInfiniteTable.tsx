@@ -5,9 +5,11 @@ import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -77,6 +79,7 @@ type LogsTableProps = {
     scrollToDisabled?: boolean;
   };
   allowPagination?: boolean;
+  booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -107,6 +110,7 @@ export function LogsInfiniteTable({
   emptyRenderer,
   numberAttributes,
   stringAttributes,
+  booleanAttributes,
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
@@ -427,11 +431,11 @@ export function LogsInfiniteTable({
   if (hasReplay && (isPending || isError || isEmpty)) {
     return (
       <Fragment>
-        <CenteredEmptyStateContainer>
+        <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
           {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
-        </CenteredEmptyStateContainer>
+        </Flex>
       </Fragment>
     );
   }
@@ -459,6 +463,7 @@ export function LogsInfiniteTable({
             isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
+            booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -564,10 +569,11 @@ export function LogsInfiniteTable({
 
 function LogsTableHeader({
   isFrozen,
+  booleanAttributes,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -590,7 +596,8 @@ function LogsTableHeader({
           const headerLabel = getTableHeaderLabel(
             field,
             stringAttributes,
-            numberAttributes
+            numberAttributes,
+            booleanAttributes
           );
 
           if (isPending) {
@@ -712,7 +719,7 @@ function ErrorRenderer() {
 export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
   return (
     <TableStatus>
-      <LoadingStateContainer>
+      <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
           {defined(bytesScanned) && bytesScanned > 0 && (
@@ -727,16 +734,10 @@ export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
             </Fragment>
           )}
         </EmptyStateText>
-      </LoadingStateContainer>
+      </Stack>
     </TableStatus>
   );
 }
-
-const LoadingStateContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
   margin: CSSProperties['margin'];
@@ -765,14 +766,6 @@ function HoveringRowLoadingRenderer({
     </HoveringRowLoadingRendererContainer>
   );
 }
-
-const CenteredEmptyStateContainer = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  min-height: 200px;
-`;
 
 function BackToTopButton({
   virtualizer,

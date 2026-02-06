@@ -2,7 +2,9 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -310,7 +312,7 @@ export default function RelocationOnboarding() {
   ) : null;
 
   return (
-    <OnboardingWrapper data-test-id="relocation-onboarding">
+    <Stack as="main" flexGrow={1} data-test-id="relocation-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       {headerView}
       <Container>
@@ -321,7 +323,7 @@ export default function RelocationOnboarding() {
         />
         {errView}
       </Container>
-    </OnboardingWrapper>
+    </Stack>
   );
 }
 
@@ -399,12 +401,6 @@ const BackMotionDiv = styled(motion.div)`
   left: 20px;
 
   button {
-    font-size: ${p => p.theme.fontSize.sm};
+    font-size: ${p => p.theme.font.size.sm};
   }
-`;
-
-const OnboardingWrapper = styled('main')`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
 `;

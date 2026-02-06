@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   DiffFileType,
   DiffLineType,
@@ -123,10 +123,10 @@ export function FileDiffViewer({
         onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
       >
         {collapsible && <InteractionStateLayer />}
-        <FileAddedRemoved>
+        <Flex align="center" gap="md">
           <FileAdded>+{patch.added}</FileAdded>
           <FileRemoved>-{patch.removed}</FileRemoved>
-        </FileAddedRemoved>
+        </Flex>
         <FilePathName title={filePath}>{filePath}</FilePathName>
         {collapsible && <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
       </FileHeader>
@@ -176,7 +176,7 @@ export function FileDiffViewer({
 }
 
 const SyntaxHighlightedCode = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
+  font-family: ${p => p.theme.font.family.mono};
   white-space: pre;
 
   && pre,
@@ -188,12 +188,12 @@ const SyntaxHighlightedCode = styled('div')`
 `;
 
 const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
   line-height: 20px;
   vertical-align: middle;
   overflow: hidden;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.tokens.background.primary};
   ${p => (p.showBorder ? `border: 1px solid ${p.theme.tokens.border.primary};` : '')}
   ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
 `;
@@ -204,15 +204,9 @@ const FileHeader = styled('div')<{collapsible?: boolean}>`
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr ${p => (p.collapsible ? 'auto' : '')};
   gap: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   ${p => (p.collapsible ? 'cursor: pointer;' : '')}
-`;
-
-const FileAddedRemoved = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;
 
 const FileAdded = styled('div')`
@@ -220,7 +214,7 @@ const FileAdded = styled('div')`
 `;
 
 const FileRemoved = styled('div')`
-  color: ${p => p.theme.errorText};
+  color: ${p => p.theme.tokens.content.danger};
 `;
 
 const FilePathName = styled('div')`
@@ -236,7 +230,7 @@ const DeletedFileMessage = styled('div')`
   align-items: center;
   justify-content: center;
   padding: ${p => p.theme.space['2xl']};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const DiffContainer = styled('div')`
@@ -248,13 +242,13 @@ const DiffContainer = styled('div')`
 
 const HunkHeaderEmptySpace = styled('div')`
   grid-column: 1 / 3;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm}
     ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
@@ -264,8 +258,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   user-select: none;
-  background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&

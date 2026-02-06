@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import Banner from 'sentry/components/banner';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -35,7 +36,7 @@ function DashboardBanner({organization}: Props) {
 }
 
 const StyledBanner = styled(Banner)`
-  background-color: ${p => p.theme.purple100};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.primary};
 `;
 

@@ -22,7 +22,7 @@ import {
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
-  background?: Responsive<SurfaceVariant>;
+  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<
     | 'block'
     | 'inline'
@@ -51,6 +51,8 @@ interface ContainerLayoutProps {
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
+
+  pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -129,30 +131,45 @@ export type ContainerElement =
   | 'ul'
   | 'hr';
 
-type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
-  ContainerLayoutProps & {
-    as?: T;
-    children?: React.ReactNode;
-    ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+export type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayoutProps & {
+  as?: T;
+  children?: React.ReactNode;
+  htmlFor?: T extends 'label' ? string : never;
+  ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
+  /**
+   * Deprecated in favor of the Container component API.
+   * If you have an is an unsupported use-case, please contact design engineering for support.
+   * @deprecated
+   */
+  style?: React.CSSProperties;
+} & Omit<
+    React.DetailedHTMLProps<
+      React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+      HTMLElementTagNameMap[T]
+    >,
+    'style'
+  >;
 
-type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
+export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
     children: (props: {className: string}) => React.ReactNode | undefined;
     as?: never;
+    htmlFor?: never;
     ref?: never;
   } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
         // Therefore, we need to exclude it from the map, or the children will produce a never type.
-        Exclude<keyof React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'children'>,
+        Exclude<
+          keyof React.DetailedHTMLProps<
+            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+            HTMLElementTagNameMap[T]
+          >,
+          'children'
+        >,
         never
       >
     >;
-
-export type ContainerProps<T extends ContainerElement = 'div'> =
-  | ContainerPropsWithChildren<T>
-  | ContainerPropsWithRenderProp<T>;
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
@@ -188,6 +205,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'overflow',
   'overflowX',
   'overflowY',
+  'pointerEvents',
   'padding',
   'paddingTop',
   'paddingBottom',
@@ -202,7 +220,9 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
 ]);
 
 export const Container = styled(
-  <T extends ContainerElement = 'div'>(props: ContainerProps<T>) => {
+  <T extends ContainerElement = 'div'>(
+    props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
+  ) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
       return props.children({className: (props as any).className});
@@ -220,7 +240,7 @@ export const Container = styled(
       return isPropValid(prop);
     },
   }
-)`
+)<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
 
@@ -234,6 +254,8 @@ export const Container = styled(
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
+  ${p => rc('pointer-events', p.pointerEvents, p.theme)};
+
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
   ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
   ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
@@ -246,7 +268,10 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
+  ${p =>
+    rc('background', p.background, p.theme, v =>
+      v ? p.theme.tokens.background[v] : undefined
+    )};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
@@ -283,5 +308,5 @@ export const Container = styled(
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: ContainerProps<T>
+  props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
 ) => React.ReactElement;

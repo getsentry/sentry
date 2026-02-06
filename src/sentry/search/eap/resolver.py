@@ -529,6 +529,62 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
 
+        # Handle lists containing None for IN/NOT IN operators
+        if isinstance(value, list) and None in value and term.operator in constants.IN_OPERATORS:
+            non_none_values = [v for v in value if v is not None]
+
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+
+            if term.operator == "IN":
+                filters = []
+                filters.append(TraceItemFilter(not_filter=NotFilter(filters=[exists_filter])))
+
+                if non_none_values:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, non_none_values
+                                ),
+                                ignore_case=self.params.case_insensitive
+                                and resolved_column.search_type == "string",
+                            )
+                        )
+                    )
+
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=filters)),
+                    context_definition,
+                )
+            else:  # NOT IN
+                filters = [exists_filter]
+
+                if non_none_values:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, non_none_values
+                                ),
+                                ignore_case=self.params.case_insensitive
+                                and resolved_column.search_type == "string",
+                            )
+                        )
+                    )
+
+                return (
+                    TraceItemFilter(and_filter=AndFilter(filters=filters)),
+                    context_definition,
+                )
+
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(
@@ -1121,8 +1177,12 @@ class SearchResolver:
                 ),
                 [],
             )
-        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
-        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        lhs, lhs_contexts = (
+            self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
+        )
+        rhs, rhs_contexts = (
+            self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        )
         has_aggregates = False
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
@@ -1154,10 +1214,10 @@ class SearchResolver:
         """
         if isinstance(operation, arithmetic.Operation):
             lhs, lhs_contexts = (
-                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+                self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
             )
             rhs, rhs_contexts = (
-                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+                self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
             )
             vcc = []
             if lhs_contexts:

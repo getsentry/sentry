@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -70,7 +71,7 @@ export default function GroupingInfo({
 
   return (
     <Fragment>
-      <ConfigHeader>
+      <Flex justify="between" marginBottom="2xs" gap="md">
         {hasStreamlinedUI && (
           <GroupInfoSummary
             event={event}
@@ -86,7 +87,7 @@ export default function GroupingInfo({
             {feedbackComponent}
           </div>
         )}
-      </ConfigHeader>
+      </Flex>
       <ToggleContainer>
         <SegmentedControl
           aria-label={t('Filter by contribution')}
@@ -119,13 +120,6 @@ export default function GroupingInfo({
     </Fragment>
   );
 }
-
-const ConfigHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xs']};
-`;
 
 const ToggleContainer = styled(Flex)`
   justify-content: flex-start;

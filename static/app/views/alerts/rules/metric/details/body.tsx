@@ -3,16 +3,22 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -47,6 +53,7 @@ import {
 import type {TimePeriodType} from './constants';
 import {SELECTOR_RELATIVE_PERIODS} from './constants';
 import MetricChart from './metricChart';
+import {MetricAlertOngoingIssues} from './ongoingIssues';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
@@ -120,7 +127,7 @@ export default function MetricDetailsBody({
     dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
       ? query
       : (query ? `(${query}) AND (${eventType})` : eventType).trim();
-  const relativeOptions = {
+  const relativeOptions: Record<string, string> = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
@@ -187,7 +194,7 @@ export default function MetricDetailsBody({
             rule={rule}
             project={project}
           />
-          <StyledSubHeader>
+          <Flex align="center" marginBottom="xl">
             <StyledTimeRangeSelector
               relative={timePeriod.period ?? ''}
               start={(timePeriod.custom && timePeriod.start) || null}
@@ -196,12 +203,13 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerProps={{
-                children: timePeriod.custom
-                  ? timePeriod.label
-                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    relativeOptions[timePeriod.period ?? ''],
-              }}
+              trigger={triggerProps => (
+                <TimeRangeSelectTrigger {...triggerProps}>
+                  {timePeriod.custom
+                    ? timePeriod.label
+                    : (relativeOptions[timePeriod.period ?? ''] ?? triggerProps.children)}
+                </TimeRangeSelectTrigger>
+              )}
             />
             {selectedIncident && (
               <Tooltip
@@ -218,7 +226,7 @@ export default function MetricDetailsBody({
                 </Link>
               </Tooltip>
             )}
-          </StyledSubHeader>
+          </Flex>
 
           {selectedIncident?.alertRule.detectionType ===
             AlertRuleComparisonType.DYNAMIC && (
@@ -246,7 +254,11 @@ export default function MetricDetailsBody({
             theme={theme}
           />
           <DetailWrapper>
-            <ActivityWrapper>
+            <Stack flex="1" width="100%">
+              {organization.features.includes('workflow-engine-metric-issue-ui') && (
+                <MetricAlertOngoingIssues project={project} rule={rule} />
+              )}
+              <SectionHeading>{t('Alert History')}</SectionHeading>
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
@@ -274,7 +286,7 @@ export default function MetricDetailsBody({
                   filter={extractEventTypeFilterFromRule(rule)}
                 />
               )}
-            </ActivityWrapper>
+            </Stack>
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
@@ -308,7 +320,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
                 setShowTransactionsDeprecationAlert(false);
               }}
               size="zero"
-              borderless
+              priority="transparent"
             />
           }
         >
@@ -384,21 +396,8 @@ const StyledLayoutBody = styled(Layout.Body)`
   }
 `;
 
-const ActivityWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-`;
-
 const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
-`;
-
-const StyledSubHeader = styled('div')`
-  margin-bottom: ${space(2)};
-  display: flex;
-  align-items: center;
 `;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`

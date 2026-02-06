@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconClose, IconFilter} from 'sentry/icons';
@@ -80,7 +81,7 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
         {filterBy && (
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={isFiltered ? <IconClose /> : <IconFilter />}
             title={filterLabel}
             aria-label={filterLabel}
@@ -115,16 +116,24 @@ export function SummaryCard({label, tooltip, value, filterBy, extra}: SummaryCar
 
 const SummaryCardContainer = styled(Flex)<{isClickable?: boolean; isFiltered?: boolean}>`
   border: 1px solid
-    ${p => (p.isFiltered ? p.theme.colors.blue400 : p.theme.tokens.border.primary)};
+    ${p =>
+      p.isFiltered
+        ? p.theme.tokens.border.accent.vibrant
+        : p.theme.tokens.border.primary};
   background: ${p =>
-    p.isFiltered ? p.theme.colors.blue100 : p.theme.tokens.background.primary};
+    p.isFiltered
+      ? p.theme.tokens.background.transparent.accent.muted
+      : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
 
   ${p =>
     p.isClickable &&
     `
     &:hover {
-      background: ${p.theme.backgroundSecondary};
+      background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+    &:active {
+      background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
     }
   `}
 `;

@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 
 import {tct} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -31,11 +32,14 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} =
     useApiQuery<DashboardListItem[]>(
       [
-        `/organizations/${organization.slug}/dashboards/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/dashboards/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
+            filter: 'excludePrebuilt',
             // We only need to know there are at most the limited # of dashboards.
-            per_page: dashboardsLimit + 1, // +1 to account for the General dashboard
+            per_page: dashboardsLimit,
           },
         },
       ],
@@ -45,9 +49,8 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       }
     );
 
-  // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =
-    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
+    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&
       dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT) ||
     dashboardsLimit === 0;
   const limitMessage = hasReachedDashboardLimit

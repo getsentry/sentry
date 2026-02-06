@@ -3,9 +3,10 @@ import {Fragment, memo, useCallback, useRef, useState} from 'react';
 import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -336,7 +337,7 @@ const TableRow = memo(function TableRow({
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
+              to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>
@@ -386,8 +387,8 @@ const SizingWrapper = styled('div')`
 `;
 
 const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.5;
   text-align: right;
 `;
@@ -400,8 +401,8 @@ const Ellipsis = styled('span')`
 `;
 
 const ErrorMessage = styled('span')`
-  color: ${p => p.theme.error};
-  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.tokens.content.danger};
+  font-size: ${p => p.theme.font.size.xs};
   line-height: 1.5;
   text-align: right;
 `;
@@ -458,8 +459,8 @@ const FirstCellLine = styled('div')`
 `;
 
 const SubContent = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
   text-align: right;
   white-space: nowrap;
 
@@ -473,7 +474,7 @@ const SubContent = styled('div')`
     overflow: hidden;
 
     &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => p.theme.tokens.background.secondary};
     }
   }
 
@@ -515,12 +516,12 @@ const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
   margin-right: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SettingsButton = styled(LinkButton)`
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   visibility: hidden;
 
   &:focus {
@@ -532,12 +533,12 @@ const SettingsButton = styled(LinkButton)`
 `;
 
 const TableHeader = styled(TableRowWrapper)`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.tokens.background.secondary};
   white-space: nowrap;
   line-height: 1;
   height: 45px;

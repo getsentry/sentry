@@ -28,7 +28,7 @@ export enum GroupSearchViewCreatedBy {
 }
 
 export type StarredGroupSearchView = {
-  createdBy: AvatarUser;
+  createdBy: AvatarUser | null;
   dateCreated: string;
   dateUpdated: string;
   environments: string[];

@@ -49,6 +49,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * The badge type to display for the AI search option.
+   * Defaults to 'beta'.
+   */
+  aiSearchBadgeType?: 'alpha' | 'beta';
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
@@ -217,7 +222,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            borderless
+            priority="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -230,7 +235,7 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           onClick={() => {
             setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});
@@ -313,7 +318,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSize.md};
+  font-size: ${p => p.theme.font.size.md};
   cursor: text;
 `;
 
@@ -328,11 +333,11 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const ActionButton = styled(Button)<{active?: boolean}>`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   ${p =>
     p.active &&
     css`
-      background-color: ${p.theme.colors.blue200};
+      background-color: ${p.theme.tokens.background.transparent.accent.muted};
     `}
 `;
 
@@ -343,6 +348,6 @@ const PositionedSearchIconContainer = styled('div')`
 `;
 
 const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
 `;

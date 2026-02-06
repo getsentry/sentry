@@ -5,7 +5,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -151,7 +152,7 @@ const FnName = styled('span')`
 `;
 
 const UnfocusedText = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Parameters = styled('span')`
@@ -169,7 +170,7 @@ const KeyEditing = styled('div')`
 
   :focus-within {
     ${Parameters} {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
       height: 100%;
     }
   }

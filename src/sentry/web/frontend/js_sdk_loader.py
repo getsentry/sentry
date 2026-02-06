@@ -30,6 +30,8 @@ class SdkConfig(TypedDict):
     replaysSessionSampleRate: NotRequired[float]
     replaysOnErrorSampleRate: NotRequired[float]
     debug: NotRequired[bool]
+    autoInjectFeedback: NotRequired[bool]
+    enableLogs: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -38,6 +40,12 @@ class LoaderInternalConfig(TypedDict):
     hasPerformance: bool
     hasReplay: bool
     hasDebug: bool
+    hasFeedback: bool
+    hasLogsAndMetrics: bool
+    userEnabledPerformance: bool
+    userEnabledReplay: bool
+    userEnabledFeedback: bool
+    userEnabledLogsAndMetrics: bool
 
 
 class LoaderContext(TypedDict):
@@ -61,20 +69,76 @@ class JavaScriptSdkLoader(View):
                 "hasPerformance": False,
                 "hasReplay": False,
                 "hasDebug": False,
+                "hasFeedback": False,
+                "hasLogsAndMetrics": False,
+                "userEnabledPerformance": False,
+                "userEnabledReplay": False,
+                "userEnabledFeedback": False,
+                "userEnabledLogsAndMetrics": False,
             }
 
         is_v7_sdk = sdk_version >= Version("7.0.0") and sdk_version < Version("8.0.0")
         is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
+        is_greater_or_equal_v10_sdk = sdk_version >= Version("10.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
         has_performance = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
         has_debug = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
+        has_feedback = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_FEEDBACK)
+        has_logs_and_metrics = get_dynamic_sdk_loader_option(
+            key, DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS
+        )
+
+        # Store the user's original preferences before we modify them for bundle selection.
+        # We only want to enable features that the user explicitly requested.
+        user_enabled_performance = has_performance
+        user_enabled_replay = has_replay
+        user_enabled_feedback = has_feedback
+        user_enabled_logs_and_metrics = has_logs_and_metrics
 
         # The order in which these modifiers are added is important, as the
         # bundle name is built up from left to right.
         # https://docs.sentry.io/platforms/javascript/install/cdn/
+
+        # Available bundles:
+        # - bundle (base)
+        # - bundle.feedback
+        # - bundle.logs.metrics
+        # - bundle.replay
+        # - bundle.replay.feedback
+        # - bundle.replay.logs.metrics
+        # - bundle.tracing
+        # - bundle.tracing.logs.metrics
+        # - bundle.tracing.replay
+        # - bundle.tracing.replay.feedback
+        # - bundle.tracing.replay.feedback.logs.metrics
+        # - bundle.tracing.replay.logs.metrics
+        #
+        # Note: There is NO bundle.tracing.feedback (tracing + feedback without replay).
+        # If feedback is combined with tracing (without replay), we must use the full bundle.
+        #
+        # Note: There is NO bundle.feedback.logs.metrics, bundle.tracing.feedback.logs.metrics,
+        # or bundle.replay.feedback.logs.metrics. If feedback is combined with logs+metrics,
+        # we must use the full bundle (tracing.replay.feedback.logs.metrics).
+
+        # Feedback bundles require SDK >= 7.85.0, but the frontend only allows selecting
+        # major versions (7.x, 8.x), which resolve to versions that support feedback.
+
+        # When feedback is combined with tracing (but not replay), we must serve the full bundle
+        # which includes tracing, replay, and feedback. Update the flags accordingly.
+        feedback_with_tracing_no_replay = has_feedback and has_performance and not has_replay
+        if is_greater_or_equal_v7_sdk and feedback_with_tracing_no_replay:
+            has_replay = True
+
+        # Logs and metrics bundles require SDK >= 10.0.0.
+        # When logs+metrics is combined with feedback, we must serve the full bundle
+        # (tracing.replay.feedback.logs.metrics) because there's no feedback.logs.metrics bundle.
+        logs_metrics_with_feedback = has_logs_and_metrics and has_feedback
+        if is_greater_or_equal_v10_sdk and logs_metrics_with_feedback:
+            has_performance = True
+            has_replay = True
 
         # We depend on fixes in the tracing bundle that are only available in v7
         if is_greater_or_equal_v7_sdk and has_performance:
@@ -86,12 +150,24 @@ class JavaScriptSdkLoader(View):
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
+        if is_greater_or_equal_v7_sdk and has_feedback:
+            bundle_kind_modifier += ".feedback"
+            is_lazy = False
+
+        if is_greater_or_equal_v10_sdk and has_logs_and_metrics:
+            bundle_kind_modifier += ".logs.metrics"
+            is_lazy = False
+        else:
+            # If SDK < 10.0.0, disable logs+metrics feature even if user requested it
+            has_logs_and_metrics = False
+            user_enabled_logs_and_metrics = False
+
         # In JavaScript SDK version 7, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
         #
-        # If we are loading replay, do not add the es5 modifier, as those bundles are
-        # ES6 only.
-        if is_v7_sdk and not has_replay:
+        # If we are loading replay or feedback, do not add the es5 modifier, as those bundles are ES6 only.
+        # Note: logs+metrics bundles don't exist for v7 (they require v10+)
+        if is_v7_sdk and not has_replay and not has_feedback:
             bundle_kind_modifier += ".es5"
 
         if has_debug:
@@ -103,6 +179,12 @@ class JavaScriptSdkLoader(View):
             "hasPerformance": has_performance,
             "hasReplay": has_replay,
             "hasDebug": has_debug,
+            "hasFeedback": has_feedback,
+            "hasLogsAndMetrics": has_logs_and_metrics,
+            "userEnabledPerformance": user_enabled_performance,
+            "userEnabledReplay": user_enabled_replay,
+            "userEnabledFeedback": user_enabled_feedback,
+            "userEnabledLogsAndMetrics": user_enabled_logs_and_metrics,
         }
 
     def _get_context(
@@ -142,12 +224,20 @@ class JavaScriptSdkLoader(View):
         if loader_config["hasDebug"]:
             config["debug"] = True
 
-        if loader_config["hasPerformance"]:
+        # Only enable feature configs if the user explicitly enabled them, not just because
+        # we're loading a bundle that includes those features for compatibility reasons.
+        if loader_config["userEnabledPerformance"]:
             config["tracesSampleRate"] = 1
 
-        if loader_config["hasReplay"]:
+        if loader_config["userEnabledReplay"]:
             config["replaysSessionSampleRate"] = 0.1
             config["replaysOnErrorSampleRate"] = 1
+
+        if loader_config["userEnabledFeedback"]:
+            config["autoInjectFeedback"] = True
+
+        if loader_config["userEnabledLogsAndMetrics"]:
+            config["enableLogs"] = True
 
         return (
             {
@@ -198,6 +288,8 @@ class JavaScriptSdkLoader(View):
                     has_performance=loader_config["hasPerformance"],
                     has_replay=loader_config["hasReplay"],
                     has_debug=loader_config["hasDebug"],
+                    has_feedback=loader_config["hasFeedback"],
+                    has_logs_and_metrics=loader_config["hasLogsAndMetrics"],
                     sdk_version=str(sdk_version) if sdk_version else None,
                     tmpl=tmpl,
                 )

@@ -139,9 +139,14 @@ export const useSeerExplorer = () => {
     }
   }, [location, navigate, openExplorerPanel, setRunId]);
 
+  // Check if Seer drawer is open - if so, always poll
+  const isSeerDrawerOpen = !!location.query?.seerDrawer;
+
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
+  const [wasJustInterrupted, setWasJustInterrupted] = useState<boolean>(false);
+  const prevInterruptRequestedRef = useRef<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -152,13 +157,21 @@ export const useSeerExplorer = () => {
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
 
-  const {data: apiData, isPending} = useApiQuery<SeerExplorerResponse>(
+  const {
+    data: apiData,
+    isPending,
+    isError,
+  } = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(orgSlug || '', runId || undefined),
     {
       staleTime: 0,
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
+        // Always poll when Seer drawer is open (actions triggered from drawer need updates)
+        if (isSeerDrawerOpen) {
+          return POLL_INTERVAL;
+        }
         if (isPolling(query.state.data?.[0]?.session || null, waitingForResponse)) {
           return POLL_INTERVAL;
         }
@@ -180,6 +193,7 @@ export const useSeerExplorer = () => {
       const screenshot = captureAsciiSnapshot?.();
 
       setWaitingForResponse(true);
+      setWasJustInterrupted(false);
 
       trackAnalytics('seer.explorer.message_sent', {
         referrer: getPageReferrer(),
@@ -499,11 +513,22 @@ export const useSeerExplorer = () => {
     }
   }
 
-  // Reset interruptRequested when polling stops after an interrupt was requested
+  // Detect when interrupt succeeds and set wasJustInterrupted
   useEffect(() => {
-    if (interruptRequested && !isPolling(filteredSessionData, waitingForResponse)) {
+    const prevInterruptRequested = prevInterruptRequestedRef.current;
+    const currentlyPolling = isPolling(filteredSessionData, waitingForResponse);
+
+    // Reset interruptRequested when polling stops after an interrupt was requested
+    if (interruptRequested && !currentlyPolling) {
       setInterruptRequested(false);
     }
+
+    // Detect successful interrupt: was requested, now not requested, and not polling
+    if (prevInterruptRequested && !interruptRequested && !currentlyPolling) {
+      setWasJustInterrupted(true);
+    }
+
+    prevInterruptRequestedRef.current = interruptRequested;
   }, [interruptRequested, filteredSessionData, waitingForResponse]);
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
@@ -514,6 +539,7 @@ export const useSeerExplorer = () => {
     setDeletedFromIndex(null);
     setOptimistic(null);
     setInterruptRequested(false);
+    setWasJustInterrupted(false);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -531,6 +557,7 @@ export const useSeerExplorer = () => {
       setDeletedFromIndex(null);
       setWaitingForResponse(false);
       setInterruptRequested(false);
+      setWasJustInterrupted(false);
 
       // Set the new run ID
       setRunId(newRunId);
@@ -549,6 +576,7 @@ export const useSeerExplorer = () => {
     sessionData: filteredSessionData,
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
+    isError,
     sendMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
@@ -559,6 +587,9 @@ export const useSeerExplorer = () => {
     deletedFromIndex,
     interruptRun,
     interruptRequested,
+    /** True after an interrupt succeeds, until the user sends a new message or switches sessions. */
+    wasJustInterrupted,
+    clearWasJustInterrupted: useCallback(() => setWasJustInterrupted(false), []),
     respondToUserInput,
     createPR,
   };

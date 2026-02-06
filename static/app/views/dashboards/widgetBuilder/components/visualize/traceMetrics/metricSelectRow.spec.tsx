@@ -15,12 +15,12 @@ describe('MetricSelectRow', () => {
       body: {
         data: [
           {
-            ['metric.name']: 'test_metric',
+            ['metric.name']: 'alpha_metric',
             ['metric.type']: 'counter',
             ['count(metric.name)']: 1,
           },
           {
-            ['metric.name']: 'other_metric',
+            ['metric.name']: 'beta_metric',
             ['metric.type']: 'counter',
             ['count(metric.name)']: 1,
           },
@@ -59,8 +59,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,test_metric,counter,-)',
-                'sum(value,test_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,-)',
+                'sum(value,alpha_metric,counter,-)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -70,17 +70,17 @@ describe('MetricSelectRow', () => {
       }
     );
 
-    // Both metric selectors show the same metric value
-    const metricSelectors = await screen.findAllByRole('button', {name: 'test_metric'});
+    // Both metric selectors show the same metric value (alphabetically first)
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
 
-    // Change the metric to 'other_metric'
+    // Change the metric to 'beta_metric'
     await userEvent.click(metricSelectors[0]!);
-    await userEvent.click(await screen.findByRole('option', {name: 'other_metric'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
 
     // Both metric selectors show the new metric value
     expect(new Set(metricSelectors.map(selector => selector.textContent))).toEqual(
-      new Set(['other_metric'])
+      new Set(['beta_metric'])
     );
   });
 });
