@@ -4,8 +4,8 @@ from typing import Any
 import pytest
 
 from sentry.scm.actions import SourceCodeManager
-from sentry.scm.errors import SCMCodedError
-from sentry.scm.types import Repository
+from sentry.scm.errors import SCMCodedError, SCMProviderException
+from sentry.scm.types import ReactionResult, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -239,3 +239,23 @@ ACTION_TESTS = (
 def test_action_success(method, kwargs: dict[str, Any], check):
     result = method(make_scm(), **kwargs)
     check(result)
+
+
+def test_provider_exception_is_not_wrapped():
+    """SCMProviderException should pass through exec_provider_fn, not be wrapped as SCMUnhandledException."""
+
+    class FailingProvider(BaseTestProvider):
+        def get_issue_reactions(
+            self, repository: Repository, issue_id: str
+        ) -> list[ReactionResult]:
+            raise SCMProviderException("GitHub API error")
+
+    scm = SourceCodeManager(
+        organization_id=1,
+        repository_id=1,
+        fetch_repository=fetch_repository,
+        fetch_service_provider=lambda _a, _b: FailingProvider(),
+    )
+
+    with pytest.raises(SCMProviderException):
+        scm.get_issue_reactions(issue_id="1")

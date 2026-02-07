@@ -6,7 +6,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMCodedError, SCMUnhandledException
+from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import ExternalId, Provider, ProviderName, Referrer, Repository, RepositoryId
 
@@ -134,5 +134,7 @@ def exec_provider_fn[T](
 
     try:
         return provider_fn(repository, provider)
+    except SCMError:
+        raise
     except Exception as e:
         raise SCMUnhandledException from e
