@@ -57,10 +57,10 @@ const COLUMNS = [
   {
     title: (
       <Flex gap="sm" align="center">
-        {t('Background Agent')}
+        {t('Coding Agent')}
         <QuestionTooltip
           title={t(
-            'Background agent delegation can only be changed on the individual project settings page. Background agents have more settings that are not shown here.'
+            'Coding agent delegation can only be changed on the individual project settings page. Coding agents have more settings that are not shown here.'
           )}
           size="xs"
         />

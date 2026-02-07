@@ -76,7 +76,7 @@ export default function SeerSettingsContainer({canWrite, preference, project}: P
       {showBackgroundAgentSection && (
         <Fragment>
           <PanelNoMargin>
-            <PanelHeader>{t('Agent Delegation')}</PanelHeader>
+            <PanelHeader>{t('Coding Agent')}</PanelHeader>
             <PanelBody>
               <BackgroundAgentPicker
                 supportedIntegrations={supportedIntegrations}
