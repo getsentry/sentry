@@ -564,12 +564,80 @@ The socket tracks rerun counts per test for crash recovery. The timeout likely c
 
 **Fix:** Set `pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False` in `tests/conftest.py`. This forces rerunfailures to use the in-memory `StatusDB()` instead of the socket-based one. Normal reruns continue working.
 
-### Performance Data
+#### 4. Non-deterministic parametrize ordering (`PYTHONHASHSEED`)
 
-- Tier 2 tests: 1,021ms/test average (3.8x slower than Tier 1's 268ms/test)
-- With `-n2 --dist=loadfile`: expected ~40-50% speedup per shard (2 parallel workers)
-- Potential to combine with tiering for compound improvement
+Even with the region name fix, workers collected different test lists due to parametrized tests whose values come from dicts/sets. Python's hash randomization causes different iteration order per process.
+
+**Fix:** Set `PYTHONHASHSEED=0` in the workflow to ensure deterministic hash ordering across all workers.
+
+### First xdist CI Run Results
+
+With obstacles 1-4 resolved, xdist ran successfully with `-n2 --dist=loadfile`:
+
+- **1,400-1,500 tests passed per shard** (same as baseline)
+- **2-5 failures per shard** (Snuba data contamination + snowflake collisions)
+- **59-66 reruns per shard** (reruns working via `HAS_PYTEST_HANDLECRASHITEM=False`)
+- **11-13 min per shard** vs baseline ~17 min (~25-35% speedup)
+
+### Failure Categories
+
+**1. Snuba data contamination (most failures):**
+Worker A's `reset_snuba` calls `TRUNCATE TABLE` on shared Clickhouse tables, wiping worker B's data mid-test. Examples: `test_in_query_events` (missing events), `test_top_events_*` (wrong counts).
+
+**2. Snowflake ID collisions:**
+Workers share Redis, causing concurrent snowflake ID generation to collide. Error: `MaxSnowflakeRetryError: Max allowed ID retry reached`. Affects Organization/Project/Team ID generation.
+
+**3. Shared state race conditions:**
+Rate limiter state, integration pipeline state shared across workers.
+
+### The Fundamental Snuba Isolation Problem
+
+**Why `reset_snuba` exists:** Snuba/Clickhouse has no transaction rollback. When `store_event()` writes to Clickhouse, that data persists even after Django rolls back Postgres. Tests within the same class reuse the same project (created in `setUp`), so test B would see test A's stale events without cleanup. `reset_snuba` TRUNCATEs all tables before each test to ensure a clean slate.
+
+**Why this breaks xdist:** `TRUNCATE TABLE` is table-wide. Worker gw0's reset wipes gw1's data. There's no project-scoped cleanup endpoint in Snuba.
+
+**Why we can't just skip `reset_snuba`:** Tests within a class share the same project_id (from `setUp`). Without cleanup, `test_no_events` would see leftover events from `test_with_event` in the same class, because both query the same project_id and Clickhouse doesn't roll back.
+
+**Why unique IDs alone don't solve it:** Unique IDs across workers prevent cross-worker contamination. But within a single worker, consecutive test methods on the same `setUp` project still need cleanup between tests.
+
+### Solution: Project-Scoped Snuba Cleanup
+
+The path forward requires changing `reset_snuba` from `TRUNCATE TABLE` (wipes everything) to `DELETE WHERE project_id IN (...)` (wipes only the current worker's data).
+
+**Snuba side:** Add a new test endpoint `/tests/{dataset}/delete?project_id=X` that uses Clickhouse lightweight deletes (`DELETE WHERE project_id = X`). Snuba already has `delete_from_storage()` infrastructure for this. Estimated ~20 lines of code.
+
+**Sentry side:**
+1. Change `reset_snuba` to call the new project-scoped endpoint instead of the TRUNCATE endpoint
+2. Track which project_ids the current worker has used
+3. Prefix snowflake Redis keys with xdist worker ID to prevent ID collisions
+4. Offset Postgres auto-increment sequences per worker so IDs are globally unique
+
+**Alternative (no Snuba changes):** If ALL tests created fresh projects for each test method (not just in `setUp`), we could skip `reset_snuba` entirely. But many test classes share projects across methods, making this impractical without a large test refactor.
+
+### Snowflake ID Fix
+
+Three models use snowflake IDs (Organization, Project, Team) via Redis-backed counters. Under xdist, workers share Redis and collide on the counter keys.
+
+**Fix:** Prefix the Redis key with the xdist worker ID:
+- Current: `snowflakeid:project_snowflake_key:{timestamp}`
+- Under xdist: `snowflakeid:gw0:project_snowflake_key:{timestamp}`
+
+This keeps snowflake testing enabled while preventing cross-worker collisions. No changes needed when running without xdist.
+
+### xdist Summary
+
+| What | Status |
+|------|--------|
+| Test collection consistency | Solved (TESTRUNUID seed + PYTHONHASHSEED=0) |
+| pytest-rerunfailures compatibility | Solved (HAS_PYTEST_HANDLECRASHITEM=False) |
+| Snuba data isolation | **Requires Snuba API change** (project-scoped delete) |
+| Snowflake ID collisions | Requires worker-prefixed Redis keys |
+| Performance with -n2 | ~25-35% speedup (11-13 min vs 17 min baseline) |
+
+xdist is promising but requires a small Snuba API addition for production use. The tiered approach works today without any cross-repo changes.
 
 ## Expected Impact
 
-~68% of backend tests can run with just Postgres + Redis + Redis-cluster + Kafka (setup time: ~15-20s) instead of the full Snuba stack (setup time: ~2.5-3 min). Combined with intelligent sharding using the same 22 shard count as today, and potentially xdist parallelism within shards, this reduces total CI wall-clock time while using the same runner resources.
+**Tiered CI (working today):** ~68% of backend tests run with lighter services (setup ~15-20s vs ~2.5-3 min). Same 22 shards, same runner resources.
+
+**xdist (future, requires Snuba change):** Additional ~25-35% speedup within each shard via 2-worker parallelism. Combined with tiering, could reduce total CI wall-clock time significantly.
