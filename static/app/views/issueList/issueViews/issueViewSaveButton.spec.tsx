@@ -328,4 +328,161 @@ describe('IssueViewSaveButton', () => {
     });
     expect(await screen.findByRole('button', {name: 'Save As'})).toBeDisabled();
   });
+
+  describe('AI title generation on save', () => {
+    const saveViewLocation = {
+      pathname: '/organizations/org-slug/issues/views/100/',
+      query: {
+        project: '1',
+        environment: 'dev',
+        statsPeriod: '7d',
+        query: 'is:unresolved',
+        sort: IssueSortOptions.DATE,
+      },
+    };
+
+    it('generates title when saving a new view', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        body: {...mockGroupSearchView, name: 'New View'},
+      });
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Unresolved Errors'},
+      });
+      const mockUpdateIssueView = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        method: 'PUT',
+        body: {...mockGroupSearchView, name: 'Unresolved Errors'},
+      });
+
+      render(<IssueViewSaveButton {...defaultProps} />, {
+        initialRouterConfig: {
+          ...initialRouterConfigView,
+          location: {
+            ...saveViewLocation,
+            query: {
+              ...saveViewLocation.query,
+              new: 'true',
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          features: ['issue-views', 'issue-view-ai-title'],
+        }),
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalledWith(
+          '/organizations/org-slug/issue-view-title/generate/',
+          expect.objectContaining({
+            method: 'POST',
+            data: {query: 'is:unresolved'},
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockUpdateIssueView).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Unresolved Errors',
+            }),
+          })
+        );
+      });
+    });
+
+    it('does not generate title when user has already renamed a new view', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        body: {...mockGroupSearchView, name: 'Custom View Name'},
+      });
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated Title'},
+      });
+      const mockUpdateIssueView = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        method: 'PUT',
+        body: {...mockGroupSearchView, name: 'Custom View Name'},
+      });
+
+      render(<IssueViewSaveButton {...defaultProps} />, {
+        initialRouterConfig: {
+          ...initialRouterConfigView,
+          location: {
+            ...saveViewLocation,
+            query: {
+              ...saveViewLocation.query,
+              new: 'true',
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          features: ['issue-views', 'issue-view-ai-title'],
+        }),
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockUpdateIssueView).toHaveBeenCalled();
+      });
+
+      expect(mockGenerateTitle).not.toHaveBeenCalled();
+    });
+
+    it('falls back to existing name when title generation fails', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        body: {...mockGroupSearchView, name: 'New View'},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
+      const mockUpdateIssueView = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/100/',
+        method: 'PUT',
+        body: mockGroupSearchView,
+      });
+
+      render(<IssueViewSaveButton {...defaultProps} />, {
+        initialRouterConfig: {
+          ...initialRouterConfigView,
+          location: {
+            ...saveViewLocation,
+            query: {
+              ...saveViewLocation.query,
+              new: 'true',
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          features: ['issue-views', 'issue-view-ai-title'],
+        }),
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(mockUpdateIssueView).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'New View',
+            }),
+          })
+        );
+      });
+    });
+  });
 });
