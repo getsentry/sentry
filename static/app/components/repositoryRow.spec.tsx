@@ -20,6 +20,9 @@ describe('RepositoryRow', () => {
   const pendingRepo = RepositoryFixture({
     status: RepositoryStatus.PENDING_DELETION,
   });
+  const unknownProviderRepo = RepositoryFixture({
+    provider: {id: 'unknown', name: 'Unknown Provider'},
+  });
 
   describe('rendering with access', () => {
     const organization = OrganizationFixture({
@@ -38,6 +41,34 @@ describe('RepositoryRow', () => {
 
       // No cancel button
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+    });
+
+    it('displays "Unknown Provider" with a help tooltip for repos without a provider', () => {
+      render(
+        <RepositoryRow
+          repository={unknownProviderRepo}
+          orgSlug={organization.slug}
+          showProvider
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText('Unknown Provider')).toBeInTheDocument();
+      expect(screen.getByTestId('more-information')).toBeInTheDocument();
+    });
+
+    it('displays provider name when provider is known', () => {
+      render(
+        <RepositoryRow
+          repository={repository}
+          orgSlug={organization.slug}
+          showProvider
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText('github')).toBeInTheDocument();
+      expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
     });
 
     it('displays cancel pending button', () => {
