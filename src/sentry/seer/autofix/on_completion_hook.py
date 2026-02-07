@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import (
@@ -19,6 +20,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
+from sentry.seer.supergroups import trigger_supergroups_embedding
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -74,6 +76,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         # Send webhook for the completed step
         cls._send_step_webhook(organization, run_id, artifacts, state)
+
+        current_step = cls._get_current_step(artifacts, state)
+        if current_step == AutofixStep.ROOT_CAUSE:
+            cls._maybe_trigger_supergroups_embedding(organization, run_id, state, artifacts)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, artifacts)
@@ -152,6 +158,43 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                         "webhook_event": webhook_action_type.value,
                     },
                 )
+
+    @classmethod
+    def _maybe_trigger_supergroups_embedding(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        artifacts: dict[str, Artifact],
+    ) -> None:
+        """Trigger supergroups embedding if feature flag is enabled."""
+        group_id = state.metadata.get("group_id") if state.metadata else None
+        if group_id is None:
+            return
+
+        group = Group.objects.get(id=group_id)
+        if not features.has("projects:supergroup-embeddings-explorer", group.project):
+            return
+
+        root_cause_artifact = artifacts.get("root_cause")
+        if not root_cause_artifact or not root_cause_artifact.data:
+            return
+
+        try:
+            trigger_supergroups_embedding(
+                organization_id=organization.id,
+                group_id=group_id,
+                artifact_data=root_cause_artifact.data,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.supergroups_embedding_failed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
 
     @classmethod
     def _get_current_step(
