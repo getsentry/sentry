@@ -1,4 +1,5 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -112,6 +113,10 @@ describe('CreateIssueViewModal', () => {
   }, 10_000);
 
   describe('AI name streaming animation', () => {
+    const aiOrganization = OrganizationFixture({
+      features: ['issue-view-ai-title'],
+    });
+
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -120,8 +125,46 @@ describe('CreateIssueViewModal', () => {
       jest.useRealTimers();
     });
 
+    it('applies a generated title when name is empty', async () => {
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} />, {
+        organization: aiOrganization,
+      });
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalledWith(
+          '/organizations/org-slug/issue-view-title/generate/',
+          expect.objectContaining({
+            method: 'POST',
+            data: {query: 'is:unresolved foo'},
+          })
+        );
+      });
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('Generated View Title');
+    });
+
     it('does not override a pre-filled name', () => {
-      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />);
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />, {
+        organization: aiOrganization,
+      });
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
 
@@ -130,16 +173,26 @@ describe('CreateIssueViewModal', () => {
       });
 
       expect(nameInput).toHaveValue('My Custom Name');
+      expect(mockGenerateTitle).not.toHaveBeenCalled();
     });
 
     it('does not override user edits', async () => {
-      render(<CreateIssueViewModal {...defaultProps} />);
+      const mockGenerateTitle = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issue-view-title/generate/',
+        method: 'POST',
+        body: {title: 'Generated View Title'},
+      });
+
+      render(<CreateIssueViewModal {...defaultProps} />, {
+        organization: aiOrganization,
+      });
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
 
-      await Promise.resolve();
-      await Promise.resolve();
+      await waitFor(() => {
+        expect(mockGenerateTitle).toHaveBeenCalled();
+      });
 
       act(() => {
         jest.advanceTimersByTime(80);

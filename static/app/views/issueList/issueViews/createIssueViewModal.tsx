@@ -35,9 +35,18 @@ interface CreateIssueViewModalProps
 /**
  * Applies an ai generated name with a typing animation to the name field
  */
-function useGeneratedIssueViewName(formModel: FormModel) {
+function useGeneratedIssueViewName({
+  formModel,
+  query,
+  enabled = true,
+}: {
+  formModel: FormModel;
+  query: string;
+  enabled?: boolean;
+}) {
   const {isLoading: isGeneratingTitle, data} = useGenerateIssueViewTitle({
-    query: formModel.getValue<string>('query'),
+    query,
+    enabled,
   });
   const userEditedNameRef = useRef(false);
   const {triggerFormTypingAnimation, cancelFormTypingAnimation} = useFormTypingAnimation({
@@ -85,9 +94,15 @@ export function CreateIssueViewModal({
   analyticsSurface,
 }: CreateIssueViewModalProps) {
   const [formModel] = useState(() => new FormModel());
+  const initialName = incomingName ?? '';
+  const initialQuery = incomingQuery ?? 'is:unresolved';
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {isGeneratingTitle, handleNameChange} = useGeneratedIssueViewName(formModel);
+  const {isGeneratingTitle, handleNameChange} = useGeneratedIssueViewName({
+    formModel,
+    query: initialQuery,
+    enabled: !initialName.trim(),
+  });
 
   const {
     mutate: createIssueView,
@@ -124,8 +139,8 @@ export function CreateIssueViewModal({
   };
 
   const initialData = {
-    name: incomingName ?? '',
-    query: incomingQuery ?? 'is:unresolved',
+    name: initialName,
+    query: initialQuery,
     querySort: incomingQuerySort ?? IssueSortOptions.DATE,
     projects: incomingProjects ?? [],
     environments: incomingEnvironments ?? [],
