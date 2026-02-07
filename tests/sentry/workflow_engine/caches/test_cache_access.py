@@ -48,3 +48,38 @@ class TestCacheAccess(TestCase):
     def test_delete__returns_false_when_key_not_exists(self) -> None:
         result = self.cache_access.delete()
         assert result is False
+
+    def test_delete_many__deletes_values(self) -> None:
+        keys = [f"val_{i}" for i in range(4)]
+        accessors = [_TestCacheAccess(key) for key in keys]
+        for accessor in accessors:
+            accessor.set("value", 5321)
+        _TestCacheAccess.delete_many(accessors)
+        for accessor in accessors:
+            assert accessor.get() is None
+
+    def test_get_many(self) -> None:
+        accessors = []
+        for i in range(5):
+            accessor = _TestCacheAccess(f"val_{i}")
+            if i % 2 == 0:
+                accessor.set("some_string")
+            accessors.append(accessor)
+        results = _TestCacheAccess.get_many(accessors)
+        results_by_key = {accessor.key(): result for accessor, result in results.items()}
+        assert results_by_key == {
+            "val_0": "some_string",
+            "val_1": None,
+            "val_2": "some_string",
+            "val_3": None,
+            "val_4": "some_string",
+        }
+
+    def test_set_many(self) -> None:
+        accessors = [_TestCacheAccess(f"val_{i}") for i in range(5)]
+        failed_accessors = _TestCacheAccess.set_many(
+            {accessor: "some_string" for accessor in accessors}, 60
+        )
+        assert failed_accessors == []
+        for accessor in accessors:
+            assert accessor.get() == "some_string"
