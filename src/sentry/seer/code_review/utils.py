@@ -412,9 +412,9 @@ def extract_github_info(
         "github_actor_id": None,
     }
 
-    repository = event.get("repository", {})
+    repository = event.get("repository") or {}
     if repository:
-        if owner := repository.get("owner", {}).get("login"):
+        if owner := (repository.get("owner") or {}).get("login"):
             result["github_owner"] = owner
         if repo_name := repository.get("name"):
             result["github_repo_name"] = repo_name
