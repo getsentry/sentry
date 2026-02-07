@@ -149,22 +149,17 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         return Response(data)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
+from sentry.api.bases.event import EventEndpoint
 
 
 @region_silo_endpoint
-class EventJsonEndpoint(ProjectEndpoint):
+class EventJsonEndpoint(EventEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
-        event = eventstore.backend.get_event_by_id(project.id, event_id)
-
-        if not event:
-            return Response({"detail": "Event not found"}, status=404)
+    def get(self, request: Request, project: Project, event: Event) -> Response:
 
         event_dict = event.as_dict()
         if isinstance(event_dict["datetime"], datetime):
