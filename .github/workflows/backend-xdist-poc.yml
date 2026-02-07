@@ -43,9 +43,9 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run tests with xdist -n2 --dist=loadfile
+      - name: "Phase 1: Non-snuba tests (xdist -n2)"
         run: |
-          echo "PYTEST_ADDOPTS=$PYTEST_ADDOPTS"
+          echo "=== Phase 1: non-ClickHouse tests with xdist parallelism ==="
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -53,13 +53,31 @@ jobs:
             --ignore tests/apidocs \
             --ignore tests/js \
             --ignore tests/tools \
+            --xdist-snuba-phase=exclude \
             -n 2 \
-            --dist=loadgroup \
+            --dist=loadfile \
             --json-report \
-            --json-report-file=".artifacts/pytest.json" \
+            --json-report-file=".artifacts/pytest-phase1.json" \
             --json-report-omit=log \
-            --junit-xml=.artifacts/pytest.junit.xml \
-            -o junit_suite_name=pytest
+            --junit-xml=.artifacts/pytest-phase1.junit.xml \
+            -o junit_suite_name=pytest-non-snuba
+
+      - name: "Phase 2: Snuba tests (single-threaded)"
+        run: |
+          echo "=== Phase 2: ClickHouse-dependent tests, single-threaded ==="
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-snuba-phase=only \
+            --json-report \
+            --json-report-file=".artifacts/pytest-phase2.json" \
+            --json-report-omit=log \
+            --junit-xml=.artifacts/pytest-phase2.junit.xml \
+            -o junit_suite_name=pytest-snuba
 
       - name: Inspect failure
         if: failure()

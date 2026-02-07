@@ -124,6 +124,19 @@ def _configure_test_env_regions() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--xdist-snuba-phase",
+        choices=("only", "exclude"),
+        default=None,
+        help=(
+            "Split test execution for xdist compatibility. "
+            "'only' runs only ClickHouse-dependent tests (single-threaded phase). "
+            "'exclude' runs only non-ClickHouse tests (safe for xdist parallelism)."
+        ),
+    )
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
@@ -370,31 +383,8 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     ):
         pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
 
-    # Under xdist, prevent non-snuba tests from writing to ClickHouse.
-    # Non-snuba tests incidentally write via store_event() → EventManager.save()
-    # → eventstream.backend.insert() → SnubaEventStream._send(). These writes
-    # contaminate the snuba worker's test data (reset_snuba TRUNCATE wipes
-    # shared tables). Mocking _send is safe: non-snuba tests never read from
-    # ClickHouse, and SnubaProtocolEventStream.insert() doesn't dispatch
-    # post-process tasks (it replaces base EventStream.insert entirely).
-    if os.environ.get("PYTEST_XDIST_WORKER") and not _needs_snuba(item):
-        item._snuba_send_patcher = mock.patch(  # type: ignore[attr-defined]
-            "sentry.eventstream.snuba.SnubaEventStream._send"
-        )
-        item._snuba_send_item_patcher = mock.patch(  # type: ignore[attr-defined]
-            "sentry.eventstream.snuba.SnubaEventStream._send_item"
-        )
-        item._snuba_send_patcher.start()  # type: ignore[attr-defined]
-        item._snuba_send_item_patcher.start()  # type: ignore[attr-defined]
-
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
-    # Stop eventstream mocks before other teardown (must run even if test errored)
-    if hasattr(item, "_snuba_send_patcher"):
-        item._snuba_send_patcher.stop()  # type: ignore[attr-defined]
-    if hasattr(item, "_snuba_send_item_patcher"):
-        item._snuba_send_item_patcher.stop()  # type: ignore[attr-defined]
-
     from sentry import newsletter
     from sentry.newsletter.dummy import DummyNewsletter
 
@@ -448,60 +438,29 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
-_snuba_file_cache: dict[str, bool] = {}
-
-# Patterns in test source that indicate the test reads from or depends on ClickHouse.
-# If ANY pattern matches, all tests in the file are placed in the snuba xdist group.
-_SNUBA_FILE_PATTERNS = (
-    "raw_snql_query",
-    "eventstore.backend",
-    "from sentry.snuba",
-    "from snuba_sdk",
-    "from sentry.services.eventstore",
-    "from sentry.services import eventstore",
-    "SnubaTestCase",
-    "BaseMetricsTestCase",
-    "ReplaysSnubaTestCase",
-    "get_event_by_id",
-)
-
-
-def _file_needs_snuba(filepath: str) -> bool:
-    """Check if a test file imports/uses snuba-related modules (cached per file)."""
-    if filepath not in _snuba_file_cache:
-        try:
-            with open(filepath) as f:
-                content = f.read()
-            _snuba_file_cache[filepath] = any(p in content for p in _SNUBA_FILE_PATTERNS)
-        except Exception:
-            _snuba_file_cache[filepath] = False
-    return _snuba_file_cache[filepath]
-
-
 def _needs_snuba(item: pytest.Item) -> bool:
     """Check if a test item requires Snuba (ClickHouse).
 
-    Detection layers (any match → True):
-    1. Markers: @pytest.mark.snuba, requires_snuba, requires_kafka
-    2. Class MRO: RelayStoreHelper (reads from ClickHouse via eventstore)
-    3. File-level: module imports snuba/eventstore/raw_snql_query (cached per file)
+    Tests can declare Snuba dependency via:
+    - @pytest.mark.snuba (on SnubaTestCase and subclasses)
+    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
+    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
+      (Kafka consumers write to ClickHouse; these tests then read it back)
+    - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
+    - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
     """
-    # Layer 1: markers (fast, covers SnubaTestCase and its subclasses)
     if any(mark.name == "snuba" for mark in item.iter_markers()):
         return True
     for mark in item.iter_markers("usefixtures"):
         if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
             return True
-    # Layer 2: class hierarchy (covers RelayStoreHelper mixins)
+    # RelayStoreHelper.post_and_retrieve_event() reads from ClickHouse via
+    # eventstore.backend.get_event_by_id(). These tests need to be on the
+    # snuba worker to avoid TRUNCATE TABLE wiping their data mid-test.
     if item.cls is not None:
         for base in item.cls.__mro__:
             if base.__name__ == "RelayStoreHelper":
                 return True
-    # Layer 3: file-level import scan (catches tests that directly use snuba
-    # APIs like raw_snql_query, eventstore.backend.get_event_by_id, etc.
-    # without inheriting from SnubaTestCase)
-    if hasattr(item, "fspath") and _file_needs_snuba(str(item.fspath)):
-        return True
     return False
 
 
@@ -572,16 +531,30 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
 
-    # Under xdist, group all Snuba tests onto a single worker. This prevents
-    # cross-worker ClickHouse contamination: reset_snuba uses TRUNCATE TABLE
-    # which would wipe another worker's in-flight test data. By confining all
-    # Snuba tests to one worker, TRUNCATE only affects that worker's own data.
-    # Non-Snuba tests are distributed individually across all workers.
-    # Requires --dist=loadgroup in the pytest invocation.
-    if os.environ.get("PYTEST_XDIST_TESTRUNUID"):
+    # Phase-based split for xdist compatibility. ClickHouse (Snuba) state is
+    # global and cannot be isolated between xdist workers (reset_snuba uses
+    # TRUNCATE TABLE). Instead of fighting shared state, we split execution:
+    #   Phase 1 (--xdist-snuba-phase=exclude): non-ClickHouse tests, safe for -n N
+    #   Phase 2 (--xdist-snuba-phase=only): ClickHouse tests, single-threaded
+    snuba_phase = config.getoption("--xdist-snuba-phase", default=None)
+    if snuba_phase is not None:
+        snuba_items = []
+        non_snuba_items = []
         for item in items:
             if _needs_snuba(item):
-                item.add_marker(pytest.mark.xdist_group("snuba"))
+                snuba_items.append(item)
+            else:
+                non_snuba_items.append(item)
+
+        if snuba_phase == "only":
+            deselected = non_snuba_items
+            items[:] = snuba_items
+        else:  # "exclude"
+            deselected = snuba_items
+            items[:] = non_snuba_items
+
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
 
 
 def pytest_xdist_setupnodes() -> None:
