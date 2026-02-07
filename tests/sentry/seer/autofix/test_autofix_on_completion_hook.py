@@ -343,9 +343,7 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
     def test_triggers_embedding_on_root_cause(self, mock_trigger_sg):
         """Triggers supergroups embedding when root cause completes with feature flag enabled."""
         artifact_data = {"one_line_description": "Null pointer in auth module"}
-        artifacts = {
-            "root_cause": Artifact(key="root_cause", data=artifact_data, reason="test")
-        }
+        artifacts = {"root_cause": Artifact(key="root_cause", data=artifact_data, reason="test")}
         state = MagicMock()
         state.metadata = {"group_id": self.group.id}
 
