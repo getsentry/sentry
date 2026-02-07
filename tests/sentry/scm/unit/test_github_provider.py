@@ -32,12 +32,18 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_comments", {"pull_request_id": "42"}),
     ("create_pull_request_comment", {"pull_request_id": "42", "body": "test"}),
     ("delete_pull_request_comment", {"comment_id": "201"}),
-    ("get_comment_reactions", {"comment_id": "101"}),
-    ("create_comment_reaction", {"comment_id": "101", "reaction": "+1"}),
-    ("delete_comment_reaction", {"comment_id": "101", "reaction_id": "999"}),
+    ("get_issue_comment_reactions", {"comment_id": "101"}),
+    ("create_issue_comment_reaction", {"comment_id": "101", "reaction": "+1"}),
+    ("delete_issue_comment_reaction", {"comment_id": "101", "reaction_id": "999"}),
+    ("get_pull_request_comment_reactions", {"comment_id": "101"}),
+    ("create_pull_request_comment_reaction", {"comment_id": "101", "reaction": "+1"}),
+    ("delete_pull_request_comment_reaction", {"comment_id": "101", "reaction_id": "999"}),
     ("get_issue_reactions", {"issue_id": "42"}),
     ("create_issue_reaction", {"issue_id": "42", "reaction": "rocket"}),
     ("delete_issue_reaction", {"issue_id": "42", "reaction_id": "999"}),
+    ("get_pull_request_reactions", {"pull_request_id": "42"}),
+    ("create_pull_request_reaction", {"pull_request_id": "42", "reaction": "rocket"}),
+    ("delete_pull_request_reaction", {"pull_request_id": "42", "reaction_id": "999"}),
 ]
 
 
@@ -209,7 +215,7 @@ class TestGitHubProviderDeletePullRequestComment:
         ) in client.calls
 
 
-class TestGitHubProviderGetCommentReactions:
+class TestGitHubProviderGetIssueCommentReactions:
     def test_returns_transformed_reactions(self):
         client = FakeGitHubApiClient()
         client.comment_reactions = [
@@ -219,7 +225,7 @@ class TestGitHubProviderGetCommentReactions:
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        reactions = provider.get_comment_reactions(repository, "101")
+        reactions = provider.get_issue_comment_reactions(repository, "101")
 
         assert len(reactions) == 2
         assert reactions[0]["id"] == "1"
@@ -230,13 +236,13 @@ class TestGitHubProviderGetCommentReactions:
         assert reactions[1]["content"] == "eyes"
 
 
-class TestGitHubProviderCreateCommentReaction:
+class TestGitHubProviderCreateIssueCommentReaction:
     def test_calls_client_with_mapped_reaction(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        provider.create_comment_reaction(repository, "101", "+1")
+        provider.create_issue_comment_reaction(repository, "101", "+1")
 
         assert (
             "create_comment_reaction",
@@ -245,13 +251,59 @@ class TestGitHubProviderCreateCommentReaction:
         ) in client.calls
 
 
-class TestGitHubProviderDeleteCommentReaction:
+class TestGitHubProviderDeleteIssueCommentReaction:
     def test_calls_client_with_correct_path(self):
         client = FakeGitHubApiClient()
         provider = GitHubProvider(client)
         repository = make_repository()
 
-        provider.delete_comment_reaction(repository, "101", "999")
+        provider.delete_issue_comment_reaction(repository, "101", "999")
+
+        assert (
+            "delete_comment_reaction",
+            ("test-org/test-repo", "101", "999"),
+            {},
+        ) in client.calls
+
+
+class TestGitHubProviderGetPullRequestCommentReactions:
+    def test_delegates_to_get_issue_comment_reactions(self):
+        client = FakeGitHubApiClient()
+        client.comment_reactions = [
+            make_github_reaction(reaction_id=1, content="+1"),
+        ]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        reactions = provider.get_pull_request_comment_reactions(repository, "101")
+
+        assert len(reactions) == 1
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "+1"
+
+
+class TestGitHubProviderCreatePullRequestCommentReaction:
+    def test_delegates_to_create_issue_comment_reaction(self):
+        client = FakeGitHubApiClient()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_pull_request_comment_reaction(repository, "101", "+1")
+
+        assert (
+            "create_comment_reaction",
+            ("test-org/test-repo", "101", GitHubReaction.PLUS_ONE),
+            {},
+        ) in client.calls
+
+
+class TestGitHubProviderDeletePullRequestCommentReaction:
+    def test_delegates_to_delete_issue_comment_reaction(self):
+        client = FakeGitHubApiClient()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.delete_pull_request_comment_reaction(repository, "101", "999")
 
         assert (
             "delete_comment_reaction",
@@ -326,6 +378,52 @@ class TestGitHubProviderDeleteIssueReaction:
         repository = make_repository()
 
         provider.delete_issue_reaction(repository, "42", "999")
+
+        assert (
+            "delete_issue_reaction",
+            ("test-org/test-repo", "42", "999"),
+            {},
+        ) in client.calls
+
+
+class TestGitHubProviderGetPullRequestReactions:
+    def test_delegates_to_get_issue_reactions(self):
+        client = FakeGitHubApiClient()
+        client.issue_reactions = [
+            make_github_reaction(reaction_id=1, content="heart"),
+        ]
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        reactions = provider.get_pull_request_reactions(repository, "42")
+
+        assert len(reactions) == 1
+        assert reactions[0]["id"] == "1"
+        assert reactions[0]["content"] == "heart"
+
+
+class TestGitHubProviderCreatePullRequestReaction:
+    def test_delegates_to_create_issue_reaction(self):
+        client = FakeGitHubApiClient()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_pull_request_reaction(repository, "42", "rocket")
+
+        assert (
+            "create_issue_reaction",
+            ("test-org/test-repo", "42", GitHubReaction.ROCKET),
+            {},
+        ) in client.calls
+
+
+class TestGitHubProviderDeletePullRequestReaction:
+    def test_delegates_to_delete_issue_reaction(self):
+        client = FakeGitHubApiClient()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.delete_pull_request_reaction(repository, "42", "999")
 
         assert (
             "delete_issue_reaction",

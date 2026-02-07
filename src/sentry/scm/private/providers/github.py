@@ -141,14 +141,16 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[IssueReaction]:
+    def get_issue_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> list[IssueReaction]:
         try:
             raw_reactions = self.client.get_comment_reactions(repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException from e
         return [_transform_issue_reaction(r) for r in raw_reactions]
 
-    def create_comment_reaction(
+    def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None:
         try:
@@ -158,13 +160,28 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException from e
 
-    def delete_comment_reaction(
+    def delete_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None:
         try:
             self.client.delete_comment_reaction(repository["name"], comment_id, reaction_id)
         except ApiError as e:
             raise SCMProviderException from e
+
+    def get_pull_request_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> list[IssueReaction]:
+        return self.get_issue_comment_reactions(repository, comment_id)
+
+    def create_pull_request_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None:
+        return self.create_issue_comment_reaction(repository, comment_id, reaction)
+
+    def delete_pull_request_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction_id: str
+    ) -> None:
+        return self.delete_issue_comment_reaction(repository, comment_id, reaction_id)
 
     def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
         try:
@@ -188,3 +205,18 @@ class GitHubProvider(Provider):
             self.client.delete_issue_reaction(repository["name"], issue_id, reaction_id)
         except ApiError as e:
             raise SCMProviderException from e
+
+    def get_pull_request_reactions(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[IssueReaction]:
+        return self.get_issue_reactions(repository, pull_request_id)
+
+    def create_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction: Reaction
+    ) -> None:
+        return self.create_issue_reaction(repository, pull_request_id, reaction)
+
+    def delete_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction_id: str
+    ) -> None:
+        return self.delete_issue_reaction(repository, pull_request_id, reaction_id)

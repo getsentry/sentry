@@ -31,14 +31,22 @@ ALL_ACTIONS = (
     ("get_pull_request_comments", {"pull_request_id": "1"}),
     ("create_pull_request_comment", {"pull_request_id": "1", "body": "test"}),
     ("delete_pull_request_comment", {"comment_id": "1"}),
-    # Comment reactions
-    ("get_comment_reactions", {"comment_id": "1"}),
-    ("create_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
-    ("delete_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    # Issue comment reactions
+    ("get_issue_comment_reactions", {"comment_id": "1"}),
+    ("create_issue_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
+    ("delete_issue_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
+    # Pull request comment reactions
+    ("get_pull_request_comment_reactions", {"comment_id": "1"}),
+    ("create_pull_request_comment_reaction", {"comment_id": "1", "reaction": "eyes"}),
+    ("delete_pull_request_comment_reaction", {"comment_id": "1", "reaction_id": "123"}),
     # Issue reactions
     ("get_issue_reactions", {"issue_id": "1"}),
     ("create_issue_reaction", {"issue_id": "1", "reaction": "eyes"}),
     ("delete_issue_reaction", {"issue_id": "1", "reaction_id": "456"}),
+    # Pull request reactions
+    ("get_pull_request_reactions", {"pull_request_id": "1"}),
+    ("create_pull_request_reaction", {"pull_request_id": "1", "reaction": "eyes"}),
+    ("delete_pull_request_reaction", {"pull_request_id": "1", "reaction_id": "456"}),
 )
 
 
@@ -162,20 +170,50 @@ ACTION_TESTS = (
         _check_none,
     ),
     (SourceCodeManager.delete_pull_request_comment, {"comment_id": "1"}, _check_none),
-    (SourceCodeManager.get_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
+    (SourceCodeManager.get_issue_comment_reactions, {"comment_id": "1"}, _check_comment_reactions),
     (
-        SourceCodeManager.create_comment_reaction,
+        SourceCodeManager.create_issue_comment_reaction,
         {"comment_id": "1", "reaction": "eyes"},
         _check_none,
     ),
     (
-        SourceCodeManager.delete_comment_reaction,
+        SourceCodeManager.delete_issue_comment_reaction,
+        {"comment_id": "1", "reaction_id": "123"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.get_pull_request_comment_reactions,
+        {"comment_id": "1"},
+        _check_comment_reactions,
+    ),
+    (
+        SourceCodeManager.create_pull_request_comment_reaction,
+        {"comment_id": "1", "reaction": "eyes"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.delete_pull_request_comment_reaction,
         {"comment_id": "1", "reaction_id": "123"},
         _check_none,
     ),
     (SourceCodeManager.get_issue_reactions, {"issue_id": "1"}, _check_issue_reactions),
     (SourceCodeManager.create_issue_reaction, {"issue_id": "1", "reaction": "eyes"}, _check_none),
     (SourceCodeManager.delete_issue_reaction, {"issue_id": "1", "reaction_id": "456"}, _check_none),
+    (
+        SourceCodeManager.get_pull_request_reactions,
+        {"pull_request_id": "1"},
+        _check_issue_reactions,
+    ),
+    (
+        SourceCodeManager.create_pull_request_reaction,
+        {"pull_request_id": "1", "reaction": "eyes"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.delete_pull_request_reaction,
+        {"pull_request_id": "1", "reaction_id": "456"},
+        _check_none,
+    ),
 )
 
 

@@ -138,20 +138,42 @@ class BaseTestProvider(Provider):
     def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None:
         return None
 
-    # Comment reactions
+    # Issue comment reactions
 
-    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[IssueReaction]:
+    def get_issue_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> list[IssueReaction]:
         return [
             IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
             IssueReaction(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
         ]
 
-    def create_comment_reaction(
+    def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None:
         return None
 
-    def delete_comment_reaction(
+    def delete_issue_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction_id: str
+    ) -> None:
+        return None
+
+    # Pull request comment reactions
+
+    def get_pull_request_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> list[IssueReaction]:
+        return [
+            IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+            IssueReaction(id="2", content="eyes", author={"id": "2", "username": "otheruser"}),
+        ]
+
+    def create_pull_request_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None:
+        return None
+
+    def delete_pull_request_comment_reaction(
         self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None:
         return None
@@ -171,6 +193,26 @@ class BaseTestProvider(Provider):
 
     def delete_issue_reaction(
         self, repository: Repository, issue_id: str, reaction_id: str
+    ) -> None:
+        return None
+
+    # Pull request reactions
+
+    def get_pull_request_reactions(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[IssueReaction]:
+        return [
+            IssueReaction(id="1", content="+1", author={"id": "1", "username": "testuser"}),
+            IssueReaction(id="2", content="heart", author={"id": "2", "username": "otheruser"}),
+        ]
+
+    def create_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction: Reaction
+    ) -> None:
+        return None
+
+    def delete_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction_id: str
     ) -> None:
         return None
 

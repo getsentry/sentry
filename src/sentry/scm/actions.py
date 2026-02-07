@@ -130,17 +130,33 @@ class SourceCodeManager:
         """Delete a comment on a pull request."""
         return self._exec(lambda r, p: p.delete_pull_request_comment(r, comment_id))
 
-    def get_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
-        """Get reactions on a comment."""
-        return self._exec(lambda r, p: p.get_comment_reactions(r, comment_id))
+    def get_issue_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
+        """Get reactions on an issue comment."""
+        return self._exec(lambda r, p: p.get_issue_comment_reactions(r, comment_id))
 
-    def create_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
-        """Create a reaction on a comment."""
-        return self._exec(lambda r, p: p.create_comment_reaction(r, comment_id, reaction))
+    def create_issue_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+        """Create a reaction on an issue comment."""
+        return self._exec(lambda r, p: p.create_issue_comment_reaction(r, comment_id, reaction))
 
-    def delete_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
-        """Delete a reaction on a comment."""
-        return self._exec(lambda r, p: p.delete_comment_reaction(r, comment_id, reaction_id))
+    def delete_issue_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+        """Delete a reaction on an issue comment."""
+        return self._exec(lambda r, p: p.delete_issue_comment_reaction(r, comment_id, reaction_id))
+
+    def get_pull_request_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
+        """Get reactions on a pull request comment."""
+        return self._exec(lambda r, p: p.get_pull_request_comment_reactions(r, comment_id))
+
+    def create_pull_request_comment_reaction(self, comment_id: str, reaction: Reaction) -> None:
+        """Create a reaction on a pull request comment."""
+        return self._exec(
+            lambda r, p: p.create_pull_request_comment_reaction(r, comment_id, reaction)
+        )
+
+    def delete_pull_request_comment_reaction(self, comment_id: str, reaction_id: str) -> None:
+        """Delete a reaction on a pull request comment."""
+        return self._exec(
+            lambda r, p: p.delete_pull_request_comment_reaction(r, comment_id, reaction_id)
+        )
 
     def get_issue_reactions(self, issue_id: str) -> list[IssueReaction]:
         """Get reactions on an issue."""
@@ -153,3 +169,17 @@ class SourceCodeManager:
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         """Delete a reaction on an issue."""
         return self._exec(lambda r, p: p.delete_issue_reaction(r, issue_id, reaction_id))
+
+    def get_pull_request_reactions(self, pull_request_id: str) -> list[IssueReaction]:
+        """Get reactions on a pull request."""
+        return self._exec(lambda r, p: p.get_pull_request_reactions(r, pull_request_id))
+
+    def create_pull_request_reaction(self, pull_request_id: str, reaction: Reaction) -> None:
+        """Create a reaction on a pull request."""
+        return self._exec(lambda r, p: p.create_pull_request_reaction(r, pull_request_id, reaction))
+
+    def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None:
+        """Delete a reaction on a pull request."""
+        return self._exec(
+            lambda r, p: p.delete_pull_request_reaction(r, pull_request_id, reaction_id)
+        )

@@ -115,15 +115,27 @@ class Provider(Protocol):
 
     def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None: ...
 
-    def get_comment_reactions(
+    def get_issue_comment_reactions(
         self, repository: Repository, comment_id: str
     ) -> list[IssueReaction]: ...
 
-    def create_comment_reaction(
+    def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None: ...
 
-    def delete_comment_reaction(
+    def delete_issue_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction_id: str
+    ) -> None: ...
+
+    def get_pull_request_comment_reactions(
+        self, repository: Repository, comment_id: str
+    ) -> list[IssueReaction]: ...
+
+    def create_pull_request_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None: ...
+
+    def delete_pull_request_comment_reaction(
         self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None: ...
 
@@ -135,4 +147,16 @@ class Provider(Protocol):
 
     def delete_issue_reaction(
         self, repository: Repository, issue_id: str, reaction_id: str
+    ) -> None: ...
+
+    def get_pull_request_reactions(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[IssueReaction]: ...
+
+    def create_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction: Reaction
+    ) -> None: ...
+
+    def delete_pull_request_reaction(
+        self, repository: Repository, pull_request_id: str, reaction_id: str
     ) -> None: ...

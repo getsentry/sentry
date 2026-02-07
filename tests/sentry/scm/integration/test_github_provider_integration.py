@@ -209,7 +209,7 @@ class TestGitHubProviderIntegration(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions(self, mock_get_jwt):
+    def test_get_issue_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100",
@@ -234,7 +234,7 @@ class TestGitHubProviderIntegration(TestCase):
             headers={},
         )
 
-        reactions = self.provider.get_comment_reactions(self.repository, "42")
+        reactions = self.provider.get_issue_comment_reactions(self.repository, "42")
 
         assert len(reactions) == 2
         assert reactions[0]["id"] == "1"
@@ -246,7 +246,7 @@ class TestGitHubProviderIntegration(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_comment_reaction(self, mock_get_jwt):
+    def test_create_issue_comment_reaction(self, mock_get_jwt):
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions",
@@ -267,7 +267,7 @@ class TestGitHubProviderIntegration(TestCase):
             },
         )
 
-        self.provider.create_comment_reaction(self.repository, "42", "heart")
+        self.provider.create_issue_comment_reaction(self.repository, "42", "heart")
 
         assert len(responses.calls) == 1
 
