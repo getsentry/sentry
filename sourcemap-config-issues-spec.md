@@ -168,16 +168,94 @@ With the recommended per-project fingerprint, the single project issue only reso
 
 ---
 
+## Processing Error Storage (EAP)
+
+To enable detection and historical analysis, we'll store all processing errors in EAP (Event Analytics Platform).
+
+**Scale:** ~1.6B processing errors/day across all customers
+**Cost:** ~$75/day for ingestion and storage
+
+### Core Fields
+
+| Field | Type | Notes                                                                         |
+|-------|------|-------------------------------------------------------------------------------|
+| `organization_id` | int | For querying/access control                                                   |
+| `project_id` | int | For querying                                                                  |
+| `event_id` | string | Links back to the source event for full details                               |
+| `error_type` | string | The EventError type: `js_no_source`, `js_invalid_source`, etc.                |
+| `symbolicator_type` | string | Original symbolicator error: `missing_sourcemap`, `malformed_sourcemap`, etc. |
+| `release` | string | Correlate errors with releases                                                |
+| `trace_id` | string | Link to trace                                                                 |
+| `timestamp` | datetime | When the error occurred                                                       |
+
+### Optional Fields (for team discussion)
+
+| Field | Type | Rationale |
+|-------|------|-----------|
+| `environment` | string | Production vs staging distinction |
+| `sdk_name` | string | Debug SDK-specific issues |
+| `sdk_version` | string | Track if errors correlate with SDK versions |
+| `platform` | string | javascript, react-native, node, etc. |
+
+### Error-specific Detail Fields (deferred)
+
+Different error types have different context fields (`url`, `source`, `sourcemap`, `row`, `column`). For MVP, we'll skip these—the `event_id` lets us load full details when needed.
+
+If we later add configurable ignore rules (e.g., "ignore errors for vendor.js"), we'd need to add `url` and/or `source` fields to enable filtering.
+
+**Note:** Processing errors for `node_modules` and `chrome-extension:` URLs are already filtered out at creation time (see `should_skip_missing_source_error()` in `processing.py`), so we inherently only capture errors for in-app code.
+
+---
+
+## Detection Approach
+
+### Metric Alert Style Detector
+
+We'll use a scheduled detector that queries EAP for processing errors:
+
+**How it works:**
+1. Detector runs on a schedule (e.g., every 10 minutes)
+2. Queries EAP for processing errors in the lookback window
+3. If count > threshold, creates or updates the issue
+4. If count drops to 0 (with successful events), auto-resolves the issue
+
+This approach fits naturally with the Metric/Uptime/Crons lifecycle model—the detector controls issue state based on the current situation.
+
+### Lookback Period (Open Question)
+
+| Period | Pros | Cons |
+|--------|------|------|
+| 10 min | Fast reaction time | May miss sparse errors, more queries |
+| 30 min | Balanced | - |
+| 1 hour | Catches sparse data, fewer queries | Slower to alert |
+
+### Threshold Considerations
+
+- `> 1` is very sensitive—good for catching issues early
+- Could be configurable per-project or per-error-type
+- May want different thresholds for different error types
+
+### Configurable Ignore Rules (deferred)
+
+For MVP, no user-configurable ignore rules. Future iteration could allow users to ignore:
+- Specific error types (e.g., don't alert on `scraping_disabled`)
+- Specific URLs or file patterns (e.g., ignore `*/vendor.js`)
+- Specific domains (e.g., ignore third-party CDNs)
+
+This would require adding `url`/`source` fields to EAP storage (see above).
+
+---
+
 ## Implementation Notes
 
 - Create new GroupType (`sourcemap_configuration`) for sourcemap configuration issues
-- Add detection logic in `post_process_group` pipeline, triggered for ERROR category events
-- Filter out `chrome-extension:` URLs (users can't control browser extension sourcemaps)
+- Implement EAP storage for processing errors (see Processing Error Storage section)
+- Build scheduled detector that queries EAP (see Detection Approach section)
 - Store event_id in evidence data so the issue detail UI can link to the existing wizard
 - For the issue detail UI, we can potentially reuse or adapt the existing wizard experience
 - Feature flag: `organizations:processing-issues-detection`
 
-The detection function should be generic and extensible - sourcemap issues are the first case, but the architecture should support adding handlers for other processing error types in the future.
+The detection system should be generic and extensible—sourcemap issues are the first case, but the architecture should support adding detectors for other processing error types in the future.
 
 ---
 
@@ -189,7 +267,7 @@ Create a "test" version of the GroupType first:
 - Enable visibility for our team only via feature flag
 - Evaluate issues in the UI before broader rollout
 
-Once validated, change the `type_id` for the production GroupTypes. This effectively soft-deletes all test issues, so customers get fresh issues with notifications enabled and don't miss alerts.
+Once validated, change the `type_id` for the production GroupType. This effectively soft-deletes all test issues, so customers get fresh issues with notifications enabled and don't miss alerts.
 
 ---
 
@@ -199,19 +277,15 @@ Once validated, change the `type_id` for the production GroupTypes. This effecti
 
 **Problem:** Different events surface different missing sourcemap files depending on which frames are in their stack trace. Event A might report `app.js.map` missing, Event B might report `vendor.js.map` missing. Over time, we'd accumulate a full picture of what's broken, but this doesn't fit cleanly into the occurrence model.
 
-The occurrence model is designed for "a specific thing happened at a specific time" - each occurrence has its own evidence data. There's no built-in way to aggregate evidence across occurrences into a unified view.
-
 **Options:**
 
-1. **Accept occurrence model as-is** - Each occurrence captures what that specific event was missing. Users browse occurrences to see different files. The issue groups them together; the specifics vary per occurrence.
+1. **Query EAP directly** - The issue detail UI can query EAP for all processing errors in the project, aggregating across events. This gives a complete picture without relying on occurrence evidence.
 
-2. **Simplified diagnosis** - Don't enumerate every missing file. Just surface "your sourcemaps aren't configured" with a sample of missing URLs. The value is in alerting users to the problem, not cataloging every file.
+2. **Simplified diagnosis** - Don't enumerate every missing file. Just surface "your sourcemaps aren't configured" with a link to a sample event. The value is in alerting users to the problem; they can drill into events for specifics.
 
-3. **Aggregate at query time** - Store per-occurrence evidence normally, but build UI that queries all occurrences for an issue and aggregates evidence for display.
+3. **Hybrid** - Show aggregated counts from EAP (e.g., "42 missing sourcemap errors in the last 24h") with links to sample events for details.
 
-4. **Separate data store** - Store aggregated processing errors in a separate data source (e.g., a dedicated table or Redis). The issue links to this aggregated data rather than relying on occurrence evidence.
-
-**Recommendation for team discussion:** Which approach balances implementation complexity vs. user value? Is cataloging all missing files important, or is "you have a sourcemap problem" sufficient?
+**Recommendation for team discussion:** Since EAP stores all processing errors, querying for aggregated data is straightforward. Is cataloging all missing files important, or is "you have a sourcemap problem" with counts sufficient?
 
 ### Should we create issues for `scraping_disabled`?
 
@@ -227,7 +301,10 @@ Should we follow the same logic for issue creation?
 - If they intentionally disabled scraping and don't want sourcemaps, creating issues is noise
 - Respects the user's conscious choice
 
-**Possible middle ground:** Only create an issue if scraping is disabled AND no sourcemaps have been uploaded for the project.
+**Possible approaches:**
+1. Exclude `scraping_disabled` by default
+2. Include it (users could suppress via ignore rules in a future iteration)
+3. Only create an issue if scraping is disabled AND no sourcemaps have been uploaded for the project
 
 ### UI and Notification Customization
 
@@ -235,9 +312,14 @@ These issues are fundamentally different from error issues - they're configurati
 
 **Existing wizard:** The source maps debugger wizard (on event details) appears when clicking on minified stack frames. It provides a checklist-style troubleshooting flow with progress indicators. This wizard requires an event ID.
 
+**EAP enables richer UI:**
+- Historical views showing processing error trends over time
+- Correlation with releases (did errors spike after a deploy?)
+- Breakdown by error type, environment, SDK version
+
 **Questions:**
 - Should we reuse/adapt the existing wizard for these issues? (It's per-frame; we'd need per-issue adaptation)
-- What should the issue detail page show? (e.g., wizard-style fix instructions, links to docs)
+- What should the issue detail page show? (e.g., wizard-style fix instructions, links to docs, historical trends)
 - Should email/Slack notifications be customized? (e.g., different template, different frequency)
 - Should these issues appear in the main issue stream or a separate "setup issues" view?
 - How do we avoid alert fatigue for ongoing configuration problems?
@@ -246,7 +328,8 @@ These issues are fundamentally different from error issues - they're configurati
 
 ## Future Iterations (not in MVP)
 
-1. **Heuristic detection:** Detect minified code without sourcemap reference
-2. **CDN filtering:** Domain-based filtering for known CDN/analytics providers
-3. **Root cause diagnosis:** Integrate `source_map_debug()` to provide MISSING_RELEASE, DIST_MISMATCH, etc.
-4. **Seer integration:** LLM-powered fix suggestions
+1. **Configurable ignore rules:** Let users ignore specific error types, URLs, or domains
+2. **Heuristic detection:** Detect minified code without sourcemap reference
+3. **CDN filtering:** Domain-based filtering for known CDN/analytics providers
+4. **Root cause diagnosis:** Integrate `source_map_debug()` to provide MISSING_RELEASE, DIST_MISMATCH, etc.
+5. **Seer integration:** LLM-powered fix suggestions
