@@ -13,10 +13,10 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     CommentActionResult,
-    IssueReaction,
     Provider,
     PullRequestActionResult,
     Reaction,
+    ReactionResult,
     Referrer,
     Repository,
     RepositoryId,
@@ -130,7 +130,7 @@ class SourceCodeManager:
         """Delete a comment on a pull request."""
         return self._exec(lambda r, p: p.delete_pull_request_comment(r, comment_id))
 
-    def get_issue_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
+    def get_issue_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
         """Get reactions on an issue comment."""
         return self._exec(lambda r, p: p.get_issue_comment_reactions(r, comment_id))
 
@@ -142,7 +142,7 @@ class SourceCodeManager:
         """Delete a reaction on an issue comment."""
         return self._exec(lambda r, p: p.delete_issue_comment_reaction(r, comment_id, reaction_id))
 
-    def get_pull_request_comment_reactions(self, comment_id: str) -> list[IssueReaction]:
+    def get_pull_request_comment_reactions(self, comment_id: str) -> list[ReactionResult]:
         """Get reactions on a pull request comment."""
         return self._exec(lambda r, p: p.get_pull_request_comment_reactions(r, comment_id))
 
@@ -158,7 +158,7 @@ class SourceCodeManager:
             lambda r, p: p.delete_pull_request_comment_reaction(r, comment_id, reaction_id)
         )
 
-    def get_issue_reactions(self, issue_id: str) -> list[IssueReaction]:
+    def get_issue_reactions(self, issue_id: str) -> list[ReactionResult]:
         """Get reactions on an issue."""
         return self._exec(lambda r, p: p.get_issue_reactions(r, issue_id))
 
@@ -170,7 +170,7 @@ class SourceCodeManager:
         """Delete a reaction on an issue."""
         return self._exec(lambda r, p: p.delete_issue_reaction(r, issue_id, reaction_id))
 
-    def get_pull_request_reactions(self, pull_request_id: str) -> list[IssueReaction]:
+    def get_pull_request_reactions(self, pull_request_id: str) -> list[ReactionResult]:
         """Get reactions on a pull request."""
         return self._exec(lambda r, p: p.get_pull_request_reactions(r, pull_request_id))
 

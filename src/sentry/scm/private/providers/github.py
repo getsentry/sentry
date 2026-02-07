@@ -6,11 +6,11 @@ from sentry.scm.types import (
     Author,
     Comment,
     CommentActionResult,
-    IssueReaction,
     Provider,
     PullRequest,
     PullRequestActionResult,
     Reaction,
+    ReactionResult,
     Referrer,
     Repository,
 )
@@ -52,8 +52,8 @@ def _transform_comment(raw: dict[str, Any]) -> CommentActionResult:
     )
 
 
-def _transform_issue_reaction(raw: dict[str, Any]) -> IssueReaction:
-    return IssueReaction(
+def _transform_reaction(raw: dict[str, Any]) -> ReactionResult:
+    return ReactionResult(
         id=str(raw["id"]),
         content=raw["content"],
         author=_transform_author(raw.get("user")),
@@ -143,12 +143,12 @@ class GitHubProvider(Provider):
 
     def get_issue_comment_reactions(
         self, repository: Repository, comment_id: str
-    ) -> list[IssueReaction]:
+    ) -> list[ReactionResult]:
         try:
             raw_reactions = self.client.get_comment_reactions(repository["name"], comment_id)
         except ApiError as e:
             raise SCMProviderException from e
-        return [_transform_issue_reaction(r) for r in raw_reactions]
+        return [_transform_reaction(r) for r in raw_reactions]
 
     def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -170,7 +170,7 @@ class GitHubProvider(Provider):
 
     def get_pull_request_comment_reactions(
         self, repository: Repository, comment_id: str
-    ) -> list[IssueReaction]:
+    ) -> list[ReactionResult]:
         return self.get_issue_comment_reactions(repository, comment_id)
 
     def create_pull_request_comment_reaction(
@@ -183,12 +183,12 @@ class GitHubProvider(Provider):
     ) -> None:
         return self.delete_issue_comment_reaction(repository, comment_id, reaction_id)
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[ReactionResult]:
         try:
             raw_reactions = self.client.get_issue_reactions(repository["name"], issue_id)
         except ApiError as e:
             raise SCMProviderException from e
-        return [_transform_issue_reaction(r) for r in raw_reactions]
+        return [_transform_reaction(r) for r in raw_reactions]
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
@@ -208,7 +208,7 @@ class GitHubProvider(Provider):
 
     def get_pull_request_reactions(
         self, repository: Repository, pull_request_id: str
-    ) -> list[IssueReaction]:
+    ) -> list[ReactionResult]:
         return self.get_issue_reactions(repository, pull_request_id)
 
     def create_pull_request_reaction(

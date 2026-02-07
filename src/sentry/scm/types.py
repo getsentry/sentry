@@ -38,8 +38,8 @@ class CommentActionResult(TypedDict):
     raw: dict[str, Any]
 
 
-class IssueReaction(TypedDict):
-    """Provider-agnostic representation of a reaction on an issue."""
+class ReactionResult(TypedDict):
+    """Provider-agnostic representation of a reaction on an issue, comment, or pull request."""
 
     id: str
     content: Reaction
@@ -117,7 +117,7 @@ class Provider(Protocol):
 
     def get_issue_comment_reactions(
         self, repository: Repository, comment_id: str
-    ) -> list[IssueReaction]: ...
+    ) -> list[ReactionResult]: ...
 
     def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -129,7 +129,7 @@ class Provider(Protocol):
 
     def get_pull_request_comment_reactions(
         self, repository: Repository, comment_id: str
-    ) -> list[IssueReaction]: ...
+    ) -> list[ReactionResult]: ...
 
     def create_pull_request_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
@@ -139,7 +139,9 @@ class Provider(Protocol):
         self, repository: Repository, comment_id: str, reaction_id: str
     ) -> None: ...
 
-    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]: ...
+    def get_issue_reactions(
+        self, repository: Repository, issue_id: str
+    ) -> list[ReactionResult]: ...
 
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
@@ -151,7 +153,7 @@ class Provider(Protocol):
 
     def get_pull_request_reactions(
         self, repository: Repository, pull_request_id: str
-    ) -> list[IssueReaction]: ...
+    ) -> list[ReactionResult]: ...
 
     def create_pull_request_reaction(
         self, repository: Repository, pull_request_id: str, reaction: Reaction

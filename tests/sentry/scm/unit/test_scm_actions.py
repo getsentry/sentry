@@ -140,6 +140,14 @@ def _check_comment_reactions(result: Any) -> None:
     assert result[1]["content"] == "eyes"
 
 
+def _check_pr_comment_reactions(result: Any) -> None:
+    assert len(result) == 2
+    assert result[0]["id"] == "3"
+    assert result[0]["content"] == "rocket"
+    assert result[1]["id"] == "4"
+    assert result[1]["content"] == "hooray"
+
+
 def _check_issue_reactions(result: Any) -> None:
     assert len(result) == 2
     assert result[0]["id"] == "1"
@@ -147,6 +155,16 @@ def _check_issue_reactions(result: Any) -> None:
     assert result[0]["author"]["username"] == "testuser"
     assert result[1]["id"] == "2"
     assert result[1]["content"] == "heart"
+    assert result[1]["author"]["username"] == "otheruser"
+
+
+def _check_pr_reactions(result: Any) -> None:
+    assert len(result) == 2
+    assert result[0]["id"] == "5"
+    assert result[0]["content"] == "laugh"
+    assert result[0]["author"]["username"] == "testuser"
+    assert result[1]["id"] == "6"
+    assert result[1]["content"] == "confused"
     assert result[1]["author"]["username"] == "otheruser"
 
 
@@ -184,7 +202,7 @@ ACTION_TESTS = (
     (
         SourceCodeManager.get_pull_request_comment_reactions,
         {"comment_id": "1"},
-        _check_comment_reactions,
+        _check_pr_comment_reactions,
     ),
     (
         SourceCodeManager.create_pull_request_comment_reaction,
@@ -202,7 +220,7 @@ ACTION_TESTS = (
     (
         SourceCodeManager.get_pull_request_reactions,
         {"pull_request_id": "1"},
-        _check_issue_reactions,
+        _check_pr_reactions,
     ),
     (
         SourceCodeManager.create_pull_request_reaction,
