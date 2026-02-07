@@ -370,8 +370,31 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     ):
         pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
 
+    # Under xdist, prevent non-snuba tests from writing to ClickHouse.
+    # Non-snuba tests incidentally write via store_event() → EventManager.save()
+    # → eventstream.backend.insert() → SnubaEventStream._send(). These writes
+    # contaminate the snuba worker's test data (reset_snuba TRUNCATE wipes
+    # shared tables). Mocking _send is safe: non-snuba tests never read from
+    # ClickHouse, and SnubaProtocolEventStream.insert() doesn't dispatch
+    # post-process tasks (it replaces base EventStream.insert entirely).
+    if os.environ.get("PYTEST_XDIST_WORKER") and not _needs_snuba(item):
+        item._snuba_send_patcher = mock.patch(  # type: ignore[attr-defined]
+            "sentry.eventstream.snuba.SnubaEventStream._send"
+        )
+        item._snuba_send_item_patcher = mock.patch(  # type: ignore[attr-defined]
+            "sentry.eventstream.snuba.SnubaEventStream._send_item"
+        )
+        item._snuba_send_patcher.start()  # type: ignore[attr-defined]
+        item._snuba_send_item_patcher.start()  # type: ignore[attr-defined]
+
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
+    # Stop eventstream mocks before other teardown (must run even if test errored)
+    if hasattr(item, "_snuba_send_patcher"):
+        item._snuba_send_patcher.stop()  # type: ignore[attr-defined]
+    if hasattr(item, "_snuba_send_item_patcher"):
+        item._snuba_send_item_patcher.stop()  # type: ignore[attr-defined]
+
     from sentry import newsletter
     from sentry.newsletter.dummy import DummyNewsletter
 
@@ -431,13 +454,23 @@ def _needs_snuba(item: pytest.Item) -> bool:
     Tests can declare Snuba dependency via:
     - @pytest.mark.snuba (on SnubaTestCase and subclasses)
     - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
-    - pytestmark = [requires_snuba] (module-level)
+    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
+      (Kafka consumers write to ClickHouse; these tests then read it back)
+    - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
+    - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
     """
     if any(mark.name == "snuba" for mark in item.iter_markers()):
         return True
     for mark in item.iter_markers("usefixtures"):
-        if "_requires_snuba" in mark.args:
+        if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
             return True
+    # RelayStoreHelper.post_and_retrieve_event() reads from ClickHouse via
+    # eventstore.backend.get_event_by_id(). These tests need to be on the
+    # snuba worker to avoid TRUNCATE TABLE wiping their data mid-test.
+    if item.cls is not None:
+        for base in item.cls.__mro__:
+            if base.__name__ == "RelayStoreHelper":
+                return True
     return False
 
 
