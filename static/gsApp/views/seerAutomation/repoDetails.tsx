@@ -10,7 +10,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -23,6 +22,11 @@ export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
   const organization = useOrganization();
 
+  const hasSeer =
+    organization.features.includes('seat-based-seer-enabled') ||
+    organization.features.includes('seer-added') ||
+    organization.features.includes('code-review-beta');
+
   const {
     data: repoWithSettings,
     error,
@@ -30,13 +34,9 @@ export default function SeerRepoDetails() {
     refetch,
   } = useRepositoryWithSettings({
     repositoryId: repoId,
-    enabled: showNewSeer(organization),
+    enabled: hasSeer,
   });
 
-  const hasSeer =
-    organization.features.includes('seat-based-seer-enabled') ||
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta');
   if (!hasSeer) {
     return <NotFound />;
   }
