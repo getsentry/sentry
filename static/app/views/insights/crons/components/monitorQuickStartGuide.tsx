@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
@@ -8,9 +9,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -235,6 +239,24 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const [selectedGuide, setSelectedGuide] = useState(defaultExample);
   const {Guide} = onboardingGuides[selectedGuide]!;
 
+  const guideProps: QuickStartProps = {
+    slug: monitorSlug,
+    orgSlug: org.slug,
+    orgId: org.id,
+    projectId: project.id,
+    cronsUrl: projectKeys?.[0]!.dsn.crons,
+    dsnKey: projectKeys?.[0]!.dsn.public,
+  };
+
+  const getGuideMarkdown = () => {
+    try {
+      const html = renderToStaticMarkup(<Guide {...guideProps} />);
+      return simpleHtmlToMarkdown(html);
+    } catch {
+      return '';
+    }
+  };
+
   return (
     <Flex gap="xl" direction="column">
       <Text>
@@ -247,24 +269,41 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           }
         )}
       </Text>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
-        )}
-        searchable
-        options={exampleOptions}
-        value={selectedGuide}
-        onChange={({value}) => setSelectedGuide(value)}
-        size="sm"
-      />
-      <Guide
-        slug={monitorSlug}
-        orgSlug={org.slug}
-        orgId={org.id}
-        projectId={project.id}
-        cronsUrl={projectKeys?.[0]!.dsn.crons}
-        dsnKey={projectKeys?.[0]!.dsn.public}
-      />
+      <Flex align="center" justify="between">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
+          )}
+          searchable
+          options={exampleOptions}
+          value={selectedGuide}
+          onChange={({value}) => setSelectedGuide(value)}
+          size="sm"
+        />
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            markdown: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization: org,
+                format: 'markdown',
+                source: 'crons_onboarding',
+              });
+              return getGuideMarkdown();
+            },
+            text: () => {
+              trackAnalytics('onboarding.copy_instructions', {
+                organization: org,
+                format: 'text',
+                source: 'crons_onboarding',
+              });
+              return getGuideMarkdown();
+            },
+            json: undefined,
+          })}
+        />
+      </Flex>
+      <Guide {...guideProps} />
     </Flex>
   );
 }

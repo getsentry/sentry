@@ -78,6 +78,27 @@ describe('simpleHtmlToMarkdown', () => {
     expect(simpleHtmlToMarkdown(html)).toBe('Use `sentry-sdk` to **initialize** Sentry.');
   });
 
+  it('converts pre>code blocks to fenced code blocks', () => {
+    const html =
+      '<pre class="language-python"><code class="language-python">import sentry_sdk\nsentry_sdk.init()</code></pre>';
+    expect(simpleHtmlToMarkdown(html)).toBe(
+      '```python\nimport sentry_sdk\nsentry_sdk.init()\n```'
+    );
+  });
+
+  it('converts pre>code blocks without language class', () => {
+    const html = '<pre><code>echo "hello"</code></pre>';
+    expect(simpleHtmlToMarkdown(html)).toBe('```\necho "hello"\n```');
+  });
+
+  it('handles pre>code blocks alongside inline code', () => {
+    const html =
+      '<p>Run <code>npm install</code> then add:</p><pre class="language-javascript"><code class="language-javascript">const x = 1;</code></pre>';
+    const result = simpleHtmlToMarkdown(html);
+    expect(result).toContain('`npm install`');
+    expect(result).toContain('```javascript\nconst x = 1;\n```');
+  });
+
   it('handles empty string', () => {
     expect(simpleHtmlToMarkdown('')).toBe('');
   });

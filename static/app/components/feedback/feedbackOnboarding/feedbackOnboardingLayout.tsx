@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -10,9 +11,14 @@ import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {
+  stepsToMarkdown,
+  stepsToText,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -110,6 +116,30 @@ export function FeedbackOnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Stack marginBottom="3xl">{introduction}</Stack>}
+        <Flex justify="end" marginBottom="xs">
+          <CopyAsDropdown
+            size="xs"
+            items={CopyAsDropdown.makeDefaultCopyAsOptions({
+              markdown: () => {
+                trackAnalytics('onboarding.copy_instructions', {
+                  organization,
+                  format: 'markdown',
+                  source: 'feedback_onboarding',
+                });
+                return stepsToMarkdown(steps);
+              },
+              text: () => {
+                trackAnalytics('onboarding.copy_instructions', {
+                  organization,
+                  format: 'text',
+                  source: 'feedback_onboarding',
+                });
+                return stepsToText(steps);
+              },
+              json: undefined,
+            })}
+          />
+        </Flex>
         <Steps>
           {steps
             // TODO(aknaus): Move inserting the toggle into the docs definitions

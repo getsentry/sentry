@@ -6,6 +6,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -16,6 +17,10 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {
+  stepsToMarkdown,
+  stepsToText,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/stepsToMarkdown';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -179,6 +184,30 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Body>
           <Setup>
             <SetupTitle project={project} />
+            <Flex justify="end" marginBottom="xs">
+              <CopyAsDropdown
+                size="xs"
+                items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                  markdown: () => {
+                    trackAnalytics('onboarding.copy_instructions', {
+                      organization,
+                      format: 'markdown',
+                      source: 'issues_onboarding',
+                    });
+                    return stepsToMarkdown(steps);
+                  },
+                  text: () => {
+                    trackAnalytics('onboarding.copy_instructions', {
+                      organization,
+                      format: 'text',
+                      source: 'issues_onboarding',
+                    });
+                    return stepsToText(steps);
+                  },
+                  json: undefined,
+                })}
+              />
+            </Flex>
             <GuidedSteps
               initialStep={decodeInteger(location.query.guidedStep)}
               onStepChange={step => {

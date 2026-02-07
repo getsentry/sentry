@@ -14,6 +14,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
@@ -201,9 +202,33 @@ sentry-cli releases finalize "$VERSION"`;
       <Stack padding="xl" gap="xl">
         <Flex align="center" justify="between">
           <Heading as="h2">{t('Set up Releases')}</Heading>
-          <LinkButton size="sm" href={releasesSetupUrl} external>
-            {t('Full Documentation')}
-          </LinkButton>
+          <Flex gap="sm" align="center">
+            <CopyAsDropdown
+              size="xs"
+              items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                markdown: () => {
+                  trackAnalytics('onboarding.copy_instructions', {
+                    organization,
+                    format: 'markdown',
+                    source: 'releases_onboarding',
+                  });
+                  return `## Set up Releases\n\nFind which release caused an issue, apply source maps, and get notified about your deploys.\n\nSelect an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.\n\n\`\`\`bash\n${setupExample}\n\`\`\``;
+                },
+                text: () => {
+                  trackAnalytics('onboarding.copy_instructions', {
+                    organization,
+                    format: 'text',
+                    source: 'releases_onboarding',
+                  });
+                  return `Set up Releases\n\nFind which release caused an issue, apply source maps, and get notified about your deploys.\n\nSelect an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.\n\n\`\`\`bash\n${setupExample}\n\`\`\``;
+                },
+                json: undefined,
+              })}
+            />
+            <LinkButton size="sm" href={releasesSetupUrl} external>
+              {t('Full Documentation')}
+            </LinkButton>
+          </Flex>
         </Flex>
         <Text>
           {t(

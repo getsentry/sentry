@@ -78,6 +78,15 @@ export function simpleHtmlToMarkdown(html: string): string {
     (_match, text: string) => `*${text}*`
   );
 
+  // Handle <pre> blocks containing <code> (fenced code blocks from CodeBlock component)
+  result = result.replace(
+    /<pre[^>]*>\s*<code(?:\s+class="language-([^"]*)")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi,
+    (_match, lang: string | undefined, code: string) => {
+      const language = lang ?? '';
+      return `\`\`\`${language}\n${code.trim()}\n\`\`\``;
+    }
+  );
+
   // Handle inline code
   result = result.replace(
     /<code>([\s\S]*?)<\/code>/gi,
