@@ -15,7 +15,7 @@
           {% endif %}
           <br />
           {% if metadata.value %}
-            <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+            <small>{{ metadata.value|truncatechars:100|soft_break_html:40 }}</small>
           {% endif %}
           {% else %}
           {%if rule %}
@@ -57,7 +57,7 @@
         {% endif %}
         <br />
         {% if metadata.value %}
-          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+          <small>{{ metadata.value|truncatechars:100|soft_break_html:40 }}</small>
         {% endif %}
      </h3>
     </div>

@@ -110,7 +110,7 @@
                         {% endif %}
                         <br />
                         {% if metadata.value %}
-                          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+                          <small>{{ metadata.value|truncatechars:100|soft_break_html:40 }}</small>
                         {% endif %}
                       {% else %}
                         <a href="{% absolute_uri link %}">{{ metadata.value|truncatechars:40 }}</a><br />
@@ -151,7 +151,7 @@
                       {% endif %}
                       <br />
                       {% if subtitle and not is_new_design %}
-                        <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
+                        <small>{{ subtitle|truncatechars:40|soft_break_html:40 }}</small>
                       {% endif %}
                     </h3>
                   </div>
