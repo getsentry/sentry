@@ -448,29 +448,60 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
+_snuba_file_cache: dict[str, bool] = {}
+
+# Patterns in test source that indicate the test reads from or depends on ClickHouse.
+# If ANY pattern matches, all tests in the file are placed in the snuba xdist group.
+_SNUBA_FILE_PATTERNS = (
+    "raw_snql_query",
+    "eventstore.backend",
+    "from sentry.snuba",
+    "from snuba_sdk",
+    "from sentry.services.eventstore",
+    "from sentry.services import eventstore",
+    "SnubaTestCase",
+    "BaseMetricsTestCase",
+    "ReplaysSnubaTestCase",
+    "get_event_by_id",
+)
+
+
+def _file_needs_snuba(filepath: str) -> bool:
+    """Check if a test file imports/uses snuba-related modules (cached per file)."""
+    if filepath not in _snuba_file_cache:
+        try:
+            with open(filepath) as f:
+                content = f.read()
+            _snuba_file_cache[filepath] = any(p in content for p in _SNUBA_FILE_PATTERNS)
+        except Exception:
+            _snuba_file_cache[filepath] = False
+    return _snuba_file_cache[filepath]
+
+
 def _needs_snuba(item: pytest.Item) -> bool:
     """Check if a test item requires Snuba (ClickHouse).
 
-    Tests can declare Snuba dependency via:
-    - @pytest.mark.snuba (on SnubaTestCase and subclasses)
-    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
-    - @requires_kafka = @pytest.mark.usefixtures("_requires_kafka")
-      (Kafka consumers write to ClickHouse; these tests then read it back)
-    - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
-    - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
+    Detection layers (any match → True):
+    1. Markers: @pytest.mark.snuba, requires_snuba, requires_kafka
+    2. Class MRO: RelayStoreHelper (reads from ClickHouse via eventstore)
+    3. File-level: module imports snuba/eventstore/raw_snql_query (cached per file)
     """
+    # Layer 1: markers (fast, covers SnubaTestCase and its subclasses)
     if any(mark.name == "snuba" for mark in item.iter_markers()):
         return True
     for mark in item.iter_markers("usefixtures"):
         if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
             return True
-    # RelayStoreHelper.post_and_retrieve_event() reads from ClickHouse via
-    # eventstore.backend.get_event_by_id(). These tests need to be on the
-    # snuba worker to avoid TRUNCATE TABLE wiping their data mid-test.
+    # Layer 2: class hierarchy (covers RelayStoreHelper mixins)
     if item.cls is not None:
         for base in item.cls.__mro__:
             if base.__name__ == "RelayStoreHelper":
                 return True
+    # Layer 3: file-level import scan (catches tests that directly use snuba
+    # APIs like raw_snql_query, eventstore.backend.get_event_by_id, etc.
+    # without inheriting from SnubaTestCase)
+    if hasattr(item, "fspath") and _file_needs_snuba(str(item.fspath)):
+        return True
     return False
 
 
