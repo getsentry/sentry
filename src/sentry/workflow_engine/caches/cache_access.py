@@ -42,15 +42,20 @@ class CacheMapping[K, V]:
     Defines a family of cache entries keyed by input type K.
     K is typically int, str, or a NamedTuple thereof.
 
+    CacheMappings should be defined at module level and evaluated at import time.
+    Namespace collisions are detected at registration time to catch configuration
+    errors early.
+
     Example with namespace (recommended):
-        user_cache = CacheMapping[int, UserData](
+        # At module level:
+        _user_cache = CacheMapping[int, UserData](
             lambda uid: str(uid),
             namespace="user",
         )
         # Keys will be "user:{uid}"
 
     Example without namespace:
-        user_cache = CacheMapping[int, UserData](lambda uid: f"user:{uid}")
+        _user_cache = CacheMapping[int, UserData](lambda uid: f"user:{uid}")
     """
 
     def __init__(
@@ -104,12 +109,12 @@ class CacheMapping[K, V]:
         """
         if not data:
             return []
-        key_to_input = {self.key(inp): inp for inp in data}
+        keyed_data = {self.key(inp): (inp, val) for inp, val in data.items()}
         failed_keys = cache.set_many(
-            {self.key(inp): val for inp, val in data.items()},
+            {k: val for k, (_, val) in keyed_data.items()},
             timeout,
         )
-        return [key_to_input[k] for k in (failed_keys or [])]
+        return [inp for k, (inp, _) in keyed_data.items() if k in (failed_keys or [])]
 
     def delete_many(self, inputs: Sequence[K]) -> None:
         """
