@@ -33,7 +33,7 @@ interface CreateIssueViewModalProps
 }
 
 /**
- * Applies a generated name after loading
+ * Applies an ai generated name with a typing animation to the name field
  */
 function useGeneratedIssueViewName(formModel: FormModel) {
   const {isLoading: isGeneratingTitle, data} = useGenerateIssueViewTitle({
