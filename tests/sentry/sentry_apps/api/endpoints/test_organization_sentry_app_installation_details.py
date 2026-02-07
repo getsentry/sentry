@@ -129,8 +129,8 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
             config={
-                "target_identifier": self.installation2.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_identifier": str(self.installation2.sentry_app_id),
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

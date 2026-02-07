@@ -10,7 +10,6 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMappingKeys,
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
-    SentryAppIdentifier,
 )
 
 
@@ -33,23 +32,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             if target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
-            # Figure out what type of key we are dealing with
-            sentry_app_installations = None
-            if (
-                action.config.get("sentry_app_identifier")
-                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
-            ):
-                # It is a sentry app installation uuid
-                sentry_app_installations = app_service.get_many(
-                    filter=dict(
-                        uuids=[target_identifier],
-                    )
-                )
-            else:
-                # It is a sentry app id
-                sentry_app_installations = app_service.get_many(
-                    filter=dict(app_ids=[target_identifier], organization_id=organization_id)
-                )
+            sentry_app_installations = app_service.get_many(
+                filter=dict(app_ids=[target_identifier], organization_id=organization_id)
+            )
 
             if sentry_app_installations is None or len(sentry_app_installations) != 1:
                 raise ValueError(

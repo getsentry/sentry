@@ -33,10 +33,9 @@ class DatabaseBackedActionService(ActionService):
         *,
         organization_id: int,
         status: int,
-        sentry_app_install_uuid: str,
         sentry_app_id: int | None = None,
     ) -> None:
-        sentry_app_id_actions = Action.objects.none()
+        sentry_app_id_actions = None
 
         if sentry_app_id:
             sentry_app_id_actions = Action.objects.filter(
@@ -45,27 +44,18 @@ class DatabaseBackedActionService(ActionService):
                 type=Action.Type.SENTRY_APP,
                 dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
-        installation_uuid_actions = Action.objects.filter(
-            config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            config__target_identifier=sentry_app_install_uuid,
-            type=Action.Type.SENTRY_APP,
-            dataconditiongroupaction__condition_group__organization_id=organization_id,
-        )
-
-        actions = sentry_app_id_actions | installation_uuid_actions
-        if actions:
-            actions.update(status=status)
+        if sentry_app_id_actions:
+            sentry_app_id_actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_uuid__region(
         self,
         *,
         region_name: str,
         status: int,
-        sentry_app_install_uuid: str,
         organization_id: int | None = None,
         sentry_app_id: int | None = None,
     ) -> None:
-        sentry_app_id_actions = Action.objects.none()
+        sentry_app_id_actions = None
 
         if sentry_app_id and organization_id:
             sentry_app_id_actions = Action.objects.filter(
@@ -74,23 +64,9 @@ class DatabaseBackedActionService(ActionService):
                 type=Action.Type.SENTRY_APP,
                 dataconditiongroupaction__condition_group__organization_id=organization_id,
             )
-        if organization_id:
-            installation_uuid_actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid,
-                type=Action.Type.SENTRY_APP,
-                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                dataconditiongroupaction__condition_group__organization_id=organization_id,
-            )
-        else:
-            installation_uuid_actions = Action.objects.filter(
-                config__target_identifier=sentry_app_install_uuid,
-                type=Action.Type.SENTRY_APP,
-                config__sentry_app_identifier=SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-            )
 
-        actions = sentry_app_id_actions | installation_uuid_actions
-        if actions:
-            actions.update(status=status)
+        if sentry_app_id_actions:
+            sentry_app_id_actions.update(status=status)
 
     def update_action_status_for_sentry_app_via_sentry_app_id(
         self,

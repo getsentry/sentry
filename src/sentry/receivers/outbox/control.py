@@ -94,7 +94,6 @@ def process_sentry_app_installation_deletes(
     action_service.update_action_status_for_sentry_app_via_uuid__region(
         region_name=region_name,
         status=ObjectStatus.DISABLED,
-        sentry_app_install_uuid=payload["uuid"],
         sentry_app_id=payload.get("sentry_app_id"),
         organization_id=payload.get("organization_id"),
     )
