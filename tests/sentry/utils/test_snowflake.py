@@ -36,32 +36,42 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
-        snowflake_id = generate_snowflake_id("test_redis_key")
-        expected_value = (16 << 48) + (
-            int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
-        )
+        # Use an explicit region with snowflake_id=0 so the expected value is
+        # deterministic regardless of the test environment's default region
+        # (which may have a non-zero snowflake_id under xdist).
+        region = Region("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
+            snowflake_id = generate_snowflake_id("test_redis_key")
+            expected_value = (16 << 48) + (
+                int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
+            )
 
-        assert snowflake_id == expected_value
+            assert snowflake_id == expected_value
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self) -> None:
-        # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
-        # the 17th will be at the previous timestamp
-        snowflake_id = generate_snowflake_id("test_redis_key")
+        # Use an explicit region with snowflake_id=0 so the expected value is
+        # deterministic (see test_generate_correct_ids).
+        region = Region("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
+            # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
+            # the 17th will be at the previous timestamp
+            snowflake_id = generate_snowflake_id("test_redis_key")
 
-        for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
-            new_snowflake_id = generate_snowflake_id("test_redis_key")
+            for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
+                new_snowflake_id = generate_snowflake_id("test_redis_key")
 
-            assert new_snowflake_id - snowflake_id == 1
-            snowflake_id = new_snowflake_id
+                assert new_snowflake_id - snowflake_id == 1
+                snowflake_id = new_snowflake_id
 
-        snowflake_id = generate_snowflake_id("test_redis_key")
+            snowflake_id = generate_snowflake_id("test_redis_key")
 
-        expected_value = (16 << 48) + (
-            (int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) - 1) << 16
-        )
+            expected_value = (16 << 48) + (
+                (int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) - 1)
+                << 16
+            )
 
-        assert snowflake_id == expected_value
+            assert snowflake_id == expected_value
 
     @freeze_time(CURRENT_TIME)
     def test_out_of_region_sequences(self) -> None:
