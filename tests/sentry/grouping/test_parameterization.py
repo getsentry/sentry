@@ -74,6 +74,16 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    # ULIDs
+    ("ulid - uppercase", "01ARZ3NDEKTSV4RRFFQ69G5FAV", "<ulid>"),
+    ("ulid - lowercase", "01arz3ndektsv4rrffq69g5fav", "<ulid>"),
+    (
+        "ulid - in message",
+        "Failed to process 01H5V5KBSMQ8E6MTMHKQ8KT3SY",
+        "Failed to process <ulid>",
+    ),
+    ("ulid - not pure alpha 26 chars", "ABCDEFGHJKMNPQRSTVWXYZABCD", "ABCDEFGHJKMNPQRSTVWXYZABCD"),
+    ("ulid - contains excluded char I", "01ARZ3NDEKISV4RRFFQ69G5FAV", "01ARZ3NDEKISV4RRFFQ69G5FAV"),
     ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
     ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
     ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),

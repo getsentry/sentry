@@ -161,6 +161,17 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
     ParameterizationRegex(
+        name="ulid",
+        raw_pattern=r"""
+            # ULIDs: 26 character Crockford's Base32 strings (case-insensitive)
+            # Excludes I, L, O, U to avoid ambiguity
+            # https://github.com/ulid/spec
+            # Lookaheads require both a letter and a digit to avoid matching
+            # pure-alpha words or pure-numeric strings
+            (\b(?!0[xX])(?=[0-9A-HJ-KM-NP-TV-Za-hj-km-np-tv-z]*[A-HJ-KM-NP-TV-Za-hj-km-np-tv-z])(?=[0-9A-HJ-KM-NP-TV-Za-hj-km-np-tv-z]*[0-9])[0-9A-HJ-KM-NP-TV-Za-hj-km-np-tv-z]{26}\b)
+        """,
+    ),
+    ParameterizationRegex(
         name="hex",
         raw_pattern=r"""
             # Hex value with `0x/0X` prefix (any length, with any mix of numbers and/or letters -
