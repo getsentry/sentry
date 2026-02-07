@@ -55,6 +55,7 @@ function SegmentedIssueViewSaveButton({
     : false;
   const hasAiTitleFeature = organization.features.includes('issue-view-ai-title');
   const isNewView = location.query.new === 'true';
+  const hasDefaultNewViewName = view?.name === t('New View');
 
   const discardUnsavedChanges = () => {
     if (view) {
@@ -71,7 +72,12 @@ function SegmentedIssueViewSaveButton({
       trackAnalytics('issue_views.save.clicked', {organization});
 
       let name = view.name;
-      if (isNewView && hasAiTitleFeature && query.trim().length > 0) {
+      if (
+        isNewView &&
+        hasDefaultNewViewName &&
+        hasAiTitleFeature &&
+        query.trim().length > 0
+      ) {
         try {
           const result = await generateTitle({query});
           name = result.title;
