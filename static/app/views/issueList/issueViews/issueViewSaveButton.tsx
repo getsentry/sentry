@@ -24,7 +24,6 @@ import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssu
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
-import {useGenerateIssueViewTitle} from 'sentry/views/issueList/mutations/useGenerateIssueViewTitle';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -35,10 +34,8 @@ type IssueViewSaveButtonProps = {
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,
-  query,
 }: {
   openCreateIssueViewModal: () => void;
-  query: string;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -47,16 +44,10 @@ function SegmentedIssueViewSaveButton({
   const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
-  const {mutateAsync: generateTitle, isPending: isGeneratingTitle} =
-    useGenerateIssueViewTitle();
   const user = useUser();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-  const hasAiTitleFeature = organization.features.includes('issue-view-ai-title');
-  const isNewView = location.query.new === 'true';
-  const hasDefaultNewViewName = view?.name === t('New View');
-
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -67,40 +58,18 @@ function SegmentedIssueViewSaveButton({
     }
   };
 
-  const saveView = async () => {
+  const saveView = () => {
     if (view) {
       trackAnalytics('issue_views.save.clicked', {organization});
-
-      let name = view.name;
-      if (
-        isNewView &&
-        hasDefaultNewViewName &&
-        hasAiTitleFeature &&
-        query.trim().length > 0
-      ) {
-        try {
-          const result = await generateTitle({query});
-          name = result.title;
-        } catch {
-          // Fall back to existing name if generation fails
-        }
-      }
-
       updateGroupSearchView(
         {
           id: view.id,
-          name,
+          name: view.name,
           ...createIssueViewFromUrl({query: location.query}),
         },
         {
           onSuccess: () => {
             addSuccessMessage(t('Saved changes'));
-            if (isNewView) {
-              navigate({
-                pathname: location.pathname,
-                query: {...location.query, new: undefined},
-              });
-            }
           },
         }
       );
@@ -137,7 +106,7 @@ function SegmentedIssueViewSaveButton({
                 openCreateIssueViewModal();
               }
             }}
-            disabled={isSaving || isGeneratingTitle || !hasFeature}
+            disabled={isSaving || !hasFeature}
           >
             {canEdit ? t('Save') : t('Save As')}
           </PrimarySaveButton>
@@ -163,7 +132,7 @@ function SegmentedIssueViewSaveButton({
             trigger={props => (
               <DropdownTrigger
                 {...props}
-                disabled={!hasFeature || isSaving || isGeneratingTitle}
+                disabled={!hasFeature || isSaving}
                 icon={
                   <IconChevron
                     direction="down"
@@ -239,10 +208,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   }
 
   return (
-    <SegmentedIssueViewSaveButton
-      openCreateIssueViewModal={openCreateIssueViewModal}
-      query={query}
-    />
+    <SegmentedIssueViewSaveButton openCreateIssueViewModal={openCreateIssueViewModal} />
   );
 }
 
