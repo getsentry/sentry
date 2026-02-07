@@ -261,7 +261,20 @@ class GitHubWebhook(SCMWebhook, ABC):
 
                 repos = repos.all()
 
-            for repo in repos.exclude(status=ObjectStatus.HIDDEN):
+            repos_to_process = repos.exclude(status=ObjectStatus.HIDDEN)
+            if not repos_to_process.exists():
+                logger.info(
+                    "github.webhook.no_repository_for_event",
+                    extra={
+                        "event_type": github_event.value,
+                        "repository_id": event.get("repository", {}).get("id"),
+                        "repository_full_name": event.get("repository", {}).get("full_name"),
+                        "action": event.get("action"),
+                    },
+                )
+                return
+
+            for repo in repos_to_process:
                 self.update_repo_data(repo, event)
                 self._handle(
                     github_event=github_event,
