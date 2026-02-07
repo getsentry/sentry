@@ -102,7 +102,10 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
             base_query = base_query_parts[0]
 
         if additional_query is not None:
-            query = f"{base_query} and {additional_query}"
+            # Wrap the user-provided query in parentheses so any boolean
+            # operators (OR) it contains are evaluated as a group before
+            # being ANDed with the base trace/replay filter.
+            query = f"{base_query} and ({additional_query})"
         else:
             query = base_query
 
@@ -147,7 +150,13 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
         def data_fn(offset: int, limit: int) -> EventsResponse:
             with handle_query_errors():
                 return self.query_logs_data(
-                    snuba_params, trace_ids, replay_id, orderby, additional_query, offset, limit
+                    snuba_params,
+                    trace_ids,
+                    replay_id,
+                    orderby,
+                    additional_query,
+                    offset,
+                    limit,
                 )
 
         return self.paginate(
