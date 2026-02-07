@@ -32,7 +32,9 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
+    def get_features(
+        self, organization: Organization, request: Request
+    ) -> dict[str, bool | None]:
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
@@ -102,7 +104,9 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                     query=request.query_params.get("query"),
                     referrer=Referrer.API_ORGANIZATION_EVENTS_META.value,
                     has_metrics=use_metrics,
-                    use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                    use_metrics_layer=batch_features.get(
+                        "organizations:use-metrics-layer", False
+                    ),
                     # TODO: @athena - add query_source when all datasets support it
                     # query_source=(
                     #     QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
@@ -128,7 +132,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="find_lookup_keys") as span:
+        with sentry_sdk.start_span(
+            op="discover.endpoint", name="find_lookup_keys"
+        ) as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 
@@ -154,9 +160,13 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
                     transaction_name = UNESCAPED_QUOTE_RE.sub(
                         '\\"', lookup_keys["transaction"] or ""
                     )
-                    parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
+                    parsed_terms = parse_search_query(
+                        f'transaction:"{transaction_name}"'
+                    )
                 except ParseError:
-                    return Response({"detail": "Invalid transaction search"}, status=400)
+                    return Response(
+                        {"detail": "Invalid transaction search"}, status=400
+                    )
 
                 if query_kwargs.get("search_filters"):
                     query_kwargs["search_filters"].extend(parsed_terms)
@@ -168,13 +178,17 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
             with sentry_sdk.start_span(op="discover.endpoint", name="issue_search"):
                 results_cursor = search.backend.query(**query_kwargs)
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="serialize_results") as span:
+        with sentry_sdk.start_span(
+            op="discover.endpoint", name="serialize_results"
+        ) as span:
             results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
                 results,
                 request.user,
-                GroupSerializer(environment_func=get_environment_func(request, organization.id)),
+                GroupSerializer(
+                    environment_func=get_environment_func(request, organization.id)
+                ),
             )
 
         return Response(context)
@@ -187,7 +201,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -254,7 +267,10 @@ def get_span_samples(
             raise ParseError("Could not find bounds")
 
         bound_data = bound_results["data"][0]
-        first_bound, second_bound = bound_data["first_bound"], bound_data["second_bound"]
+        first_bound, second_bound = (
+            bound_data["first_bound"],
+            bound_data["second_bound"],
+        )
         if lower_bound == 0 or upper_bound == 0:
             raise ParseError("Could not find bounds")
 
@@ -285,7 +301,10 @@ def get_span_samples(
 
     if len(span_ids) > 0:
         user_query = request.query_params.get("query") or ""
-        query = f"span_id:[{','.join(span_ids)}] {user_query}"
+        # Wrap the user query in parentheses to preserve boolean operator
+        # precedence when combined with the span_id filter.
+        user_clause = f"({user_query})" if user_query else ""
+        query = f"span_id:[{','.join(span_ids)}] {user_clause}"
     else:
         query = request.query_params.get("query") or ""
 
@@ -324,7 +343,12 @@ def get_eap_span_samples(
     ]
 
     query_string = request.query_params.get("query") or ""
-    bounds_query_string = f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
+    # Wrap the user query in parentheses so that any boolean operators (OR)
+    # inside it bind correctly with the bounds filters prepended above.
+    user_clause = f"({query_string})" if query_string else ""
+    bounds_query_string = (
+        f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {user_clause}"
+    )
 
     rpc_res = Spans.run_table_query(
         params=snuba_params,
@@ -356,7 +380,9 @@ def get_eap_span_samples(
             span_ids.append(row["id"])
 
     samples_query_string = (
-        f"span_id:[{','.join(span_ids)}] {query_string}" if len(span_ids) > 0 else query_string
+        f"span_id:[{','.join(span_ids)}] {query_string}"
+        if len(span_ids) > 0
+        else query_string
     )
 
     return Spans.run_table_query(

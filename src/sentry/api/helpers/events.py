@@ -84,9 +84,19 @@ def get_query_builder_for_group(
     else:
         orderby_list = [orderby, "id"]
 
+    # Wrap the user query in parentheses so that any boolean operators (OR)
+    # inside it are evaluated as a group before being implicitly ANDed with
+    # the issue filter.  Without this, a query like
+    #   issue:ABC-123 company_id:1 OR coid:2
+    # is parsed as (issue:ABC-123 AND company_id:1) OR coid:2, leaking
+    # events from other issues into the results.
+    scoped_query = f"issue:{group.qualified_short_id}"
+    if query:
+        scoped_query = f"{scoped_query} ({query})"
+
     return DiscoverQueryBuilder(
         dataset=dataset,
-        query=f"issue:{group.qualified_short_id} {query}",
+        query=scoped_query,
         params={},
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -110,7 +120,9 @@ def get_events_for_group_eap(
 ) -> list[dict[str, Any]]:
     query_string = f"group_id:{group.id}"
     if query:
-        query_string = f"{query_string} {query}"
+        # Wrap the user query in parentheses to preserve boolean operator
+        # precedence — see the comment in get_query_builder_for_group().
+        query_string = f"{query_string} ({query})"
 
     if orderby is None or orderby == "sample":
         orderby_list = ["-timestamp", "id"]
