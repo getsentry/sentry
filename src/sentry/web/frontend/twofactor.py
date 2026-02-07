@@ -4,6 +4,7 @@ from base64 import b64encode
 from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.middleware.csrf import rotate_token
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -64,6 +65,11 @@ class TwoFactorAuthView(BaseView):
 
     def perform_signin(self, request: HttpRequest, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
+        # Django's login() internally calls session.cycle_key() for session
+        # fixation prevention.  Rotate the CSRF token so it stays in sync
+        # with the new session — otherwise the next POST request from the
+        # client will fail CSRF validation.
+        rotate_token(request)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()
@@ -205,7 +211,9 @@ class TwoFactorAuthView(BaseView):
 
                     if interface.type == U2fInterface.type:
                         activation.challenge = {}
-                        activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
+                        activation.challenge["webAuthnAuthenticationData"] = b64encode(
+                            challenge
+                        )
             except SMSRateLimitExceeded as e:
                 logger.warning(
                     "login.2fa.sms.rate-limited-exceeded",
@@ -243,7 +251,10 @@ class TwoFactorAuthView(BaseView):
                 self.fail_signin(request, user, form)
 
         return render_to_response(
-            ["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
+            [
+                "sentry/twofactor_%s.html" % interface.interface_id,
+                "sentry/twofactor.html",
+            ],
             {
                 "form": form,
                 "interface": interface,
@@ -265,7 +276,10 @@ def u2f_appid(request):
         json.dumps(
             {
                 "trustedFacets": [
-                    {"version": {"major": 1, "minor": 0}, "ids": [x.rstrip("/") for x in facets]}
+                    {
+                        "version": {"major": 1, "minor": 0},
+                        "ids": [x.rstrip("/") for x in facets],
+                    }
                 ]
             }
         ),

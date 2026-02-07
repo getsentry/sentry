@@ -8,6 +8,8 @@ from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from django.middleware.csrf import rotate_token
+
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apidevicecode import (
@@ -162,23 +164,32 @@ class OAuthDeviceView(AuthLoginView):
         }
         return self.respond("sentry/oauth-device.html", context)
 
-    def _show_approval_form(self, request: HttpRequest, user_code: str) -> HttpResponseBase:
+    def _show_approval_form(
+        self, request: HttpRequest, user_code: str
+    ) -> HttpResponseBase:
         """Show the approval form for a valid user code."""
         # Rate limit user code verification attempts (RFC 8628 §5.1)
         # Note: REMOTE_ADDR is set correctly by SetRemoteAddrFromForwardedFor middleware
         client_ip = request.META.get("REMOTE_ADDR")
         rate_limit_key = f"oauth:device_verify:{client_ip}"
         if ratelimiter.is_limited(
-            rate_limit_key, limit=USER_CODE_RATE_LIMIT, window=USER_CODE_RATE_LIMIT_WINDOW
+            rate_limit_key,
+            limit=USER_CODE_RATE_LIMIT,
+            window=USER_CODE_RATE_LIMIT_WINDOW,
         ):
             logger.warning(
                 "oauth.device-verification-rate-limited",
-                extra={"ip": client_ip, "user_code_prefix": user_code[:4] if user_code else None},
+                extra={
+                    "ip": client_ip,
+                    "user_code_prefix": user_code[:4] if user_code else None,
+                },
             )
             return self._error_response(request, ERR_RATE_LIMITED)
 
         # Validate the device code
-        device_code, error_response = self._get_validated_device_code(request, user_code=user_code)
+        device_code, error_response = self._get_validated_device_code(
+            request, user_code=user_code
+        )
         if error_response:
             return error_response
 
@@ -201,7 +212,9 @@ class OAuthDeviceView(AuthLoginView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+                raise NotImplementedError(
+                    f"{pending_scopes} scopes did not have descriptions"
+                )
 
         # Get organization options if needed
         if application.requires_org_level_access:
@@ -233,7 +246,9 @@ class OAuthDeviceView(AuthLoginView):
         }
         return self.respond("sentry/oauth-device-authorize.html", context)
 
-    def _handle_deny(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
+    def _handle_deny(
+        self, request: HttpRequest, device_code: ApiDeviceCode
+    ) -> HttpResponseBase:
         """Handle deny action for a device code."""
         # Atomically mark as denied only if still pending (prevents race with approve)
         updated = ApiDeviceCode.objects.filter(
@@ -261,7 +276,9 @@ class OAuthDeviceView(AuthLoginView):
         }
         return self.respond("sentry/oauth-device-complete.html", context)
 
-    def _handle_approve(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
+    def _handle_approve(
+        self, request: HttpRequest, device_code: ApiDeviceCode
+    ) -> HttpResponseBase:
         """Handle approve action for a device code."""
         # request.user.id is guaranteed to be int since we only reach here when authenticated
         assert isinstance(request.user.id, int)
@@ -278,7 +295,9 @@ class OAuthDeviceView(AuthLoginView):
                 return self._error_response(request, ERR_SELECT_ORG)
 
             # Validate user has access to the selected organization
-            user_orgs = user_service.get_organizations(user_id=request.user.id, only_visible=True)
+            user_orgs = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
+            )
             org_ids = {org.id for org in user_orgs}
 
             try:
@@ -355,6 +374,10 @@ class OAuthDeviceView(AuthLoginView):
         if request.user.is_authenticated:
             # Regenerate session to prevent session fixation
             request.session.cycle_key()
+            # Rotate CSRF token so it stays in sync with the new session.
+            # Without this, subsequent POST requests fail CSRF validation
+            # because the token was generated for the old session ID.
+            rotate_token(request)
         return response
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
@@ -374,7 +397,9 @@ class OAuthDeviceView(AuthLoginView):
         else:
             return self._error_response(request, ERR_INVALID_REQUEST)
 
-    def _handle_op(self, request: HttpRequest, op: str, user_code: str) -> HttpResponseBase:
+    def _handle_op(
+        self, request: HttpRequest, op: str, user_code: str
+    ) -> HttpResponseBase:
         """Handle approve/deny operation from the approval form."""
         if op not in ("approve", "deny"):
             return self._error_response(request, ERR_INVALID_OP)

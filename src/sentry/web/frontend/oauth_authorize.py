@@ -12,6 +12,8 @@ from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from django.middleware.csrf import rotate_token
+
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -84,11 +86,17 @@ class OAuthAuthorizeView(AuthLoginView):
         if err_response:
             return self.respond(
                 "sentry/oauth-error.html",
-                {"error": mark_safe(f"Missing or invalid <em>{err_response}</em> parameter.")},
+                {
+                    "error": mark_safe(
+                        f"Missing or invalid <em>{err_response}</em> parameter."
+                    )
+                },
                 status=400,
             )
 
-        return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
+        return self.redirect_response(
+            response_type, redirect_uri, {"error": name, "state": state}
+        )
 
     def respond_login(self, request: HttpRequest, context, **kwargs):
         application = kwargs["application"]  # required argument
@@ -297,7 +305,9 @@ class OAuthAuthorizeView(AuthLoginView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
+                raise NotImplementedError(
+                    f"{pending_scopes} scopes did not have descriptions"
+                )
 
         if application.requires_org_level_access:
             organization_options = user_service.get_organizations(
@@ -335,6 +345,10 @@ class OAuthAuthorizeView(AuthLoginView):
         if request.user.is_authenticated:
             # Regenerate session to prevent session fixation attacks
             request.session.cycle_key()
+            # Rotate CSRF token so it stays in sync with the new session.
+            # Without this, subsequent POST requests fail CSRF validation
+            # because the token was generated for the old session ID.
+            rotate_token(request)
 
             # Update OAuth payload with authenticated user ID for validation in post()
             request.session["oa2"]["uid"] = request.user.id
@@ -359,7 +373,11 @@ class OAuthAuthorizeView(AuthLoginView):
         except ApiApplication.DoesNotExist:
             return self.respond(
                 "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
+                {
+                    "error": mark_safe(
+                        "Missing or invalid <em>client_id</em> parameter."
+                    )
+                },
             )
 
         if not request.user.is_authenticated:
@@ -438,7 +456,9 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
-            user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
+            user_orgs = user_service.get_organizations(
+                user_id=user.id, only_visible=True
+            )
             org_ids = {org.id for org in user_orgs}
 
             try:
@@ -538,7 +558,9 @@ class OAuthAuthorizeView(AuthLoginView):
                 redirect_uri,
                 {
                     "access_token": token.token,
-                    "expires_in": int((token.expires_at - timezone.now()).total_seconds()),
+                    "expires_in": int(
+                        (token.expires_at - timezone.now()).total_seconds()
+                    ),
                     "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "token_type": "Bearer",
                     "scope": " ".join(token.get_scopes()),
