@@ -63,16 +63,25 @@ export function mapAssertionFormErrors(responseJson: any): any {
     result.assertion = formatAssertionError(result.assertion);
   }
 
-  // Handle nested assertion errors (detector forms endpoint)
-  if (result.dataSources && isAssertionError(result.dataSources.assertion)) {
-    result.assertion = formatAssertionError(result.dataSources.assertion);
-    // Remove assertion from dataSources but preserve other fields
-    const {assertion: _, ...remainingDataSources} = result.dataSources;
-    if (Object.keys(remainingDataSources).length > 0) {
-      result.dataSources = remainingDataSources;
-    } else {
-      delete result.dataSources;
+  // Handle nested errors from detector forms endpoint
+  // e.g. {"dataSources": {"url": ["Enter a valid URL."], "assertion": {...}}}
+  if (result.dataSources) {
+    const handledAssertion = isAssertionError(result.dataSources.assertion);
+    if (handledAssertion) {
+      result.assertion = formatAssertionError(result.dataSources.assertion);
     }
+
+    // Flatten remaining dataSources fields to top level so FormModel can
+    // map them to the corresponding form fields. Only exclude assertion
+    // from flattening if it was handled as an assertion error above —
+    // otherwise it may be a plain validation error array that should be kept.
+    if (handledAssertion) {
+      const {assertion: _, ...remainingDataSources} = result.dataSources;
+      Object.assign(result, remainingDataSources);
+    } else {
+      Object.assign(result, result.dataSources);
+    }
+    delete result.dataSources;
   }
 
   return result;

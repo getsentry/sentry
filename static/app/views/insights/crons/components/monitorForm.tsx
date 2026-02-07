@@ -16,6 +16,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -183,6 +184,8 @@ function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
+  const {onFieldChange} = useFormEagerValidation(form.current);
+
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -237,6 +240,7 @@ function MonitorForm({
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
       model={form.current}
+      onFieldChange={onFieldChange}
       initialData={
         monitor
           ? {

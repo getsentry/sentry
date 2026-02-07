@@ -23,6 +23,7 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -113,6 +114,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
     : {projectSlug: project?.slug, method: DEFAULT_METHOD, headers: []};
 
   const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const [knownEnvironments, setEnvironments] = useState<string[]>([]);
   const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
@@ -207,6 +209,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       mapFormErrors={mapAssertionFormErrors}
+      onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
           formModel.setValue('body', null);
@@ -249,6 +252,10 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                   timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
                   assertion: data.assertion ?? null,
                 };
+              }}
+              onValidationError={responseJson => {
+                const mapped = mapAssertionFormErrors(responseJson);
+                formModel.handleErrorResponse({responseJSON: mapped});
               }}
             />
           )}

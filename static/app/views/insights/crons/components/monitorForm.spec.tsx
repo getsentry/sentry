@@ -5,7 +5,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -45,6 +45,30 @@ describe('MonitorForm', () => {
       loadMore: jest.fn(),
       onSearch: jest.fn(),
       members: [member.user!],
+    });
+  });
+
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(
+      <MonitorForm
+        apiMethod="POST"
+        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+        onSubmitSuccess={jest.fn()}
+      />,
+      {organization}
+    );
+
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+
+    // Change one field (schedule) to trigger first-change validation
+    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+    await userEvent.clear(schedule);
+    await userEvent.type(schedule, '5 * * * *');
+
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
     });
   });
 

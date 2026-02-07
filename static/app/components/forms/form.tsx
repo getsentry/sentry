@@ -81,7 +81,7 @@ export interface FormProps extends Pick<
   submitPriority?: ButtonProps['priority'];
 }
 
-function getSubmitButtonTitle(form: FormModel) {
+export function getSubmitButtonTitle(form: FormModel) {
   if (form.isFormIncomplete) {
     return t('Required fields must be filled out');
   }

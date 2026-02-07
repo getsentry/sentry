@@ -11,6 +11,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
@@ -55,6 +56,7 @@ export default function MonitorCreateForm() {
       transformData: transformMonitorFormData,
     })
   );
+  const {onFieldChange} = useFormEagerValidation(form.current);
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
@@ -91,6 +93,7 @@ export default function MonitorCreateForm() {
       apiEndpoint={`/organizations/${organization.slug}/monitors/`}
       apiMethod="POST"
       model={form.current}
+      onFieldChange={onFieldChange}
       initialData={{
         project: selectedProject ? selectedProject.slug : null,
         type: DEFAULT_MONITOR_TYPE,
