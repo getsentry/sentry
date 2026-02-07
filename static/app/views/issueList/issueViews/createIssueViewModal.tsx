@@ -1,9 +1,13 @@
+import {useCallback, useEffect, useRef, useState} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {useFormTypingAnimation} from 'sentry/components/events/autofix/useFormTypingAnimation';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,6 +18,7 @@ import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssu
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useGenerateIssueViewTitle} from 'sentry/views/issueList/utils/useGenerateIssueViewTitle';
 
 interface CreateIssueViewModalProps
   extends
@@ -25,6 +30,46 @@ interface CreateIssueViewModalProps
       >
     > {
   analyticsSurface: 'issue-view-details' | 'issues-feed' | 'issue-views-list';
+}
+
+/**
+ * Applies a generated name after loading
+ */
+function useGeneratedIssueViewName(formModel: FormModel) {
+  const {isLoading: isGeneratingTitle, data} = useGenerateIssueViewTitle({
+    query: formModel.getValue<string>('query'),
+  });
+  const userEditedNameRef = useRef(false);
+  const {triggerFormTypingAnimation, cancelFormTypingAnimation} = useFormTypingAnimation({
+    speed: 70,
+    quiet: true,
+  });
+
+  useEffect(() => {
+    if (!formModel || !data?.title) {
+      return;
+    }
+
+    // Do not override user input if they already typed before title generation completes.
+    const currentName = formModel.getValue<string>('name') ?? '';
+    if (currentName.trim() || userEditedNameRef.current) {
+      return;
+    }
+
+    triggerFormTypingAnimation({
+      formModel,
+      fieldName: 'name',
+      text: data.title,
+    });
+  }, [formModel, data?.title, triggerFormTypingAnimation]);
+
+  const handleNameChange = useCallback(() => {
+    // Stop the synthetic animation as soon as the user edits.
+    userEditedNameRef.current = true;
+    cancelFormTypingAnimation();
+  }, [cancelFormTypingAnimation]);
+
+  return {isGeneratingTitle, handleNameChange};
 }
 
 export function CreateIssueViewModal({
@@ -39,8 +84,10 @@ export function CreateIssueViewModal({
   name: incomingName,
   analyticsSurface,
 }: CreateIssueViewModalProps) {
+  const [formModel] = useState(() => new FormModel());
   const organization = useOrganization();
   const navigate = useNavigate();
+  const {isGeneratingTitle, handleNameChange} = useGeneratedIssueViewName(formModel);
 
   const {
     mutate: createIssueView,
@@ -93,6 +140,7 @@ export function CreateIssueViewModal({
 
   return (
     <Form
+      model={formModel}
       onSubmit={handleSubmit}
       onCancel={closeModal}
       saveOnBlur={false}
@@ -116,12 +164,15 @@ export function CreateIssueViewModal({
           key="name"
           name="name"
           label={t('Name')}
-          placeholder="e.g. My Search Results"
+          placeholder={
+            isGeneratingTitle ? t('Generating title...') : 'e.g. My Search Results'
+          }
           inline={false}
           stacked
           flexibleControlStateSize
           required
           autoFocus
+          onChange={handleNameChange}
         />
         <BooleanField
           key="starred"

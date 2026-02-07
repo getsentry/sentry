@@ -1,7 +1,7 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -80,6 +80,7 @@ describe('CreateIssueViewModal', () => {
     });
 
     const nameInput = screen.getByRole('textbox', {name: 'Name'});
+    await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'foo');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
@@ -109,4 +110,49 @@ describe('CreateIssueViewModal', () => {
       })
     );
   }, 10_000);
+
+  describe('AI name streaming animation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('does not override a pre-filled name', () => {
+      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />);
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('My Custom Name');
+    });
+
+    it('does not override user edits', async () => {
+      render(<CreateIssueViewModal {...defaultProps} />);
+
+      const nameInput = screen.getByRole('textbox', {name: 'Name'});
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      act(() => {
+        jest.advanceTimersByTime(80);
+      });
+
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Custom Name');
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(nameInput).toHaveValue('Custom Name');
+    });
+  });
 });
