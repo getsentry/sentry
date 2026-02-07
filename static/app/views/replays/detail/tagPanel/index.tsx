@@ -61,9 +61,10 @@ export default function TagPanel() {
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
         query: `${name}:"${value}"`,
+        project: replayRecord?.project_id,
       },
     }),
-    [organization]
+    [organization, replayRecord?.project_id]
   );
 
   if (!replayRecord) {
