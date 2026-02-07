@@ -9,9 +9,23 @@
 - Seer/LLM assistance for resolution
 - Trackable progress on fixing configuration problems
 
-## Existing Systems for Processing Errors
+### High Level View Flow
 
-These are the current tools users have for discovering and debugging source map issues:
+1. **Store processing errors** - When symbolicator fails to apply sourcemaps, it returns specific error types (e.g., `missing_sourcemap`, `malformed_sourcemap`). We'll store all of these in EAP.
+
+2. **Detect issues** - A scheduled detector queries EAP for processing errors. If errors are found, it creates or updates an issue via the issue platform.
+
+3. **Group by fingerprint** - The occurrences are grouped using a fingerprint (e.g., `{project_id}:sourcemap`). All sourcemap errors that match this fingerprint roll up into a single issue.
+
+4. **Auto-resolve** - When the detector sees successful sourcemap processing and no new errors for that fingerprint, it auto-resolves the issue.
+
+The rest of this doc covers the design decisions, technical details, and open questions.
+
+---
+
+## Existing Tools
+
+These are the current tools users have for discovering and debugging source map issues. Understanding them informs our approach—we may reuse or adapt these for the issue detail UI.
 
 ### Processing Errors Banner (on Event Details)
 
@@ -42,35 +56,9 @@ Modal that opens when clicking on a minified stack frame.
 
 **Frontend:** `static/app/components/events/interfaces/sourceMapsDebuggerModal.tsx`
 
-For the issue detail UI, we can potentially reuse or adapt the wizard experience, linking to a representative event that demonstrates the problem.
-
 ---
 
-## Architecture
-
-### Symbolicator Error Types
-
-When Sentry processes a JavaScript error, symbolicator attempts to apply source maps to convert minified stack traces back to original source code. When this fails, symbolicator returns specific error types that tell us what went wrong:
-
-| symbolicator_type | `EventError` type | meaning |
-|-------------------|-------------------|---------|
-| `missing_sourcemap` | `js_no_source` | Can't find the `.map` file for a minified JS file. The sourcemap URL may be specified in the file (via `//# sourceMappingURL=`) or inferred, but the file isn't available. |
-| `missing_source` | `js_no_source` | Found the sourcemap, but it references original source files (via `sources: ["src/app.js", ...]`) that aren't available. Happens when sourcemap doesn't include `sourcesContent` and source files weren't uploaded separately. |
-| `missing_source_content` | `js_missing_sources_content` | Found the sourcemap, but its `sourcesContent` array is empty or missing. Similar to `missing_source` - the sourcemap exists but we can't show original code. |
-| `scraping_disabled` | `js_scraping_disabled` | Project has source map scraping disabled, so we can't fetch sourcemaps from the web. User must upload sourcemaps directly. |
-| `malformed_sourcemap` | `js_invalid_source` | Sourcemap exists but is invalid or not parseable. User uploaded a broken sourcemap. |
-| `invalid_location` | `js_invalid_sourcemap_location` | Sourcemap has invalid line/column mappings. The sourcemap doesn't correctly map to the minified code. |
-
-**Deferred - transient/fetch errors (TODO for future):**
-These errors may be transient (server issues) rather than configuration problems. Consider handling separately:
-- `FETCH_GENERIC_ERROR` / `FETCH_INVALID_HTTP_CODE` - server returned error when fetching
-- `FETCH_TIMEOUT` - request timed out
-- `FETCH_TOO_LARGE` - file too large to fetch
-- `JS_TOO_MANY_REMOTE_SOURCES` - hit rate limit on fetching
-
-### Issue Types
-
-We'll create one GroupType (`sourcemap_configuration`) for all sourcemap configuration issues. See Fingerprinting Strategy below for rationale.
+## Design Decisions
 
 ### Fingerprinting Strategy
 
@@ -108,11 +96,10 @@ Should we create one issue per project or one issue per domain?
 - Could create noise if project has many domains with issues
 - Example: `123:sourcemap:app.example.com` groups all sourcemap errors for `https://app.example.com/*`
 
-**Note:** This choice impacts issue lifecycle—see Issue Lifecycle Management below.
+**Note:** This choice impacts issue lifecycle—see below.
+**Note:** Together, the recommended decisions above mean that each project will have a single source map issue at most.
 
----
-
-### Issue Lifecycle Management
+### Issue Lifecycle
 
 Configuration issues differ from runtime errors in how their lifecycle should be managed. There are two main patterns in Sentry:
 
@@ -134,9 +121,8 @@ Configuration issues differ from runtime errors in how their lifecycle should be
 
 Sourcemap issues are closer to metric/uptime/crons style because:
 - They represent a configuration state ("sourcemaps are broken") not individual events
-- There's a clear "fixed" signal: successful sourcemap processing
-- Users shouldn't need to manually resolve; when they fix the config, the issue should auto-resolve
-- Unlike N+1 queries, there's no "regression" concern—either sourcemaps work or they don't
+- There's a clear "fixed" signal: We stop seeing failed sourcemap processing
+- Users shouldn't need to manually resolve; when they fix the config, the issue should auto-resolve as failed events stop
 
 **Auto-resolution trigger options:**
 
@@ -145,19 +131,19 @@ Sourcemap issues are closer to metric/uptime/crons style because:
 - Pros: Clear positive signal that sourcemaps are working
 - Cons: May take time to resolve if project has low traffic
 
-**Option B: 0 failures in time window**
-- Auto-resolve if no sourcemap failures occur within a time window (e.g., 24 hours)
-- Pros: Catches edge cases, doesn't require positive signal
+**Option B: 0 failures in time window (Recommended)**
+- Auto-resolve if no sourcemap failures occur within a time window
+- Pros: Catches edge cases, doesn't require positive signal. Easy to query in EAP
 - Cons: Could resolve prematurely during low traffic periods
 
-**Option C: X successes AND 0 failures (Recommended)**
+**Option C: X successes AND 0 failures**
 - Auto-resolve after N successful events AND no failures in a time window
 - Pros: Most robust—requires positive evidence while avoiding premature resolution
-- Cons: More complex to implement
+- Cons: More complex to implement. We'd need to query that events had come through in the same time period we should resolve
 
 **Error type transitions**
 
-If a project goes from `missing_sourcemap` to `invalid_sourcemap` (user uploaded broken sourcemaps), the issue should stay open without additional notifications. The issue represents "sourcemaps aren't working" regardless of the specific failure mode. Only resolve when we see successful processing.
+If a project goes from `missing_sourcemap` to `invalid_sourcemap` (user uploaded broken sourcemaps), the issue should stay open without additional notifications. The issue represents "sourcemaps aren't working" regardless of the specific failure mode. Only resolve when we see successful processing. The ui would change to reflect the latest processing errors that we'd seen though.
 
 **Lifecycle granularity**
 
@@ -168,27 +154,29 @@ With the recommended per-project fingerprint, the single project issue only reso
 
 ---
 
-## Processing Error Storage (EAP)
+## Technical Approach
+
+### Processing Error Storage (EAP)
 
 To enable detection and historical analysis, we'll store all processing errors in EAP (Event Analytics Platform).
 
 **Scale:** ~1.6B processing errors/day across all customers
 **Cost:** ~$75/day for ingestion and storage
 
-### Core Fields
+#### Core Fields
 
-| Field | Type | Notes                                                                         |
-|-------|------|-------------------------------------------------------------------------------|
-| `organization_id` | int | For querying/access control                                                   |
-| `project_id` | int | For querying                                                                  |
-| `event_id` | string | Links back to the source event for full details                               |
-| `error_type` | string | The EventError type: `js_no_source`, `js_invalid_source`, etc.                |
+| Field | Type | Notes |
+|-------|------|-------|
+| `organization_id` | int | For querying/access control |
+| `project_id` | int | For querying |
+| `event_id` | string | Links back to the source event for full details |
+| `error_type` | string | The EventError type: `js_no_source`, `js_invalid_source`, etc. |
 | `symbolicator_type` | string | Original symbolicator error: `missing_sourcemap`, `malformed_sourcemap`, etc. |
-| `release` | string | Correlate errors with releases                                                |
-| `trace_id` | string | Link to trace                                                                 |
-| `timestamp` | datetime | When the error occurred                                                       |
+| `release` | string | Correlate errors with releases |
+| `trace_id` | string | Link to trace |
+| `timestamp` | datetime | When the error occurred |
 
-### Optional Fields (for team discussion)
+#### Optional Fields (for team discussion)
 
 | Field | Type | Rationale |
 |-------|------|-----------|
@@ -197,7 +185,7 @@ To enable detection and historical analysis, we'll store all processing errors i
 | `sdk_version` | string | Track if errors correlate with SDK versions |
 | `platform` | string | javascript, react-native, node, etc. |
 
-### Error-specific Detail Fields (deferred)
+#### Error-specific Detail Fields (deferred)
 
 Different error types have different context fields (`url`, `source`, `sourcemap`, `row`, `column`). For MVP, we'll skip these—the `event_id` lets us load full details when needed.
 
@@ -205,11 +193,7 @@ If we later add configurable ignore rules (e.g., "ignore errors for vendor.js"),
 
 **Note:** Processing errors for `node_modules` and `chrome-extension:` URLs are already filtered out at creation time (see `should_skip_missing_source_error()` in `processing.py`), so we inherently only capture errors for in-app code.
 
----
-
-## Detection Approach
-
-### Metric Alert Style Detector
+### Detection
 
 We'll use a scheduled detector that queries EAP for processing errors:
 
@@ -221,7 +205,7 @@ We'll use a scheduled detector that queries EAP for processing errors:
 
 This approach fits naturally with the Metric/Uptime/Crons lifecycle model—the detector controls issue state based on the current situation.
 
-### Lookback Period (Open Question)
+#### Lookback Period (Open Question)
 
 | Period | Pros | Cons |
 |--------|------|------|
@@ -229,13 +213,13 @@ This approach fits naturally with the Metric/Uptime/Crons lifecycle model—the 
 | 30 min | Balanced | - |
 | 1 hour | Catches sparse data, fewer queries | Slower to alert |
 
-### Threshold Considerations
+#### Threshold Considerations
 
 - `> 1` is very sensitive—good for catching issues early
 - Could be configurable per-project or per-error-type
 - May want different thresholds for different error types
 
-### Configurable Ignore Rules (deferred)
+#### Configurable Ignore Rules (deferred)
 
 For MVP, no user-configurable ignore rules. Future iteration could allow users to ignore:
 - Specific error types (e.g., don't alert on `scraping_disabled`)
@@ -246,20 +230,20 @@ This would require adding `url`/`source` fields to EAP storage (see above).
 
 ---
 
-## Implementation Notes
+## Implementation & Rollout
+
+### Implementation Notes
 
 - Create new GroupType (`sourcemap_configuration`) for sourcemap configuration issues
-- Implement EAP storage for processing errors (see Processing Error Storage section)
-- Build scheduled detector that queries EAP (see Detection Approach section)
+- Implement EAP storage for processing errors
+- Build scheduled detector that queries EAP
 - Store event_id in evidence data so the issue detail UI can link to the existing wizard
 - For the issue detail UI, we can potentially reuse or adapt the existing wizard experience
 - Feature flag: `organizations:processing-issues-detection`
 
 The detection system should be generic and extensible—sourcemap issues are the first case, but the architecture should support adding detectors for other processing error types in the future.
 
----
-
-## Rollout Strategy
+### Rollout Strategy
 
 Create a "test" version of the GroupType first:
 - Issues are created but notifications are disabled
@@ -333,3 +317,25 @@ These issues are fundamentally different from error issues - they're configurati
 3. **CDN filtering:** Domain-based filtering for known CDN/analytics providers
 4. **Root cause diagnosis:** Integrate `source_map_debug()` to provide MISSING_RELEASE, DIST_MISMATCH, etc.
 5. **Seer integration:** LLM-powered fix suggestions
+
+---
+
+## Reference: Symbolicator Error Types
+
+When Sentry processes a JavaScript error, symbolicator attempts to apply source maps to convert minified stack traces back to original source code. When this fails, symbolicator returns specific error types:
+
+| symbolicator_type | `EventError` type | meaning |
+|-------------------|-------------------|---------|
+| `missing_sourcemap` | `js_no_source` | Can't find the `.map` file for a minified JS file. The sourcemap URL may be specified in the file (via `//# sourceMappingURL=`) or inferred, but the file isn't available. |
+| `missing_source` | `js_no_source` | Found the sourcemap, but it references original source files (via `sources: ["src/app.js", ...]`) that aren't available. Happens when sourcemap doesn't include `sourcesContent` and source files weren't uploaded separately. |
+| `missing_source_content` | `js_missing_sources_content` | Found the sourcemap, but its `sourcesContent` array is empty or missing. Similar to `missing_source` - the sourcemap exists but we can't show original code. |
+| `scraping_disabled` | `js_scraping_disabled` | Project has source map scraping disabled, so we can't fetch sourcemaps from the web. User must upload sourcemaps directly. |
+| `malformed_sourcemap` | `js_invalid_source` | Sourcemap exists but is invalid or not parseable. User uploaded a broken sourcemap. |
+| `invalid_location` | `js_invalid_sourcemap_location` | Sourcemap has invalid line/column mappings. The sourcemap doesn't correctly map to the minified code. |
+
+**Deferred - transient/fetch errors (TODO for future):**
+These errors may be transient (server issues) rather than configuration problems. Consider handling separately:
+- `FETCH_GENERIC_ERROR` / `FETCH_INVALID_HTTP_CODE` - server returned error when fetching
+- `FETCH_TIMEOUT` - request timed out
+- `FETCH_TOO_LARGE` - file too large to fetch
+- `JS_TOO_MANY_REMOTE_SOURCES` - hit rate limit on fetching
