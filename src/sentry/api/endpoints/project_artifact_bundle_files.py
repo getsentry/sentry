@@ -7,12 +7,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.artifact_bundle import ProjectArtifactBundleEndpoint
+from sentry.api.bases.project import ProjectReleasePermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundleFilesSerializer
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.project import Project
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
@@ -52,7 +54,7 @@ class ArtifactBundleSource:
 
 
 @region_silo_endpoint
-class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
+class ProjectArtifactBundleFilesEndpoint(ProjectArtifactBundleEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -62,7 +64,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
-    def get(self, request: Request, project, bundle_id) -> Response:
+    def get(self, request: Request, project: Project, artifact_bundle: ArtifactBundle) -> Response:
         """
         List files for a given project artifact bundle.
         ``````````````````````````````
@@ -78,25 +80,13 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            artifact_bundle = ArtifactBundle.objects.filter(
-                organization_id=project.organization.id,
-                bundle_id=bundle_id,
-                projectartifactbundle__project_id=project.id,
-            )[0]
-        except IndexError:
-            return Response(
-                {
-                    "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
-                },
-                status=400,
-            )
-
-        try:
             # We open the archive to fetch the number of files.
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
         except Exception:
             return Response(
-                {"error": f"The archive of artifact bundle {bundle_id} can't be opened"}
+                {
+                    "error": f"The archive of artifact bundle {artifact_bundle.bundle_id} can't be opened"
+                }
             )
 
         def serialize_results(r):
