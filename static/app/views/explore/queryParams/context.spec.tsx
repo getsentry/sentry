@@ -57,7 +57,7 @@ describe('QueryParamsContext', () => {
   describe('crossEvents', () => {
     describe('useQueryParamsCrossEvents', () => {
       it('should return the crossEvents', () => {
-        const {result} = renderHookWithProviders(() => useQueryParamsCrossEvents(), {
+        const {result} = renderHookWithProviders(useQueryParamsCrossEvents, {
           additionalWrapper: Wrapper,
         });
 
@@ -68,6 +68,7 @@ describe('QueryParamsContext', () => {
     describe('useSetQueryParamsCrossEvents', () => {
       it('should set the crossEvents', () => {
         renderHookWithProviders(
+          // eslint-disable-next-line @sentry/no-renderHook-arrow-function
           () => {
             const setCrossEvents = useSetQueryParamsCrossEvents();
             setCrossEvents([{query: 'bar', type: 'logs'}]);

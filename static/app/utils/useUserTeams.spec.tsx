@@ -89,7 +89,7 @@ describe('useUserTeams', () => {
     });
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    const {result} = renderHookWithProviders(() => useUserTeams(), {organization: org});
+    const {result} = renderHookWithProviders(useUserTeams, {organization: org});
     const {teams} = result.current;
 
     expect(teams).toHaveLength(2);

@@ -4,12 +4,13 @@ import {useIsMountedRef} from './useIsMountedRef';
 
 describe('useIsMounted', () => {
   it('should return a ref', () => {
-    const {result} = renderHook(() => useIsMountedRef());
+    const {result} = renderHook(useIsMountedRef);
 
     expect(result.current).toBeInstanceOf(Object);
   });
 
   it('should return false within first render', () => {
+    // eslint-disable-next-line @sentry/no-renderHook-arrow-function
     const {result} = renderHook(() => {
       const isMountedRef = useIsMountedRef();
       return isMountedRef.current;
@@ -19,13 +20,13 @@ describe('useIsMounted', () => {
   });
 
   it('should return true after mount', () => {
-    const {result} = renderHook(() => useIsMountedRef());
+    const {result} = renderHook(useIsMountedRef);
 
     expect(result.current.current).toBe(true);
   });
 
   it('should return same function on each render', () => {
-    const {result, rerender} = renderHook(() => useIsMountedRef());
+    const {result, rerender} = renderHook(useIsMountedRef);
 
     const fn1 = result.current;
     rerender();
@@ -38,7 +39,7 @@ describe('useIsMounted', () => {
   });
 
   it('should return false after component unmount', () => {
-    const {result, unmount} = renderHook(() => useIsMountedRef());
+    const {result, unmount} = renderHook(useIsMountedRef);
 
     expect(result.current.current).toBe(true);
 

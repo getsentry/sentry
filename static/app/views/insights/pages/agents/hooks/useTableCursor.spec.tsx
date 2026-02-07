@@ -4,7 +4,7 @@ import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableC
 
 describe('useTableCursor', () => {
   it('should return undefined cursor when query param is not present', () => {
-    const {result} = renderHookWithProviders(() => useTableCursor(), {
+    const {result} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -17,7 +17,7 @@ describe('useTableCursor', () => {
   });
 
   it('should return cursor value from query params', () => {
-    const {result} = renderHookWithProviders(() => useTableCursor(), {
+    const {result} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -30,7 +30,7 @@ describe('useTableCursor', () => {
   });
 
   it('should update cursor value when setCursor is called', async () => {
-    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+    const {result, router} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -53,7 +53,7 @@ describe('useTableCursor', () => {
   });
 
   it('should replace old cursor with new cursor value', async () => {
-    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+    const {result, router} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -76,7 +76,7 @@ describe('useTableCursor', () => {
   });
 
   it('should clear cursor when unsetCursor is called', async () => {
-    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+    const {result, router} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -99,7 +99,7 @@ describe('useTableCursor', () => {
   });
 
   it('should handle undefined cursor in setCursor (e.g., navigating to first page)', async () => {
-    const {result, router} = renderHookWithProviders(() => useTableCursor(), {
+    const {result, router} = renderHookWithProviders(useTableCursor, {
       initialRouterConfig: {
         location: {
           pathname: '/',

@@ -46,15 +46,14 @@ describe('useExploreSpansTable', () => {
       ],
       method: 'GET',
     });
-    renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
-      {additionalWrapper: Wrapper}
-    );
+    renderHookWithProviders(useExploreSpansTable, {
+      additionalWrapper: Wrapper,
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+        limit: 10,
+      },
+    });
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
@@ -103,25 +102,22 @@ describe('useExploreSpansTable', () => {
       method: 'GET',
     });
 
-    renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+    renderHookWithProviders(useExploreSpansTable, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            extrapolate: '0',
           },
         },
-      }
-    );
+      },
+      initialProps: {
+        query: 'test value',
+        enabled: true,
+        limit: 10,
+      },
+    });
 
     await waitFor(() => expect(mockNonExtrapolatedRequest).toHaveBeenCalledTimes(1));
     expect(mockNonExtrapolatedRequest).toHaveBeenCalledWith(

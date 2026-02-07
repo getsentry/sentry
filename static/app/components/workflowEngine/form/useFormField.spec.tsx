@@ -19,8 +19,9 @@ describe('useFormField', () => {
   it('returns field values and handles updates correctly', () => {
     model.setInitialData({targetField: 'initial', otherField: 'other'});
 
-    const {result} = renderHook(() => useFormField('targetField'), {
+    const {result} = renderHook(useFormField, {
       wrapper: withFormContext,
+      initialProps: 'targetField',
     });
 
     expect(result.current).toBe('initial');
@@ -37,14 +38,16 @@ describe('useFormField', () => {
   });
 
   it('handles undefined values and type parameters', () => {
-    const {result: undefinedResult} = renderHook(() => useFormField('nonexistent'), {
+    const {result: undefinedResult} = renderHook(useFormField, {
       wrapper: withFormContext,
+      initialProps: 'nonexistent',
     });
     expect(undefinedResult.current).toBe('');
 
     model.setInitialData({numberField: 42});
-    const {result: typedResult} = renderHook(() => useFormField<number>('numberField'), {
+    const {result: typedResult} = renderHook(useFormField, {
       wrapper: withFormContext,
+      initialProps: 'numberField',
     });
     expect(typedResult.current).toBe(42);
     expect(typeof typedResult.current).toBe('number');
@@ -52,8 +55,9 @@ describe('useFormField', () => {
 
   it('handles fields that are added after subscription', () => {
     // Start with a hook subscribed to a field that doesn't exist yet
-    const {result} = renderHook(() => useFormField('laterField'), {
+    const {result} = renderHook(useFormField, {
       wrapper: withFormContext,
+      initialProps: 'laterField',
     });
 
     // Initially should return empty string for non-existent field
@@ -78,8 +82,9 @@ describe('useFormField', () => {
   it('handles fields that are removed after subscription', () => {
     model.setInitialData({targetField: 'initial'});
 
-    const {result} = renderHook(() => useFormField('targetField'), {
+    const {result} = renderHook(useFormField, {
       wrapper: withFormContext,
+      initialProps: 'targetField',
     });
 
     expect(result.current).toBe('initial');

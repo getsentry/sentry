@@ -15,7 +15,7 @@ describe('renderToString', () => {
       return <div>Hello, World!</div>;
     }
 
-    const {result} = renderHook(() => useRenderToString());
+    const {result} = renderHook(useRenderToString);
 
     const string = await act(() => result.current(<SimpleComponent />));
 
@@ -26,7 +26,7 @@ describe('renderToString', () => {
       return <Tag variant="success">SuccessTag</Tag>;
     }
 
-    const {result} = renderHook(() => useRenderToString(), {
+    const {result} = renderHook(useRenderToString, {
       wrapper: ({children}) => <ThemeProvider theme={theme}>{children}</ThemeProvider>,
     });
 

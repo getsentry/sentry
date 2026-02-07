@@ -55,8 +55,9 @@ describe('useReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -73,8 +74,9 @@ describe('useReplaySummary', () => {
         statusCode: 500,
         body: {detail: 'Internal server error'},
       });
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -96,6 +98,7 @@ describe('useReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
+        // eslint-disable-next-line @sentry/no-renderHook-arrow-function
         () => useReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
           organization: mockOrganization,
@@ -118,6 +121,7 @@ describe('useReplaySummary', () => {
       });
 
       const {result} = renderHookWithProviders(
+        // eslint-disable-next-line @sentry/no-renderHook-arrow-function
         () => useReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
           organization: mockOrganization,
@@ -142,8 +146,9 @@ describe('useReplaySummary', () => {
         body: responsePromise,
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       // Wait for the return value to be in pending state
@@ -165,8 +170,9 @@ describe('useReplaySummary', () => {
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -184,8 +190,9 @@ describe('useReplaySummary', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -200,8 +207,9 @@ describe('useReplaySummary', () => {
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHookWithProviders(() => useReplaySummary(mockReplay), {
+      const {result} = renderHookWithProviders(useReplaySummary, {
         organization: mockOrganization,
+        initialProps: mockReplay,
       });
 
       await waitFor(() => {
@@ -227,12 +235,10 @@ describe('useReplaySummary', () => {
         method: 'POST',
       });
 
-      const {result, rerender} = renderHookWithProviders(
-        () => useReplaySummary(mockReplay),
-        {
-          organization: mockOrganization,
-        }
-      );
+      const {result, rerender} = renderHookWithProviders(useReplaySummary, {
+        organization: mockOrganization,
+        initialProps: mockReplay,
+      });
 
       await waitFor(() => {
         expect(result.current.isPending).toBe(false);
@@ -243,7 +249,7 @@ describe('useReplaySummary', () => {
       // Update the segment count and expect a POST.
       mockReplayRecord.count_segments = 2;
       mockReplay.getReplay = jest.fn().mockReturnValue(mockReplayRecord);
-      rerender();
+      rerender(mockReplay);
 
       await waitFor(() => {
         expect(mockPostRequest).toHaveBeenCalledWith(

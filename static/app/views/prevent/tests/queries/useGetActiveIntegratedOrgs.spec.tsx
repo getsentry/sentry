@@ -30,10 +30,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: mockIntegrations,
     });
 
-    const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useGetActiveIntegratedOrgs, {
+      organization,
+      initialProps: {organization},
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -70,10 +70,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: mockIntegrations,
     });
 
-    const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useGetActiveIntegratedOrgs, {
+      organization,
+      initialProps: {organization},
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -91,10 +91,10 @@ describe('useGetActiveIntegratedOrgs', () => {
       body: {detail: 'Repository not found'},
     });
 
-    const {result} = renderHookWithProviders(
-      () => useGetActiveIntegratedOrgs({organization}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useGetActiveIntegratedOrgs, {
+      organization,
+      initialProps: {organization},
+    });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);

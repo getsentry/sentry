@@ -14,10 +14,10 @@ describe('useConversation', () => {
   });
 
   it('returns empty nodes when conversationId is empty', () => {
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: ''}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: ''},
+    });
 
     expect(result.current.nodes).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -50,10 +50,10 @@ describe('useConversation', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123'}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: 'conv-123'},
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -92,10 +92,10 @@ describe('useConversation', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-output'}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: 'conv-output'},
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -134,10 +134,10 @@ describe('useConversation', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-456'}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: 'conv-456'},
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -172,10 +172,10 @@ describe('useConversation', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-789'}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: 'conv-789'},
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -214,15 +214,14 @@ describe('useConversation', () => {
     const startTimestamp = 1700000000000; // Nov 14, 2023
     const endTimestamp = 1700100000000; // ~1.16 days later
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useConversation({
-          conversationId: 'conv-timestamps',
-          startTimestamp,
-          endTimestamp,
-        }),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {
+        conversationId: 'conv-timestamps',
+        startTimestamp,
+        endTimestamp,
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -275,10 +274,10 @@ describe('useConversation', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-filter'}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(useConversation, {
+      organization,
+      initialProps: {conversationId: 'conv-filter'},
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

@@ -57,7 +57,7 @@ function Wrapper(crossEvents?: CrossEvent[]) {
 
 describe('useCrossEventQueries', () => {
   it('returns undefined if there are no cross event queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: Wrapper(),
     });
 
@@ -65,7 +65,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('returns undefined if cross event queries array is empty', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: Wrapper([]),
     });
 
@@ -73,7 +73,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('returns object of array of queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: Wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
@@ -89,7 +89,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('appends queries with the same types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: Wrapper([
         {type: 'spans', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
@@ -105,7 +105,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('ignores queries with invalid types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: Wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'invalid' as any, query: 'test:b'},

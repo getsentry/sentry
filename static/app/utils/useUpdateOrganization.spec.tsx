@@ -37,10 +37,11 @@ describe('useUpdateOrganization', () => {
       body: updatedOrganization,
     });
 
-    const {result} = renderHook(() => useUpdateOrganization(organization), {
+    const {result} = renderHook(useUpdateOrganization, {
       wrapper: ({children}) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       ),
+      initialProps: organization,
     });
 
     // Verify initial state
@@ -81,10 +82,11 @@ describe('useUpdateOrganization', () => {
       body: {detail: 'Internal Server Error'},
     });
 
-    const {result} = renderHook(() => useUpdateOrganization(organization), {
+    const {result} = renderHook(useUpdateOrganization, {
       wrapper: ({children}) => (
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       ),
+      initialProps: organization,
     });
 
     // Verify initial state

@@ -35,7 +35,7 @@ global.window.ResizeObserver = ResizeObserverMock;
 describe('useIsOverflowing', () => {
   describe('ref is null', () => {
     it('returns false if the ref is null', () => {
-      const {result} = renderHook(() => useIsOverflowing({current: null}));
+      const {result} = renderHook(useIsOverflowing, {initialProps: {current: null}});
       expect(result.current).toBe(false);
     });
   });
@@ -49,7 +49,7 @@ describe('useIsOverflowing', () => {
 
       it('returns false', () => {
         // @ts-expect-error - testing ref not being null
-        const {result} = renderHook(() => useIsOverflowing({current: {}}));
+        const {result} = renderHook(useIsOverflowing, {initialProps: {current: {}}});
         expect(result.current).toBe(false);
       });
     });
@@ -62,7 +62,7 @@ describe('useIsOverflowing', () => {
 
       it('returns true', () => {
         // @ts-expect-error - testing ref not being null
-        const {result} = renderHook(() => useIsOverflowing({current: {}}));
+        const {result} = renderHook(useIsOverflowing, {initialProps: {current: {}}});
         expect(result.current).toBe(true);
       });
     });

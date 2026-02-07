@@ -390,6 +390,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('calls useCopyToClipboard hook', () => {
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       renderHook(() => useCopyIssueDetails(group, event));
 
       // Check that the hook was called
@@ -399,6 +400,7 @@ describe('useCopyIssueDetails', () => {
     it('sets up hotkeys with the correct callbacks', () => {
       const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
 
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       renderHook(() => useCopyIssueDetails(group, event));
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
@@ -423,6 +425,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       renderHook(() => useCopyIssueDetails(group, undefined));
 
       // Trigger the keyboard event (command+alt+c)
@@ -451,6 +454,7 @@ describe('useCopyIssueDetails', () => {
         return Promise.resolve(text);
       });
 
+      // eslint-disable-next-line @sentry/no-renderHook-arrow-function
       renderHook(() => useCopyIssueDetails(group, event));
 
       // Trigger the keyboard event (command+alt+c)

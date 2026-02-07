@@ -45,12 +45,12 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'string',
-      })
-    );
+      },
+    });
 
     const tag = {
       key: attributeKey,
@@ -88,12 +88,12 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'number',
-      })
-    );
+      },
+    });
 
     const tag = {
       key: attributeKey,
@@ -130,12 +130,12 @@ describe('useGetTraceItemAttributeValues', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
-      useGetTraceItemAttributeValues({
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeValues, {
+      initialProps: {
         traceItemType: TraceItemDataset.LOGS,
         type: 'boolean',
-      })
-    );
+      },
+    });
 
     const tag = {
       key: attributeKey,
