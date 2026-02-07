@@ -161,6 +161,15 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
     ParameterizationRegex(
+        name="swift_txn_id",
+        raw_pattern=r"""
+            # OpenStack Swift transaction IDs: "tx" + 21 hex chars + "-" + 10 hex chars,
+            # optionally followed by a suffix (e.g. cluster ID or client-provided extra)
+            # https://docs.openstack.org/api-ref/object-store/
+            (\btx[0-9a-f]{21}-[0-9a-f]{10}\S*)
+        """,
+    ),
+    ParameterizationRegex(
         name="hex",
         raw_pattern=r"""
             # Hex value with `0x/0X` prefix (any length, with any mix of numbers and/or letters -
