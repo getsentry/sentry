@@ -153,10 +153,9 @@ class GitHubProvider(Provider):
     def create_issue_comment_reaction(
         self, repository: Repository, comment_id: str, reaction: Reaction
     ) -> None:
+        github_reaction = REACTION_MAP[reaction]
         try:
-            self.client.create_comment_reaction(
-                repository["name"], comment_id, REACTION_MAP[reaction]
-            )
+            self.client.create_comment_reaction(repository["name"], comment_id, github_reaction)
         except ApiError as e:
             raise SCMProviderException from e
 
@@ -193,8 +192,9 @@ class GitHubProvider(Provider):
     def create_issue_reaction(
         self, repository: Repository, issue_id: str, reaction: Reaction
     ) -> None:
+        github_reaction = REACTION_MAP[reaction]
         try:
-            self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
+            self.client.create_issue_reaction(repository["name"], issue_id, github_reaction)
         except ApiError as e:
             raise SCMProviderException from e
 
