@@ -60,7 +60,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         self,
         organization_id: int,
         operator: str,
-        build: str,
+        build: str | Sequence[str],
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> Self:
@@ -69,6 +69,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         `build_number` and make use of the passed operator.
         If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
         wildcard only at the end of this string, so that we can filter efficiently via the index.
+
+        When `build` is a sequence and operator is "in", we filter for releases matching any of
+        the provided builds, separating numeric and string builds appropriately.
         """
         qs = self.filter(organization_id=organization_id)
         query_func = "exclude" if negated else "filter"
@@ -80,13 +83,36 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 )
             )
 
-        if build.isdecimal() and validate_bigint(int(build)):
-            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
-        else:
-            if not build or build.endswith("*"):
-                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
+        # Handle list of builds for IN operator
+        if isinstance(build, (list, tuple)) and operator == "in":
+            numeric_builds: list[int] = []
+            string_builds: list[str] = []
+            for b in build:
+                if b.isdecimal() and validate_bigint(int(b)):
+                    numeric_builds.append(int(b))
+                else:
+                    string_builds.append(b)
+
+            q_filter = Q()
+            if numeric_builds:
+                q_filter |= Q(build_number__in=numeric_builds)
+            if string_builds:
+                q_filter |= Q(build_code__in=string_builds)
+
+            if q_filter:
+                qs = getattr(qs, query_func)(q_filter)
+
+            return qs
+
+        # Single build value (existing logic)
+        if isinstance(build, str):
+            if build.isdecimal() and validate_bigint(int(build)):
+                qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
             else:
-                qs = getattr(qs, query_func)(build_code=build)
+                if not build or build.endswith("*"):
+                    qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
+                else:
+                    qs = getattr(qs, query_func)(build_code=build)
 
         return qs
 

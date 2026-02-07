@@ -300,7 +300,7 @@ OPERATOR_NEGATION_MAP = {
     "IN": "NOT IN",
     "NOT IN": "IN",
 }
-OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact", "IN": "in"}
 
 # This is a unicode character from the reserved space of unicode characters, see:
 # https://en.wikipedia.org/wiki/Private_Use_Areas for more details.

@@ -326,8 +326,24 @@ def _semver_filter_converter(
     organization_id: int = params["organization_id"]
     project_ids: list[int] | None = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
+    version: str | list[str] = search_filter.value.raw_value
     operator: str = search_filter.operator
+
+    # Handle IN operator with list of versions
+    if operator == "IN" and isinstance(version, (list, tuple)):
+        versions: list[str] = []
+        for v in version:
+            qs = Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(v, "="),
+                project_ids=project_ids,
+            ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
+            versions.extend(qs)
+
+        if not versions:
+            versions = [SEMVER_EMPTY_RELEASE]
+
+        return ["release", "IN", versions]
 
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
@@ -418,13 +434,18 @@ def _semver_build_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: list[int] | None = params.get("project_id")
-    build: str = search_filter.value.raw_value
+    build: str | list[str] = search_filter.value.raw_value
+    operator: str = search_filter.operator
 
-    operator, negated = handle_operator_negation(search_filter.operator)
-    try:
-        django_op = OPERATOR_TO_DJANGO[operator]
-    except KeyError:
-        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+    if operator == "IN" and isinstance(build, (list, tuple)):
+        django_op = "in"
+        negated = False
+    else:
+        operator, negated = handle_operator_negation(operator)
+        try:
+            django_op = OPERATOR_TO_DJANGO[operator]
+        except KeyError:
+            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
 
     versions = list(
         Release.objects.filter_by_semver_build(
@@ -437,7 +458,6 @@ def _semver_build_filter_converter(
     )
 
     if not versions:
-        # XXX: Just return a filter that will return no results if we have no versions
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", "IN", versions]
@@ -467,7 +487,7 @@ def parse_semver(version, operator) -> SemverFilter:
     try:
         operator = OPERATOR_TO_DJANGO[operator]
     except KeyError:
-        raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
+        raise InvalidSearchQuery(f"Invalid operation '{operator}' for semantic version filter.")
 
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version, json_loads=orjson.loads)
