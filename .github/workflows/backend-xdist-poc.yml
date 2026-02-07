@@ -54,7 +54,7 @@ jobs:
             --ignore tests/js \
             --ignore tests/tools \
             -n 2 \
-            --dist=loadfile \
+            --dist=loadgroup \
             --json-report \
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \

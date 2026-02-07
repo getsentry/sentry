@@ -425,6 +425,22 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
+def _needs_snuba(item: pytest.Item) -> bool:
+    """Check if a test item requires Snuba (ClickHouse).
+
+    Tests can declare Snuba dependency via:
+    - @pytest.mark.snuba (on SnubaTestCase and subclasses)
+    - @requires_snuba = @pytest.mark.usefixtures("_requires_snuba")
+    - pytestmark = [requires_snuba] (module-level)
+    """
+    if any(mark.name == "snuba" for mark in item.iter_markers()):
+        return True
+    for mark in item.iter_markers("usefixtures"):
+        if "_requires_snuba" in mark.args:
+            return True
+    return False
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -491,6 +507,17 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+    # Under xdist, group all Snuba tests onto a single worker. This prevents
+    # cross-worker ClickHouse contamination: reset_snuba uses TRUNCATE TABLE
+    # which would wipe another worker's in-flight test data. By confining all
+    # Snuba tests to one worker, TRUNCATE only affects that worker's own data.
+    # Non-Snuba tests are distributed individually across all workers.
+    # Requires --dist=loadgroup in the pytest invocation.
+    if os.environ.get("PYTEST_XDIST_TESTRUNUID"):
+        for item in items:
+            if _needs_snuba(item):
+                item.add_marker(pytest.mark.xdist_group("snuba"))
 
 
 def pytest_xdist_setupnodes() -> None:
