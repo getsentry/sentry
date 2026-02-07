@@ -19,6 +19,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
+from sentry.preprod.api.schemas import SHA_PATTERN, VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.exceptions import NoPreprodQuota
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
@@ -71,10 +72,10 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
     schema = {
         "type": "object",
         "properties": {
-            "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "checksum": {"type": "string", "pattern": SHA_PATTERN},
             "chunks": {
                 "type": "array",
-                "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "items": {"type": "string", "pattern": SHA_PATTERN},
             },
             # Optional metadata
             "build_configuration": {"type": "string"},
@@ -84,15 +85,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
                 "items": {"type": "string", "maxLength": 255},
                 "minItems": 1,
             },
-            # VCS parameters - allow empty strings to support clearing auto-filled values
-            "head_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
-            "base_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
-            "provider": {"type": "string", "maxLength": 255},
-            "head_repo_name": {"type": "string", "maxLength": 255},
-            "base_repo_name": {"type": "string", "maxLength": 255},
-            "head_ref": {"type": "string", "maxLength": 255},
-            "base_ref": {"type": "string", "maxLength": 255},
-            "pr_number": {"type": "integer", "minimum": 1},
+            **VCS_SCHEMA_PROPERTIES,
         },
         "required": ["checksum", "chunks"],
         "additionalProperties": False,
@@ -104,14 +97,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
         "build_configuration": "The build_configuration field must be a string.",
         "release_notes": "The release_notes field must be a string.",
         "install_groups": "The install_groups field must be an array of strings, each with maximum length of 255 characters.",
-        "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
-        "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
-        "provider": "The provider field must be a string with maximum length of 255 characters containing the domain of the VCS provider (ex. github.com)",
-        "head_repo_name": "The head_repo_name field must be a string with maximum length of 255 characters.",
-        "base_repo_name": "The base_repo_name field must be a string with maximum length of 255 characters.",
-        "head_ref": "The head_ref field must be a string with maximum length of 255 characters.",
-        "base_ref": "The base_ref field must be a string with maximum length of 255 characters.",
-        "pr_number": "The pr_number field must be a positive integer.",
+        **VCS_ERROR_MESSAGES,
     }
 
     try:

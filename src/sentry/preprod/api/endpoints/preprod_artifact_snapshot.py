@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+from io import BytesIO
 from typing import Any
 
 import jsonschema
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,63 +17,59 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.preprod.api.schemas import VCS_SCHEMA_PROPERTIES
+from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
 
+# Shared base properties for all image manifest types
+BASE_IMAGE_PROPERTIES: dict[str, Any] = {
+    "fileName": {"type": "string"},
+    "groupName": {"type": ["string", "null"]},
+    "displayName": {"type": ["string", "null"]},
+    "precision": {"type": ["integer", "null"], "minimum": 0},
+    "width": {"type": "integer", "minimum": 0},
+    "height": {"type": "integer", "minimum": 0},
+    "imageId": {"type": ["string", "null"]},
+}
+
+BASE_IMAGE_REQUIRED = ["width", "height"]
+
+BYO_IMAGE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        **BASE_IMAGE_PROPERTIES,
+        "darkMode": {"type": "boolean"},
+        "orientation": {"type": "string", "enum": ["landscape", "portrait"]},
+        "device": {"type": "string"},
+    },
+    "required": [*BASE_IMAGE_REQUIRED, "orientation", "device"],
+    "additionalProperties": False,
+}
+
+SNAPSHOT_IMAGE_SCHEMA: dict[str, Any] = {
+    "anyOf": [
+        BYO_IMAGE_SCHEMA,
+        # Add other image schemas here as needed (e.g. iOS/Android/etc)
+    ]
+}
+
 
 def validate_preprod_snapshot_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
-    """
-    Validate the JSON schema for preprod snapshot requests.
-
-    Returns:
-        tuple: (parsed_data, error_message) where error_message is None if validation succeeds
-    """
     schema = {
         "type": "object",
         "properties": {
-            "shardIndex": {"type": "integer", "minimum": 0},
-            "numShards": {"type": "integer", "minimum": 1},
-            "preprodArtifactId": {"type": "string"},
-            "bundleId": {"type": "string"},
-            "sha": {"type": "string"},
-            "baseSha": {"type": "string"},
-            "images": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "width": {"type": "integer", "minimum": 0},
-                        "height": {"type": "integer", "minimum": 0},
-                        "colorScheme": {"type": "string"},
-                        "orientation": {"type": "string", "enum": ["landscape", "portrait"]},
-                        "device": {"type": "string"},
-                    },
-                    "required": [
-                        "width",
-                        "height",
-                        "colorScheme",
-                        "orientation",
-                        "device",
-                    ],
-                    "additionalProperties": False,
-                },
-            },
-            "errors": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "type": {"type": "string"},
-                    },
-                    "required": ["type"],
-                    "additionalProperties": True,
-                },
-            },
+            **VCS_SCHEMA_PROPERTIES,
+            "images": {"type": "object", "additionalProperties": SNAPSHOT_IMAGE_SCHEMA},
         },
-        "required": ["images", "errors"],
+        "required": ["images"],
         "additionalProperties": True,
     }
 
@@ -131,22 +129,111 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
 
     def post(self, request: Request, project: Project) -> Response:
-        """
-        Creates snapshot data for a preprod artifact
-        """
-
         if not settings.IS_DEV and not features.has(
             "organizations:preprod-frontend-routes", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=403)
+            return Response({"detail": "Feature not enabled"}, status=403)
 
-        # Validate the request body
         data, error_message = validate_preprod_snapshot_schema(request.body)
         if error_message:
-            return Response({"error": error_message}, status=400)
+            return Response({"detail": error_message}, status=400)
 
-        with sentry_sdk.start_span(op="preprod_artifact.snapshot"):
+        images = data.get("images", [])
+
+        # VCS info
+        head_sha = data.get("head_sha")
+        base_sha = data.get("base_sha")
+        provider = data.get("provider")
+        head_repo_name = data.get("head_repo_name")
+        head_ref = data.get("head_ref")
+        pr_number = data.get("pr_number")
+
+        with transaction.atomic(router.db_for_write(PreprodArtifact)):
+            # Create CommitComparison if VCS info is provided
+            commit_comparison = None
+            if head_sha and provider and head_repo_name and head_ref:
+                commit_comparison, _ = CommitComparison.objects.get_or_create(
+                    organization_id=project.organization_id,
+                    head_sha=head_sha.lower(),
+                    base_sha=base_sha.lower() if base_sha else None,
+                    provider=provider,
+                    head_repo_name=head_repo_name,
+                    base_repo_name=head_repo_name,
+                    head_ref=head_ref,
+                    base_ref=None,
+                    pr_number=pr_number,
+                )
+
+            # Create new PreprodArtifact for snapshots
+            artifact = PreprodArtifact.objects.create(
+                project=project,
+                state=PreprodArtifact.ArtifactState.UPLOADED,
+                commit_comparison=commit_comparison,
+            )
+
+            # Get or create PreprodSnapshotMetrics
+            snapshot_metrics, created = PreprodSnapshotMetrics.objects.get_or_create(
+                preprod_artifact=artifact,
+                defaults={
+                    "image_count": len(images),
+                },
+            )
+
+            logger.info(
+                "Created preprod artifact for snapshots",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "project_id": project.id,
+                    "organization_id": project.organization_id,
+                    "head_sha": head_sha,
+                },
+            )
+
+            if not created:
+                # Update existing metrics with this shard's data
+                extras = snapshot_metrics.extras or {}
+
+                snapshot_metrics.image_count += len(images)
+                snapshot_metrics.extras = extras
+                snapshot_metrics.save(update_fields=["image_count", "extras"])
+
+            # Store manifest data in object store
+            manifest_data = {
+                "images": images,
+            }
+
+            manifest_file = File.objects.create(
+                name="snapshot.json",
+                type="preprod.snapshot_manifest",
+                headers={"Content-Type": "application/json"},
+            )
+            manifest_file.putfile(BytesIO(dumps_htmlsafe(manifest_data).encode()))
+
+            # Store manifest file reference in extras
+            extras = snapshot_metrics.extras or {}
+            manifest_files = extras.get("manifest_file_ids", {})
+            shard_index = str(len(manifest_files))
+            manifest_files[shard_index] = manifest_file.id
+            extras["manifest_file_ids"] = manifest_files
+            snapshot_metrics.extras = extras
+            snapshot_metrics.save(update_fields=["extras"])
+
+            logger.info(
+                "Stored snapshot manifest",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "snapshot_metrics_id": snapshot_metrics.id,
+                    "manifest_file_id": manifest_file.id,
+                    "image_count": len(images),
+                },
+            )
+
+            # Check if all shards have been received
             return Response(
-                {},
-                status=200,
+                {
+                    "artifactId": str(artifact.id),
+                    "snapshotMetricsId": str(snapshot_metrics.id),
+                    "imageCount": snapshot_metrics.image_count,
+                },
+                status=201,
             )
