@@ -35,6 +35,17 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def _get_xdist_redis_db() -> int:
+    """Under xdist, each worker uses a unique Redis DB to prevent cross-contamination
+    from flushdb() calls in pytest_runtest_teardown. Without this, one worker's
+    teardown wipes another worker's snowflake ID counters, rate limiter state, and caches."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        worker_num = int(worker_id.replace("gw", ""))
+        return TEST_REDIS_DB + worker_num
+    return TEST_REDIS_DB
+
+
 def _use_monolith_dbs() -> bool:
     return os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
@@ -76,8 +87,20 @@ def _configure_test_env_regions() -> None:
     r = random.Random(xdist_uid) if xdist_uid else random
     region_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
+    # Under xdist, each worker gets a unique region snowflake_id so that
+    # snowflake-based model IDs (Project, Organization, Team) are globally
+    # unique across workers. The REGION_ID segment is 12 bits (0-4095) in the
+    # snowflake schema, so there's plenty of room for xdist workers.
+    # The region *name* stays the same (for deterministic test collection);
+    # only snowflake_id differs (used solely during ID generation).
+    xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+    region_snowflake_id = int(xdist_worker.replace("gw", "")) + 1 if xdist_worker else 0
+
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -208,7 +231,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": _get_xdist_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",

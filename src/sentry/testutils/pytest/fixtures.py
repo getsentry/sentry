@@ -335,6 +335,20 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
+    # Under xdist, skip the global TRUNCATE TABLE cleanup. This is safe because:
+    # 1. Each worker uses a unique Redis DB (DB 9+N), so flushdb() is worker-local
+    # 2. Each worker has a unique region snowflake_id, so all snowflake-based IDs
+    #    (Project, Organization, Team) are globally unique across workers
+    # 3. SnubaTestCase uses databases="__all__" (TransactionTestCase behavior),
+    #    so Django flushes Postgres between test methods, and each setUp() creates
+    #    fresh models with new unique snowflake IDs
+    # 4. The Sentry query pipeline enforces project_id filters on Snuba queries
+    #    (UnqualifiedQueryError if missing), so data from other projects is invisible
+    # 5. ClickHouse data accumulates but doesn't interfere since each test's
+    #    project_id is unique and queries always filter by it
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return
+
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
