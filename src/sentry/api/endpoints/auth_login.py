@@ -1,4 +1,5 @@
 from django.http import HttpRequest
+from django.middleware.csrf import rotate_token
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,7 +30,11 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def post(
-        self, request: Request, organization: Organization | None = None, *args, **kwargs
+        self,
+        request: Request,
+        organization: Organization | None = None,
+        *args,
+        **kwargs,
     ) -> Response:
         """
         Process a login request via username/password. SSO login is handled
@@ -40,7 +45,9 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         # Rate limit logins
         is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
-                md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
+                md5_text(
+                    login_form.clean_username(request.data.get("username"))
+                ).hexdigest()
             ),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
@@ -49,19 +56,32 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         if is_limited:
             errors = {"__all__": [login_form.error_messages["rate_limited"]]}
             metrics.incr(
-                "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
+                "login.attempt",
+                instance="rate_limited",
+                skip_internal=True,
+                sample_rate=1.0,
             )
 
             return self.respond_with_error(errors)
 
         if not login_form.is_valid():
-            metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
+            metrics.incr(
+                "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
+            )
             return self.respond_with_error(login_form.errors)
 
         user = login_form.get_user()
 
-        auth.login(request, user, organization_id=organization.id if organization else None)
-        metrics.incr("login.attempt", instance="success", skip_internal=True, sample_rate=1.0)
+        auth.login(
+            request, user, organization_id=organization.id if organization else None
+        )
+        # Django's login() internally calls session.cycle_key() for session
+        # fixation prevention.  Rotate the CSRF token so it stays in sync
+        # with the new session.
+        rotate_token(request)
+        metrics.incr(
+            "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
+        )
 
         if not user.is_active:
             return Response(
@@ -72,7 +92,8 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             )
 
         redirect_url = auth.get_org_redirect_url(
-            request, self.active_organization.organization if self.active_organization else None
+            request,
+            self.active_organization.organization if self.active_organization else None,
         )
 
         return Response(
@@ -83,4 +104,6 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         )
 
     def respond_with_error(self, errors):
-        return Response({"detail": "Login attempt failed", "errors": errors}, status=400)
+        return Response(
+            {"detail": "Login attempt failed", "errors": errors}, status=400
+        )
