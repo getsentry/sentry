@@ -169,7 +169,7 @@ x-sentry-service-config:
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, relay, spotlight, launchpad, taskbroker, taskworker]
+    launchpad: [snuba, postgres, launchpad, taskbroker, taskworker, objectstore]
     objectstore: [snuba, postgres, relay, spotlight, objectstore]
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
