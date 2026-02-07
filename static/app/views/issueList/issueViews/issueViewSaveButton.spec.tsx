@@ -341,7 +341,7 @@ describe('IssueViewSaveButton', () => {
       },
     };
 
-    it('generates title when saving a new view and feature flag is enabled', async () => {
+    it('generates title when saving a new view', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/100/',
         body: {...mockGroupSearchView, name: 'New View'},
