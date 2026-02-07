@@ -19,7 +19,9 @@ from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, truncatechars
 
-SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
+SentryVersion = namedtuple(
+    "SentryVersion", ["current", "latest", "update_available", "build"]
+)
 
 register = template.Library()
 
@@ -179,7 +181,11 @@ def small_count(v, precision=1):
 
 @register.filter
 def as_tag_alias(v):
-    return {"sentry:release": "release", "sentry:dist": "dist", "sentry:user": "user"}.get(v, v)
+    return {
+        "sentry:release": "release",
+        "sentry:dist": "dist",
+        "sentry:user": "user",
+    }.get(v, v)
 
 
 @register.simple_tag(takes_context=True)
@@ -292,6 +298,30 @@ def basename(value):
 def soft_break(value, length):
     return _soft_break(
         value, length, functools.partial(soft_hyphenate, length=max(length // 10, 10))
+    )
+
+
+@register.filter(is_safe=True)
+def soft_break_html(value, length):
+    """HTML-safe variant of ``soft_break``.
+
+    Uses ``<wbr>`` tags instead of Unicode soft-hyphens (``\\u00ad``) and
+    zero-width spaces (``\\u200b``).  This provides identical line-break
+    hints for email clients while ensuring that copied text contains no
+    invisible characters that break searches in editors and tools.
+    """
+    from django.utils.html import escape
+
+    escaped = escape(value)
+    return mark_safe(
+        _soft_break(
+            escaped,
+            length,
+            functools.partial(
+                soft_hyphenate, length=max(length // 10, 10), hyphen="<wbr>"
+            ),
+            delimiter_break="<wbr>",
+        )
     )
 
 
