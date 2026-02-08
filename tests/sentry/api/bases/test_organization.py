@@ -502,15 +502,10 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    @mock.patch(
-        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
-    )
-    def test_get_projects_no_slug_fallsback_to_ids(
-        self, mock_get_project_ids_unchecked, mock__filter_projects_by_permissions
+    def test_get_projects_no_slug_fallsback_to_project_param(
+        self, mock__filter_projects_by_permissions
     ):
-        project_slugs = [""]
-        request = self.build_request(projectSlug=project_slugs)
-        mock_get_project_ids_unchecked.return_value = {self.project_1.id}
+        request = self.build_request(projectSlug=[""], project=[str(self.project_1.id)])
 
         def side_effect(
             projects,
@@ -525,7 +520,6 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
         )
 
-        mock_get_project_ids_unchecked.assert_called_with(request)
         mock__filter_projects_by_permissions.assert_called_with(
             projects=[self.project_1],
             request=request,
@@ -602,6 +596,47 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         with pytest.raises(PermissionDenied):
             self.endpoint.get_projects(request, self.org)
+
+    def test_project_param_with_slug(self) -> None:
+        """?project=<slug> resolves correctly."""
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=[self.project_1.slug])
+        result = self.endpoint.get_projects(request, self.org)
+        assert {p.id for p in result} == {self.project_1.id}
+
+    def test_project_param_with_mixed_ids_and_slugs(self) -> None:
+        """?project=<id>&project=<slug> mixed usage works."""
+        self.create_team_membership(user=self.user, team=self.team_3)
+        request = self.build_request(
+            project=[str(self.project_1.id), self.project_2.slug],
+        )
+        result = self.endpoint.get_projects(request, self.org)
+        assert {p.id for p in result} == {self.project_1.id, self.project_2.id}
+
+    def test_project_param_with_nonexistent_slug(self) -> None:
+        """?project=<nonexistent-slug> raises PermissionDenied."""
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=["nonexistent-slug"])
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org)
+
+    def test_project_slug_param_still_works(self) -> None:
+        """Existing ?projectSlug= behavior is unchanged."""
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(projectSlug=[self.project_1.slug])
+        result = self.endpoint.get_projects(request, self.org)
+        assert {p.id for p in result} == {self.project_1.id}
+
+    def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
+        """get_requested_project_ids_unchecked returns only numeric IDs."""
+        request = self.build_request(project=["1", "my-slug", "42"])
+        result = self.endpoint.get_requested_project_ids_unchecked(request)
+        assert result == {1, 42}
+
+    def test_get_requested_project_ids_unchecked_empty(self) -> None:
+        request = self.build_request()
+        result = self.endpoint.get_requested_project_ids_unchecked(request)
+        assert result == set()
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
