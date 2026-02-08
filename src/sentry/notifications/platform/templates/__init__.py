@@ -1,8 +1,6 @@
-from .custom_rule import CustomRuleSamplesFulfilledTemplate
 from .data_export import DataExportFailureTemplate, DataExportSuccessTemplate
 
 __all__ = (
-    "CustomRuleSamplesFulfilledTemplate",
     "DataExportSuccessTemplate",
     "DataExportFailureTemplate",
 )
