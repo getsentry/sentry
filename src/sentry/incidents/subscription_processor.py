@@ -18,6 +18,7 @@ from sentry.incidents.utils.process_update_helpers import (
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
     AnomalyDetectionUpdate,
+    AnomalyDetectionValues,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
@@ -175,15 +176,16 @@ class SubscriptionProcessor:
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
         detector_cfg: MetricIssueDetectorConfig = detector.config
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+            values = AnomalyDetectionValues(
+                value=aggregation_value,
+                source_id=str(self.subscription.id),
+                subscription_id=subscription_update["subscription_id"],
+                timestamp=self.last_update,
+            )
             anomaly_detection_packet = AnomalyDetectionUpdate(
                 entity=subscription_update.get("entity", ""),
                 subscription_id=subscription_update["subscription_id"],
-                values={
-                    "value": aggregation_value,
-                    "source_id": str(self.subscription.id),
-                    "subscription_id": subscription_update["subscription_id"],
-                    "timestamp": self.last_update,
-                },
+                values=values,
                 timestamp=self.last_update,
             )
             anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](

@@ -22,6 +22,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.incidents.utils.types import AnomalyDetectionValues
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -107,12 +108,12 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
-            value={
-                "source_id": "12345",
-                "subscription_id": "some-subscription-id-123",
-                "timestamp": "2025-06-07",
-                "value": 6789,
-            },
+            value=AnomalyDetectionValues(
+                source_id="12345",
+                subscription_id="some-subscription-id-123",
+                timestamp=datetime(2025, 6, 7),
+                value=6789,
+            ),
             detector_id=self.detector.id,
             data_packet_source_id=int(self.data_source.source_id),
             conditions=[
@@ -234,7 +235,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
         title: str,
-        metric_value: float | dict | None = None,
+        metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
     ):
@@ -464,6 +465,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             resolve_threshold=None,
             alert_threshold=self.evidence_data.conditions[0]["comparison"],
         )
+        assert isinstance(self.evidence_data.value, float)
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
@@ -549,6 +551,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             resolve_threshold=None,
             alert_threshold=self.evidence_data.conditions[2]["comparison"],
         )
+        assert isinstance(self.evidence_data.value, float)
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
@@ -568,6 +571,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     ) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.anomaly_detection_evidence_data)
+        # Convert datetime to ISO string for JSON serialization
+        activity_data["value"]["timestamp"] = activity_data["value"]["timestamp"].isoformat()
 
         activity = Activity(
             project=self.project,
@@ -623,13 +628,13 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             resolve_threshold=0,
             alert_threshold=0,
         )
-        assert type(self.anomaly_detection_evidence_data.value) is dict
+        assert isinstance(self.anomaly_detection_evidence_data.value, AnomalyDetectionValues)
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CLOSED,
-            metric_value=self.anomaly_detection_evidence_data.value["value"],
+            metric_value=self.anomaly_detection_evidence_data.value.value,
             title=self.group.title,
             group=self.group,
             subscription=self.subscription,
