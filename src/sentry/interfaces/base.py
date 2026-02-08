@@ -67,7 +67,7 @@ class Interface:
     ephemeral = False
     grouping_variants = ["default"]
 
-    def __init__(self, **data):
+    def __init__(self, data: dict[str, Any] | None = None):
         self._data = data or {}
 
     @classproperty
@@ -116,7 +116,7 @@ class Interface:
         if data is None:
             return None
 
-        return cls(**data)
+        return cls(data)
 
     def get_raw_data(self):
         """Returns the underlying raw data."""

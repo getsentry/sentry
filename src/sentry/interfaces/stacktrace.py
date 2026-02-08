@@ -141,7 +141,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         for key in (
             "abs_path",
             "colno",
@@ -170,7 +170,7 @@ class Frame(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_json(self):
         return prune_empty_keys(
@@ -458,7 +458,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):
@@ -469,7 +469,7 @@ class Stacktrace(Interface):
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.
