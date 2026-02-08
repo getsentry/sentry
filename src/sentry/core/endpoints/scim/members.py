@@ -216,7 +216,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         # in addition to removing the membership.
         if (
             settings.SENTRY_MODE == SentryMode.SAAS
-            and organization.id == settings.SENTRY_DEFAULT_ORGANIZATION_ID
+            and organization.id == settings.SUPERUSER_ORG_ID
             and user_id is not None
         ):
             user = user_service.get_user(user_id=user_id)
