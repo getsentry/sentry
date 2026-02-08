@@ -74,6 +74,16 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    # Salesforce record IDs
+    ("salesforce_id - 18 char", "b05R000009Xnq4EEAB", "<salesforce_id>"),
+    ("salesforce_id - 15 char", "006M000002Tks8Z", "<salesforce_id>"),
+    (
+        "salesforce_id - in message",
+        "Failed to update 006M000002Tks8Z record",
+        "Failed to update <salesforce_id> record",
+    ),
+    ("salesforce_id - not pure alpha", "troubleshooters", "troubleshooters"),
+    ("salesforce_id - not pure digits 15", "123456789012345", "<int>"),
     ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
     ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
     ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),
