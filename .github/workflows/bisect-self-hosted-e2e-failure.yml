@@ -1,0 +1,171 @@
+name: bisect-self-hosted-e2e-failure
+
+on:
+  workflow_dispatch:
+    inputs:
+      good_commit:
+        description: 'Good commit SHA or date (YYYY-MM-DD)'
+        required: true
+        type: string
+      bad_commit:
+        description: 'Bad commit (default: HEAD)'
+        required: false
+        type: string
+        default: 'HEAD'
+
+jobs:
+  bisect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      status: ${{ steps.next.outputs.status }}
+      next_good: ${{ steps.next.outputs.next_good }}
+      next_bad: ${{ steps.next.outputs.next_bad }}
+      test_sha: ${{ steps.bisect.outputs.test_sha }}
+      first_bad: ${{ steps.next.outputs.first_bad }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Setup bisect
+        id: bisect
+        run: |
+          resolve_commit() {
+            if [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              git rev-list -1 --before="$1" HEAD
+            else
+              git rev-parse "$1"
+            fi
+          }
+
+          GOOD=$(resolve_commit "${{ inputs.good_commit }}")
+          BAD=$(resolve_commit "${{ inputs.bad_commit }}")
+
+          echo "Good: $GOOD"
+          echo "Bad: $BAD"
+
+          # Start bisect
+          git bisect start
+          git bisect bad "$BAD"
+          git bisect good "$GOOD"
+
+          # Get the commit to test
+          TEST_SHA=$(git rev-parse HEAD)
+          echo "test_sha=$TEST_SHA" >> "$GITHUB_OUTPUT"
+          echo "Testing: $TEST_SHA"
+
+          # Check remaining commits
+          REMAINING=$(git rev-list --count "$GOOD..$BAD")
+          echo "Remaining commits in range: $REMAINING"
+
+          # Save for later steps
+          echo "next_good=$GOOD" >> "$GITHUB_OUTPUT"
+          echo "next_bad=$BAD" >> "$GITHUB_OUTPUT"
+
+          git bisect reset
+
+      - name: Check image exists
+        id: check
+        run: |
+          if docker manifest inspect "ghcr.io/getsentry/sentry:${{ steps.bisect.outputs.test_sha }}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Docker image for ${{ steps.bisect.outputs.test_sha }}"
+          fi
+
+      - name: Run self-hosted e2e
+        if: steps.check.outputs.exists == 'true'
+        id: e2e
+        uses: getsentry/self-hosted@84c7893fbb22a4a2bdba4ddb5e531295c498d79c
+        with:
+          project_name: sentry
+          image_url: ghcr.io/getsentry/sentry:${{ steps.bisect.outputs.test_sha }}
+
+      - name: Determine next step
+        id: next
+        run: |
+          TEST_SHA="${{ steps.bisect.outputs.test_sha }}"
+          GOOD="${{ steps.bisect.outputs.next_good }}"
+          BAD="${{ steps.bisect.outputs.next_bad }}"
+
+          # Re-run bisect to get next state
+          git bisect start
+          git bisect bad "$BAD"
+          git bisect good "$GOOD"
+
+          if [ "${{ steps.check.outputs.exists }}" != "true" ]; then
+            echo "Skipping commit (no image)"
+            RESULT=$(git bisect skip 2>&1)
+          elif [ "${{ steps.e2e.outcome }}" == "success" ]; then
+            echo "Test PASSED - marking good"
+            RESULT=$(git bisect good 2>&1)
+          else
+            echo "Test FAILED - marking bad"
+            RESULT=$(git bisect bad 2>&1)
+          fi
+
+          echo "$RESULT"
+
+          if echo "$RESULT" | grep -q "is the first bad commit"; then
+            FIRST_BAD=$(echo "$RESULT" | grep -oE '[0-9a-f]{40}' | head -1)
+            echo "status=done" >> "$GITHUB_OUTPUT"
+            echo "first_bad=$FIRST_BAD" >> "$GITHUB_OUTPUT"
+          else
+            # Determine new boundaries based on result
+            if [ "${{ steps.check.outputs.exists }}" != "true" ]; then
+              # Skip: git bisect picked a new commit, use current HEAD as next test point
+              # Keep bad boundary, narrow good toward the skipped commit
+              echo "next_good=$TEST_SHA" >> "$GITHUB_OUTPUT"
+              echo "next_bad=$BAD" >> "$GITHUB_OUTPUT"
+            elif [ "${{ steps.e2e.outcome }}" == "success" ]; then
+              echo "next_good=$TEST_SHA" >> "$GITHUB_OUTPUT"
+              echo "next_bad=$BAD" >> "$GITHUB_OUTPUT"
+            else
+              echo "next_good=$GOOD" >> "$GITHUB_OUTPUT"
+              echo "next_bad=$TEST_SHA" >> "$GITHUB_OUTPUT"
+            fi
+            echo "status=continue" >> "$GITHUB_OUTPUT"
+          fi
+
+          git bisect reset
+
+      - name: Report result
+        if: always()
+        run: |
+          echo "## Bisect Step" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tested:** \`${{ steps.bisect.outputs.test_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ steps.check.outputs.exists }}" != "true" ]; then
+            echo "**Result:** SKIP (no image)" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.e2e.outcome }}" == "success" ]; then
+            echo "**Result:** GOOD ✅" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result:** BAD ❌" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "${{ steps.next.outputs.status }}" == "done" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "## 🎯 First Bad Commit Found" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            git show --stat "${{ steps.next.outputs.first_bad }}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  continue:
+    needs: bisect
+    if: needs.bisect.outputs.status == 'continue'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Trigger next bisect step
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run bisect-e2e-failure.yml \
+            -f good_commit=${{ needs.bisect.outputs.next_good }} \
+            -f bad_commit=${{ needs.bisect.outputs.next_bad }}
+
+          echo "Triggered next step: good=${{ needs.bisect.outputs.next_good }} bad=${{ needs.bisect.outputs.next_bad }}"
