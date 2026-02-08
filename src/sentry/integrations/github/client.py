@@ -391,7 +391,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
-    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+    def get_pull_request(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -630,15 +630,11 @@ class GitHubBaseClient(
     ) -> Any:
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
-        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue-comment
         """
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
-        response = self.get(endpoint)
-        reactions = response.get("reactions", {})
-        reactions.pop("url", None)
-        return reactions
+        return self._get_with_pagination(f"/repos/{repo}/issues/comments/{comment_id}/reactions")
 
     def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
         """
@@ -651,6 +647,18 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/issues/comments#delete-an-issue-comment
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-comment-reaction
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
 
     def get_user(self, gh_username: str) -> Any:
         """

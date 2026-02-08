@@ -1,0 +1,190 @@
+from typing import Any
+
+from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.scm.errors import SCMProviderException
+from sentry.scm.types import (
+    Author,
+    Comment,
+    CommentActionResult,
+    IssueReaction,
+    Provider,
+    PullRequest,
+    PullRequestActionResult,
+    Reaction,
+    Referrer,
+    Repository,
+)
+from sentry.shared_integrations.exceptions import ApiError
+
+REACTION_MAP = {
+    "+1": GitHubReaction.PLUS_ONE,
+    "-1": GitHubReaction.MINUS_ONE,
+    "laugh": GitHubReaction.LAUGH,
+    "confused": GitHubReaction.CONFUSED,
+    "heart": GitHubReaction.HEART,
+    "hooray": GitHubReaction.HOORAY,
+    "rocket": GitHubReaction.ROCKET,
+    "eyes": GitHubReaction.EYES,
+}
+
+
+# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
+#       configure the shared pool. The absolute allocation amount for explicit referrers can
+#       remain unchanged.
+REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
+
+
+def _transform_author(raw_user: dict[str, Any] | None) -> Author | None:
+    if raw_user is None:
+        return None
+    return Author(id=str(raw_user["id"]), username=raw_user["login"])
+
+
+def _transform_comment(raw: dict[str, Any]) -> CommentActionResult:
+    return CommentActionResult(
+        comment=Comment(
+            id=str(raw["id"]),
+            body=raw["body"],
+            author=_transform_author(raw.get("user")),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_issue_reaction(raw: dict[str, Any]) -> IssueReaction:
+    return IssueReaction(
+        id=str(raw["id"]),
+        content=raw["content"],
+        author=_transform_author(raw.get("user")),
+    )
+
+
+def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
+    return PullRequestActionResult(
+        pull_request=PullRequest(
+            head={"sha": raw["head"]["sha"]},
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+class GitHubProvider(Provider):
+
+    def __init__(self, client: GitHubApiClient) -> None:
+        self.client = client
+
+    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+        from sentry.scm.helpers import is_rate_limited_with_allocation_policy
+
+        return is_rate_limited_with_allocation_policy(
+            organization_id,
+            referrer,
+            provider="github",
+            window=3600,
+            allocation_policy=REFERRER_ALLOCATION,
+        )
+
+    def get_issue_comments(
+        self, repository: Repository, issue_id: str
+    ) -> list[CommentActionResult]:
+        try:
+            raw_comments = self.client.get_issue_comments(repository["name"], issue_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+        return [_transform_comment(c) for c in raw_comments]
+
+    def create_issue_comment(self, repository: Repository, issue_id: str, body: str) -> None:
+        try:
+            self.client.create_comment(repository["name"], issue_id, {"body": body})
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def delete_issue_comment(self, repository: Repository, comment_id: str) -> None:
+        try:
+            self.client.delete_issue_comment(repository["name"], comment_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def get_pull_request(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestActionResult:
+        try:
+            raw = self.client.get_pull_request(repository["name"], pull_request_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+        return _transform_pull_request(raw)
+
+    def get_pull_request_comments(
+        self, repository: Repository, pull_request_id: str
+    ) -> list[CommentActionResult]:
+        try:
+            raw_comments = self.client.get_pull_request_comments(
+                repository["name"], pull_request_id
+            )
+        except ApiError as e:
+            raise SCMProviderException from e
+        return [_transform_comment(c) for c in raw_comments]
+
+    def create_pull_request_comment(
+        self, repository: Repository, pull_request_id: str, body: str
+    ) -> None:
+        try:
+            self.client.create_comment(repository["name"], pull_request_id, {"body": body})
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def delete_pull_request_comment(self, repository: Repository, comment_id: str) -> None:
+        try:
+            self.client.delete_issue_comment(repository["name"], comment_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def get_comment_reactions(self, repository: Repository, comment_id: str) -> list[IssueReaction]:
+        try:
+            raw_reactions = self.client.get_comment_reactions(repository["name"], comment_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+        return [_transform_issue_reaction(r) for r in raw_reactions]
+
+    def create_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction: Reaction
+    ) -> None:
+        try:
+            self.client.create_comment_reaction(
+                repository["name"], comment_id, REACTION_MAP[reaction]
+            )
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def delete_comment_reaction(
+        self, repository: Repository, comment_id: str, reaction_id: str
+    ) -> None:
+        try:
+            self.client.delete_comment_reaction(repository["name"], comment_id, reaction_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def get_issue_reactions(self, repository: Repository, issue_id: str) -> list[IssueReaction]:
+        try:
+            raw_reactions = self.client.get_issue_reactions(repository["name"], issue_id)
+        except ApiError as e:
+            raise SCMProviderException from e
+        return [_transform_issue_reaction(r) for r in raw_reactions]
+
+    def create_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction: Reaction
+    ) -> None:
+        try:
+            self.client.create_issue_reaction(repository["name"], issue_id, REACTION_MAP[reaction])
+        except ApiError as e:
+            raise SCMProviderException from e
+
+    def delete_issue_reaction(
+        self, repository: Repository, issue_id: str, reaction_id: str
+    ) -> None:
+        try:
+            self.client.delete_issue_reaction(repository["name"], issue_id, reaction_id)
+        except ApiError as e:
+            raise SCMProviderException from e
