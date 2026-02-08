@@ -88,13 +88,29 @@ def soft_hyphenate(value: str, length: int, hyphen: str = "\u00ad") -> str:
     return hyphen.join([value[i : (i + length)] for i in range(0, len(value), length)])
 
 
-def soft_break(value: str, length: int, process: Callable[[str], str] = lambda chunk: chunk) -> str:
+def soft_break(
+    value: str,
+    length: int,
+    process: Callable[[str], str] = lambda chunk: chunk,
+    delimiter_break: str = "\u200b",
+) -> str:
     """
     Encourages soft breaking of text values above a maximum length by adding
     zero-width spaces after common delimiters, as well as soft-hyphenating long
     identifiers.
+
+    Args:
+        value: The text to process.
+        length: Minimum token length before soft-breaking kicks in.
+        process: Callable applied to non-delimiter chunks (e.g. ``soft_hyphenate``).
+        delimiter_break: Character inserted after each delimiter to hint a line
+            break.  Defaults to ``\\u200b`` (zero-width space).  Pass ``<wbr>``
+            for HTML contexts so that copied text contains no invisible
+            characters.
     """
-    delimiters = re.compile(r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}"))))
+    delimiters = re.compile(
+        r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}")))
+    )
 
     def soft_break_delimiter(match: re.Match[str]) -> str:
         results = []
@@ -103,16 +119,18 @@ def soft_break(value: str, length: int, process: Callable[[str], str] = lambda c
         chunks = delimiters.split(value)
         for i, chunk in enumerate(chunks):
             if i % 2 == 1:  # check if this is this a delimiter
-                results.extend([chunk, "\u200b"])
+                results.extend([chunk, delimiter_break])
             else:
                 results.append(process(chunk))
 
-        return "".join(results).rstrip("\u200b")
+        return "".join(results).rstrip(delimiter_break)
 
     return re.sub(rf"\S{{{length},}}", soft_break_delimiter, value)
 
 
-valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")
+valid_dot_atom_characters = frozenset(
+    string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~"
+)
 
 
 def is_valid_dot_atom(value: str) -> bool:
