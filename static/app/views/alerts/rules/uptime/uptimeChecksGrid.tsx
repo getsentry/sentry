@@ -7,13 +7,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import useDrawer from 'sentry/components/globalDrawer';
 import Placeholder from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,15 +25,13 @@ import {
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 
-import {UptimeCheckDetails} from './uptimeCheckDetails';
-
 type Props = {
-  project: Project;
   traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
 };
 
 type ColumnKey =
+  | 'traceItemId'
   | 'timestamp'
   | 'checkStatus'
   | 'httpStatusCode'
@@ -55,7 +52,7 @@ const emptyCell = '\u2014';
  */
 const SYSTEM_UPTIME_SPAN_COUNT = 7;
 
-export function UptimeChecksGrid({project, traceSampling, uptimeChecks}: Props) {
+export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
   const {data: spanCounts, isPending: spanCountLoading} = useSpans(
@@ -85,19 +82,19 @@ export function UptimeChecksGrid({project, traceSampling, uptimeChecks}: Props) 
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       columnOrder={[
+        {key: 'traceItemId', width: 100, name: t('ID')},
         {key: 'timestamp', width: 150, name: t('Timestamp')},
-        {key: 'checkStatus', width: 250, name: t('Status')},
+        {key: 'checkStatus', width: 230, name: t('Status')},
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-        {key: 'durationMs', width: 110, name: t('Duration')},
-        {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 150, name: t('Trace')},
+        {key: 'durationMs', width: 100, name: t('Duration')},
+        {key: 'regionName', width: 190, name: t('Region')},
+        {key: 'traceId', width: 100, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
-            project={project}
             column={column as GridColumnOrder<ColumnKey>}
             traceSampling={traceSampling}
             check={dataRow}
@@ -112,19 +109,16 @@ export function UptimeChecksGrid({project, traceSampling, uptimeChecks}: Props) 
 function CheckInBodyCell({
   check,
   column,
-  project,
   spanCount,
   traceSampling,
 }: {
   check: UptimeCheck;
   column: GridColumnOrder<ColumnKey>;
-  project: Project;
   spanCount: number | undefined;
   traceSampling: boolean;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
-  const {openDrawer} = useDrawer();
 
   const {
     timestamp,
@@ -181,24 +175,30 @@ function CheckInBodyCell({
         ? reasonToText[checkStatusReason](check)
         : null;
       return (
-        <StatusCell
-          isMiss={isMiss}
-          color={color}
-          onClick={() => {
-            if (isMiss) {
-              return;
-            }
-
-            openDrawer(() => <UptimeCheckDetails check={check} project={project} />, {
-              ariaLabel: t('Uptime Check Details'),
-              drawerKey: `uptime-check-details-${check.uptimeCheckId}`,
-              resizable: true,
-            });
-          }}
-        >
+        <StatusCell color={color}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
         </StatusCell>
+      );
+    }
+    case 'traceItemId': {
+      if (isMiss || traceId === EMPTY_TRACE) {
+        return <Cell>{emptyCell}</Cell>;
+      }
+
+      return (
+        <Cell>
+          <Link
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+              targetId: check.traceItemId,
+            })}
+          >
+            {getShortEventId(check.traceItemId)}
+          </Link>
+        </Cell>
       );
     }
     case 'traceId': {
@@ -242,13 +242,11 @@ function CheckInBodyCell({
       return (
         <TraceCell>
           <Link
-            to={{
-              pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
-              query: {
-                includeUptime: '1',
-                timestamp: new Date(timestamp).getTime() / 1000,
-              },
-            }}
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+            })}
           >
             {getShortEventId(traceId)}
           </Link>
@@ -261,6 +259,27 @@ function CheckInBodyCell({
     default:
       return <Cell>{check[column.key]}</Cell>;
   }
+}
+
+function getUptimeTraceLink({
+  organization,
+  timestamp,
+  traceId,
+  targetId,
+}: {
+  organization: Organization;
+  timestamp: string;
+  traceId: string;
+  targetId?: string;
+}) {
+  return {
+    pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
+    query: {
+      includeUptime: '1',
+      timestamp: new Date(timestamp).getTime() / 1000,
+      ...(targetId ? {node: `uptime-check-${targetId}`} : {}),
+    },
+  };
 }
 
 const Cell = styled('div')`
@@ -282,15 +301,6 @@ const TraceCell = styled(Cell)`
   gap: ${space(1)};
 `;
 
-const StatusCell = styled(Cell)<{color: string; isMiss: boolean}>`
+const StatusCell = styled(Cell)`
   color: ${p => p.color};
-
-  ${p =>
-    !p.isMiss &&
-    `
-    cursor: pointer;
-    &:hover {
-      font-weight: bold;
-    }
-  `}
 `;
