@@ -75,6 +75,10 @@ jobs:
         id: tsc
         run: pnpm exec tsc -p tsconfig.json
 
+      - name: tsc (mdx)
+        id: tsc-mdx
+        run: pnpm run typecheck:mdx
+
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
