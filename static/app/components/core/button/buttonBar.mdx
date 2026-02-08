@@ -1,0 +1,301 @@
+---
+title: ButtonBar
+description: A layout component that groups related buttons together, either with spacing or merged into a single control.
+category: buttons
+source: '@sentry/scraps/button'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/buttonBar.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Button Practices: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+---
+
+import {Fragment, useState} from 'react';
+
+import {Button, ButtonBar} from '@sentry/scraps/button';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/button';
+
+export {documentation};
+
+`<ButtonBar>` is a layout component that groups related buttons together in a horizontal arrangement. It can be used in two modes: regular (with customizable gaps between buttons) or merged (buttons joined together into a single unified control).
+
+Use `<ButtonBar>` when you have a set of related actions that should be visually grouped together, such as view options, filter controls, or action sets.
+
+```jsx
+<ButtonBar gap="md">
+  <Button>First</Button>
+  <Button>Second</Button>
+  <Button>Third</Button>
+</ButtonBar>
+```
+
+## Regular Mode
+
+By default, `<ButtonBar>` displays buttons with spacing between them. You can customize the gap size using the `gap` prop, which accepts any spacing value from the design system (`xs`, `sm`, `md`, `lg`, `xl`, etc.). The default gap is `md`.
+
+<Storybook.Demo>
+  <ButtonBar gap="xs">
+    <Button>Extra Small Gap</Button>
+    <Button>Extra Small Gap</Button>
+    <Button>Extra Small Gap</Button>
+  </ButtonBar>
+  <ButtonBar gap="md">
+    <Button>Medium Gap (default)</Button>
+    <Button>Medium Gap (default)</Button>
+    <Button>Medium Gap (default)</Button>
+  </ButtonBar>
+  <ButtonBar gap="lg">
+    <Button>Large Gap</Button>
+    <Button>Large Gap</Button>
+    <Button>Large Gap</Button>
+  </ButtonBar>
+</Storybook.Demo>
+
+```jsx
+<ButtonBar gap="xs">
+  <Button>Extra Small Gap</Button>
+  <Button>Extra Small Gap</Button>
+  <Button>Extra Small Gap</Button>
+</ButtonBar>
+<ButtonBar gap="md">
+  <Button>Medium Gap (default)</Button>
+  <Button>Medium Gap (default)</Button>
+  <Button>Medium Gap (default)</Button>
+</ButtonBar>
+<ButtonBar gap="lg">
+  <Button>Large Gap</Button>
+  <Button>Large Gap</Button>
+  <Button>Large Gap</Button>
+</ButtonBar>
+```
+
+## Merged Mode
+
+Pass the `merged` prop to create a unified button group where buttons are visually joined together. This is useful for creating segmented controls or toolbar-style button groups. In merged mode, buttons share borders and form a continuous visual unit.
+
+<Storybook.Demo>
+  <ButtonBar merged gap="0">
+    <Button>First</Button>
+    <Button>Second</Button>
+    <Button>Third</Button>
+  </ButtonBar>
+</Storybook.Demo>
+
+```jsx
+<ButtonBar merged gap="0">
+  <Button>First</Button>
+  <Button>Second</Button>
+  <Button>Third</Button>
+</ButtonBar>
+```
+
+> [!NOTE]
+> When using merged mode, set `gap="0"` to prevent spacing between the buttons.
+
+## Interactive Button Groups
+
+When using `<ButtonBar>` with interactive buttons (such as toggle groups or view switchers), you'll typically want to manage an active state to highlight the selected button. This is handled by the parent component—`<ButtonBar>` itself is purely a layout component.
+
+The common pattern is to maintain a state variable and conditionally set the button `priority` to `"primary"` (or another priority) when active.
+
+export function InteractiveExample() {
+  const [active, setActive] = useState('One');
+  function makeProps(id) {
+    return {
+      priority: active === id ? 'primary' : 'default',
+      onClick: () => setActive(id),
+    };
+  }
+  return (
+    <ButtonBar gap="md">
+      {['One', 'Two', 'Three'].map(id => (
+        <Button key={id} {...makeProps(id)}>
+          {id}
+        </Button>
+      ))}
+    </ButtonBar>
+  );
+}
+
+<Storybook.Demo>
+  <InteractiveExample />
+</Storybook.Demo>
+
+```jsx
+function InteractiveExample() {
+  const [active, setActive] = useState('One');
+
+  function makeProps(id) {
+    return {
+      priority: active === id ? 'primary' : 'default',
+      onClick: () => setActive(id),
+    };
+  }
+
+  return (
+    <ButtonBar gap="md">
+      {['One', 'Two', 'Three'].map(id => (
+        <Button key={id} {...makeProps(id)}>
+          {id}
+        </Button>
+      ))}
+    </ButtonBar>
+  );
+}
+```
+
+## Interactive Merged Groups
+
+The same active state pattern works with merged button groups. This creates a segmented control appearance, similar to native platform controls.
+
+export function MergedInteractiveExample() {
+  const [merged, setMerged] = useState('One');
+  function makeMergedProps(id) {
+    return {
+      priority: merged === id ? 'primary' : 'default',
+      onClick: () => setMerged(id),
+    };
+  }
+  return (
+    <ButtonBar merged gap="0">
+      {['One', 'Two', 'Three'].map(id => (
+        <Button key={id} {...makeMergedProps(id)}>
+          {id}
+        </Button>
+      ))}
+    </ButtonBar>
+  );
+}
+
+<Storybook.Demo>
+  <MergedInteractiveExample />
+</Storybook.Demo>
+
+```jsx
+function MergedInteractiveExample() {
+  const [merged, setMerged] = useState('One');
+
+  function makeMergedProps(id) {
+    return {
+      priority: merged === id ? 'primary' : 'default',
+      onClick: () => setMerged(id),
+    };
+  }
+
+  return (
+    <ButtonBar merged gap="0">
+      {['One', 'Two', 'Three'].map(id => (
+        <Button key={id} {...makeMergedProps(id)}>
+          {id}
+        </Button>
+      ))}
+    </ButtonBar>
+  );
+}
+```
+
+## Single Button
+
+`<ButtonBar>` can contain a single button, in which case it simply renders as a regular button. This can be useful when the number of buttons is dynamic and you want consistent layout behavior.
+
+<Storybook.Demo>
+  <ButtonBar gap="0">
+    <Button>One Lonely Button</Button>
+  </ButtonBar>
+</Storybook.Demo>
+
+```jsx
+<ButtonBar gap="0">
+  <Button>One Lonely Button</Button>
+</ButtonBar>
+```
+
+## Usage Patterns
+
+### View Switchers
+
+Use `<ButtonBar>` to create controls that switch between different views or display modes:
+
+```jsx
+<ButtonBar merged gap="0">
+  <Button
+    priority={view === 'list' ? 'primary' : 'default'}
+    onClick={() => setView('list')}
+  >
+    List
+  </Button>
+  <Button
+    priority={view === 'grid' ? 'primary' : 'default'}
+    onClick={() => setView('grid')}
+  >
+    Grid
+  </Button>
+</ButtonBar>
+```
+
+### Action Groups
+
+Group related actions that operate on the same subject:
+
+```jsx
+<ButtonBar gap="sm">
+  <Button onClick={handleEdit}>Edit</Button>
+  <Button onClick={handleDuplicate}>Duplicate</Button>
+  <Button onClick={handleDelete} priority="danger">
+    Delete
+  </Button>
+</ButtonBar>
+```
+
+### Toolbar Controls
+
+Create toolbar-style controls with merged buttons:
+
+```jsx
+<ButtonBar merged gap="0">
+  <Button icon={<IconBold />} title="Bold" />
+  <Button icon={<IconItalic />} title="Italic" />
+  <Button icon={<IconUnderline />} title="Underline" />
+</ButtonBar>
+```
+
+## Accessibility
+
+`<ButtonBar>` is a layout component that groups buttons but doesn't add semantic meaning. Accessibility is primarily handled by the child `<Button>` components, which automatically meet WCAG 2.2 AA standards including [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard) and [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible).
+
+### Developer Responsibilities
+
+When using `<ButtonBar>` for toggle groups or segmented controls:
+
+- **Keyboard Navigation**: Ensure all buttons are keyboard accessible. Consider implementing arrow key navigation for merged button groups to match native control behavior.
+- **ARIA Attributes**: For toggle groups, consider adding `role="group"` and `aria-label` to the `<ButtonBar>` to describe the group purpose.
+- **State Communication**: When buttons represent a selection state, ensure the active state is communicated visually (via styling) and programmatically (via `aria-pressed` or `aria-current` attributes on the buttons).
+- **Labels**: Ensure all buttons have clear, descriptive labels. Icon-only buttons should include `aria-label` or `title` attributes.
+
+Example with proper ARIA attributes:
+
+```jsx
+<ButtonBar merged gap="0" role="group" aria-label="View options">
+  <Button
+    priority={view === 'list' ? 'primary' : 'default'}
+    aria-pressed={view === 'list'}
+    onClick={() => setView('list')}
+  >
+    List
+  </Button>
+  <Button
+    priority={view === 'grid' ? 'primary' : 'default'}
+    aria-pressed={view === 'grid'}
+    onClick={() => setView('grid')}
+  >
+    Grid
+  </Button>
+</ButtonBar>
+```
+
+For more information on button accessibility, see the [WAI-ARIA Button Practices](https://www.w3.org/WAI/ARIA/apg/patterns/button/).

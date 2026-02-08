@@ -162,7 +162,7 @@ function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   );
 }
 
-export interface TabListProps {
+interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
   outerWrapStyles?: React.CSSProperties;
   variant?: TabProps['variant'];

@@ -1,0 +1,525 @@
+---
+title: CompactSelect
+description: A versatile dropdown select component for non-form contexts, supporting sections, search, multi-select, custom triggers, and performance optimizations.
+category: forms
+source: '@sentry/scraps/compactSelect'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/compactSelect/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Combobox: https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+---
+
+import {useState} from 'react';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/compactSelect';
+
+export {documentation};
+
+`<CompactSelect>` is a general-purpose dropdown select component designed for use outside of forms. It's highly capable, supporting features like sections, search, multi-select, custom triggers, virtualization, and more.
+
+Use `<CompactSelect>` for UI controls like project selectors, environment filters, and toolbar dropdowns. For form fields, use `<Select>` or `<SelectControl>` instead.
+
+```jsx
+<CompactSelect
+  value={value}
+  onChange={option => setValue(option.value)}
+  options={[
+    {value: '1', label: 'Option 1'},
+    {value: '2', label: 'Option 2'},
+    {value: '3', label: 'Option 3'},
+  ]}
+/>
+```
+
+## Basic Usage
+
+In the simplest case, provide a `value`, `onChange` handler, and an array of `options`. The component is controlled—it doesn't maintain its own selection state.
+
+export function SimpleDemo() {
+  const [value, setValue] = useState('');
+  const options = [
+    {value: '', label: 'All'},
+    {value: '2', label: '2XX', details: 'Success responses'},
+    {value: '3', label: '3XX', details: 'Redirects'},
+    {value: '4', label: '4XX', details: 'Client errors'},
+    {value: '5', label: '5XX', details: 'Server errors'},
+  ];
+  return (
+    <CompactSelect
+      value={value}
+      onChange={newValue => setValue(newValue.value)}
+      options={options}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <SimpleDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState('');
+const options = [
+  {value: '', label: 'All'},
+  {value: '2', label: '2XX', details: 'Success responses'},
+  {value: '3', label: '3XX', details: 'Redirects'},
+];
+
+<CompactSelect
+  value={value}
+  onChange={option => setValue(option.value)}
+  options={options}
+/>;
+```
+
+> [!NOTE]
+> Options can include an optional `details` property to provide additional context shown in the dropdown.
+
+## Sections
+
+Group related options into sections using nested option objects. Each section has a `key`, `label`, and an array of `options`.
+
+export function SectionsDemo() {
+  const [values, setValues] = useState(['Woody', 'WALL-E']);
+  const options = [
+    {
+      key: 'toy-story',
+      label: 'Toy Story',
+      options: [
+        {value: 'Woody', label: 'Woody'},
+        {value: 'Buzz', label: 'Buzz Lightyear'},
+        {value: 'Rex', label: 'Rex'},
+      ],
+    },
+    {
+      key: 'wall-e',
+      label: 'WALL-E',
+      options: [
+        {value: 'WALL-E', label: 'WALL-E'},
+        {value: 'EVE', label: 'EVE'},
+        {value: 'M-O', label: 'M-O'},
+      ],
+    },
+  ];
+  return (
+    <CompactSelect
+      multiple
+      value={values}
+      onChange={selected => setValues(selected.map(opt => opt.value))}
+      options={options}
+      triggerProps={{prefix: 'Character'}}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <SectionsDemo />
+</Storybook.Demo>
+
+```jsx
+<CompactSelect
+  value={value}
+  onChange={handleChange}
+  options={[
+    {
+      key: 'section1',
+      label: 'Section 1',
+      options: [
+        {value: 'a', label: 'Option A'},
+        {value: 'b', label: 'Option B'},
+      ],
+    },
+    {
+      key: 'section2',
+      label: 'Section 2',
+      options: [
+        {value: 'c', label: 'Option C'},
+        {value: 'd', label: 'Option D'},
+      ],
+    },
+  ]}
+/>
+```
+
+## Sizes
+
+`<CompactSelect>` supports three sizes: `md` (default), `sm`, and `xs`.
+
+<Storybook.Demo>
+  <Storybook.Grid>
+    <CompactSelect
+      size="md"
+      triggerProps={{prefix: 'Size'}}
+      options={[
+        {value: '1', label: 'Medium (default)'},
+        {value: '2', label: 'Option 2'},
+      ]}
+    />
+    <CompactSelect
+      size="sm"
+      triggerProps={{prefix: 'Size'}}
+      options={[
+        {value: '1', label: 'Small'},
+        {value: '2', label: 'Option 2'},
+      ]}
+    />
+    <CompactSelect
+      size="xs"
+      triggerProps={{prefix: 'Size'}}
+      options={[
+        {value: '1', label: 'Extra Small'},
+        {value: '2', label: 'Option 2'},
+      ]}
+    />
+  </Storybook.Grid>
+</Storybook.Demo>
+
+```jsx
+<CompactSelect size="md" options={options} />
+<CompactSelect size="sm" options={options} />
+<CompactSelect size="xs" options={options} />
+```
+
+## Multiple Selection
+
+Set `multiple` to enable multi-select mode. The `value` prop should be an array, and `onChange` receives an array of selected options.
+
+export function MultiSelectDemo() {
+  const [values, setValues] = useState(['2', '4']);
+  const options = [
+    {value: '1', label: '1XX'},
+    {value: '2', label: '2XX'},
+    {value: '3', label: '3XX'},
+    {value: '4', label: '4XX'},
+    {value: '5', label: '5XX'},
+  ];
+  return (
+    <CompactSelect
+      multiple
+      value={values}
+      onChange={selected => setValues(selected.map(opt => opt.value))}
+      options={options}
+      triggerProps={{prefix: 'Status'}}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <MultiSelectDemo />
+</Storybook.Demo>
+
+```jsx
+const [values, setValues] = useState(['2', '4']);
+
+<CompactSelect
+  multiple
+  value={values}
+  onChange={selected => setValues(selected.map(opt => opt.value))}
+  options={options}
+/>;
+```
+
+## Searchable
+
+Enable `searchable` to allow users to filter options by typing. Essential for lists with many options.
+
+<Storybook.Demo>
+  <CompactSelect
+    searchable
+    triggerProps={{prefix: 'Country'}}
+    options={[
+      {value: 'US', label: 'United States'},
+      {value: 'CA', label: 'Canada'},
+      {value: 'MX', label: 'Mexico'},
+      {value: 'UK', label: 'United Kingdom'},
+      {value: 'FR', label: 'France'},
+      {value: 'DE', label: 'Germany'},
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<CompactSelect searchable options={manyOptions} />
+```
+
+## Clearable
+
+Set `clearable` to add a clear button that resets the selection.
+
+export function ClearableDemo() {
+  const [value, setValue] = useState('2');
+  const options = [
+    {value: '1', label: 'Option 1'},
+    {value: '2', label: 'Option 2'},
+    {value: '3', label: 'Option 3'},
+  ];
+  return (
+    <CompactSelect
+      clearable
+      value={value}
+      onChange={option => setValue(option?.value || '')}
+      options={options}
+    />
+  );
+}
+
+<Storybook.Demo>
+  <ClearableDemo />
+</Storybook.Demo>
+
+```jsx
+<CompactSelect
+  clearable
+  value={value}
+  onChange={option => setValue(option?.value || '')}
+  options={options}
+/>
+```
+
+## Trigger Props
+
+Use `triggerProps` to customize the button that opens the dropdown. Common properties include:
+
+- **prefix**: Label text shown before the value
+- **icon**: Leading icon
+
+```jsx
+<CompactSelect
+  triggerProps={{
+    prefix: 'Environment',
+    icon: <IconEnvironment />,
+  }}
+  options={environments}
+/>
+```
+
+## Custom Trigger
+
+For advanced cases, provide a custom trigger component using the `trigger` render prop. Always use `<SelectTrigger>` as the base component.
+
+```jsx
+import {SelectTrigger} from 'sentry/components/core/compactSelect/trigger';
+
+<CompactSelect
+  options={options}
+  trigger={props => (
+    <SelectTrigger.Button {...props}>
+      {value ? `Status: ${value}` : 'Choose status'}
+    </SelectTrigger.Button>
+  )}
+/>;
+```
+
+> [!IMPORTANT]
+> Always spread the `props` onto the `<SelectTrigger>` component. This ensures proper accessibility and behavior.
+
+## Combined Features
+
+Combine multiple features for powerful selection interfaces:
+
+export function CombinedDemo() {
+  const [values, setValues] = useState(['prod']);
+  const options = [
+    {
+      key: 'production',
+      label: 'Production',
+      options: [
+        {value: 'prod', label: 'Production'},
+        {value: 'prod-eu', label: 'Production EU'},
+      ],
+    },
+    {
+      key: 'staging',
+      label: 'Staging',
+      options: [
+        {value: 'staging', label: 'Staging'},
+        {value: 'staging-eu', label: 'Staging EU'},
+      ],
+    },
+    {
+      key: 'development',
+      label: 'Development',
+      options: [
+        {value: 'dev', label: 'Development'},
+        {value: 'local', label: 'Local'},
+      ],
+    },
+  ];
+  return (
+    <Storybook.Grid>
+      <CompactSelect
+        size="md"
+        multiple
+        searchable
+        clearable
+        triggerProps={{prefix: 'Environment'}}
+        value={values}
+        onChange={selected => setValues(selected.map(opt => opt.value))}
+        options={options}
+      />
+      <CompactSelect
+        size="sm"
+        multiple
+        searchable
+        clearable
+        triggerProps={{prefix: 'Environment'}}
+        value={values}
+        onChange={selected => setValues(selected.map(opt => opt.value))}
+        options={options}
+      />
+      <CompactSelect
+        size="xs"
+        multiple
+        searchable
+        clearable
+        triggerProps={{prefix: 'Environment'}}
+        value={values}
+        onChange={selected => setValues(selected.map(opt => opt.value))}
+        options={options}
+      />
+    </Storybook.Grid>
+  );
+}
+
+<Storybook.Demo>
+  <CombinedDemo />
+</Storybook.Demo>
+
+```jsx
+<CompactSelect
+  multiple
+  searchable
+  clearable
+  triggerProps={{prefix: 'Environment'}}
+  value={values}
+  onChange={handleChange}
+  options={sectionsWithOptions}
+/>
+```
+
+## Performance Optimizations
+
+### Virtualization
+
+For large lists (hundreds of items), `<CompactSelect>` automatically virtualizes the option list, rendering only visible items. This is enabled by default and requires no configuration.
+
+### Options Caching
+
+For expensive option computations or API-fetched data, use the `useCompactSelectOptionsCache` hook to memoize options:
+
+```jsx
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+
+function MyComponent() {
+  const projects = useProjects(); // Expensive fetch
+
+  const projectOptions = useCompactSelectOptionsCache({
+    options: projects.map(p => ({
+      value: p.id,
+      label: p.name,
+    })),
+  });
+
+  return (
+    <CompactSelect
+      searchable
+      options={projectOptions}
+      value={selectedProject}
+      onChange={handleChange}
+    />
+  );
+}
+```
+
+This hook prevents unnecessary re-renders and option recomputations when the parent component re-renders.
+
+## Usage Patterns
+
+### Project Selectors
+
+```jsx
+<CompactSelect
+  searchable
+  multiple
+  clearable
+  triggerProps={{prefix: 'Projects'}}
+  value={selectedProjects}
+  onChange={handleProjectChange}
+  options={projectOptions}
+/>
+```
+
+### Environment Filters
+
+```jsx
+<CompactSelect
+  triggerProps={{prefix: 'Env', icon: <IconEnvironment />}}
+  value={environment}
+  onChange={option => setEnvironment(option.value)}
+  options={environmentOptions}
+/>
+```
+
+### Grouped Filters
+
+```jsx
+<CompactSelect
+  searchable
+  clearable
+  triggerProps={{prefix: 'Filter'}}
+  options={[
+    {
+      key: 'status',
+      label: 'Status',
+      options: statusOptions,
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      options: priorityOptions,
+    },
+  ]}
+/>
+```
+
+## Accessibility
+
+`<CompactSelect>` follows the [WAI-ARIA Combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard navigation
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component includes:
+
+- `role="combobox"` and proper ARIA attributes
+- Keyboard navigation (Arrow keys, Enter, Escape)
+- Screen reader announcements for selections
+- Focus management
+
+### Developer Responsibilities
+
+**Labels**
+
+- Provide context through `triggerProps.prefix` or external labels
+- Use `aria-label` when the trigger doesn't have visible text
+
+**Keyboard Shortcuts**
+
+- **Arrow Up/Down**: Navigate options
+- **Enter**: Select option
+- **Escape**: Close dropdown
+- **Type to search**: When `searchable` is enabled
+
+**Multiple Selection**
+
+- Clearly communicate how many items are selected
+- Consider using `triggerProps.prefix` to show selection count
+
+For more information, see the [WAI-ARIA Combobox practices](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).

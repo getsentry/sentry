@@ -1,0 +1,332 @@
+---
+title: SegmentedControl
+description: A group of buttons that function as a single control for selecting one or multiple options, commonly used for view switchers and filter toggles.
+category: forms
+source: '@sentry/scraps/segmentedControl'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/segmentedControl/index.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+---
+
+import {Fragment, useState} from 'react';
+
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {IconStats} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/segmentedControl';
+
+export {documentation};
+
+`<SegmentedControl>` is a group of buttons that work together as a single control for selecting one option from a set. It provides a compact, visual way to switch between different views, modes, or filter options.
+
+Use `<SegmentedControl>` as an alternative to tabs or radio buttons when you need a more compact, button-like appearance for switching between options.
+
+```jsx
+const [value, setValue] = useState('one');
+
+<SegmentedControl value={value} onChange={setValue}>
+  <SegmentedControl.Item key="one">Option 1</SegmentedControl.Item>
+  <SegmentedControl.Item key="two">Option 2</SegmentedControl.Item>
+  <SegmentedControl.Item key="three">Option 3</SegmentedControl.Item>
+</SegmentedControl>;
+```
+
+## Basic Usage
+
+`<SegmentedControl>` is a controlled component. Manage the selected value in state and update it via the `onChange` callback.
+
+export function BasicDemo() {
+  const [value, setValue] = useState('two');
+  return (
+    <Fragment>
+      <p>Selected: {value}</p>
+      <SegmentedControl value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+      </SegmentedControl>
+    </Fragment>
+  );
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState('two');
+
+<SegmentedControl value={value} onChange={setValue}>
+  <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+  <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+  <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+</SegmentedControl>;
+```
+
+## Sizes
+
+`<SegmentedControl>` supports three sizes: `md` (default), `sm`, and `xs`.
+
+export function SizesDemo() {
+  const [value, setValue] = useState('two');
+  return (
+    <Storybook.Grid>
+      <SegmentedControl size="md" value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">Medium</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Default</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Size</SegmentedControl.Item>
+      </SegmentedControl>
+      <SegmentedControl size="sm" value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">Small</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Size</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Here</SegmentedControl.Item>
+      </SegmentedControl>
+      <SegmentedControl size="xs" value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">Extra</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Small</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Size</SegmentedControl.Item>
+      </SegmentedControl>
+    </Storybook.Grid>
+  );
+}
+
+<Storybook.Demo>
+  <SizesDemo />
+</Storybook.Demo>
+
+```jsx
+<SegmentedControl size="md" value={value} onChange={setValue}>
+  {/* items */}
+</SegmentedControl>
+<SegmentedControl size="sm" value={value} onChange={setValue}>
+  {/* items */}
+</SegmentedControl>
+<SegmentedControl size="xs" value={value} onChange={setValue}>
+  {/* items */}
+</SegmentedControl>
+```
+
+## Priorities
+
+Use the `priority` prop to control the visual style: `default` (outlined) or `primary` (filled).
+
+export function PrioritiesDemo() {
+  const [value, setValue] = useState('two');
+  return (
+    <Storybook.SideBySide>
+      <SegmentedControl priority="default" value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">Default</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Priority</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Here</SegmentedControl.Item>
+      </SegmentedControl>
+      <SegmentedControl priority="primary" value={value} onChange={setValue}>
+        <SegmentedControl.Item key="one">Primary</SegmentedControl.Item>
+        <SegmentedControl.Item key="two">Priority</SegmentedControl.Item>
+        <SegmentedControl.Item key="three">Here</SegmentedControl.Item>
+      </SegmentedControl>
+    </Storybook.SideBySide>
+  );
+}
+
+<Storybook.Demo>
+  <PrioritiesDemo />
+</Storybook.Demo>
+
+```jsx
+<SegmentedControl priority="default" value={value} onChange={setValue}>
+  {/* items */}
+</SegmentedControl>
+<SegmentedControl priority="primary" value={value} onChange={setValue}>
+  {/* items */}
+</SegmentedControl>
+```
+
+## Icons
+
+Items can include icons using the `icon` prop:
+
+export function IconsDemo() {
+  const [value, setValue] = useState('two');
+  return (
+    <SegmentedControl value={value} onChange={setValue}>
+      <SegmentedControl.Item key="one" icon={<IconStats />}>
+        With Icon
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="two" icon={<IconStats />}>
+        And Label
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="three" icon={<IconStats />} aria-label="Icon Only" />
+    </SegmentedControl>
+  );
+}
+
+<Storybook.Demo>
+  <IconsDemo />
+</Storybook.Demo>
+
+```jsx
+<SegmentedControl value={value} onChange={setValue}>
+  <SegmentedControl.Item key="list" icon={<IconList />}>
+    List
+  </SegmentedControl.Item>
+  <SegmentedControl.Item key="grid" icon={<IconGrid />}>
+    Grid
+  </SegmentedControl.Item>
+  <SegmentedControl.Item key="chart" icon={<IconChart />} aria-label="Chart View" />
+</SegmentedControl>
+```
+
+> [!IMPORTANT]
+> When using icon-only items (without text children), always provide `aria-label` for accessibility.
+
+## Disabled Items
+
+Disable individual items using the `disabled` prop on `<SegmentedControl.Item>`:
+
+export function DisabledDemo() {
+  const [value, setValue] = useState('two');
+  return (
+    <SegmentedControl value={value} onChange={setValue}>
+      <SegmentedControl.Item key="one">Enabled</SegmentedControl.Item>
+      <SegmentedControl.Item key="two">Active</SegmentedControl.Item>
+      <SegmentedControl.Item key="three" disabled>
+        Disabled
+      </SegmentedControl.Item>
+    </SegmentedControl>
+  );
+}
+
+<Storybook.Demo>
+  <DisabledDemo />
+</Storybook.Demo>
+
+```jsx
+<SegmentedControl value={value} onChange={setValue}>
+  <SegmentedControl.Item key="one">Enabled</SegmentedControl.Item>
+  <SegmentedControl.Item key="two" disabled>
+    Disabled
+  </SegmentedControl.Item>
+</SegmentedControl>
+```
+
+## Tooltips
+
+Add tooltips to items for additional context:
+
+```jsx
+<SegmentedControl value={value} onChange={setValue}>
+  <SegmentedControl.Item key="one" tooltip="Show list view">
+    List
+  </SegmentedControl.Item>
+  <SegmentedControl.Item key="two" tooltip="Show grid view">
+    Grid
+  </SegmentedControl.Item>
+</SegmentedControl>
+```
+
+## Usage Patterns
+
+### View Switchers
+
+The most common use case is switching between different view modes:
+
+```jsx
+const [view, setView] = useState('list');
+
+<SegmentedControl value={view} onChange={setView}>
+  <SegmentedControl.Item key="list" icon={<IconList />}>
+    List
+  </SegmentedControl.Item>
+  <SegmentedControl.Item key="grid" icon={<IconGrid />}>
+    Grid
+  </SegmentedControl.Item>
+  <SegmentedControl.Item key="chart" icon={<IconChart />}>
+    Chart
+  </SegmentedControl.Item>
+</SegmentedControl>;
+```
+
+### Time Range Selectors
+
+Use for selecting time ranges or periods:
+
+```jsx
+<SegmentedControl value={range} onChange={setRange}>
+  <SegmentedControl.Item key="1h">1H</SegmentedControl.Item>
+  <SegmentedControl.Item key="24h">24H</SegmentedControl.Item>
+  <SegmentedControl.Item key="7d">7D</SegmentedControl.Item>
+  <SegmentedControl.Item key="30d">30D</SegmentedControl.Item>
+</SegmentedControl>
+```
+
+### Display Mode Controls
+
+Control visualization or display modes:
+
+```jsx
+<SegmentedControl value={mode} onChange={setMode} size="sm">
+  <SegmentedControl.Item key="auto">Auto</SegmentedControl.Item>
+  <SegmentedControl.Item key="light">Light</SegmentedControl.Item>
+  <SegmentedControl.Item key="dark">Dark</SegmentedControl.Item>
+</SegmentedControl>
+```
+
+## SegmentedControl vs Tabs vs Radio
+
+Choose the right component for your use case:
+
+### Use SegmentedControl when:
+
+- You need a **compact button-like** toggle between 2-5 options
+- The control is in a **toolbar or header**
+- All options are **always visible**
+- Changes take effect **immediately**
+
+### Use Tabs when:
+
+- You're organizing **different content sections**
+- Each option has **associated panel content**
+- You need **more than 5 options** (tabs support overflow)
+
+### Use Radio when:
+
+- The selection is part of a **form requiring submission**
+- Options need **detailed labels or descriptions**
+- The layout should be **vertical**
+
+## Accessibility
+
+`<SegmentedControl>` meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard navigation
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+### Developer Responsibilities
+
+**Labels**
+
+- Provide a group label or context for the segmented control
+- Icon-only items must have `aria-label`
+
+```jsx
+<div>
+  <label id="view-label">View Mode</label>
+  <SegmentedControl value={view} onChange={setView} aria-labelledby="view-label">
+    <SegmentedControl.Item key="list">List</SegmentedControl.Item>
+    <SegmentedControl.Item key="grid">Grid</SegmentedControl.Item>
+  </SegmentedControl>
+</div>
+```
+
+**Keyboard Navigation**
+
+- **Tab**: Move focus into/out of the control
+- **Arrow Left/Right**: Navigate between items
+- **Space/Enter**: Select focused item
+
+For more information, see button and radio group accessibility patterns.

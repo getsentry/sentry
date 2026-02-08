@@ -1,0 +1,400 @@
+---
+title: CompositeSelect
+description: A specialized dropdown component that combines multiple independent select sections, each with its own single or multi-select behavior.
+category: forms
+source: '@sentry/scraps/compactSelect'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/compactSelect/composite.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WAI-ARIA Combobox: https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
+---
+
+import {useState} from 'react';
+
+import {CompositeSelect, SelectTrigger} from '@sentry/scraps/compactSelect';
+
+import {IconSentry} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import documentation from '!!type-loader!@sentry/scraps/compactSelect';
+
+export {documentation};
+
+`<CompositeSelect>` is a specialized dropdown component that allows you to combine multiple independent select sections, each with its own single or multi-select behavior. This is useful when users need to make selections across different categories within a single dropdown.
+
+Use `<CompositeSelect>` when you need a dropdown with multiple independent selection groups, such as filter controls with different criteria or settings with grouped options. For simpler dropdowns, use `<CompactSelect>` instead.
+
+```jsx
+<CompositeSelect
+  trigger={props => (
+    <SelectTrigger.Button {...props}>Select Options</SelectTrigger.Button>
+  )}
+>
+  <CompositeSelect.Region
+    label="Category 1"
+    value={value1}
+    onChange={handleChange1}
+    options={options1}
+  />
+  <CompositeSelect.Region
+    label="Category 2"
+    value={value2}
+    onChange={handleChange2}
+    options={options2}
+  />
+</CompositeSelect>
+```
+
+## Compound Components
+
+`<CompositeSelect>` uses a compound component pattern:
+
+- **`<CompositeSelect>`**: The wrapper component that manages the dropdown
+- **`<CompositeSelect.Region>`**: Individual selection sections within the dropdown
+
+Each region acts like an independent `<CompactSelect>`, requiring its own `value`, `onChange`, and `options`.
+
+## Basic Usage
+
+Build a `<CompositeSelect>` by adding multiple `<CompositeSelect.Region>` children. Each region is an independent select control.
+
+export function BasicDemo() {
+  const [month, setMonth] = useState('jan');
+  const [day, setDay] = useState('1');
+  const monthOptions = [
+    {value: 'jan', label: 'January'},
+    {value: 'feb', label: 'February'},
+    {value: 'mar', label: 'March'},
+  ];
+  const dayOptions = [
+    {value: '1', label: '1'},
+    {value: '2', label: '2'},
+    {value: '3', label: '3'},
+  ];
+  return (
+    <CompositeSelect
+      size="sm"
+      trigger={props => (
+        <SelectTrigger.Button icon={<IconSentry />} {...props}>
+          Select Date
+        </SelectTrigger.Button>
+      )}
+    >
+      <CompositeSelect.Region
+        label="Month"
+        value={month}
+        onChange={selection => setMonth(selection.value)}
+        options={monthOptions}
+      />
+      <CompositeSelect.Region
+        label="Day"
+        value={day}
+        onChange={selection => setDay(selection.value)}
+        options={dayOptions}
+      />
+    </CompositeSelect>
+  );
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+const [month, setMonth] = useState('jan');
+const [day, setDay] = useState('1');
+
+<CompositeSelect
+  trigger={props => <SelectTrigger.Button {...props}>Select Date</SelectTrigger.Button>}
+>
+  <CompositeSelect.Region
+    label="Month"
+    value={month}
+    onChange={selection => setMonth(selection.value)}
+    options={monthOptions}
+  />
+  <CompositeSelect.Region
+    label="Day"
+    value={day}
+    onChange={selection => setDay(selection.value)}
+    options={dayOptions}
+  />
+</CompositeSelect>;
+```
+
+## Multi-Select Regions
+
+Individual regions can enable multi-select by setting the `multiple` prop. This allows mixing single and multi-select behavior within the same dropdown.
+
+export function MultiSelectDemo() {
+  const [month, setMonth] = useState('jan');
+  const [tags, setTags] = useState(['cool', 'awesome']);
+  const monthOptions = [
+    {value: 'jan', label: 'January'},
+    {value: 'feb', label: 'February'},
+  ];
+  const tagOptions = [
+    {value: 'cool', label: 'cool'},
+    {value: 'funny', label: 'funny'},
+    {value: 'awesome', label: 'awesome'},
+  ];
+  return (
+    <CompositeSelect
+      size="sm"
+      trigger={props => (
+        <SelectTrigger.Button icon={<IconSentry />} {...props}>
+          Configure
+        </SelectTrigger.Button>
+      )}
+    >
+      <CompositeSelect.Region
+        label="Month"
+        value={month}
+        onChange={selection => setMonth(selection.value)}
+        options={monthOptions}
+      />
+      <CompositeSelect.Region
+        label="Tags"
+        multiple
+        value={tags}
+        onChange={selection => setTags(selection.map(s => s.value))}
+        options={tagOptions}
+      />
+    </CompositeSelect>
+  );
+}
+
+<Storybook.Demo>
+  <MultiSelectDemo />
+</Storybook.Demo>
+
+```jsx
+const [month, setMonth] = useState('jan');
+const [tags, setTags] = useState(['cool', 'awesome']);
+
+<CompositeSelect
+  trigger={props => <SelectTrigger.Button {...props}>Configure</SelectTrigger.Button>}
+>
+  <CompositeSelect.Region
+    label="Month"
+    value={month}
+    onChange={selection => setMonth(selection.value)}
+    options={monthOptions}
+  />
+  <CompositeSelect.Region
+    label="Tags"
+    multiple
+    value={tags}
+    onChange={selection => setTags(selection.map(s => s.value))}
+    options={tagOptions}
+  />
+</CompositeSelect>;
+```
+
+## Sizes
+
+`<CompositeSelect>` supports the same sizes as other select components: `md` (default), `sm`, and `xs`.
+
+```jsx
+<CompositeSelect size="md">...</CompositeSelect>
+<CompositeSelect size="sm">...</CompositeSelect>
+<CompositeSelect size="xs">...</CompositeSelect>
+```
+
+## Custom Trigger
+
+Always provide a custom trigger using the `trigger` render prop. Use `<SelectTrigger.Button>` or other `<SelectTrigger>` variants.
+
+```jsx
+<CompositeSelect
+  trigger={props => (
+    <SelectTrigger.Button icon={<IconFilter />} {...props}>
+      Filters
+    </SelectTrigger.Button>
+  )}
+>
+  {/* regions */}
+</CompositeSelect>
+```
+
+> [!IMPORTANT]
+> Always spread the `props` onto the `<SelectTrigger>` component to ensure proper behavior and accessibility.
+
+## CompositeSelect vs CompactSelect
+
+Understanding when to use each component:
+
+### Use CompositeSelect when:
+
+- You need **multiple independent selection sections** in one dropdown
+- Each section requires **different selection behavior** (some single-select, some multi-select)
+- Sections represent **different categories or dimensions** (e.g., date picker with month + day, or filters with status + priority)
+
+### Use CompactSelect when:
+
+- You need a **single list** of options
+- All selections follow the **same behavior** (all single-select OR all multi-select)
+- Options can be **grouped into sections** but represent the same category
+
+### Example Comparison
+
+```jsx
+// CompositeSelect: Independent sections with different behaviors
+<CompositeSelect>
+  <CompositeSelect.Region label="Main Course" value={main} onChange={setMain} options={mainOptions} />
+  <CompositeSelect.Region label="Side" value={side} onChange={setSide} options={sideOptions} />
+</CompositeSelect>
+
+// CompactSelect: Single selection from grouped options
+<CompactSelect
+  value={drink}
+  onChange={setDrink}
+  options={[
+    {key: 'hot', label: 'Hot Drinks', options: hotOptions},
+    {key: 'cold', label: 'Cold Drinks', options: coldOptions},
+  ]}
+/>
+```
+
+## Usage Patterns
+
+### Multi-Dimensional Filters
+
+Use for filter controls that span multiple independent categories:
+
+```jsx
+<CompositeSelect
+  trigger={props => (
+    <SelectTrigger.Button icon={<IconFilter />} {...props}>
+      Filters
+    </SelectTrigger.Button>
+  )}
+>
+  <CompositeSelect.Region
+    label="Status"
+    multiple
+    value={statuses}
+    onChange={selection => setStatuses(selection.map(s => s.value))}
+    options={statusOptions}
+  />
+  <CompositeSelect.Region
+    label="Priority"
+    value={priority}
+    onChange={selection => setPriority(selection.value)}
+    options={priorityOptions}
+  />
+  <CompositeSelect.Region
+    label="Assignee"
+    multiple
+    value={assignees}
+    onChange={selection => setAssignees(selection.map(s => s.value))}
+    options={assigneeOptions}
+  />
+</CompositeSelect>
+```
+
+### Settings with Groups
+
+Use for grouped settings where each group has independent behavior:
+
+```jsx
+<CompositeSelect
+  trigger={props => <SelectTrigger.Button {...props}>Settings</SelectTrigger.Button>}
+>
+  <CompositeSelect.Region
+    label="Theme"
+    value={theme}
+    onChange={selection => setTheme(selection.value)}
+    options={themeOptions}
+  />
+  <CompositeSelect.Region
+    label="Notifications"
+    multiple
+    value={notifications}
+    onChange={selection => setNotifications(selection.map(s => s.value))}
+    options={notificationOptions}
+  />
+</CompositeSelect>
+```
+
+### Date/Time Pickers
+
+Combine multiple temporal dimensions:
+
+```jsx
+<CompositeSelect>
+  <CompositeSelect.Region
+    label="Month"
+    value={month}
+    onChange={setMonth}
+    options={months}
+  />
+  <CompositeSelect.Region label="Day" value={day} onChange={setDay} options={days} />
+  <CompositeSelect.Region label="Year" value={year} onChange={setYear} options={years} />
+</CompositeSelect>
+```
+
+## Accessibility
+
+`<CompositeSelect>` follows accessibility best practices and meets WCAG 2.2 AA standards:
+
+- [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Full keyboard navigation
+- [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Clear focus indicators
+
+The component includes:
+
+- Proper ARIA attributes for each region
+- Keyboard navigation between regions and options
+- Screen reader announcements for selections
+
+### Developer Responsibilities
+
+**Region Labels**
+
+- Each `<CompositeSelect.Region>` requires a `label` prop
+- Labels clearly identify what each section controls
+- Use `aria-label` if the visual label isn't sufficient
+
+```jsx
+<CompositeSelect.Region
+  label="Status"
+  aria-label="Filter by issue status"
+  value={status}
+  onChange={handleChange}
+  options={options}
+/>
+```
+
+**Trigger Labels**
+
+- The trigger button should clearly describe the composite selection
+- Consider showing selected values or counts in the trigger text
+
+```jsx
+// Good: Descriptive trigger
+<SelectTrigger.Button {...props}>
+  Filters: {selectedCount} active
+</SelectTrigger.Button>
+
+// Good: Clear purpose
+<SelectTrigger.Button {...props}>
+  Date: {month}/{day}
+</SelectTrigger.Button>
+```
+
+**Keyboard Navigation**
+
+- **Tab**: Move between regions
+- **Arrow Up/Down**: Navigate options within a region
+- **Space/Enter**: Toggle selection
+- **Escape**: Close dropdown
+
+**Multiple Selections**
+
+- Clearly communicate how many items are selected in each region
+- Consider visual indicators (checkmarks) for multi-select regions
+
+For more information, see the [WAI-ARIA Combobox practices](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).
