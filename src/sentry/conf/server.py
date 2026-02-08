@@ -3191,6 +3191,7 @@ UPTIME_REGIONS = [
         slug="default",
         name="Default Region",
         config_redis_cluster=SENTRY_UPTIME_DETECTOR_CLUSTER,
+        api_endpoint="localhost:12345",
     ),
 ]
 UPTIME_CONFIG_PARTITIONS = 128

@@ -1,5 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.testutils.helpers import with_feature
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -8,6 +9,7 @@ class OrganizationUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-organization-uptime-alert-index"
 
 
+@with_feature("organizations:uptime-runtime-assertions")
 class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseEndpointTest):
     method = "get"
 

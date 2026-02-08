@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from sentry.testutils.helpers import with_feature
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
+@with_feature("organizations:uptime-runtime-assertions")
 class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-organization-uptime-alert-index-count"
 
