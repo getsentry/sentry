@@ -149,7 +149,7 @@ def log_seer_request(event_payload: Mapping[str, Any], github_event: str) -> Non
             "commit_sha": repo_data.get("base_commit_sha"),
             "request_type": event_payload.get("request_type"),
             "github_event": github_event,
-            "gh_to_seer_latency_ms": (
+            "github_to_seer_latency_ms": (
                 calculate_latency_ms(trigger_at_str) if trigger_at_str else None
             ),
         },
