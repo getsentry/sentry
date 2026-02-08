@@ -30,8 +30,13 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
 )
-from sentry.workflow_engine.processors.data_condition_group import get_data_conditions_for_group
+from sentry.workflow_engine.processors.data_condition_group import (
+    ProcessedDataConditionGroup,
+    TriggerResult,
+    get_data_conditions_for_group,
+)
 from sentry.workflow_engine.processors.workflow import (
+    EvaluationStats,
     delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
@@ -39,11 +44,12 @@ from sentry.workflow_engine.processors.workflow import (
     process_workflows,
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
+ERR = ConditionError(msg="test")
 
 
 class TestProcessWorkflows(BaseWorkflowTest):
@@ -408,7 +414,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
     ) -> None:
-        """Fire a single action, but record that it was fired for multiple workflows"""
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
         error_workflow_2 = self.create_workflow(
@@ -489,10 +494,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.event_start_time = timezone.now()
 
     def test_workflow_trigger(self) -> None:
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
-        assert triggered_workflows == {self.workflow}
+        assert set(triggered_workflows.keys()) == {self.workflow}
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
@@ -520,13 +525,13 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
 
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
-        assert triggered_workflows == {self.workflow}
+        assert set(triggered_workflows.keys()) == {self.workflow}
 
     def test_no_workflow_trigger(self) -> None:
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             set(), self.event_data, self.event_start_time
         )
         assert not triggered_workflows
@@ -542,10 +547,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=75,
         )
 
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
-        assert triggered_workflows == {self.workflow}
+        assert set(triggered_workflows.keys()) == {self.workflow}
 
     def test_workflow_filtered_out(self) -> None:
         assert self.workflow.when_condition_group
@@ -557,22 +562,21 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
         assert not triggered_workflows
 
     def test_many_workflows(self) -> None:
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow, workflow_two}, self.event_data, self.event_start_time
         )
 
-        assert triggered_workflows == {self.workflow, workflow_two}
+        assert set(triggered_workflows.keys()) == {self.workflow, workflow_two}
 
     @patch.object(get_data_conditions_for_group, "batch")
     def test_batched_data_condition_lookup_is_used(self, mock_batch: MagicMock) -> None:
-        """Test that batch lookup is used when evaluating multiple workflows."""
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
 
         assert self.workflow.when_condition_group
@@ -613,11 +617,11 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+        triggered_workflows, queue_items_by_workflow_id, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
         # no workflows are triggered because the slow conditions need to be evaluated
-        assert triggered_workflows == set()
+        assert triggered_workflows == {}
         # we return the list of items we may enqueue in the filtering function
         assert list(queue_items_by_workflow_id.keys()) == [self.workflow]
 
@@ -646,15 +650,113 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             event=self.event,
             group=self.group,
         )
-        triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+        triggered_workflows, queue_items_by_workflow_id, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, self.event_start_time
         )
 
         # no workflows are triggered because the slow conditions need to be evaluated
-        assert triggered_workflows == set()
+        assert triggered_workflows == {}
         assert (
             not queue_items_by_workflow_id.keys()
         )  # TODO: implement evaluating slow conditions for activity updates
+
+
+@freeze_time(FROZEN_TIME)
+class TestTaintTracking(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.project = self.create_project(create_default_detectors=True)
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
+        occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=occurrence, group_type_id=MetricIssue.type_id
+        )
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        self.action_group, _ = self.create_workflow_action(self.workflow)
+
+    def test_trigger_stats_excludes_triggered_workflows(self) -> None:
+        _, _, stats = evaluate_workflow_triggers({self.workflow}, self.event_data, FROZEN_TIME)
+        assert stats == EvaluationStats(tainted=0, untainted=0)
+
+    def test_trigger_stats_untainted_not_triggered(self) -> None:
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.conditions.all().delete()
+        self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.EVENT_CREATED_BY_DETECTOR,
+            comparison=self.detector.id + 1,
+        )
+
+        triggered_workflows, _, stats = evaluate_workflow_triggers(
+            {self.workflow}, self.event_data, FROZEN_TIME
+        )
+        assert triggered_workflows == {}
+        assert stats == EvaluationStats(tainted=0, untainted=1)
+
+    @patch("sentry.workflow_engine.processors.data_condition_group.process_data_condition_group")
+    def test_trigger_stats_tainted_not_triggered(self, mock_process: MagicMock) -> None:
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(
+                logic_result=TriggerResult.FALSE.with_error(ERR),
+                condition_results=[],
+            ),
+            [],
+        )
+
+        triggered_workflows, _, stats = evaluate_workflow_triggers(
+            {self.workflow}, self.event_data, FROZEN_TIME
+        )
+        assert triggered_workflows == {}
+        assert stats == EvaluationStats(tainted=1, untainted=0)
+
+    def test_action_filter_stats_from_trigger_result(self) -> None:
+        _, _, stats = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+        )
+        assert stats == EvaluationStats(tainted=0, untainted=1)
+
+        _, _, stats = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE.with_error(ERR)}, self.event_data, {}, FROZEN_TIME
+        )
+        assert stats == EvaluationStats(tainted=1, untainted=0)
+
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    def test_action_filter_stats_tainted_from_action_filter(self, mock_process: MagicMock) -> None:
+        mock_process.return_value = (
+            ProcessedDataConditionGroup(
+                logic_result=TriggerResult.TRUE.with_error(ERR),
+                condition_results=[],
+            ),
+            [],
+        )
+
+        _, _, stats = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+        )
+        assert stats == EvaluationStats(tainted=1, untainted=0)
+
+    def test_action_filter_stats_excludes_delayed_workflows(self) -> None:
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 7},
+        )
+
+        _, queue_items, stats = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+        )
+        assert self.workflow in queue_items
+        assert stats == EvaluationStats(tainted=0, untainted=0)
+
+    def test_evaluation_stats_add(self) -> None:
+        a = EvaluationStats(tainted=1, untainted=2)
+        b = EvaluationStats(tainted=3, untainted=4)
+        assert a + b == EvaluationStats(tainted=4, untainted=6)
 
 
 @freeze_time(FROZEN_TIME)
@@ -692,7 +794,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, FROZEN_TIME
         )
         assert not triggered_workflows
@@ -725,7 +827,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, _ = evaluate_workflow_triggers(
+        triggered_workflows, _, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, FROZEN_TIME
         )
         assert not triggered_workflows
@@ -755,10 +857,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+        triggered_workflows, queue_items_by_workflow_id, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, FROZEN_TIME
         )
-        assert triggered_workflows == {self.workflow}
+        assert set(triggered_workflows.keys()) == {self.workflow}
         assert not queue_items_by_workflow_id
 
     def test_skips_enqueuing_all(self) -> None:
@@ -782,7 +884,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+        triggered_workflows, queue_items_by_workflow_id, _ = evaluate_workflow_triggers(
             {self.workflow}, self.event_data, FROZEN_TIME
         )
         assert not triggered_workflows
@@ -903,8 +1005,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         mock_trigger.assert_called_once()
 
     def test_basic__no_filter(self) -> None:
-        triggered_action_filters, _ = evaluate_workflows_action_filters(
-            {self.workflow}, self.event_data, {}, FROZEN_TIME
+        triggered_action_filters, _, _ = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
         )
         assert set(triggered_action_filters) == {self.action_group}
 
@@ -916,21 +1018,20 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_action_filters, _ = evaluate_workflows_action_filters(
-            {self.workflow}, self.event_data, {}, FROZEN_TIME
+        triggered_action_filters, _, _ = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
         )
         assert set(triggered_action_filters) == {self.action_group}
 
     def test_basic__with_filter__filtered(self) -> None:
-        # Add a filter to the action's group
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.EVENT_CREATED_BY_DETECTOR,
             comparison=self.detector.id + 1,
         )
 
-        triggered_action_filters, _ = evaluate_workflows_action_filters(
-            {self.workflow}, self.event_data, {}, FROZEN_TIME
+        triggered_action_filters, _, _ = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
         )
         assert not triggered_action_filters
 
@@ -951,33 +1052,30 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        triggered_action_filters, _ = evaluate_workflows_action_filters(
-            {self.workflow}, self.event_data, {}, FROZEN_TIME
+        triggered_action_filters, _, _ = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
         )
 
         assert self.action_group.conditions.count() == 2
 
-        # The first condition passes, but the second is enqueued for later evaluation
         assert not triggered_action_filters
 
     @patch.object(get_data_conditions_for_group, "batch")
     def test_batched_data_condition_lookup_for_action_filters(self, mock_batch: MagicMock) -> None:
-        """Test that batch lookup is used when evaluating action filters."""
-        # Create a second workflow with action filters
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
         action_group_two, action_two = self.create_workflow_action(workflow=workflow_two)
 
-        # Mock the batch method to return the expected data
         mock_batch.return_value = [
             list(self.action_group.conditions.all()),
             list(action_group_two.conditions.all()),
         ]
 
-        # Evaluate workflows action filters with batching
-        workflows = {self.workflow, workflow_two}
+        workflows = {
+            self.workflow: TriggerResult.TRUE,
+            workflow_two: TriggerResult.TRUE,
+        }
         evaluate_workflows_action_filters(workflows, self.event_data, {}, FROZEN_TIME)
 
-        # Verify batch was called once with the correct DCG IDs
         mock_batch.assert_called_once()
         call_args = mock_batch.call_args[0][0]
 
@@ -987,7 +1085,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert actual_dcg_ids == expected_dcg_ids
 
     def test_activity__with_slow_conditions(self) -> None:
-        # Create a condition group with fast and slow conditions
         self.action_group.logic_type = DataConditionGroup.Type.ALL
 
         self.create_data_condition(
@@ -1004,7 +1101,6 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        # Create an activity update
         self.event = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -1015,12 +1111,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             group=self.group,
         )
 
-        # Evaluate the workflow actions with a slow condition
-        _, queue_items = evaluate_workflows_action_filters(
-            {self.workflow}, self.event_data, {}, FROZEN_TIME
+        _, queue_items, _ = evaluate_workflows_action_filters(
+            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
         )
 
-        # ensure we do not enqueue slow condition evaluation
         assert not queue_items
 
     def test_enqueues_when_slow_conditions(self) -> None:
@@ -1036,8 +1130,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             )
         }
 
-        triggered_action_filters, queue_items = evaluate_workflows_action_filters(
-            set(), self.event_data, queue_items_by_workflow_id, FROZEN_TIME
+        triggered_action_filters, queue_items, _ = evaluate_workflows_action_filters(
+            {}, self.event_data, queue_items_by_workflow_id, FROZEN_TIME
         )
         assert not triggered_action_filters
 
