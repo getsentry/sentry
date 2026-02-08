@@ -101,9 +101,9 @@ function useCanSeeReminder(organization: Organization) {
     [hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta, initialStep]
   );
 
-  if (!organization.features.includes('seer-config-reminder')) {
-    return {canSeeReminder: false, analyticsParams};
-  }
+  // if (!organization.features.includes('seer-config-reminder')) {
+  //   return {canSeeReminder: false, analyticsParams};
+  // }
 
   if (!hasSeer) {
     return {canSeeReminder: false, analyticsParams};
@@ -130,6 +130,50 @@ function useCanSeeReminder(organization: Organization) {
   };
 }
 
+function useReminderCopywriting() {
+  const organization = useOrganization();
+  const {initialStep} = useSeerOnboardingStep();
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasLegacySeer = organization.features.includes('seer-added');
+
+  const descriptionByStep: Record<
+    Steps,
+    {description: string; pathname: string; title: string} | null
+  > = {
+    [Steps.CONNECT_GITHUB]: {
+      title: t('Connect GitHub'),
+      description: t(
+        'Seer is enabled, but Github is not connected. Connect your GitHub account to enable Root Cause Analysis and Code Review.'
+      ),
+      pathname: `/settings/${organization.slug}/seer/onboarding/`,
+    },
+    [Steps.SETUP_ROOT_CAUSE_ANALYSIS]: {
+      title: t('Start using Seer\u2019s Issue Autofix'),
+      description: t(
+        'Seer is enabled but Root Cause Analysis is not configured. Configure Seer to automatically look at issues and generate code fixes.'
+      ),
+      pathname: `/settings/${organization.slug}/seer/projects/`,
+    },
+    [Steps.SETUP_CODE_REVIEW]: {
+      title: t('Start using Seer\u2019s AI Code Review'),
+      description: t(
+        'Seer is enabled but Code Review is not configured for any repos. Configure Seer to automatically review PRs and flag potential issues.'
+      ),
+      pathname: `/settings/${organization.slug}/seer/repos/`,
+    },
+    [Steps.SETUP_DEFAULTS]: null,
+    [Steps.WRAP_UP]: null,
+  };
+
+  if (hasSeatBasedSeer) {
+    return descriptionByStep[initialStep];
+  }
+  if (hasLegacySeer) {
+    return descriptionByStep[Steps.SETUP_CODE_REVIEW];
+  }
+  return descriptionByStep[Steps.SETUP_ROOT_CAUSE_ANALYSIS];
+}
+
 export default function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
   const {
@@ -141,10 +185,8 @@ export default function PrimaryNavSeerConfigReminder() {
 
   const {layout} = useNavContext();
 
-  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasLegacySeer = organization.features.includes('seer-added');
-
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
+  const copy = useReminderCopywriting();
 
   // Track impression on mount
   useEffect(() => {
@@ -156,7 +198,7 @@ export default function PrimaryNavSeerConfigReminder() {
     }
   }, [canSeeReminder, analyticsParams, organization]);
 
-  if (!canSeeReminder) {
+  if (!canSeeReminder || !copy) {
     return null;
   }
 
@@ -177,38 +219,11 @@ export default function PrimaryNavSeerConfigReminder() {
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
-            <Heading as="h3">
-              {hasSeatBasedSeer
-                ? t('Finish configuring Seer')
-                : hasLegacySeer
-                  ? t('Start using Seer\u2019s AI Code Review')
-                  : t('Start using Seer\u2019s Issue Autofix')}
-            </Heading>
-            <Text>
-              {hasSeatBasedSeer
-                ? t(
-                    'Seer is desperately waiting to fix your broken code. Please set it up. Your future self will thank you.'
-                  )
-                : hasLegacySeer
-                  ? t(
-                      'Seer will catch issues in your (likely prompted) PRs. Don’t forget to configure it before you tag a human for review.'
-                    )
-                  : t(
-                      'Seer will automatically root cause your issues, but only if you let it. Don’t forget to set that up.'
-                    )}
-            </Text>
+            <Heading as="h3">{copy.title}</Heading>
+            <Text>{copy.description}</Text>
             <Flex justify="end">
               <LinkButton
-                to={{
-                  pathname: `/settings/${organization.slug}/seer/`,
-                  query: {
-                    tab: hasSeatBasedSeer
-                      ? undefined
-                      : hasLegacySeer
-                        ? 'repos'
-                        : undefined,
-                  },
-                }}
+                to={{pathname: copy.pathname}}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
