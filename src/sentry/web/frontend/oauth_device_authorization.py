@@ -4,9 +4,6 @@ import logging
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -19,12 +16,13 @@ from sentry.models.apidevicecode import (
 from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
-class OAuthDeviceAuthorizationView(View):
+class OAuthDeviceAuthorizationView(OAuthCORSMixin, View):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
 
@@ -50,10 +48,8 @@ class OAuthDeviceAuthorizationView(View):
     Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.1
     """
 
-    @csrf_exempt
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    cors_allowed_headers = "Content-Type"
+    cors_log_tag = "oauth.device-authorization-cors-rejected"
 
     def error(
         self,
@@ -109,6 +105,8 @@ class OAuthDeviceAuthorizationView(View):
                 client_id=client_id,
                 status=ApiApplicationStatus.active,
             )
+            # Store for CORS origin validation in _add_cors_headers
+            self.application = application
         except ApiApplication.DoesNotExist:
             return self.error(
                 request,

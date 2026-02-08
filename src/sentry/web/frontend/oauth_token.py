@@ -8,9 +8,6 @@ from typing import Literal, NotRequired, TypedDict
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
@@ -26,6 +23,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
+from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.oauth")
@@ -55,14 +53,10 @@ class _TokenInformation(TypedDict):
 
 
 @control_silo_view
-class OAuthTokenView(View):
-    # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
-    # never_cache at dispatch so every response from this endpoint is marked
-    # appropriately without repeating headers across handlers.
-    @csrf_exempt
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+class OAuthTokenView(OAuthCORSMixin, View):
+    # CORS configuration for browser-based public clients
+    cors_allowed_headers = "Content-Type, Authorization"
+    cors_log_tag = "oauth.token-cors-rejected"
 
     # Note: the reason parameter is for internal use only
     def error(self, request: HttpRequest, name, reason=None, status=400):
@@ -266,6 +260,9 @@ class OAuthTokenView(View):
                 reason="client_id mismatch",
                 status=401,
             )
+
+        # Store for CORS origin validation in _add_cors_headers
+        self.application = application
 
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)
