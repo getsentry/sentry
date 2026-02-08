@@ -590,6 +590,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/'
   | '/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/'
+  | '/organizations/$organizationIdOrSlug/workflows/deduplicate/'
   | '/projects/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/alert-rule-task/$taskUuid/'
