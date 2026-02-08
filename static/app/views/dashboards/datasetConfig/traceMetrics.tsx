@@ -188,6 +188,7 @@ export const TraceMetricsConfig: DatasetConfig<
   EventsTimeSeriesResponse,
   EventsTableData
 > = {
+  defaultCategoryField: '',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -208,8 +209,9 @@ export const TraceMetricsConfig: DatasetConfig<
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
-    DisplayType.LINE,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
+    DisplayType.LINE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,

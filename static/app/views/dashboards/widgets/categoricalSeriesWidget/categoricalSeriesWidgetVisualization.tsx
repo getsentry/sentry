@@ -23,7 +23,6 @@ import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
@@ -76,7 +75,6 @@ export function CategoricalSeriesWidgetVisualization(
   }
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
   const theme = useTheme();
   const renderToString = useRenderToString();
 
@@ -319,13 +317,6 @@ export function CategoricalSeriesWidgetVisualization(
     [props.plottables]
   );
 
-  const handleChartReady = useCallback(
-    (instance: echarts.ECharts) => {
-      registerWithWidgetSyncContext(instance);
-    },
-    [registerWithWidgetSyncContext]
-  );
-
   // Legend visibility
   const showLegendProp = props.showLegend ?? 'auto';
   const showLegend =
@@ -366,7 +357,6 @@ export function CategoricalSeriesWidgetVisualization(
       }}
       xAxis={xAxis}
       yAxis={yAxis}
-      onChartReady={handleChartReady}
       onHighlight={handleHighlight}
       onDownplay={handleDownplay}
       onClick={handleClick}

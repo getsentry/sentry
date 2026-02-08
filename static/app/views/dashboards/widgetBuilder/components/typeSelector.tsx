@@ -28,6 +28,7 @@ const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
+  [DisplayType.CATEGORICAL_BAR]: <IconGraph key="categorical_bar" type="bar" />,
 };
 
 interface WidgetBuilderTypeSelectorProps {
@@ -55,12 +56,18 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   };
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+  const hasCategoricalBar = organization.features.includes(
+    'dashboards-categorical-bar-charts'
+  );
 
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
   const displayTypeOrder: Array<{label: string; type: DisplayType}> = [
     {type: DisplayType.AREA, label: t('Area')},
-    {type: DisplayType.BAR, label: t('Bar')},
+    {type: DisplayType.BAR, label: hasCategoricalBar ? t('Bar (Time Series)') : t('Bar')},
+    ...(hasCategoricalBar
+      ? [{type: DisplayType.CATEGORICAL_BAR, label: t('Bar (Categorical)')}]
+      : []),
     {type: DisplayType.LINE, label: t('Line')},
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},

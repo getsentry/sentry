@@ -288,6 +288,8 @@ function Visualize({error, setError}: VisualizeProps) {
   const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const isTableWidget = state.displayType === DisplayType.TABLE;
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
@@ -357,13 +359,58 @@ function Visualize({error, setError}: VisualizeProps) {
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
   // Determines which state field stores the visualization fields:
-  // - Time-series charts (Line, Area, Bar): use state.yAxis for aggregates
-  // - Tables, Big Numbers: use state.fields for all columns (fields + aggregates)
-  const fields = isTimeSeriesWidget ? state.yAxis : state.fields;
+
+  // - Line, Area, Bar (Time Series): use state.yAxis for aggregates
+  // - Table, Big Number: use state.fields for all columns (fields + aggregates)
+  // - Bar (Categorical): Use exactly two state.fields. One is of `function` type, configured here.
+  //   the other is of `field` type and configured in the X axis selector.
+  const usesYAxisState = isTimeSeriesWidget && !isCategoricalBarWidget;
+  const allFields = usesYAxisState ? state.yAxis : state.fields;
+  // For categorical bars, only show aggregate fields (FUNCTION kind) in the
+  // Visualize section. There should be exactly one in the state. The X-axis
+  // field (FIELD kind) is managed separately in the X-Axis selector
+  const aggregateFields = isCategoricalBarWidget
+    ? allFields?.filter(f => f.kind === FieldValueKind.FUNCTION)
+    : null;
+
+  const fields = isCategoricalBarWidget
+    ? aggregateFields
+    : usesYAxisState
+      ? state.yAxis
+      : state.fields;
+
+  const canHaveAlias =
+    !isTimeSeriesWidget && !isBigNumberWidget && !isCategoricalBarWidget;
+
+  // Determines whether "Add Series/Column/Equation" buttons are shown:
+  // - Line, Area, Bar (Time Series): Can add multiple Y-axis series
+  // - Table: Can add multiple columns
+  // - Big Number: Can add fields only if equations are enabled for the dataset
+  // - Bar (Categorical): Never - categorical bars always have exactly one aggregate
+  const canAddFields =
+    !isCategoricalBarWidget &&
+    (isTimeSeriesWidget ||
+      isTableWidget ||
+      (isBigNumberWidget && datasetConfig.enableEquations));
   const linkedDashboards = state.linkedDashboards || [];
-  const updateAction = isTimeSeriesWidget
+
+  // Determines which action to use for updating visualization fields:
+  // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
+  // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
+  // - Other widgets (Table, Big Number): SET_FIELDS for all columns
+  const updateAction = usesYAxisState
     ? BuilderStateAction.SET_Y_AXIS
-    : BuilderStateAction.SET_FIELDS;
+    : isCategoricalBarWidget
+      ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
+      : BuilderStateAction.SET_FIELDS;
+
+  const tooltipText = isTimeSeriesWidget
+    ? t(
+        'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+      )
+    : isCategoricalBarWidget
+      ? t('Primary metric that appears in your chart.')
+      : t('Columns to display in your table. You can also add equations.');
 
   const fieldOptions = useMemo(() => {
     // Explicitly merge numeric and string tags to ensure filtering
@@ -494,7 +541,8 @@ function Visualize({error, setError}: VisualizeProps) {
   }, [isTimeSeriesWidget, isBigNumberWidget, state.dataset, fieldOptions]);
 
   const computedAggregateOptions = useMemo(() => {
-    if (isTimeSeriesWidget || isBigNumberWidget) {
+    // Categorical bars only allow aggregates, no field columns
+    if (isTimeSeriesWidget || isBigNumberWidget || isCategoricalBarWidget) {
       return {type: 'chart' as const, options: baseAggregateOptions};
     }
 
@@ -527,6 +575,7 @@ function Visualize({error, setError}: VisualizeProps) {
   }, [
     isTimeSeriesWidget,
     isBigNumberWidget,
+    isCategoricalBarWidget,
     state.dataset,
     baseAggregateOptions,
     traceItemColumnOptions,
@@ -537,14 +586,8 @@ function Visualize({error, setError}: VisualizeProps) {
   return (
     <Fragment>
       <SectionHeader
-        title={isTimeSeriesWidget ? t('Visualize') : t('Columns')}
-        tooltipText={
-          isTimeSeriesWidget
-            ? t(
-                'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
-              )
-            : t('Columns to display in your table. You can also add equations.')
-        }
+        title={isTableWidget ? t('Columns') : t('Visualize')}
+        tooltipText={tooltipText}
       />
       <StyledFieldGroup
         error={isTimeSeriesWidget ? aggregateErrors : fieldErrors}
@@ -852,7 +895,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                         return;
                                       }
                                       newFields[index]!.function[1] = value;
-                                      dispatch({type: updateAction, payload: newFields});
+                                      dispatch({
+                                        type: updateAction,
+                                        payload: newFields,
+                                      });
                                       setError?.({...error, queries: []});
                                     }}
                                   />
@@ -860,8 +906,14 @@ function Visualize({error, setError}: VisualizeProps) {
                             </Fragment>
                           )}
                         </FieldBar>
-                        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
-                          {!isTimeSeriesWidget && !isBigNumberWidget && (
+                        <FieldExtras
+                          compact={
+                            isTimeSeriesWidget ||
+                            isBigNumberWidget ||
+                            isCategoricalBarWidget
+                          }
+                        >
+                          {canHaveAlias && (
                             <LegendAliasInput
                               name="alias"
                               placeholder={t('Add Alias')}
@@ -871,7 +923,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
                                 dispatch(
-                                  {type: updateAction, payload: newFields},
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
                                   {updateUrl: false}
                                 );
                               }}
@@ -879,7 +934,10 @@ function Visualize({error, setError}: VisualizeProps) {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
                                 dispatch(
-                                  {type: updateAction, payload: newFields},
+                                  {
+                                    type: updateAction,
+                                    payload: newFields,
+                                  },
                                   {updateUrl: true}
                                 );
                                 trackAnalytics('dashboards_views.widget_builder.change', {
@@ -1007,9 +1065,7 @@ function Visualize({error, setError}: VisualizeProps) {
         </DndContext>
       </StyledFieldGroup>
 
-      {(isTimeSeriesWidget ||
-        isTableWidget ||
-        (isBigNumberWidget && datasetConfig.enableEquations)) && (
+      {canAddFields && (
         <AddButtons>
           <AddButton
             priority="link"

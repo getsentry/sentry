@@ -31,6 +31,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -70,10 +71,12 @@ import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegend
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
-import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  TabularColumn,
+  TabularData,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -226,7 +229,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     );
   }
 
-  if (widget.displayType === DisplayType.CATEGORICAL_SERIES) {
+  if (widget.displayType === DisplayType.CATEGORICAL_BAR) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
@@ -710,19 +713,58 @@ function BigNumberComponent({
 }
 
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const {widget, tableResults, loading} = props;
+
   const hasCategoricalBarCharts = useOrganization().features.includes(
     'dashboards-categorical-bar-charts'
   );
 
-  if (hasCategoricalBarCharts) {
+  if (!hasCategoricalBarCharts) {
+    return null;
+  }
+
+  if (loading || !tableResults?.[0]) {
+    return <LoadingPlaceholder />;
+  }
+
+  // Transform table data to categorical series format
+  const query = widget.queries[0];
+  const tableData = tableResults[0];
+
+  if (!query || !tableData.meta) {
     return (
-      <CategoricalSeriesWidgetVisualization
-        plottables={[new Bars(sampleCountCategoricalData)]}
-        {...props}
-      />
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
     );
   }
-  return null;
+
+  const categoricalSeriesData = transformTableToCategoricalSeries(query, {
+    data: tableData.data,
+    meta: {
+      fields: (tableData.meta.fields ?? {}) as TabularData['meta']['fields'],
+      units: (tableData.meta.units ?? {}) as TabularData['meta']['units'],
+    },
+  });
+
+  // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
+  // This is different from "no data found" which would return series with empty values
+  if (categoricalSeriesData.length === 0) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
+  // Create Bars plottables from the transformed data
+  const plottables = categoricalSeriesData.map(series => new Bars(series));
+
+  return (
+    <ChartWrapper autoHeightResize>
+      <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />
+    </ChartWrapper>
+  );
 }
 
 function DetailsComponent(props: TableComponentProps): React.ReactNode {
