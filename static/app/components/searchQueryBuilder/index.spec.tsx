@@ -5705,4 +5705,95 @@ describe('SearchQueryBuilder', () => {
       });
     });
   });
+
+  describe('async filter keys (getTagKeys)', () => {
+    const asyncTags = [
+      {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+      {key: 'async_tag_two', name: 'Async Tag Two', kind: FieldKind.TAG},
+    ];
+
+    it('displays async keys in the filter key dropdown', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('deduplicates async keys that overlap with static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: FieldKey.BROWSER_NAME, name: 'Browser Name', kind: FieldKind.FIELD},
+        {key: 'novel_async_key', name: 'Novel Async Key', kind: FieldKind.TAG},
+      ]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('brow');
+
+      // browser.name should appear only once despite being in both static and async keys
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'browser.name'})).toHaveLength(1);
+      });
+    });
+
+    it('can select an async-only key to create a filter token', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
+
+      expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
+    });
+
+    it('shows async keys when editing an existing filter key', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('calls getTagKeys with the current search input', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('some_query');
+
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('some_query');
+      });
+    });
+  });
 });
