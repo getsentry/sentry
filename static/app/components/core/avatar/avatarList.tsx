@@ -57,7 +57,7 @@ export function CollapsedAvatars({
   );
 }
 
-function AvatarList({
+export function AvatarList({
   avatarSize = 28,
   maxVisibleAvatars = 5,
   typeAvatars = 'users',
@@ -154,8 +154,6 @@ function AvatarList({
     </AvatarListWrapper>
   );
 }
-
-export default AvatarList;
 
 // used in releases list page to do some alignment
 const AvatarListWrapper = styled('div')`

@@ -1,19 +1,23 @@
 import {IconGeneric} from 'sentry/icons';
 import type {AvatarSentryApp} from 'sentry/types/integrations';
 
-import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+import {
+  Avatar,
+  type AvatarProps,
+  type GravatarBaseAvatarProps,
+  type LetterBaseAvatarProps,
+  type UploadBaseAvatarProps,
+} from './avatar';
 
-interface SentryAppAvatarProps extends BaseAvatarProps {
-  sentryApp: AvatarSentryApp | undefined;
+interface SentryAppAvatarProps extends AvatarProps {
+  sentryApp: AvatarSentryApp;
   isColor?: boolean;
   isDefault?: boolean;
-  ref?: React.Ref<HTMLSpanElement>;
 }
 
 export function SentryAppAvatar({
-  ref,
-  isColor = true,
   sentryApp,
+  isColor = true,
   isDefault = false,
   ...props
 }: SentryAppAvatarProps) {
@@ -24,19 +28,16 @@ export function SentryAppAvatar({
     return <FallbackAvatar {...props} />;
   }
 
-  return (
-    <BaseAvatar
-      {...props}
-      ref={ref}
-      type="upload"
-      uploadUrl={avatarDetails?.avatarUrl}
-      title={sentryApp?.name}
-      backupAvatar={props.backupAvatar ?? <FallbackAvatar {...props} />}
-    />
-  );
+  const avatarProps = getSentryAppAvatarProps(sentryApp);
+
+  if (!avatarProps) {
+    return <FallbackAvatar {...props} />;
+  }
+
+  return <Avatar {...props} {...avatarProps} />;
 }
 
-function FallbackAvatar(props: Pick<BaseAvatarProps, 'size' | 'className'>) {
+function FallbackAvatar(props: Pick<AvatarProps, 'size' | 'className'>) {
   return (
     <IconGeneric
       legacySize={`${props.size}`}
@@ -44,4 +45,25 @@ function FallbackAvatar(props: Pick<BaseAvatarProps, 'size' | 'className'>) {
       data-test-id="default-sentry-app-avatar"
     />
   );
+}
+
+function getSentryAppAvatarProps(
+  sentryApp: AvatarSentryApp
+): UploadBaseAvatarProps | LetterBaseAvatarProps | GravatarBaseAvatarProps | null {
+  const identifier = sentryApp.slug;
+  const name = sentryApp.name;
+
+  const uploadUrl = sentryApp.avatars?.find(
+    ({avatarType}) => avatarType === 'upload'
+  )?.avatarUrl;
+
+  // If there is no upload URL, return null and fall
+  if (!uploadUrl) return null;
+
+  return {
+    type: 'upload',
+    uploadUrl,
+    identifier,
+    name,
+  };
 }

@@ -17,7 +17,7 @@ describe('IdBadge', () => {
 
   it('renders the correct component when `team` property is passed', () => {
     render(<IdBadge team={TeamFixture()} />);
-    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TS');
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TN');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('#team-slug');
   });
 
@@ -28,7 +28,7 @@ describe('IdBadge', () => {
 
   it('renders the correct component when `organization` property is passed', () => {
     render(<IdBadge organization={OrganizationFixture()} />);
-    expect(screen.getByTestId('default-avatar')).toHaveTextContent('OS');
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('ON');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent(
       'Organization Name'
     );

@@ -211,8 +211,7 @@ describe('StreamlinedActivitySection', () => {
     expect(
       await screen.findByText('This note came from my sentry app')
     ).toBeInTheDocument();
-    const icon = screen.getByTestId('upload-avatar');
-    expect(icon).toHaveAttribute('title', sentryApp.name);
+    expect(screen.getByTestId('upload-avatar')).toBeInTheDocument();
     expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
     // We should not show the user, if a sentry app is attached
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
