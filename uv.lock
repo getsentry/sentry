@@ -354,15 +354,29 @@ wheels = [
 ]
 
 [[package]]
+name = "django-stubs"
+version = "5.2.9"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "django-stubs-ext", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "types-pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/django_stubs-5.2.9-py3-none-any.whl", hash = "sha256:2317a7130afdaa76f6ff7f623650d7f3bf1b6c86a60f95840e14e6ec6de1a7cd" },
+]
+
+[[package]]
 name = "django-stubs-ext"
-version = "5.2.2"
+version = "5.2.9"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/django_stubs_ext-5.2.2-py3-none-any.whl", hash = "sha256:8833bbe32405a2a0ce168d3f75a87168f61bd16939caf0e8bf173bccbd8a44c5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/django_stubs_ext-5.2.9-py3-none-any.whl", hash = "sha256:230c51575551b0165be40177f0f6805f1e3ebf799b835c85f5d64c371ca6cf71" },
 ]
 
 [[package]]
@@ -374,6 +388,19 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework-3.16.1-py3-none-any.whl", hash = "sha256:33a59f47fb9c85ede792cbf88bde71893bcda0667bc573f784649521f1102cec" },
+]
+
+[[package]]
+name = "djangorestframework-stubs"
+version = "3.16.8"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "types-pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework_stubs-3.16.8-py3-none-any.whl", hash = "sha256:c5bf61def0f330a071dd5f470f05710189d06c467b3f3e186b32c5a23d4952fb" },
 ]
 
 [[package]]
@@ -1025,6 +1052,16 @@ wheels = [
 ]
 
 [[package]]
+name = "librt"
+version = "0.7.8"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:44e0c2cbc9bebd074cf2cdbe472ca185e824be4e74b1c63a8e934cea674bebf2" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:451e7ffcef8f785831fdb791bd69211f47e95dc4c6ddff68e589058806f044c6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/librt-0.7.8-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3469e1af9f1380e093ae06bedcbdd11e407ac0b303a56bbe9afb1d6824d4982d" },
+]
+
+[[package]]
 name = "lxml"
 version = "5.3.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1143,18 +1180,18 @@ wheels = [
 
 [[package]]
 name = "mypy"
-version = "1.17.1"
+version = "1.19.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
+    { name = "librt", marker = "(platform_python_implementation != 'PyPy' and sys_platform == 'darwin') or (platform_python_implementation != 'PyPy' and sys_platform == 'linux')" },
     { name = "mypy-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pathspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:93378d3203a5c0800c6b6d850ad2f19f7a3cdf1a3701d3416dbf128805c6a6a7" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:15d54056f7fe7a826d897789f53dd6377ec2ea8ba6f776dc83c2902b899fee81" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:209a58fed9987eccc20f2ca94afe7257a8f46eb5df1fb69958650973230f91e6" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:099b9a5da47de9e2cb5165e581f158e854d9e19d2e96b6698c0d64de911dd849" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bdb12f69bcc02700c2b47e070238f42cb87f18c0bc1fc4cdb4fb2bc5fd7a3b8b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f859fb09d9583a985be9a493d5cfc5515b56b08f7447759a0c5deaf68d80506e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.19.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c9a6538e0415310aad77cb94004ca6482330fece18036b5f360b62c45814c4ef" },
 ]
 
 [[package]]
@@ -1522,16 +1559,15 @@ wheels = [
 
 [[package]]
 name = "pydantic"
-version = "1.10.23"
+version = "1.10.26"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a6aa6881a18657fe66b9249e0572a9690ebc6f0b37c32872beb06bc51bff738f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c57bfade74111335062c8ac830d5a14004742ff5b037c52c410d9e9011258bf5" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:723cb7f6aca0b471bac9d7dceb42d151d26aabdca655bd4190be3a7de008a054" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.23-py3-none-any.whl", hash = "sha256:6294bb84565c294a3a6408c52b26a42803f258d5ebfdb3ae896cd7cccfa07211" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8154c13f58d4de5d3a856bb6c909c7370f41fb876a5952a503af6b975265f4ba" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f8af0507bf6118b054a9765fb2e402f18a8b70c964f420d95b525eb711122d62" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-py3-none-any.whl", hash = "sha256:c43ad70dc3ce7787543d563792426a16fd7895e14be4b194b5665e36459dd917" },
 ]
 
 [[package]]
@@ -2071,6 +2107,8 @@ dev = [
     { name = "black", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "covdefaults", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "devservices", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "djangorestframework-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "docker", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "ephemeral-port-reserve", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "flake8", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2103,8 +2141,6 @@ dev = [
     { name = "sentry-cli", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-covdefaults-disable-branch-coverage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-devenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "sentry-forked-django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "sentry-forked-djangorestframework-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "time-machine", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-beautifulsoup4", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "types-cachetools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2187,7 +2223,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=5.9.7" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pycountry", specifier = ">=17.5.14" },
-    { name = "pydantic", specifier = ">=1.10.23,<2" },
+    { name = "pydantic", specifier = ">=1.10.26,<2" },
     { name = "pyjwt", specifier = ">=2.4.0" },
     { name = "pymemcache", specifier = ">=4.0.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
@@ -2240,6 +2276,8 @@ dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
     { name = "devservices", specifier = ">=1.2.4" },
+    { name = "django-stubs", specifier = ">=5.2.9" },
+    { name = "djangorestframework-stubs", specifier = ">=3.16.8" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "ephemeral-port-reserve", specifier = ">=1.1.4" },
     { name = "flake8", specifier = ">=7.3.0" },
@@ -2249,7 +2287,7 @@ dev = [
     { name = "isort", specifier = ">=6" },
     { name = "lxml-stubs", specifier = ">=0.4.0" },
     { name = "msgpack-types", specifier = ">=0.2.0" },
-    { name = "mypy", specifier = ">=1.17.1" },
+    { name = "mypy", specifier = ">=1.19.1" },
     { name = "mypy-extensions", specifier = ">=1.0.0" },
     { name = "openapi-core", specifier = ">=0.18.2" },
     { name = "openapi-pydantic", specifier = ">=0.4.0" },
@@ -2272,8 +2310,6 @@ dev = [
     { name = "sentry-cli", specifier = ">=2.16.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.22.0" },
-    { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post2" },
-    { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.3.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
     { name = "types-beautifulsoup4", specifier = ">=4.11.6" },
     { name = "types-cachetools", specifier = ">=5.3.0.5" },
@@ -2346,35 +2382,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_devenv-1.22.0-py3-none-any.whl", hash = "sha256:36a82352fecbdea0c2f5ab1cce74dc64d4d741b4a249ab1a7a88524a3aa7c2f9" },
-]
-
-[[package]]
-name = "sentry-forked-django-stubs"
-version = "5.2.2.post2"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "django", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "django-stubs-ext", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "types-pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_django_stubs-5.2.2.post2-py3-none-any.whl", hash = "sha256:612510066050aa93d24ea54735f7df6871ebe46c292398ac68ed2c0c2685b38a" },
-]
-
-[[package]]
-name = "sentry-forked-djangorestframework-stubs"
-version = "3.16.3.post1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "sentry-forked-django-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "types-pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "types-requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_djangorestframework_stubs-3.16.3.post1-py3-none-any.whl", hash = "sha256:7de2b4cb20cf4a618103a01eca08529d131725102996f5c45ea7901fe9f23abe" },
 ]
 
 [[package]]
