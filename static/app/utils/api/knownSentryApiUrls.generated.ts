@@ -118,6 +118,7 @@ export type KnownSentryApiUrls =
   | '/internal/preprod-artifact/rerun-analysis/'
   | '/internal/project-config/'
   | '/internal/rpc/$serviceName/$methodName/'
+  | '/internal/scm-rpc/$methodName/'
   | '/internal/seer-rpc/$methodName/'
   | '/internal/warnings/'
   | '/issues/$issueId/'

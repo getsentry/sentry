@@ -767,6 +767,10 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Sign requests to the SCM RPC endpoint
+# First element is used to sign requests; request is accepted if signed with any element in the list.
+SCM_RPC_SHARED_SECRET: list[str] | None = None
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
