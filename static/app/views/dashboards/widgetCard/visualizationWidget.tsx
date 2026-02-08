@@ -15,6 +15,7 @@ import {transformLegacySeriesToPlottables} from 'sentry/utils/timeSeries/transfo
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
@@ -162,6 +163,7 @@ function VisualizationWidgetContent({
     usesTimeSeriesData(widget.displayType) &&
     tableResults &&
     tableResults.length > 0;
+  const datasetConfig = getDatasetConfig(widget.widgetType);
 
   const tableDataRows = tableResults?.[0]?.data;
   const widgetQuery = widget.queries[0];
@@ -286,6 +288,7 @@ function VisualizationWidgetContent({
             releases={releases}
             showReleaseAs={showReleaseAs}
             showLegend="never"
+            axisRange={datasetConfig.axisRange}
           />
         </Container>
         <Flex flex={1} direction="column" borderTop="primary">
@@ -303,6 +306,7 @@ function VisualizationWidgetContent({
         plottables={plottables}
         releases={releases}
         showReleaseAs={showReleaseAs}
+        axisRange={datasetConfig.axisRange}
       />
     </Container>
   );

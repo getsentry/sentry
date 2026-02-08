@@ -252,6 +252,7 @@ export const MobileAppSizeConfig: DatasetConfig<
   SearchBar: MobileAppSizeSearchBar,
   useSearchBarDataProvider: useMobileAppSizeSearchBarDataProvider,
   supportedDisplayTypes: [DisplayType.LINE],
+  axisRange: 'dataMin',
   getTableFieldOptions: getPrimaryFieldOptions,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
