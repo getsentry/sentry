@@ -131,17 +131,31 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
-def validate_mode_consistency(write_to_zset: bool, write_to_set: bool, read_from_set: bool) -> None:
-    if not write_to_zset and not write_to_set:
-        raise ValueError("must write to at least zset or set")
-    if not write_to_zset and not read_from_set:
+def validate_mode_consistency(
+    write_to_zset: bool,
+    write_to_set: bool,
+    read_from_set: bool,
+    write_to_payload_set: bool,
+    read_from_payload_set: bool,
+    compression_enabled: bool,
+) -> None:
+    if not write_to_zset and not write_to_set and not write_to_payload_set:
+        raise ValueError("must write to at least zset or set or payload set")
+    if not write_to_zset and not read_from_set and not read_from_payload_set:
         raise ValueError("cannot read from zset if not writing to zset")
     if not write_to_set and read_from_set:
         raise ValueError("cannot read from set if not writing to set")
+    if not write_to_payload_set and read_from_payload_set:
+        raise ValueError("cannot read from payload set if not writing to payload set")
+
+    # Payload set only works if there is compression enabled
+    if not compression_enabled and write_to_payload_set:
+        raise ValueError("cannot write to payload set if compression is disabled")
 
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 add_buffer_set_script = redis.load_redis_script("spans/add-buffer-set.lua")
+add_buffer_payload_script = redis.load_redis_script("spans/add-buffer-payload-set.lua")
 
 
 # NamedTuples are faster to construct than dataclasses
@@ -201,6 +215,12 @@ class SpansBuffer:
     def _get_set_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
+    def _get_payload_set_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:p:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
+    def _get_payload_key(self, project_and_trace: str, span_id: str) -> bytes:
+        return f"span-buf:p:ld:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -225,9 +245,19 @@ class SpansBuffer:
         debug_traces = set(options.get("spans.buffer.debug-traces"))
         write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
+        write_to_payload_set = options.get("spans.buffer.write-to-payload-set")
         read_from_set = options.get("spans.buffer.read-from-set")
+        read_from_payload_set = options.get("spans.buffer.read-from-payload-set")
+        payload_cutoff_size = options.get("spans.buffer.payload-cutoff-size")
 
-        validate_mode_consistency(write_to_zset, write_to_set, read_from_set)
+        validate_mode_consistency(
+            write_to_zset,
+            write_to_set,
+            read_from_set,
+            write_to_payload_set,
+            read_from_payload_set,
+            self._zstd_compressor is not None,
+        )
 
         result_meta = []
         is_root_span_count = 0
@@ -262,6 +292,17 @@ class SpansBuffer:
                         if write_to_set:
                             set_key = self._get_set_span_key(project_and_trace, parent_span_id)
                             p.sadd(set_key, *prepared.keys())
+                        if write_to_payload_set:
+                            payload_set_key = self._get_payload_set_key(
+                                project_and_trace, parent_span_id
+                            )
+                            payload_key = self._get_payload_key(project_and_trace, parent_span_id)
+                            compressed = prepared.keys()[0]  # Compressed payloads only have one key
+                            if payload_cutoff_size > 0 and len(compressed) > payload_cutoff_size:
+                                p.set(payload_key, compressed)
+                                p.sadd(payload_set_key, payload_key)
+                            else:
+                                p.sadd(payload_set_key, compressed)
 
                     p.execute()
 
@@ -269,10 +310,13 @@ class SpansBuffer:
             # Workaround to make `evalsha` work in pipelines. We load ensure the
             # script is loaded just before calling it below. This calls `SCRIPT
             # EXISTS` once per batch.
-            add_buffer_sha, add_buffer_set_sha = self._ensure_scripts(write_to_zset, write_to_set)
+            add_buffer_sha, add_buffer_set_sha, add_buffer_payload_sha = self._ensure_scripts(
+                write_to_zset, write_to_set, write_to_payload_set
+            )
 
             zset_results: list[Any] = []
             set_results: list[Any] = []
+            payload_set_results: list[Any] = []
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
@@ -324,19 +368,46 @@ class SpansBuffer:
                                 *span_ids,
                             )
 
+                        if write_to_payload_set:
+                            p.execute_command(
+                                "EVALSHA",
+                                add_buffer_payload_sha,
+                                1,
+                                project_and_trace,
+                                len(subsegment),
+                                parent_span_id,
+                                is_segment_span,
+                                redis_ttl,
+                                max_segment_bytes,
+                                byte_count,
+                                *span_ids,
+                            )
+
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
                         result_meta.append((project_and_trace, parent_span_id))
 
                     batch_results = p.execute()
 
-                if write_to_zset and write_to_set:
+                if write_to_zset and write_to_set and write_to_payload_set:
                     # EVALSHA results alternate between ZSET and SET
+                    zset_results.extend(batch_results[::3])
+                    set_results.extend(batch_results[1::3])
+                    payload_set_results.extend(batch_results[2::3])
+                elif write_to_zset and write_to_set:
                     zset_results.extend(batch_results[::2])
                     set_results.extend(batch_results[1::2])
+                elif write_to_zset and write_to_payload_set:
+                    zset_results.extend(batch_results[::2])
+                    payload_set_results.extend(batch_results[1::2])
+                elif write_to_set and write_to_payload_set:
+                    set_results.extend(batch_results[::2])
+                    payload_set_results.extend(batch_results[1::2])
                 elif write_to_zset:
                     zset_results.extend(batch_results)
                 elif write_to_set:
                     set_results.extend(batch_results)
+                elif write_to_payload_set:
+                    payload_set_results.extend(batch_results)
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[bytes, set[bytes]] = {}
@@ -346,6 +417,8 @@ class SpansBuffer:
             zset_gauge_metrics = []
             set_latency_metrics = []
             set_gauge_metrics = []
+            payload_set_latency_metrics = []
+            payload_set_gauge_metrics = []
             longest_zset_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
                 -1.0,
                 [],
@@ -356,14 +429,25 @@ class SpansBuffer:
                 [],
                 [],
             )
+            longest_payload_set_evalsha_data: tuple[float, EvalshaData, EvalshaData] = (
+                -1.0,
+                [],
+                [],
+            )
 
             if write_to_zset:
                 assert len(result_meta) == len(zset_results)
             if write_to_set:
                 assert len(result_meta) == len(set_results)
+            if write_to_payload_set:
+                assert len(result_meta) == len(payload_set_results)
+
             if read_from_set:
                 queue_results = set_results
                 get_span_key_fn = self._get_set_span_key
+            elif read_from_payload_set:
+                queue_results = payload_set_results
+                get_span_key_fn = self._get_payload_set_key
             else:
                 queue_results = zset_results
                 get_span_key_fn = self._get_span_key
@@ -438,6 +522,24 @@ class SpansBuffer:
                             evalsha_gauge_metrics,
                         )
 
+            if write_to_payload_set:
+                for result in payload_set_results:
+                    (
+                        _,
+                        _,
+                        evalsha_latency_ms,
+                        evalsha_latency_metrics,
+                        evalsha_gauge_metrics,
+                    ) = result
+                    payload_set_latency_metrics.append(evalsha_latency_metrics)
+                    payload_set_gauge_metrics.append(evalsha_gauge_metrics)
+                    if evalsha_latency_ms > longest_payload_set_evalsha_data[0]:
+                        longest_payload_set_evalsha_data = (
+                            evalsha_latency_ms,
+                            evalsha_latency_metrics,
+                            evalsha_gauge_metrics,
+                        )
+
             self._buffer_logger.log(latency_entries)
 
             with self.client.pipeline(transaction=False) as p:
@@ -468,6 +570,12 @@ class SpansBuffer:
                 emit_observability_metrics(
                     set_latency_metrics, set_gauge_metrics, longest_set_evalsha_data
                 )
+            if write_to_payload_set:
+                emit_observability_metrics(
+                    payload_set_latency_metrics,
+                    payload_set_gauge_metrics,
+                    longest_payload_set_evalsha_data,
+                )
             if write_to_zset and write_to_set:
                 compare_metrics(zset_latency_metrics, set_latency_metrics)
                 compare_metrics(zset_gauge_metrics, set_gauge_metrics)
@@ -475,8 +583,8 @@ class SpansBuffer:
             logger.exception("Error emitting observability metrics: %s", e)
 
     def _ensure_scripts(
-        self, write_to_zset: bool, write_to_set: bool
-    ) -> tuple[str | None, str | None]:
+        self, write_to_zset: bool, write_to_set: bool, write_to_payload_set: bool
+    ) -> tuple[str | None, str | None, str | None]:
         """
         Ensures the required Lua scripts are loaded in Redis.
 
@@ -496,9 +604,19 @@ class SpansBuffer:
             ):
                 self.add_buffer_set_sha = self.client.script_load(add_buffer_set_script.script)
 
+        if write_to_payload_set:
+            if (
+                not self.add_buffer_payload_sha
+                or not self.client.script_exists(self.add_buffer_payload_sha)[0]
+            ):
+                self.add_buffer_payload_sha = self.client.script_load(
+                    add_buffer_payload_script.script
+                )
+
         return (
             self.add_buffer_sha if write_to_zset else None,
             self.add_buffer_set_sha if write_to_set else None,
+            self.add_buffer_payload_sha if write_to_payload_set else None,
         )
 
     def _get_queue_key(self, shard: int) -> bytes:
@@ -693,9 +811,18 @@ class SpansBuffer:
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
                 decompressed_spans = []
 
+                payload_keys = []
                 for scan_value in scan_values:
                     span_data = scan_value[0] if isinstance(scan_value, tuple) else scan_value
-                    decompressed_spans.extend(self._decompress_batch(span_data))
+                    # Payload keys are prefixed with span-buf:p:ld: and have to be fetched separately
+                    if span_data.starswith("span-buf:p:ld:"):
+                        payload_keys.append(span_data)
+                    else:
+                        decompressed_spans.extend(self._decompress_batch(span_data))
+
+                if payload_keys:
+                    payloads = self.client.mget(*payload_keys)
+                    decompressed_spans.extend(map(self._decompressed_batch, payloads))
 
                 sizes[key] += sum(len(span) for span in decompressed_spans)
                 if sizes[key] > max_segment_bytes:
@@ -777,16 +904,23 @@ class SpansBuffer:
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         write_to_zset = options.get("spans.buffer.write-to-zset")
         write_to_set = options.get("spans.buffer.write-to-set")
+        write_to_payload_set = options.get("spans.buffer.write-to-payload-set")
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    # segment_key could be either span-buf:z:... or span-buf:s:... depending on read mode
+                    # segment_key could be either span-buf:z:... or span-buf:s:... or span-buf:p: depending on read mode
                     if segment_key.startswith(b"span-buf:z:"):
                         zset_key = segment_key
                         set_key = segment_key.replace(b"span-buf:z:", b"span-buf:s:", 1)
-                    else:
+                        payload_set_key = segment_key.replace(b"span-buf:z:", b"span-buf:p:", 1)
+                    elif segment_key.startswith(b"span-buf:s:"):
                         zset_key = segment_key.replace(b"span-buf:s:", b"span-buf:z:", 1)
                         set_key = segment_key
+                        payload_set_key = segment_key.replace(b"span-buf:s:", b"span-buf:p:", 1)
+                    elif segment_key.startswith(b"span-buf:p:"):
+                        zset_key = segment_key.replace(b"span-buf:p:", b"span-buf:z:", 1)
+                        set_key = segment_key.replace(b"span-buf:p:", b"span-buf:s:", 1)
+                        payload_set_key = segment_key
 
                     if write_to_zset:
                         p.delete(b"span-buf:hrs:" + zset_key)
@@ -798,11 +932,17 @@ class SpansBuffer:
                         p.delete(b"span-buf:ic:" + set_key)
                         p.delete(b"span-buf:ibc:" + set_key)
                         p.unlink(set_key)
+                    if write_to_payload_set:
+                        p.delete(b"span-buf:hrs:" + payload_set_key)
+                        p.delete(b"span-buf:ic:" + payload_set_key)
+                        p.delete(b"span-buf:ibc:" + payload_set_key)
+                        p.unlink(payload_set_key)
                     p.zrem(flushed_segment.queue_key, zset_key, set_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     zset_redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     set_redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+                    payload_set_redirect_map_key = b"span-buf:psr:{%s:%s}" % (project_id, trace_id)
 
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
@@ -810,5 +950,10 @@ class SpansBuffer:
                             p.hdel(zset_redirect_map_key, *span_ids)
                         if write_to_set:
                             p.hdel(set_redirect_map_key, *span_ids)
+                        if write_to_payload_set:
+                            p.hdel(payload_set_redirect_map_key, *span_ids)
+                            p.unlink(
+                                *(self._get_payload_key(project_id, trace_id, s) for s in span_ids)
+                            )
 
                 p.execute()
