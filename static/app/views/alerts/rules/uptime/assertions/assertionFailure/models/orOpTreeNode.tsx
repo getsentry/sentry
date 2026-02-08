@@ -7,6 +7,6 @@ import {TreeNode} from './treeNode';
 
 export class OrOpTreeNode extends TreeNode<OrOp> {
   renderRow(): ReactNode {
-    return <OrOpRow />;
+    return <OrOpRow node={this} />;
   }
 }

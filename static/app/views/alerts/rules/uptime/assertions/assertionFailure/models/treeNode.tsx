@@ -13,6 +13,7 @@ export abstract class TreeNode<T extends Op = Op> {
   value: T;
   parent: TreeNode | null;
   children: TreeNode[];
+  isNegated = false;
 
   constructor(value: T, parent: TreeNode | null = null) {
     this.value = value;
