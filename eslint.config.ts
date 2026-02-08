@@ -261,6 +261,7 @@ export default typescript.config([
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
     'fixtures/profiles/embedded.js',
     'jest.config.ts',
+    'jest.config.snapshots.ts',
     'api-docs/**/*',
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
