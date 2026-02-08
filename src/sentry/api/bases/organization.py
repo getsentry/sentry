@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
+from django.db.models import Q
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
@@ -15,6 +17,7 @@ from rest_framework.views import APIView
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.projects import parse_id_or_slug_params
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
@@ -35,7 +38,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.types.region import subdomain_is_region
-from sentry.utils import auth
+from sentry.utils import auth, metrics
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
@@ -342,10 +345,13 @@ def _validate_fetched_projects(
     """
     Validates that user has access to the specific projects they are requesting.
     """
-    missing_project_ids = ids and ids != {p.id for p in filtered_projects}
-    missing_project_slugs = slugs and slugs != {p.slug for p in filtered_projects}
+    fetched_ids = {p.id for p in filtered_projects}
+    fetched_slugs = {p.slug for p in filtered_projects}
 
-    if missing_project_ids or missing_project_slugs:
+    missing_ids = ids and not ids.issubset(fetched_ids)
+    missing_slugs = slugs and not slugs.issubset(fetched_slugs)
+
+    if missing_ids or missing_slugs:
         raise PermissionDenied
 
 
@@ -381,32 +387,41 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied. When project_ids or project_slugs
         are explicitly provided, the returned list is guaranteed non-empty (or PermissionDenied is raised).
 
-        NOTE: If both project_ids and project_slugs are passed, we will default
-        to fetching projects via project_id list.
+        NOTE: Passing both project_ids and project_slugs raises ``ParseError``.
         """
         qs = Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
         if project_slugs and project_ids:
             raise ParseError(detail="Cannot query for both ids and slugs")
 
-        slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
-        ids = project_ids or self.get_requested_project_ids_unchecked(request)
+        # Resolve slug overrides from the deprecated ``projectSlug`` query param.
+        query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
+        if query_slugs and not project_slugs:
+            warnings.warn(
+                "The `projectSlug` query parameter is deprecated. "
+                "Use `project` instead, which accepts both IDs and slugs.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            metrics.incr("api.deprecated_param", tags={"param": "projectSlug"})
 
-        if project_ids is None and slugs:
-            # If we're querying for project slugs specifically
-            if ALL_ACCESS_PROJECTS_SLUG in slugs:
-                # All projects I have access to
-                include_all_accessible = True
-            else:
-                qs = qs.filter(slug__in=slugs)
+        explicit_slugs = project_slugs or query_slugs
+
+        if project_ids is not None:
+            ids = project_ids
+            param_slugs: set[str] = set()
         else:
-            # If we are explicitly querying for projects via id
-            # Or we're querying for an empty set of ids
-            if ALL_ACCESS_PROJECT_ID in ids:
-                # All projects i have access to
-                include_all_accessible = True
-            elif ids:
-                qs = qs.filter(id__in=ids)
-            # No project ids === `all projects I am a member of`
+            ids, param_slugs = parse_id_or_slug_params(request.GET.getlist("project"))
+
+        slugs = explicit_slugs or param_slugs
+
+        if ALL_ACCESS_PROJECT_ID in ids or ALL_ACCESS_PROJECTS_SLUG in slugs:
+            include_all_accessible = True
+        elif ids and slugs:
+            qs = qs.filter(Q(id__in=ids) | Q(slug__in=slugs))
+        elif slugs:
+            qs = qs.filter(slug__in=slugs)
+        elif ids:
+            qs = qs.filter(id__in=ids)
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
@@ -466,15 +481,14 @@ class OrganizationEndpoint(Endpoint):
 
     def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
-        Returns the project ids that were requested by the request.
+        Returns the numeric project ids that were requested by the request.
+        Non-numeric values (slugs) are silently ignored.
 
         To determine the projects to filter this endpoint by with full
         permission checking, use ``get_projects``, instead.
         """
-        try:
-            return set(map(int, request.GET.getlist("project")))
-        except ValueError:
-            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+        ids, _ = parse_id_or_slug_params(request.GET.getlist("project"))
+        return ids
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization
