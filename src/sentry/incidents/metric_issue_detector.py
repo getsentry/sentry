@@ -157,24 +157,19 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         return value
 
 
-def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
+def is_invalid_extrapolation_mode(new_extrapolation_mode) -> bool:
     if type(new_extrapolation_mode) is int:
         new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
     if type(new_extrapolation_mode) is ExtrapolationMode:
         new_extrapolation_mode = new_extrapolation_mode.name.lower()
-    if type(old_extrapolation_mode) is int:
-        old_extrapolation_mode = ExtrapolationMode(old_extrapolation_mode).name.lower()
-    if type(old_extrapolation_mode) is ExtrapolationMode:
-        old_extrapolation_mode = old_extrapolation_mode.name.lower()
     if (
         new_extrapolation_mode is not None
         and ExtrapolationMode.from_str(new_extrapolation_mode) is None
     ):
         return True
-    if (
-        new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-        and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-    ):
+    if new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+        return True
+    if new_extrapolation_mode == ExtrapolationMode.NONE.name.lower():
         return True
     return False
 
@@ -234,9 +229,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 )
 
     def _validate_extrapolation_mode(self, extrapolation_mode: ExtrapolationMode) -> None:
-        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED:
+        if extrapolation_mode in [ExtrapolationMode.SERVER_WEIGHTED, ExtrapolationMode.NONE]:
             raise serializers.ValidationError(
-                "server_weighted extrapolation mode is not supported for new detectors."
+                f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
 
     def get_quota(self) -> DetectorQuota:
@@ -313,14 +308,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
             )
 
-        old_extrapolation_mode = snuba_query.extrapolation_mode
         new_extrapolation_mode = data_source.get(
             "extrapolation_mode", snuba_query.extrapolation_mode
         )
         if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
-            if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+            if is_invalid_extrapolation_mode(new_extrapolation_mode):
                 raise serializers.ValidationError(
-                    "Invalid extrapolation mode for this detector type."
+                    "Invalid extrapolation_mode for this detector type. Allowed modes are: client_and_server_weighted, unknown."
                 )
 
         # Handle a dynamic detector's snuba query changing

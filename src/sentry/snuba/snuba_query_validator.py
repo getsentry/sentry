@@ -176,14 +176,24 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return validated
 
-    def validate_extrapolation_mode(self, extrapolation_mode: str) -> ExtrapolationMode | None:
+    def _validate_extrapolation_mode(self, data: dict) -> ExtrapolationMode | None:
+        extrapolation_mode = data.get("extrapolation_mode")
         if extrapolation_mode is not None:
             extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
             if extrapolation_mode_enum is None:
                 raise serializers.ValidationError(
                     f"Invalid extrapolation mode: {extrapolation_mode}"
                 )
+            if data.get("dataset") == Dataset.EventsAnalyticsPlatform:
+                if extrapolation_mode_enum in [
+                    ExtrapolationMode.SERVER_WEIGHTED,
+                    ExtrapolationMode.NONE,
+                ]:
+                    raise serializers.ValidationError(
+                        f"Invalid extrapolation mode for this alert type: {extrapolation_mode}. Allowed modes are: client_and_server_weighted, unknown."
+                    )
             return extrapolation_mode_enum
+        return None
 
     def validate(self, data):
         data = super().validate(data)
@@ -191,6 +201,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         self._validate_query(data)
 
         data["group_by"] = self._validate_group_by(data.get("group_by"))
+
+        data["extrapolation_mode"] = self._validate_extrapolation_mode(data)
 
         query_type = data["query_type"]
         if query_type == SnubaQuery.Type.CRASH_RATE:
