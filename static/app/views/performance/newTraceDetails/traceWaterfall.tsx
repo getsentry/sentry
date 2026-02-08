@@ -672,6 +672,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
+          source={props.source}
+          replayId={props.replay?.id}
         />
         <TraceResetZoomButton
           viewManager={viewManager}
