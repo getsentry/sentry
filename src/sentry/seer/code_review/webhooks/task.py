@@ -162,17 +162,17 @@ def record_latency(status: str, enqueued_at_str: str) -> None:
         metrics.timing(f"{PREFIX}.e2e_latency", latency_ms, tags={"status": status})
 
 
-def calculate_latency_ms(enqueued_at_str: str) -> int:
+def calculate_latency_ms(timestamp_str: str) -> int:
     """Calculate the latency in milliseconds between the given timestamp and now."""
     try:
-        enqueued_at = datetime.fromisoformat(enqueued_at_str)
-        processing_started_at = datetime.now(timezone.utc)
-        return int((processing_started_at - enqueued_at).total_seconds() * 1000)
+        timestamp = datetime.fromisoformat(timestamp_str)
+        now = datetime.now(timezone.utc)
+        return int((now - timestamp).total_seconds() * 1000)
     except (ValueError, TypeError) as e:
         # Don't fail the task if timestamp parsing fails
         logger.warning(
             "%s.invalid_timestamp",
             PREFIX,
-            extra={"enqueued_at": enqueued_at_str, "error": str(e)},
+            extra={"timestamp": timestamp_str, "error": str(e)},
         )
         return 0
