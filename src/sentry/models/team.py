@@ -159,6 +159,7 @@ class Team(ReplicatedRegionModel):
         if not self.slug:
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
+                slugify_target = slugify_target.replace("_", "-")
                 slugify_instance(self, self.name, organization=self.organization)
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "team_snowflake_key"
