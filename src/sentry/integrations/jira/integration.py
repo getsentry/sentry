@@ -161,7 +161,9 @@ class JiraIntegration(IssueSyncIntegration):
         try:
             projects: list[JiraProjectMapping] = [
                 JiraProjectMapping(value=p["id"], label=p["name"])
-                for p in client.get_projects_list()
+                for p in client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})[
+                    "values"
+                ]
             ]
             self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
