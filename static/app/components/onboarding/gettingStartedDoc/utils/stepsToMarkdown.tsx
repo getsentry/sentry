@@ -119,6 +119,41 @@ export function simpleHtmlToMarkdown(html: string): string {
 }
 
 /**
+ * Walks a React element tree and extracts text content directly from props.
+ * Handles link elements (href/to props) by converting them to markdown links.
+ * Used as a fallback when renderToStaticMarkup fails (e.g. components that
+ * require router context like <Link>).
+ */
+function extractTextFromReactNode(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === 'boolean') {
+    return '';
+  }
+  if (typeof node === 'string') {
+    return node;
+  }
+  if (typeof node === 'number') {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(extractTextFromReactNode).join('');
+  }
+  // React element — extract props and recurse into children
+  if (typeof node === 'object' && 'props' in node) {
+    const props = (node as React.ReactElement).props as Record<string, unknown>;
+    const childText = extractTextFromReactNode(props.children as React.ReactNode);
+
+    // Convert link elements to markdown links
+    const href = (props.href ?? props.to) as string | undefined;
+    if (href && childText) {
+      return `[${childText}](${href})`;
+    }
+
+    return childText;
+  }
+  return '';
+}
+
+/**
  * Converts a React.ReactNode to a markdown string.
  * Handles primitives directly and uses renderToStaticMarkup for React elements.
  */
@@ -137,8 +172,9 @@ export function reactNodeToText(node: React.ReactNode): string {
     const html = renderToStaticMarkup(node as React.ReactElement);
     return simpleHtmlToMarkdown(html);
   } catch {
-    // Fallback: if renderToStaticMarkup fails, return empty string
-    return '';
+    // Fallback: walk the element tree directly when renderToStaticMarkup fails
+    // (e.g. components needing router context like <Link>)
+    return extractTextFromReactNode(node);
   }
 }
 

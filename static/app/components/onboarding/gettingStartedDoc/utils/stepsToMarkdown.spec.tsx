@@ -143,6 +143,59 @@ describe('reactNodeToText', () => {
     );
     expect(reactNodeToText(element)).toBe('Install the `@sentry/node` package.');
   });
+
+  it('falls back to extracting text from React tree when renderToStaticMarkup fails', () => {
+    // Simulate a component that requires context (like react-router's <Link>)
+    // by using a component that calls a hook, which will throw in renderToStaticMarkup
+    function ContextDependentLink({to, children}: {children: string; to: string}) {
+      // This will throw during renderToStaticMarkup because hooks need React runtime
+      const [_state] = React.useState(0);
+      return React.createElement('a', {href: to}, children);
+    }
+
+    // Build element tree like tct() would: text + link component + text
+    const element = React.createElement(
+      React.Fragment,
+      null,
+      'Visit the ',
+      React.createElement(
+        ContextDependentLink,
+        {to: '/settings/auth-tokens/'},
+        'Auth Tokens'
+      ),
+      ' page.'
+    );
+    const result = reactNodeToText(element);
+    expect(result).toContain('Visit the');
+    expect(result).toContain('Auth Tokens');
+    expect(result).toContain('/settings/auth-tokens/');
+    expect(result).toContain('page.');
+  });
+
+  it('falls back to extracting text with href links from React tree', () => {
+    // Simulate ExternalLink-like component that fails renderToStaticMarkup
+    function ExternalLink({href, children}: {children: string; href: string}) {
+      const [_s] = React.useState(0);
+      return React.createElement('a', {href}, children);
+    }
+
+    const element = React.createElement(
+      React.Fragment,
+      null,
+      'Refer to ',
+      React.createElement(
+        ExternalLink,
+        {href: 'https://docs.sentry.io/source-context/'},
+        'Manually Uploading Source Context'
+      ),
+      '.'
+    );
+    const result = reactNodeToText(element);
+    expect(result).toContain('Refer to');
+    expect(result).toContain(
+      '[Manually Uploading Source Context](https://docs.sentry.io/source-context/)'
+    );
+  });
 });
 
 describe('contentBlockToMarkdown', () => {
