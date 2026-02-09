@@ -1,6 +1,6 @@
 import sentry_sdk
 
-from sentry.scm.private.ipc import deserialize_event as _deserialize_event
+from sentry.scm.private.ipc import deserialize_subscription_event as _deserialize_event
 from sentry.scm.types import SubscriptionEvent
 
 

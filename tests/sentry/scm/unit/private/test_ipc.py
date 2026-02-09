@@ -1,4 +1,4 @@
-from sentry.scm.private.ipc import deserialize_event, serialize_event
+from sentry.scm.private.ipc import deserialize_subscription_event, serialize_subscription_event
 from sentry.scm.types import SubscriptionEvent
 
 
@@ -15,9 +15,11 @@ def test_subscription_event_serialization():
         "type": "github",
     }
 
-    assert deserialize_event(serialize_event(event), lambda _: None) == event
+    assert (
+        deserialize_subscription_event(serialize_subscription_event(event), lambda _: None) == event
+    )
 
 
 def test_subscription_event_deserialization_failure():
-    assert deserialize_event(b"hello, world", lambda _: None) is None
-    assert deserialize_event(b"", lambda _: None) is None
+    assert deserialize_subscription_event(b"hello, world", lambda _: None) is None
+    assert deserialize_subscription_event(b"", lambda _: None) is None

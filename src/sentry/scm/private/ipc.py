@@ -21,6 +21,8 @@ from sentry.scm.types import (
     CommentAction,
     CommentEvent,
     CommentType,
+    EventType,
+    EventTypeHint,
     ProviderName,
     PullRequestAction,
     PullRequestEvent,
@@ -98,6 +100,7 @@ class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
 check_run_event_decoder = msgspec.msgpack.Decoder(CheckRunEventParser)
 comment_event_decoder = msgspec.msgpack.Decoder(CommentEventParser)
 pull_request_event_decoder = msgspec.msgpack.Decoder(PullRequestEventParser)
+subscription_decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
 
 
 def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEvent:
@@ -176,14 +179,11 @@ def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
     )
 
 
-decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
-
-
-def deserialize_event(
+def deserialize_subscription_event(
     event: bytes, report_exception: Callable[[Exception], None]
 ) -> SubscriptionEvent | None:
     try:
-        result = decoder.decode(event)
+        result = subscription_decoder.decode(event)
         return {
             "event": result.event,
             "event_type_hint": result.event_type_hint,
@@ -211,7 +211,123 @@ def deserialize_event(
 encoder = msgspec.msgpack.Encoder()
 
 
-def serialize_event(event: SubscriptionEvent) -> bytes:
+def serialize_check_run_event(event: CheckRunEvent) -> bytes:
+    check_run_data = CheckRunEventDataParser(
+        external_id=event.check_run["external_id"],
+        html_url=event.check_run["html_url"],
+    )
+    subscription_event = SubscriptionEventParser(
+        event=event.subscription_event["event"],
+        event_type_hint=event.subscription_event["event_type_hint"],
+        extra=event.subscription_event["extra"],
+        received_at=event.subscription_event["received_at"],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event.subscription_event["sentry_meta"]
+            ]
+            if event.subscription_event["sentry_meta"]
+            else None
+        ),
+        type=event.subscription_event["type"],
+    )
+    structured_event = CheckRunEventParser(
+        action=event.action,
+        check_run=check_run_data,
+        subscription_event=subscription_event,
+    )
+    return encoder.encode(structured_event)
+
+
+def serialize_comment_event(event: CommentEvent) -> bytes:
+    comment_data = CommentEventDataParser(
+        id=event.comment["id"],
+        body=event.comment["body"],
+        author=(
+            AuthorParser(
+                id=event.comment["author"]["id"], username=event.comment["author"]["username"]
+            )
+            if event.comment["author"]
+            else None
+        ),
+    )
+    subscription_event = SubscriptionEventParser(
+        event=event.subscription_event["event"],
+        event_type_hint=event.subscription_event["event_type_hint"],
+        extra=event.subscription_event["extra"],
+        received_at=event.subscription_event["received_at"],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event.subscription_event["sentry_meta"]
+            ]
+            if event.subscription_event["sentry_meta"]
+            else None
+        ),
+        type=event.subscription_event["type"],
+    )
+    structured_event = CommentEventParser(
+        action=event.action,
+        comment_type=event.comment_type,
+        comment=comment_data,
+        subscription_event=subscription_event,
+    )
+    return encoder.encode(structured_event)
+
+
+def serialize_pull_request_event(event: PullRequestEvent) -> bytes:
+    pull_request_data = PullRequestEventDataParser(
+        id=event.pull_request["id"],
+        title=event.pull_request["title"],
+        description=event.pull_request["description"],
+        head=PullRequestBranchParser(sha=event.pull_request["head"]["sha"]),
+        base=PullRequestBranchParser(sha=event.pull_request["base"]["sha"]),
+        is_private_repo=event.pull_request["is_private_repo"],
+        author=(
+            AuthorParser(
+                id=event.pull_request["author"]["id"],
+                username=event.pull_request["author"]["username"],
+            )
+            if event.pull_request["author"]
+            else None
+        ),
+    )
+    subscription_event = SubscriptionEventParser(
+        event=event.subscription_event["event"],
+        event_type_hint=event.subscription_event["event_type_hint"],
+        extra=event.subscription_event["extra"],
+        received_at=event.subscription_event["received_at"],
+        sentry_meta=(
+            [
+                SubscriptionEventSentryMetaParser(
+                    id=item["id"],
+                    integration_id=item["integration_id"],
+                    organization_id=item["organization_id"],
+                )
+                for item in event.subscription_event["sentry_meta"]
+            ]
+            if event.subscription_event["sentry_meta"]
+            else None
+        ),
+        type=event.subscription_event["type"],
+    )
+    structured_event = PullRequestEventParser(
+        action=event.action,
+        pull_request=pull_request_data,
+        subscription_event=subscription_event,
+    )
+    return encoder.encode(structured_event)
+
+
+def serialize_subscription_event(event: SubscriptionEvent) -> bytes:
     structured_event = SubscriptionEventParser(
         event=event["event"],
         event_type_hint=event["event_type_hint"],
@@ -233,6 +349,28 @@ def serialize_event(event: SubscriptionEvent) -> bytes:
     )
 
     return encoder.encode(structured_event)
+
+
+def deserialize_event(event: bytes, event_type: EventTypeHint) -> EventType:
+    if event_type == "check_run":
+        return deserialize_check_run_event(event)
+    elif event_type == "comment":
+        return deserialize_comment_event(event)
+    elif event_type == "pull_request":
+        return deserialize_pull_request_event(event)
+    else:
+        return deserialize_subscription_event(event)
+
+
+def serialize_event(event: EventType, event_type: EventTypeHint) -> bytes:
+    if event_type == "check_run":
+        return serialize_check_run_event(event)
+    elif event_type == "comment":
+        return serialize_comment_event(event)
+    elif event_type == "pull_request":
+        return serialize_pull_request_event(event)
+    else:
+        return serialize_subscription_event(event)
 
 
 # $$$$$$$\            $$\       $$\ $$\           $$\
@@ -284,7 +422,7 @@ def run_webhook_handler(
     record_metric: Callable[[str, int, dict[str, str]], None],
     get_current_time: Callable[[], float] = time.time,
 ):
-    event = deserialize_event(event_bytes, report_exception=report_exception)
+    event = deserialize_subscription_event(event_bytes, report_exception=report_exception)
     if event:
         handler = get_handler(handler_name)
         handler(event)

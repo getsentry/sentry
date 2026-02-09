@@ -64,7 +64,7 @@ def map_integration_to_provider(
     if integration.provider == "github":
         return GitHubProvider(client)
     else:
-        raise SCMCodedError(integration.provider, code="integration_not_found")
+        raise SCMCodedError(integration.provider, code="unsupported_integration")
 
 
 def map_repository_model_to_repository(repository: RepositoryModel) -> Repository:
@@ -88,7 +88,7 @@ def fetch_service_provider(
         organization_id=organization_id,
     )
     if not integration:
-        raise SCMCodedError(code="integration_not_found")
+        raise SCMCodedError(code="unsupported_integration")
 
     return map_to_provider(integration, organization_id)
 

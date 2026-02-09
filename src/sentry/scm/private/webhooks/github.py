@@ -6,6 +6,7 @@ from sentry.scm.types import (
     CommentAction,
     CommentEvent,
     EventType,
+    EventTypeHint,
     PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
@@ -176,12 +177,27 @@ def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEven
     )
 
 
-def parse_github_event(event: SubscriptionEvent) -> EventType | None:
+def parse_github_event_type_hint(event: SubscriptionEvent) -> EventTypeHint:
     if event["event_type_hint"] == "pull_request":
-        return parse_github_pull_request_event(event)
+        return "pull_request"
     elif event["event_type_hint"] == "comment":
-        return parse_github_comment_event(event)
+        return "comment"
     elif event["event_type_hint"] == "check_run":
-        return parse_github_check_run_event(event)
+        return "check_run"
     else:
-        return None
+        return "unknown"
+
+
+def parse_github_event(event: SubscriptionEvent) -> tuple[EventTypeHint, EventType]:
+    event_type_hint = parse_github_event_type_hint(event)
+
+    if event_type_hint == "pull_request":
+        parsed_event = parse_github_pull_request_event(event)
+    elif event_type_hint == "comment":
+        parsed_event = parse_github_comment_event(event)
+    elif event_type_hint == "check_run":
+        parsed_event = parse_github_check_run_event(event)
+    else:
+        parsed_event = event
+
+    return event_type_hint, parsed_event

@@ -4,30 +4,20 @@ from collections.abc import Callable
 from types import UnionType
 from typing import DefaultDict, Union, get_args, get_origin, get_type_hints
 
-from sentry.scm.types import CheckRunEvent, CommentEvent, EventType, PullRequestEvent
+from sentry.scm.private.ipc import serialize_event
+from sentry.scm.private.webhooks.github import parse_github_event
+from sentry.scm.types import EventType, EventTypeHint, HybridCloudSilo, SubscriptionEvent
 
-
-def union_members(tp: type) -> set[type]:
-    origin = get_origin(tp)
-    return set(get_args(tp)) if origin is Union or origin is UnionType else {tp}
-
-
-def is_event_type(tp: type):
-    return union_members(tp) <= union_members(EventType)
+type Listener = Callable[[EventType], None]
 
 
 class SourceCodeManagerEventStream:
 
     def __init__(self):
-        self.__listeners: DefaultDict[type[EventType], list[Callable[[EventType], None]]] = (
-            defaultdict(list)
-        )
+        self.__listeners: DefaultDict[type[EventType], list[Listener]] = defaultdict(list)
+        self.__listeners_by_name: dict[str, Listener] = {}
 
-        self.__check_run_listeners: dict[str, Callable[[CheckRunEvent], None]] = {}
-        self.__comment_listeners: dict[str, Callable[[CommentEvent], None]] = {}
-        self.__pull_request_listeners: dict[str, Callable[[PullRequestEvent], None]] = {}
-
-    def listen(self, fn: Callable[[EventType], None]) -> Callable[[EventType], None]:
+    def listen(self, fn: Listener) -> Listener:
         """
         Event type.
         """
@@ -43,9 +33,46 @@ class SourceCodeManagerEventStream:
 
         event_types = union_members(type_hints[params[0]])
         for event_type in event_types:
-            self.__listeners[event_type].append(fn)
+            self.__listeners[event_type][fn.__name__] = fn
+            self.__listeners_by_name[fn.__name__] = fn
 
         return fn
+
+
+def union_members(tp: type) -> set[type]:
+    origin = get_origin(tp)
+    return set(get_args(tp)) if origin is Union or origin is UnionType else {tp}
+
+
+def is_event_type(tp: type):
+    return union_members(tp) <= union_members(EventType)
+
+
+def serialize_provider_event(event: SubscriptionEvent) -> tuple[EventTypeHint, EventType]:
+    if event["type"] == "github":
+        return parse_github_event(event)
+    else:
+        raise ValueError("Provider not implemented.")
+
+
+def produce_to_listeners(
+    event: SubscriptionEvent,
+    silo: HybridCloudSilo,
+    produce_to_listener: Callable[[bytes, EventTypeHint, str, HybridCloudSilo]],
+) -> None:
+    """
+    Accepts a raw SubscriptionEvent and attempts to determine its type before sending it to the
+    event-type's listeners to be processed.
+
+    :param event:
+    :param silo: Events are processed in the hybrid-cloud silo they are received in.
+    :param produce_to_listener:
+    """
+    event_type_hint, parsed_event = serialize_provider_event(event)
+    message = serialize_event(parsed_event)
+
+    for listener in scm_event_stream.__listeners[type(parsed_event)]:
+        produce_to_listener(message, event_type_hint, listener.__name__, silo)
 
 
 scm_event_stream = SourceCodeManagerEventStream()
