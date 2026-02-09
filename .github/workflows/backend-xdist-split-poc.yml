@@ -145,13 +145,9 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
-          vmstat 1 > vmstat.txt &
-          VMSTAT_PID=$!
-
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
           echo "Shard ${{ matrix.instance }} of 4, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
-          EXIT_CODE=0
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -165,19 +161,7 @@ jobs:
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier1 || EXIT_CODE=$?
-
-          kill $VMSTAT_PID
-          wait $VMSTAT_PID || true
-          exit $EXIT_CODE
-
-      - name: Upload vmstat logs
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: vmstat-tier1-${{ matrix.instance }}
-          path: vmstat.txt
-          retention-days: 7
+            -o junit_suite_name=pytest-tier1
 
       - name: Inspect failure
         if: failure()
@@ -228,13 +212,9 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
-          vmstat 1 > vmstat.txt &
-          VMSTAT_PID=$!
-
           echo "=== Tier 2 Parallel: Full Snuba stack, reset_snuba skipped ==="
           echo "Shard ${{ matrix.instance }} of 15, xdist workers: 2"
           echo "Test files: $(wc -l < /tmp/tier2-tests.txt) (tier2 total, filtered by --xdist-group)"
-          EXIT_CODE=0
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -249,19 +229,7 @@ jobs:
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier2-parallel || EXIT_CODE=$?
-
-          kill $VMSTAT_PID
-          wait $VMSTAT_PID || true
-          exit $EXIT_CODE
-
-      - name: Upload vmstat logs
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: vmstat-tier2p-${{ matrix.instance }}
-          path: vmstat.txt
-          retention-days: 7
+            -o junit_suite_name=pytest-tier2-parallel
 
       - name: Inspect failure
         if: failure()
@@ -309,12 +277,8 @@ jobs:
         env:
           SELECTED_TESTS_FILE: /tmp/tier2-tests.txt
         run: |
-          vmstat 1 > vmstat.txt &
-          VMSTAT_PID=$!
-
           echo "=== Tier 2 Serial: FORCE_SERIAL_FILES, normal reset_snuba ==="
           echo "Shard ${{ matrix.instance }} of 2, single-threaded"
-          EXIT_CODE=0
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -327,19 +291,7 @@ jobs:
             --json-report-file=".artifacts/pytest.json" \
             --json-report-omit=log \
             --junit-xml=".artifacts/pytest.junit.xml" \
-            -o junit_suite_name=pytest-tier2-serial || EXIT_CODE=$?
-
-          kill $VMSTAT_PID
-          wait $VMSTAT_PID || true
-          exit $EXIT_CODE
-
-      - name: Upload vmstat logs
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: vmstat-tier2s-${{ matrix.instance }}
-          path: vmstat.txt
-          retention-days: 7
+            -o junit_suite_name=pytest-tier2-serial
 
       - name: Inspect failure
         if: failure()
