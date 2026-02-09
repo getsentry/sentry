@@ -57,6 +57,8 @@ ALL_ACTIONS = (
     ("get_branch", {"branch": "main"}),
     ("create_branch", {"branch": "feature", "sha": "abc123"}),
     ("update_branch", {"branch": "feature", "sha": "def456"}),
+    # Git blob operations
+    ("create_git_blob", {"content": "hello", "encoding": "utf-8"}),
     # File content operations
     ("get_file_content", {"path": "README.md"}),
     # Commit operations
@@ -239,6 +241,11 @@ def _check_get_branch(result: Any) -> None:
 def _check_create_branch(result: Any) -> None:
     assert result["git_ref"]["ref"] == "refs/heads/feature"
     assert result["git_ref"]["sha"] == "abc123"
+    assert result["provider"] == "test"
+
+
+def _check_create_git_blob(result: Any) -> None:
+    assert result["git_blob"]["sha"] == "blob123abc"
     assert result["provider"] == "test"
 
 
@@ -435,6 +442,11 @@ ACTION_TESTS = (
     (SourceCodeManager.get_branch, {"branch": "main"}, _check_get_branch),
     (SourceCodeManager.create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
     (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_none),
+    (
+        SourceCodeManager.create_git_blob,
+        {"content": "hello", "encoding": "utf-8"},
+        _check_create_git_blob,
+    ),
     (SourceCodeManager.get_file_content, {"path": "README.md"}, _check_file_content),
     (SourceCodeManager.get_commit, {"sha": "abc123"}, _check_get_commit),
     (SourceCodeManager.get_commits, {}, _check_get_commits),

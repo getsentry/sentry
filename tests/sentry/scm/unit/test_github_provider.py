@@ -16,6 +16,7 @@ from tests.sentry.scm.test_fixtures import (
     make_github_commit_comparison,
     make_github_commit_file,
     make_github_file_content,
+    make_github_git_blob,
     make_github_git_commit_object,
     make_github_graphql_issue_comment,
     make_github_graphql_pr_comments_response,
@@ -74,6 +75,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_branch", {"branch": "main"}),
     ("create_branch", {"branch": "feature", "sha": "abc123"}),
     ("update_branch", {"branch": "feature", "sha": "def456"}),
+    ("create_git_blob", {"content": "hello", "encoding": "utf-8"}),
     ("get_file_content", {"path": "README.md"}),
     ("get_commit", {"sha": "abc123"}),
     ("get_commits", {}),
@@ -211,6 +213,15 @@ CLIENT_DELEGATION_TESTS: list[
         (
             "update_git_ref",
             ("test-org/test-repo", "feature", {"sha": "def456", "force": False}),
+            {},
+        ),
+    ),
+    (
+        "create_git_blob",
+        {"content": "hello", "encoding": "utf-8"},
+        (
+            "create_git_blob",
+            ("test-org/test-repo", {"content": "hello", "encoding": "utf-8"}),
             {},
         ),
     ),
@@ -524,6 +535,11 @@ def _check_issue_reactions(result: Any) -> None:
     assert result[1]["content"] == "+1"
 
 
+def _check_create_git_blob(result: Any) -> None:
+    assert result["git_blob"]["sha"] == "blob123abc"
+    assert result["provider"] == "github"
+
+
 def _check_file_content(result: Any) -> None:
     fc = result["file_content"]
     assert fc["path"] == "README.md"
@@ -727,6 +743,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"branch": "feature", "sha": "abc123"},
         {},
         _check_create_branch,
+    ),
+    (
+        "create_git_blob",
+        {"content": "hello", "encoding": "utf-8"},
+        {"git_blob_data": make_github_git_blob()},
+        _check_create_git_blob,
     ),
     (
         "get_file_content",

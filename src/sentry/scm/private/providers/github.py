@@ -17,6 +17,8 @@ from sentry.scm.types import (
     CommitFile,
     FileContent,
     FileContentActionResult,
+    GitBlob,
+    GitBlobActionResult,
     GitCommitObject,
     GitCommitObjectActionResult,
     GitCommitTree,
@@ -99,6 +101,14 @@ def _transform_git_ref(raw: dict[str, Any]) -> GitRefActionResult:
             ref=ref_str,
             sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
         ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_git_blob(raw: dict[str, Any]) -> GitBlobActionResult:
+    return GitBlobActionResult(
+        git_blob=GitBlob(sha=raw["sha"]),
         provider="github",
         raw=raw,
     )
@@ -493,6 +503,18 @@ class GitHubProvider(Provider):
             self.client.update_git_ref(repository["name"], branch, {"sha": sha, "force": force})
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
+    # Git blob operations
+
+    def create_git_blob(
+        self, repository: Repository, content: str, encoding: str
+    ) -> GitBlobActionResult:
+        data: dict[str, Any] = {"content": content, "encoding": encoding}
+        try:
+            raw = self.client.create_git_blob(repository["name"], data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_blob(raw)
 
     # File content operations
 

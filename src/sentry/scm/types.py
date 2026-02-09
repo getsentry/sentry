@@ -103,6 +103,16 @@ class GitRefActionResult(TypedDict):
     raw: dict[str, Any]
 
 
+class GitBlob(TypedDict):
+    sha: str
+
+
+class GitBlobActionResult(TypedDict):
+    git_blob: GitBlob
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
 class FileContent(TypedDict):
     path: str
     sha: str
@@ -384,6 +394,12 @@ class Provider(Protocol):
     def update_branch(
         self, repository: Repository, branch: str, sha: str, force: bool = False
     ) -> None: ...
+
+    # Git blob operations
+
+    def create_git_blob(
+        self, repository: Repository, content: str, encoding: str
+    ) -> GitBlobActionResult: ...
 
     # File content operations
 

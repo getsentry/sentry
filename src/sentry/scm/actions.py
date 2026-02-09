@@ -18,6 +18,7 @@ from sentry.scm.types import (
     CommitActionResult,
     CommitComparisonActionResult,
     FileContentActionResult,
+    GitBlobActionResult,
     GitCommitObjectActionResult,
     GitRefActionResult,
     GitTreeActionResult,
@@ -212,6 +213,12 @@ class SourceCodeManager:
     def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda r, p: p.update_branch(r, branch, sha, force))
+
+    # Git blob operations
+
+    def create_git_blob(self, content: str, encoding: str) -> GitBlobActionResult:
+        """Create a git blob object."""
+        return self._exec(lambda r, p: p.create_git_blob(r, content, encoding))
 
     # File content operations
 

@@ -17,6 +17,8 @@ from sentry.scm.types import (
     CommitFile,
     FileContent,
     FileContentActionResult,
+    GitBlob,
+    GitBlobActionResult,
     GitCommitObject,
     GitCommitObjectActionResult,
     GitCommitTree,
@@ -129,6 +131,16 @@ def make_github_git_ref(
     return {
         "ref": ref,
         "object": {"sha": sha, "type": "commit"},
+    }
+
+
+def make_github_git_blob(
+    sha: str = "blob123abc",
+) -> dict[str, Any]:
+    """Factory for GitHub git blob API responses."""
+    return {
+        "sha": sha,
+        "url": f"https://api.github.com/repos/test-org/test-repo/git/blobs/{sha}",
     }
 
 
@@ -620,6 +632,17 @@ class BaseTestProvider(Provider):
     ) -> None:
         return None
 
+    # Git blob operations
+
+    def create_git_blob(
+        self, repository: Repository, content: str, encoding: str
+    ) -> GitBlobActionResult:
+        return GitBlobActionResult(
+            git_blob=GitBlob(sha="blob123abc"),
+            provider="test",
+            raw={},
+        )
+
     # File content operations
 
     def get_file_content(
@@ -1008,6 +1031,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.pull_request_data: dict[str, Any] | None = None
         self.comment_reactions: list[dict[str, Any]] = []
         self.issue_reactions: list[dict[str, Any]] = []
+        self.git_blob_data: dict[str, Any] | None = None
         self.file_content_data: dict[str, Any] | None = None
         self.commit_data: dict[str, Any] | None = None
         self.commits_data: list[dict[str, Any]] | None = None
@@ -1160,6 +1184,13 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._record_call("update_git_ref", repo, ref, data)
         self._maybe_raise()
         return make_github_git_ref(ref=f"refs/heads/{ref}", sha=data.get("sha", ""))
+
+    def create_git_blob(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_git_blob", repo, data)
+        self._maybe_raise()
+        if self.git_blob_data is not None:
+            return self.git_blob_data
+        return make_github_git_blob()
 
     def get_file_content(self, repo: str, path: str, ref: str | None = None) -> dict[str, Any]:
         self._record_call("get_file_content", repo, path, ref)

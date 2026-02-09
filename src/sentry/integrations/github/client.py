@@ -533,6 +533,10 @@ class GitHubBaseClient(
         """https://docs.github.com/en/rest/git/refs#update-a-reference"""
         return self.patch(f"/repos/{repo}/git/refs/heads/{ref}", data=data)
 
+    def create_git_blob(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/blobs#create-a-blob"""
+        return self.post(f"/repos/{repo}/git/blobs", data=data)
+
     def get_file_content(self, repo: str, path: str, ref: str | None = None) -> Any:
         """https://docs.github.com/en/rest/repos/contents#get-repository-content"""
         params = {}
