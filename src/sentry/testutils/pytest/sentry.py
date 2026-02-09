@@ -508,9 +508,7 @@ FORCE_SERIAL_FILES: set[str] = {
 # RelayStoreHelper to store events through the full Relay→Snuba pipeline and
 # read them back from ClickHouse. Without TRUNCATE, the read-back frequently
 # returns None or stale data.
-FORCE_SERIAL_DIRS: tuple[str, ...] = (
-    "tests/relay_integration/",
-)
+FORCE_SERIAL_DIRS: tuple[str, ...] = ("tests/relay_integration/",)
 
 
 def _force_serial(item: pytest.Item) -> bool:
