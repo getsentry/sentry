@@ -19,6 +19,7 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -661,11 +662,23 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
 
-class PullRequestEventWebhook(APITestCase):
+class PullRequestEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
+
+    def _get_signature_sha1(self, body: bytes | str) -> str:
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha1", body, self.secret)
+        return f"sha1={sig}"
+
+    def _get_signature_sha256(self, body: bytes | str) -> str:
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
+        return f"sha256={sig}"
 
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
