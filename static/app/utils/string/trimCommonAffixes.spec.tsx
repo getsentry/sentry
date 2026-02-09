@@ -112,8 +112,9 @@ describe('trimCommonAffixes', () => {
   });
 
   describe('separator snapping', () => {
-    it('snaps prefix to last separator boundary', () => {
-      // Raw prefix '/api/v2/pro' (11 chars) snaps back to '/api/v2/' (8 chars)
+    it('snaps prefix to last separator, keeping separator visible', () => {
+      // Raw prefix '/api/v2/pro' (11 chars) snaps to '/' at index 7.
+      // Visible remainder starts WITH the '/' → '…/projects/frontend'
       expect(
         trimCommonAffixes(
           [
@@ -123,13 +124,15 @@ describe('trimCommonAffixes', () => {
           ],
           {separator: '/'}
         )
-      ).toEqual(['…projects/frontend', '…projects/backend', '…processing/queue']);
+      ).toEqual(['…/projects/frontend', '…/projects/backend', '…/processing/queue']);
     });
 
-    it('keeps prefix at boundary when already aligned', () => {
+    it('keeps prefix at boundary with separator visible', () => {
+      // Raw prefix '/api/v2/' (8 chars). Last '/' at 7 → snap to 7.
+      // Visible: '/users', '/teams'
       expect(
         trimCommonAffixes(['/api/v2/users', '/api/v2/teams'], {separator: '/'})
-      ).toEqual(['…users', '…teams']);
+      ).toEqual(['…/users', '…/teams']);
     });
 
     it('falls back to raw prefix when no separator in strings', () => {
@@ -170,7 +173,7 @@ describe('trimCommonAffixes', () => {
         trimCommonAffixes(['prefix/seg1/shared', 'prefix/seg2/shared'], {
           separator: '/',
         })
-      ).toEqual(['…seg1…', '…seg2…']);
+      ).toEqual(['…/seg1…', '…/seg2…']);
     });
 
     it('keeps raw suffix when no separator exists between cut point and end', () => {
@@ -196,11 +199,11 @@ describe('trimCommonAffixes', () => {
     });
 
     it('snaps back further with multi-character separator', () => {
-      // Raw prefix 'data::key_' (10 chars). Only '::' boundary is at index 4.
-      // Snaps to 4+2=6 ('data::'), much further back than single-char would.
+      // Raw prefix 'data::key_' (10 chars). '::' at index 4 → snap to 4.
+      // Visible: '::key_alpha'. Separator remains visible as structural context.
       expect(
         trimCommonAffixes(['data::key_alpha', 'data::key_beta'], {separator: '::'})
-      ).toEqual(['…key_alpha', '…key_beta']);
+      ).toEqual(['…::key_alpha', '…::key_beta']);
     });
 
     it('treats empty separator string as a no-op', () => {
@@ -212,17 +215,17 @@ describe('trimCommonAffixes', () => {
 
     it('handles identical paths by applying overlap guard after snapping', () => {
       // Identical strings: raw prefix = suffix = 13.
-      // Snap prefix: '/' at index 7 → snappedPrefix = 8.
+      // Snap prefix: '/' at index 7 → snappedPrefix = 7.
       // Snap suffix: cutPoint = 0, '/' at 0 → snappedSuffix = 13.
-      // 8 + 13 >= 13 → overlap → prefix only.
+      // 7 + 13 >= 13 → overlap → prefix only.
       expect(
         trimCommonAffixes(['/api/v2/users', '/api/v2/users'], {separator: '/'})
-      ).toEqual(['…users', '…users']);
+      ).toEqual(['…/users', '…/users']);
     });
 
     it('prevents prefix trim when snap reduces a large raw prefix below threshold', () => {
       // Raw prefix 'a/bbbbb' (7 chars > 3, would normally be trimmed).
-      // Snap finds '/' at index 1, snaps to 2 chars. 2 ≤ 3 → NOT trimmed.
+      // Snap finds '/' at index 1, snaps to 1. 1 ≤ 3 → NOT trimmed.
       expect(trimCommonAffixes(['a/bbbbbccc', 'a/bbbbbddd'], {separator: '/'})).toEqual([
         'a/bbbbbccc',
         'a/bbbbbddd',
@@ -244,16 +247,17 @@ describe('trimCommonAffixes', () => {
       expect(trimCommonAffixes(['Xab/cd', 'Yab/cd'])).toEqual(['X…', 'Y…']);
     });
 
-    it('allows small snapped affixes when minAffixLength is 0', () => {
-      // Common prefix '/' (1 char). With minAffixLength 0: 1 > 0 → trims.
+    it('does not trim when only the separator itself is common', () => {
+      // Common prefix '/' (1 char). Snap: '/' at index 0 → snappedPrefix = 0.
+      // 0 is not > anything, so no trim — there's nothing before the separator.
       expect(
         trimCommonAffixes(['/xxxx', '/yyyy'], {minAffixLength: 0, separator: '/'})
-      ).toEqual(['…xxxx', '…yyyy']);
+      ).toEqual(['/xxxx', '/yyyy']);
     });
 
     it('handles consecutive separators in paths', () => {
       // Raw prefix '//ab' (4 chars > 3). Snap: lastIndexOf('/', 3) → '/' at index 1.
-      // snappedPrefix = 2. 2 ≤ 3 → no trim.
+      // snappedPrefix = 1. 1 ≤ 3 → no trim.
       expect(trimCommonAffixes(['//abXfoo', '//abYbar'], {separator: '/'})).toEqual([
         '//abXfoo',
         '//abYbar',
@@ -264,26 +268,27 @@ describe('trimCommonAffixes', () => {
     });
 
     it('snaps both prefix and suffix in the same call', () => {
-      // Raw prefix 'a/common/seg' (12 chars) → snap to '/' at 8 → 9 ('a/common/').
+      // Raw prefix 'a/common/seg' (12 chars) → snap to '/' at 8 → snappedPrefix = 8.
       // Raw suffix '/suffix/z' (9 chars) → already at '/' → stays 9.
-      // prefix 9, suffix 9, total 18 < 22. Both > 3.
-      // After prefix: '…seg1/suffix/z'. After suffix (remove 9): '…seg1…'.
+      // prefix 8, suffix 9, total 17 < 22. Both > 3.
+      // After prefix: '…/seg1/suffix/z'. After suffix (remove 9): '…/seg1…'.
       expect(
         trimCommonAffixes(['a/common/seg1/suffix/z', 'a/common/seg2/suffix/z'], {
           separator: '/',
         })
-      ).toEqual(['…seg1…', '…seg2…']);
+      ).toEqual(['…/seg1…', '…/seg2…']);
     });
 
     it('handles an outlier that constrains prefix, with separator adjusting', () => {
       // Outlier '/api/other' constrains raw prefix to '/api/' (5 chars).
-      // Snap: lastIndexOf('/', 4) → '/' at index 4 → snappedPrefix = 5. Same.
+      // Snap: lastIndexOf('/', 4) → '/' at index 4 → snappedPrefix = 4.
+      // 4 > 3 → trim.
       expect(
         trimCommonAffixes(
           ['/api/v2/users', '/api/v2/teams', '/api/v2/projects', '/api/other'],
           {separator: '/'}
         )
-      ).toEqual(['…v2/users', '…v2/teams', '…v2/projects', '…other']);
+      ).toEqual(['…/v2/users', '…/v2/teams', '…/v2/projects', '…/other']);
     });
 
     it('handles an outlier where separator snaps prefix below threshold', () => {
@@ -299,10 +304,11 @@ describe('trimCommonAffixes', () => {
 
     it('handles short string constraining prefix with separator snap', () => {
       // Short string '/api/v2/u' constrains raw prefix to 9 chars.
-      // Snap: lastIndexOf('/', 8) → '/' at 7 → snappedPrefix = 8 ('/api/v2/').
+      // Snap: lastIndexOf('/', 8) → '/' at 7 → snappedPrefix = 7.
+      // 7 > 3 → trim. Visible starts with '/'.
       expect(
         trimCommonAffixes(['/api/v2/users/list', '/api/v2/u'], {separator: '/'})
-      ).toEqual(['…users/list', '…u']);
+      ).toEqual(['…/users/list', '…/u']);
     });
   });
 });

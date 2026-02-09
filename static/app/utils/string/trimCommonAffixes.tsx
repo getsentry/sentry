@@ -75,10 +75,10 @@ function computeCommonAffixLengths(strings: string[]): {
  * string. This means we only need to search the reference.
  *
  * For the prefix, we search backward from the raw boundary to find the last
- * separator, then snap forward to just after it:
+ * separator, then snap to it (keeping the separator visible in the output):
  *
  *   "/api/v2/pro|jects/frontend"   raw boundary at 11 (|)
- *             ^  last '/' at 7  →  snap to 8 ("/api/v2/")
+ *             ^  last '/' at 7  →  snap to 7 → visible: "/projects/frontend"
  *
  * For the suffix, we search forward from the raw cut point to find the next
  * separator, then snap the suffix start to that position:
@@ -107,9 +107,10 @@ function snapAffixToSeparator(
     // fromIndex is inclusive and we want separators within the prefix.
     const lastSep = reference.lastIndexOf(separator, prefixLen - 1);
     if (lastSep >= 0) {
-      // Snap to just after the separator so the separator itself is
-      // included in the trimmed (hidden) portion, not the visible remainder.
-      snappedPrefix = lastSep + separator.length;
+      // Snap to the separator position so it remains visible in the
+      // output, providing structural context (e.g. `…/projects` instead
+      // of `…projects` tells the reader it's a path segment).
+      snappedPrefix = lastSep;
     }
   }
 

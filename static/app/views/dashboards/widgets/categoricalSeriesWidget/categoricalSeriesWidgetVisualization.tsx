@@ -122,22 +122,33 @@ export function CategoricalSeriesWidgetVisualization(
     },
   };
 
+  // Rotation is applied regardless of total length of all labels. It might be
+  // possible to improve this by coordinating rotation and truncation together.
   const shouldRotate = allCategories.length > ROTATION_CATEGORY_THRESHOLD;
 
   const formattedLabels = useMemo(() => {
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
     const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
 
+    // NOTE: This is somewhat naive. We decide if we should truncate based on
+    // how long the current categories are. In the next iteration, we should
+    // also take into account the width of the widget, but measuring performance
+    // negatively affects rendering performance.
+    // If the categories are long, attempt "smart" truncation
     const trimmed = shouldTrimAffixes
       ? trimCommonAffixes(allCategories, {separator: '/'})
       : allCategories;
 
+    // If the categories are still too long after "smart" truncation, apply naive truncation
     const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
     const truncateLength =
       trimmedTotal > TOTAL_CHARACTER_THRESHOLD
         ? TRUNCATED_LABEL_MAX_LENGTH
         : (props.truncateCategoryLabels ?? true);
 
+    // NOTE: In the end, ECharts still applies its own legend overlap logic, and
+    // might choose to hide some labels. By doing our own truncation and
+    // rotation we're just trying to help it make the right decisions.
     return new Map(
       allCategories.map((cat, i) => [
         cat,

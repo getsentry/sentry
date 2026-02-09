@@ -217,7 +217,9 @@ export default Storybook.story(
             Common prefixes and suffixes are truncated automatically if needed. For
             example, categories sharing the prefix{' '}
             <code>/api/v2/organizations/:orgId/</code> will have it replaced with{' '}
-            <code>&hellip;</code>, showing only the unique portion of each label.
+            <code>&hellip;</code>, showing only the unique portion of each label. Affix
+            truncation "snaps" to separators like slashes, to make URLs and paths more
+            readable.
           </p>
           <MediumWidget>
             <CategoricalSeriesWidgetVisualization
