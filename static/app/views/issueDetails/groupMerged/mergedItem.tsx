@@ -135,11 +135,6 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
           aria-label={
             collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
           }
-          tooltipProps={{
-            title: collapsed
-              ? t('Show %s fingerprints', id)
-              : t('Collapse %s fingerprints', id),
-          }}
           size="zero"
           priority="transparent"
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}

@@ -84,9 +84,6 @@ interface ContainerLayoutProps {
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
 
-  // Text layout properties
-  whiteSpace?: Responsive<'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable'>;
-
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
    * @deprecated
@@ -219,7 +216,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'right',
   'row',
   'top',
-  'whiteSpace',
   'width',
 ]);
 
@@ -305,8 +301,6 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
-
-  ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

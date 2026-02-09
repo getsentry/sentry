@@ -86,6 +86,11 @@ except in mobile */
     width: 100%;
   }
 
+  /* Disabled InteractionStateLayer */
+  & > div > button > span:first-child {
+    display: none;
+  }
+
   & > div > button:focus-visible {
     z-index: 3;
   }
