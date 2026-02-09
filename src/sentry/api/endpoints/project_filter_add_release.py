@@ -10,7 +10,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_SUCCESS
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.options.project_option import ProjectOption
 
 
 class AddReleaseFilterSerializer(serializers.Serializer):
@@ -23,7 +22,7 @@ class AddReleaseFilterSerializer(serializers.Serializer):
 @region_silo_endpoint
 @extend_schema(tags=["Projects"])
 class ProjectFilterAddReleaseEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
