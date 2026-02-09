@@ -828,3 +828,139 @@ runners. Tier 1 finishes much faster, freeing 6 runners for other CI jobs.
 | loadgroup (all snuba on one worker) | Cross-worker contamination from non-snuba tests that write to CH via store_event(). |
 | Per-worker ClickHouse instances | Infeasible — Snuba manages CH lifecycle, can't easily spin up N instances. |
 | Project-scoped Snuba delete API | Requires Snuba-side changes. Clean but blocked on cross-team work. Best long-term solution. |
+
+## Classification Strategy Comparison: `_needs_snuba()` vs Runtime Socket Monitoring
+
+We have two approaches to classify tests by service dependency. Here's a detailed comparison.
+
+### `_needs_snuba()` — Static, marker/class-based classification
+
+**Mechanism:** Inspects pytest markers (`@pytest.mark.snuba`), fixtures (`requires_snuba`, `requires_kafka`), and class hierarchy (`RelayStoreHelper` inheritance) at collection time. No test execution required.
+
+| Aspect | Details |
+| --- | --- |
+| **Granularity** | Per-test (individual test methods) |
+| **Cost** | Zero — runs during pytest collection, <1s |
+| **Accuracy** | ~97% (misses `override_settings`-based dispatch, ~5 files) |
+| **Maintenance** | Self-maintaining — new tests that inherit from `SnubaTestCase` or use `requires_snuba` are automatically classified |
+| **Artifacts** | None — classification happens inline during the test run |
+| **Implementation** | ~25 lines of Python in `sentry.py`, already integrated via `--xdist-snuba-phase` |
+
+**What it catches:**
+- `@pytest.mark.snuba` (on `SnubaTestCase` and subclasses)
+- `@requires_snuba` / `@requires_kafka` (usefixtures markers)
+- `pytestmark = [requires_snuba]` (module-level)
+- `RelayStoreHelper` subclasses (read from ClickHouse via `eventstore`)
+
+**What it misses:**
+- Tests that hit Snuba purely through `override_settings` swapping a DummyBackend for a Snuba-backed one (~5 files, <0.5%)
+- Tests that call Snuba indirectly through deep call chains without any marker
+
+### Runtime Socket Monitoring — Empirical, connection-based classification
+
+**Mechanism:** Patches `socket.sendall` to call `getpeername()` on every network send, recording which ports (services) each test contacts. Runs as a pytest plugin during actual test execution across all 22 shards.
+
+| Aspect | Details |
+| --- | --- |
+| **Granularity** | Per-test (individual test methods), aggregated per-file |
+| **Cost** | Operational — requires a dedicated CI workflow (`classify-services.yml`), artifact upload/download, merge script |
+| **Accuracy** | ~100% for Python sockets; blind to C extensions (psycopg2, confluent_kafka) |
+| **Maintenance** | Classification JSON must be regenerated periodically; merge script had bugs (last-write-wins) |
+| **Artifacts** | JSON file (`test-service-classification.json`), split script, merge script |
+| **Implementation** | ~200 lines across `service_classifier.py`, `classify-services.yml`, `split-tests-by-tier.py` |
+
+**What it catches:**
+- All Snuba HTTP calls (4 distinct paths) via port 1218
+- Redis connections via port 6379
+- Redis-cluster via ports 7000-7005
+- Any other Python-socket-based service communication
+
+**What it misses:**
+- Postgres (psycopg2 uses C sockets via libpq)
+- Kafka (confluent_kafka uses C sockets via librdkafka)
+- Incidental service contact (Redis at 100% due to framework cleanup in teardown)
+
+### Recommendation: `_needs_snuba()` for the Combined Strategy
+
+For the combined tiered + xdist approach, `_needs_snuba()` is the better foundation because:
+
+1. **Zero operational overhead.** No classification workflow, no JSON artifacts, no split scripts, no artifact upload/download steps. The classification happens inline during pytest collection.
+
+2. **Directly addresses the TRUNCATE concern.** The primary reason for tiering is Snuba isolation. `_needs_snuba()` was designed specifically to identify tests that interact with ClickHouse (the `TRUNCATE TABLE` problem). Runtime socket monitoring detects *usage*, not *need* — leading to over-classification (e.g., Redis at 100%).
+
+3. **Proven reliability for xdist.** The two-phase xdist approach (22/22 shards green) uses `_needs_snuba()` via `--xdist-snuba-phase`. The same function can drive tiering decisions with no additional code.
+
+4. **Lower maintenance.** New Snuba tests that follow conventions (inherit from `SnubaTestCase`, use `requires_snuba`) are automatically classified. No need to re-run a classification workflow.
+
+5. **Simpler architecture.** The combined workflow needs only `--xdist-snuba-phase` to split tests — the tiered POC's `split-tiers` job, artifact passing, and `SELECTED_TESTS_FILE` mechanism are all eliminated.
+
+The ~3% gap (tests that hit Snuba via `override_settings` without markers) is acceptable because:
+- These tests would fail fast in Tier 1 (no Snuba running), making misclassifications immediately visible
+- The `FORCE_TIER2_FILES` escape hatch can handle edge cases if needed
+- In practice, the xdist two-phase approach has been validated at 22/22 green with this classification
+
+## Combined Strategy v2: `_needs_snuba()` + Tiered CI + xdist
+
+### Architecture
+
+The key insight is that `_needs_snuba()` replaces the entire classification pipeline. Instead of:
+
+```
+classify-services.yml → JSON artifact → split-tests-by-tier.py → SELECTED_TESTS_FILE → pytest
+```
+
+We get:
+
+```
+pytest --xdist-snuba-phase=exclude/only → _needs_snuba() deselects at collection time
+```
+
+This eliminates the split-tiers job, artifact passing, and file-based test selection entirely.
+
+### Workflow Design (backend-combined-poc.yml)
+
+**Tier 1: Non-Snuba tests (4 shards)**
+- `MATRIX_INSTANCE_TOTAL=4` (hash-distributes ALL tests into 4 groups)
+- `--xdist-snuba-phase=exclude` (deselects Snuba tests at collection time)
+- `-n 2 --dist=loadfile` (xdist parallelism — safe because no TRUNCATE conflict)
+- devservices mode: `migrations` (Postgres + Redis, ~10-15s setup)
+- Services block: redis-cluster, kafka, zookeeper (same as tiered POC)
+- Each shard runs ~1/4 of non-Snuba tests ≈ 5,500 tests
+- With xdist -n2: ~10-12 min per shard
+
+**Tier 2: Snuba tests (18 shards)**
+- `MATRIX_INSTANCE_TOTAL=18` (hash-distributes ALL tests into 18 groups)
+- `--xdist-snuba-phase=only` (deselects non-Snuba tests at collection time)
+- Single-threaded (all tests need Snuba → TRUNCATE TABLE prevents parallelism)
+- devservices mode: `backend-ci` (full Snuba stack, ~4-5 min setup)
+- Each shard runs ~1/18 of Snuba tests ≈ 555 tests
+- ~9-14 min per shard (including setup)
+
+**Total runners: 22** (same as current backend CI)
+
+### Why tests don't overlap or get missed
+
+Each test is hash-distributed independently in each tier:
+- In Tier 1: `hash(nodeid) % 4` assigns each test to one of 4 shards. The phase filter then deselects Snuba tests. Result: each non-Snuba test runs in exactly one Tier 1 shard.
+- In Tier 2: `hash(nodeid) % 18` assigns each test to one of 18 shards. The phase filter then deselects non-Snuba tests. Result: each Snuba test runs in exactly one Tier 2 shard.
+- Non-Snuba tests assigned to Tier 2 shards are deselected (never run there).
+- Snuba tests assigned to Tier 1 shards are deselected (never run there).
+- Every test runs exactly once, in the correct environment.
+
+### Projected Performance
+
+| Metric | Tier 1 (4 shards) | Tier 2 (18 shards) |
+| --- | --- | --- |
+| Tests per shard | ~5,500 | ~555 |
+| xdist workers | 2 | 1 (single-threaded) |
+| Setup time | ~15s (migrations) | ~4-5 min (backend-ci) |
+| Test execution | ~10-12 min | ~9-10 min |
+| Total shard time | ~10-12 min | ~13-15 min |
+
+**Wall-clock time: ~13-15 min** (dominated by Tier 2 setup + execution). Tier 1 finishes first, freeing 4 runners for other CI jobs.
+
+Compared to:
+- Current CI: ~17 min
+- xdist-only (two-phase): ~14 min
+- Tiered-only (runtime classification): ~18 min (Tier 2 bottleneck from smaller shard count)
+- **Combined: ~13-15 min** with better resource utilization

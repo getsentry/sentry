@@ -1,0 +1,161 @@
+name: '[POC] backend combined (tiered + xdist)'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/combined-poc
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  # ─── Tier 1: Non-Snuba tests ───────────────────────────────────────────
+  # Postgres + Redis + Redis-cluster + Kafka (fast setup, no Snuba/Clickhouse)
+  # Uses _needs_snuba() via --xdist-snuba-phase=exclude to deselect Snuba tests
+  # at collection time. xdist -n2 for parallelism (safe — no TRUNCATE conflict).
+  tier1-test:
+    name: 'tier1 (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+
+    # Services not available via devservices migrations mode, started via services block.
+    # Redis-cluster: needed by tests parametrized with [cluster].
+    # Kafka + Zookeeper: needed because application code (e.g., invalidate_project_config
+    # via on_commit hooks) produces to Kafka as a side effect of normal model operations.
+    services:
+      redis-cluster:
+        image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+        ports:
+          - 7000:7000
+          - 7001:7001
+          - 7002:7002
+          - 7003:7003
+          - 7004:7004
+          - 7005:7005
+        env:
+          IP: 0.0.0.0
+      zookeeper:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+      kafka:
+        image: ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0
+        env:
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 1
+        ports:
+          - 9092:9092
+
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 4
+      TEST_GROUP_STRATEGY: roundrobin
+      # Fixed hash seed ensures deterministic dict/set iteration across xdist workers,
+      # preventing "Different tests were collected" errors from parametrized tests.
+      PYTHONHASHSEED: '0'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env (Postgres + Redis only)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: migrations
+
+      - name: 'Run non-Snuba tests (xdist -n2)'
+        run: |
+          echo "=== Tier 1: non-ClickHouse tests with xdist parallelism ==="
+          echo "Shard ${{ matrix.instance }} of 4"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-snuba-phase=exclude \
+            -n 2 \
+            --dist=loadfile \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-tier1
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # ─── Tier 2: Snuba tests ───────────────────────────────────────────────
+  # Full Snuba stack (Clickhouse + Kafka + Redis + everything)
+  # Uses _needs_snuba() via --xdist-snuba-phase=only to deselect non-Snuba tests
+  # at collection time. Single-threaded because reset_snuba TRUNCATE TABLE is global.
+  tier2-test:
+    name: 'tier2 (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance:
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 18
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env (Full Snuba stack)
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: 'Run Snuba tests (single-threaded)'
+        run: |
+          echo "=== Tier 2: ClickHouse-dependent tests, single-threaded ==="
+          echo "Shard ${{ matrix.instance }} of 18"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-snuba-phase=only \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-tier2
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi

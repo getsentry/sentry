@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - mchen/service-classification-poc
+      - mchen/xdist-poc-disabled
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
