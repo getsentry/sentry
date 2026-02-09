@@ -302,23 +302,23 @@ Use `triggerProps` to customize the button that opens the dropdown. Common prope
 
 ## Custom Trigger
 
-For advanced cases, provide a custom trigger component using the `trigger` render prop. Always use `<SelectTrigger>` as the base component.
+For advanced cases, provide a custom trigger component using the `trigger` render prop. Always use `<OverlayTrigger>` as the base component.
 
 ```jsx
-import {SelectTrigger} from 'sentry/components/core/compactSelect/trigger';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 <CompactSelect
   options={options}
   trigger={props => (
-    <SelectTrigger.Button {...props}>
+    <OverlayTrigger.Button {...props}>
       {value ? `Status: ${value}` : 'Choose status'}
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   )}
 />;
 ```
 
 > [!IMPORTANT]
-> Always spread the `props` onto the `<SelectTrigger>` component. This ensures proper accessibility and behavior.
+> Always spread the `props` onto the `<OverlayTrigger>` component. This ensures proper accessibility and behavior.
 
 ## Combined Features
 

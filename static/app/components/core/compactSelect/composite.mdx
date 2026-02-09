@@ -14,7 +14,8 @@ resources:
 
 import {useState} from 'react';
 
-import {CompositeSelect, SelectTrigger} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconSentry} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -30,7 +31,7 @@ Use `<CompositeSelect>` when you need a dropdown with multiple independent selec
 ```jsx
 <CompositeSelect
   trigger={props => (
-    <SelectTrigger.Button {...props}>Select Options</SelectTrigger.Button>
+    <OverlayTrigger.Button {...props}>Select Options</OverlayTrigger.Button>
   )}
 >
   <CompositeSelect.Region
@@ -78,9 +79,9 @@ export function BasicDemo() {
     <CompositeSelect
       size="sm"
       trigger={props => (
-        <SelectTrigger.Button icon={<IconSentry />} {...props}>
+        <OverlayTrigger.Button icon={<IconSentry />} {...props}>
           Select Date
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     >
       <CompositeSelect.Region
@@ -108,7 +109,7 @@ const [month, setMonth] = useState('jan');
 const [day, setDay] = useState('1');
 
 <CompositeSelect
-  trigger={props => <SelectTrigger.Button {...props}>Select Date</SelectTrigger.Button>}
+  trigger={props => <OverlayTrigger.Button {...props}>Select Date</OverlayTrigger.Button>}
 >
   <CompositeSelect.Region
     label="Month"
@@ -145,9 +146,9 @@ export function MultiSelectDemo() {
     <CompositeSelect
       size="sm"
       trigger={props => (
-        <SelectTrigger.Button icon={<IconSentry />} {...props}>
+        <OverlayTrigger.Button icon={<IconSentry />} {...props}>
           Configure
-        </SelectTrigger.Button>
+        </OverlayTrigger.Button>
       )}
     >
       <CompositeSelect.Region
@@ -176,7 +177,7 @@ const [month, setMonth] = useState('jan');
 const [tags, setTags] = useState(['cool', 'awesome']);
 
 <CompositeSelect
-  trigger={props => <SelectTrigger.Button {...props}>Configure</SelectTrigger.Button>}
+  trigger={props => <OverlayTrigger.Button {...props}>Configure</OverlayTrigger.Button>}
 >
   <CompositeSelect.Region
     label="Month"
@@ -206,14 +207,14 @@ const [tags, setTags] = useState(['cool', 'awesome']);
 
 ## Custom Trigger
 
-Always provide a custom trigger using the `trigger` render prop. Use `<SelectTrigger.Button>` or other `<SelectTrigger>` variants.
+Always provide a custom trigger using the `trigger` render prop. Use `<OverlayTrigger.Button>` or other `<OverlayTrigger>` variants.
 
 ```jsx
 <CompositeSelect
   trigger={props => (
-    <SelectTrigger.Button icon={<IconFilter />} {...props}>
+    <OverlayTrigger.Button icon={<IconFilter />} {...props}>
       Filters
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   )}
 >
   {/* regions */}
@@ -221,7 +222,7 @@ Always provide a custom trigger using the `trigger` render prop. Use `<SelectTri
 ```
 
 > [!IMPORTANT]
-> Always spread the `props` onto the `<SelectTrigger>` component to ensure proper behavior and accessibility.
+> Always spread the `props` onto the `<OverlayTrigger>` component to ensure proper behavior and accessibility.
 
 ## CompositeSelect vs CompactSelect
 
@@ -268,9 +269,9 @@ Use for filter controls that span multiple independent categories:
 ```jsx
 <CompositeSelect
   trigger={props => (
-    <SelectTrigger.Button icon={<IconFilter />} {...props}>
+    <OverlayTrigger.Button icon={<IconFilter />} {...props}>
       Filters
-    </SelectTrigger.Button>
+    </OverlayTrigger.Button>
   )}
 >
   <CompositeSelect.Region
@@ -302,7 +303,7 @@ Use for grouped settings where each group has independent behavior:
 
 ```jsx
 <CompositeSelect
-  trigger={props => <SelectTrigger.Button {...props}>Settings</SelectTrigger.Button>}
+  trigger={props => <OverlayTrigger.Button {...props}>Settings</OverlayTrigger.Button>}
 >
   <CompositeSelect.Region
     label="Theme"
@@ -375,14 +376,14 @@ The component includes:
 
 ```jsx
 // Good: Descriptive trigger
-<SelectTrigger.Button {...props}>
+<OverlayTrigger.Button {...props}>
   Filters: {selectedCount} active
-</SelectTrigger.Button>
+</OverlayTrigger.Button>
 
 // Good: Clear purpose
-<SelectTrigger.Button {...props}>
+<OverlayTrigger.Button {...props}>
   Date: {month}/{day}
-</SelectTrigger.Button>
+</OverlayTrigger.Button>
 ```
 
 **Keyboard Navigation**
