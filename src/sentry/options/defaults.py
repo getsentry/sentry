@@ -3170,7 +3170,7 @@ register(
 # ZSET to SET migration options.
 register(
     "spans.buffer.write-to-zset",
-    default=True,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
