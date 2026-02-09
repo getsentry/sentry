@@ -517,7 +517,7 @@ describe('TableView > CellActions', () => {
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
 
-    expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
+    expect(within(emptyValueCell).getByText('1K')).toHaveAttribute('title', '1,000');
   });
 
   it('renders size columns correctly', () => {
