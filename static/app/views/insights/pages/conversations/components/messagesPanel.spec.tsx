@@ -23,6 +23,29 @@ function createMockNode(overrides: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
       ...attributes,
     },
+    errors: new Set(),
+  };
+}
+
+function createMockToolNode(overrides: {
+  id: string;
+  toolName: string;
+  startTimestamp?: number;
+}) {
+  const {id, toolName, startTimestamp = 1000} = overrides;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.execute_tool',
+    startTimestamp,
+    value: {
+      start_timestamp: startTimestamp,
+    },
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
+      [SpanFields.GEN_AI_TOOL_NAME]: toolName,
+    },
+    errors: new Set(),
   };
 }
 
@@ -286,5 +309,130 @@ describe('MessagesPanel', () => {
     // But both assistant responses should be shown
     expect(screen.getByText('Response 1')).toBeInTheDocument();
     expect(screen.getByText('Response 2')).toBeInTheDocument();
+  });
+
+  it('displays tool calls on assistant messages', () => {
+    const requestMessages = JSON.stringify([
+      {role: 'user', content: 'Check the weather'},
+    ]);
+
+    // Generation span that triggers tool calls
+    const generationNode1 = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check the weather for you',
+      },
+    });
+
+    // Tool execution spans
+    const toolNode1 = createMockToolNode({
+      id: 'tool-1',
+      toolName: 'weather',
+      startTimestamp: 1500,
+    });
+
+    // Generation span with results
+    const generationNode2 = createMockNode({
+      id: 'span-2',
+      startTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'The weather is sunny',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[generationNode1, toolNode1, generationNode2] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('The weather is sunny')).toBeInTheDocument();
+    expect(screen.getByText('Tools called:')).toBeInTheDocument();
+    expect(screen.getByText('weather')).toBeInTheDocument();
+  });
+
+  it('carries forward tool calls from spans without text to the next message with text', () => {
+    const requestMessages = JSON.stringify([
+      {role: 'user', content: 'Compare weather in Spain and Germany'},
+    ]);
+
+    // First generation span with text
+    const generationNode1 = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check the weather for Spain',
+      },
+    });
+
+    // Tool execution spans (weather lookups)
+    const toolNode1 = createMockToolNode({
+      id: 'tool-1',
+      toolName: 'weather',
+      startTimestamp: 1500,
+    });
+    const toolNode2 = createMockToolNode({
+      id: 'tool-2',
+      toolName: 'weather',
+      startTimestamp: 1600,
+    });
+
+    // Generation span WITHOUT text (only made a tool call, no response text)
+    // This simulates when the LLM decides to call another tool without producing text
+    const generationNode2 = createMockNode({
+      id: 'span-2',
+      startTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        // No GEN_AI_RESPONSE_TEXT - simulates a span that only made tool calls
+      },
+    });
+
+    // Calculator tool execution
+    const toolNode3 = createMockToolNode({
+      id: 'tool-3',
+      toolName: 'calculator',
+      startTimestamp: 2500,
+    });
+
+    // Final generation span with text (shows the comparison results)
+    const generationNode3 = createMockNode({
+      id: 'span-3',
+      startTimestamp: 3000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is the comparison',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={
+          [
+            generationNode1,
+            toolNode1,
+            toolNode2,
+            generationNode2,
+            toolNode3,
+            generationNode3,
+          ] as any
+        }
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // The final message should show all tool calls (weather x2 from the skipped span + calculator)
+    expect(screen.getByText('Here is the comparison')).toBeInTheDocument();
+    expect(screen.getByText('Tools called:')).toBeInTheDocument();
+    // Should have 2 weather tags and 1 calculator tag
+    expect(screen.getAllByText('weather')).toHaveLength(2);
+    expect(screen.getByText('calculator')).toBeInTheDocument();
   });
 });
