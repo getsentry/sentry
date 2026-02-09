@@ -15,8 +15,6 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 class TestNotificationActionHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
@@ -26,8 +24,7 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
     )
     def test_execute_error_group_type(self, mock_registry_get: mock.MagicMock) -> None:
         """Test that execute calls correct handler for ErrorGroupType"""
-        self.detector.type = ErrorGroupType.slug
-        self.detector.save()
+        error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
 
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
@@ -35,18 +32,21 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         notification_uuid = str(uuid.uuid4())
         self.action.trigger(self.event_data, notification_uuid=notification_uuid)
 
+        # Should call the grouptype notification registry
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
         assert mock_handler.handle_workflow_action.call_count == 1
         invocation = mock_handler.handle_workflow_action.call_args[0][0]
         assert isinstance(invocation, ActionInvocation)
         assert invocation.event_data == self.event_data
         assert invocation.action == self.action
-        assert invocation.detector == self.detector
+        assert invocation.detector == error_detector
 
     @mock.patch(
-        "sentry.notifications.notification_action.registry.group_type_notification_registry.get"
+        "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
     )
-    def test_execute_metric_alert_type(self, mock_registry_get: mock.MagicMock) -> None:
+    def test_execute_metric_alert_type(
+        self, mock_metric_alert_handler_registry_get: mock.MagicMock
+    ) -> None:
         """Test that execute calls correct handler for MetricIssue"""
         self.detector.type = MetricIssue.slug
         self.detector.config = {"threshold_period": 1, "detection_type": "static"}
@@ -68,13 +68,14 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         self.event_data = WorkflowEventData(event=group_event, group=group)
 
         mock_handler = mock.Mock()
-        mock_registry_get.return_value = mock_handler
+        mock_metric_alert_handler_registry_get.return_value = mock_handler
 
         self.action.trigger(self.event_data, notification_uuid=str(uuid.uuid4()))
 
-        mock_registry_get.assert_called_once_with(MetricIssue.slug)
-        assert mock_handler.handle_workflow_action.call_count == 1
-        invocation = mock_handler.handle_workflow_action.call_args[0][0]
+        # Because it is a metric group type, it skips the grouptype notification registry and should call the metric alert handler registry
+        mock_metric_alert_handler_registry_get.assert_called_once_with(Action.Type.DISCORD)
+        assert mock_handler.invoke_legacy_registry.call_count == 1
+        invocation = mock_handler.invoke_legacy_registry.call_args[0][0]
         assert isinstance(invocation, ActionInvocation)
         assert invocation.event_data == self.event_data
         assert invocation.action == self.action
@@ -93,10 +94,18 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         mock_execute_via_issue_alert_handler: mock.MagicMock,
     ) -> None:
         """Test that execute does nothing when we can't find the detector"""
+        detector = self.create_detector(project=self.project)
+        group, _, group_event = self.create_group_event(
+            occurrence=self.build_occurrence(evidence_data={"detector_id": detector.id}),
+        )
+        event_data = WorkflowEventData(
+            event=group_event,
+            group=group,
+        )
 
-        self.action.trigger(self.event_data, notification_uuid=str(uuid.uuid4()))
+        self.action.trigger(event_data, notification_uuid=str(uuid.uuid4()))
 
         mock_logger.warning.assert_called_once_with(
             "group_type_notification_registry.get.NoRegistrationExistsError",
-            extra={"detector_id": self.detector.id, "action_id": self.action.id},
+            extra={"detector_id": detector.id, "action_id": self.action.id},
         )
