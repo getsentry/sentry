@@ -443,6 +443,43 @@ describe('stepsToMarkdown', () => {
     expect(result).not.toContain('Should not appear');
     expect(result).toContain('Also visible');
   });
+
+  it('replaces ___ORG_AUTH_TOKEN___ with authToken when provided', () => {
+    const steps: OnboardingStep[] = [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'code',
+            code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
+            language: 'bash',
+          },
+        ],
+      },
+    ];
+
+    const result = stepsToMarkdown(steps, {authToken: 'sntrys_MY_REAL_TOKEN_123'});
+    expect(result).toContain('sntrys_MY_REAL_TOKEN_123');
+    expect(result).not.toContain('___ORG_AUTH_TOKEN___');
+  });
+
+  it('leaves ___ORG_AUTH_TOKEN___ placeholder when no authToken provided', () => {
+    const steps: OnboardingStep[] = [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          {
+            type: 'code',
+            code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
+            language: 'bash',
+          },
+        ],
+      },
+    ];
+
+    const result = stepsToMarkdown(steps);
+    expect(result).toContain('___ORG_AUTH_TOKEN___');
+  });
 });
 
 describe('stepsToText', () => {

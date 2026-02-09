@@ -143,7 +143,17 @@ export function reactNodeToText(node: React.ReactNode): string {
 }
 
 interface MarkdownOptions {
+  authToken?: string;
   selectedTabLabel?: string;
+}
+
+const AUTH_TOKEN_PLACEHOLDER = '___ORG_AUTH_TOKEN___';
+
+function replaceAuthToken(code: string, options?: MarkdownOptions): string {
+  if (options?.authToken) {
+    return code.replaceAll(AUTH_TOKEN_PLACEHOLDER, options.authToken);
+  }
+  return code;
 }
 
 /**
@@ -168,13 +178,19 @@ export function contentBlockToMarkdown(
           const filenameComment = matchedTab.filename
             ? `// ${matchedTab.filename}\n`
             : '';
-          return `\`\`\`${matchedTab.language}\n${filenameComment}${matchedTab.code}\n\`\`\``;
+          return replaceAuthToken(
+            `\`\`\`${matchedTab.language}\n${filenameComment}${matchedTab.code}\n\`\`\``,
+            options
+          );
         }
 
         // Default: output only the first tab (what the user sees by default)
         const firstTab = block.tabs[0]!;
         const filenameComment = firstTab.filename ? `// ${firstTab.filename}\n` : '';
-        return `\`\`\`${firstTab.language}\n${filenameComment}${firstTab.code}\n\`\`\``;
+        return replaceAuthToken(
+          `\`\`\`${firstTab.language}\n${filenameComment}${firstTab.code}\n\`\`\``,
+          options
+        );
       }
       // Single code block
       const singleBlock = block as Extract<ContentBlock, {type: 'code'}> & {
@@ -183,7 +199,10 @@ export function contentBlockToMarkdown(
         filename?: string;
       };
       const filenameComment = singleBlock.filename ? `// ${singleBlock.filename}\n` : '';
-      return `\`\`\`${singleBlock.language}\n${filenameComment}${singleBlock.code}\n\`\`\``;
+      return replaceAuthToken(
+        `\`\`\`${singleBlock.language}\n${filenameComment}${singleBlock.code}\n\`\`\``,
+        options
+      );
     }
 
     case 'alert':

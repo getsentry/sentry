@@ -1,6 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
+import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {useSelectedCodeTab} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -28,6 +29,7 @@ export function OnboardingCopyAsDropdown({
   source,
 }: OnboardingCopyAsDropdownProps) {
   const {selectedTab} = useSelectedCodeTab();
+  const authToken = useAuthToken();
 
   return (
     <Flex justify="end" marginBottom="xs">
@@ -42,6 +44,7 @@ export function OnboardingCopyAsDropdown({
             });
             return stepsToMarkdown(steps, {
               selectedTabLabel: selectedTab ?? undefined,
+              authToken,
             });
           },
           text: () => {
@@ -52,6 +55,7 @@ export function OnboardingCopyAsDropdown({
             });
             return stepsToText(steps, {
               selectedTabLabel: selectedTab ?? undefined,
+              authToken,
             });
           },
           json: undefined,
