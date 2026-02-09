@@ -73,6 +73,10 @@ const TOKEN_RULES = [
       'border-inline-end',
       'border-inline-end-color',
       'stroke',
+      'text-decoration',
+      'text-decoration-color',
+      'border-image',
+      'border-image-source',
     ]),
   },
   {

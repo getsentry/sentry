@@ -126,7 +126,7 @@ const GroupContent = styled('section')`
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom-width: 1px solid ${p => p.theme.tokens.border.primary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
