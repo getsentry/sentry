@@ -1269,13 +1269,74 @@ the static `_needs_snuba()` function because:
 - Runtime classification catches tests that connect to services via indirect code paths
 - The classification has already been validated across multiple CI runs
 
-### Shard Math
+### Shard Math (optimized after Run 1 timing data)
 
-| Group | Tests | Shards | xdist | Effective Workers | Mode |
-| --- | --- | --- | --- | --- | --- |
-| Tier 1 | ~71% | 6 | `-n 3` | 18 | migrations |
-| Tier 2 Parallel | ~28% | 14 | `-n 2` | 28 | backend-ci |
-| Tier 2 Serial | ~1% | 2 | none | 2 | backend-ci |
-| **Total** | **100%** | **22** | | **48** | |
+| Group | Tests | Shards | xdist | Effective Workers | Mode | Est. Wall Clock |
+| --- | --- | --- | --- | --- | --- | --- |
+| Tier 1 | ~71% | 4 | `-n 3` | 12 | migrations | ~11.8m |
+| Tier 2 Parallel | ~28% | 16 | `-n 2` | 32 | backend-ci | ~12.1m |
+| Tier 2 Serial | ~1% | 2 | none | 2 | backend-ci | ~11.7m |
+| **Total** | **100%** | **22** | | **46** | | **~12.1m** |
 
-Total of 22 shards (same as current backend CI) but with 48 effective workers instead of 22.
+Total of 22 shards (same as current backend CI) but with 46 effective workers instead of 22.
+
+### Hybrid Run 1 Results (6 tier1 / 14 tier2-parallel / 2 tier2-serial)
+
+**Split-tiers job: passed. Tier 1: 6/6 passed. Tier 2 serial: 2/2 passed.**
+
+**Tier 2 parallel: 6/14 passed, 8 failed, 1 crashed (OOM).**
+
+This run used the old `FORCE_SERIAL_FILES` (21 entries) so some failures are repeats from Run 2
+on `mchen/xdist-two-group`.
+
+#### Tier 1 Timing (all passed)
+
+| Shard | Duration |
+| --- | --- |
+| tier1 (0) | 8.8m |
+| tier1 (1) | 8.3m |
+| tier1 (2) | 8.6m |
+| tier1 (3) | 10.3m |
+| tier1 (4) | 8.6m |
+| tier1 (5) | 9.0m |
+| **Average** | **8.9m** |
+
+Tier 1 is over-sharded at 6 — finishes 4m before tier2-parallel. Redistributing 2 shards.
+
+#### Tier 2 Parallel Timing
+
+Average: 12.8m (range 11.7-14.1m). This is the bottleneck. Giving it 2 more shards.
+
+#### Optimal Shard Rebalancing
+
+Analysis based on observed test execution times (excluding setup overhead):
+- Tier 1 setup: ~3m, Tier 2 setup: ~7m
+- Tier 1 total test work: ~35.4 min-shards, Tier 2 parallel: ~81.2 min-shards
+
+Optimal split at 4 tier1 / 16 tier2-parallel / 2 tier2-serial equalizes wall clock at ~12m across
+all groups. Previous split (6/14/2) had tier1 finishing at 8.9m (wasted 4m of capacity).
+
+#### New Failures (not in FORCE_SERIAL_FILES)
+
+| File | Shards | Root Cause |
+| --- | --- | --- |
+| `tests/relay_integration/lang/javascript/test_plugin.py` | 4 | `assert None is not None` — relay store returns None |
+| `tests/relay_integration/test_message_filters.py` | 1 | Same relay pipeline issue |
+| `tests/relay_integration/lang/java/test_plugin.py` | 1 | Same pattern — new relay file |
+| `tests/relay_integration/lang/javascript/test_example.py` | 1 | Same pattern — new relay file |
+| `tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py` | 1 | `assert 347.0 == 21.0` — stale data |
+| `tests/sentry/release_health/test_tasks.py` | 1 | FK constraint IntegrityError |
+| `tests/sentry/issues/test_suspect_flags.py` | 1 | Wrong flag scores |
+
+#### Decision: Force entire `tests/relay_integration/` to serial
+
+5 different `relay_integration/` files failed across Runs 1-3. All have the same pattern:
+`RelayStoreHelper` stores events through Relay→Snuba, then reads back from ClickHouse. Without
+TRUNCATE, read-back frequently fails. Rather than adding files one by one, we now use
+`FORCE_SERIAL_DIRS` to force the entire directory to serial.
+
+#### Updated FORCE_SERIAL
+
+- `FORCE_SERIAL_FILES`: 24 entries (added span counts, release health tasks, suspect flags)
+- `FORCE_SERIAL_DIRS`: `tests/relay_integration/` (entire directory)
+- `_force_serial()` now checks both file set and directory prefix

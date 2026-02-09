@@ -544,19 +544,34 @@ FORCE_SERIAL_FILES: set[str] = {
     "tests/snuba/api/endpoints/test_organization_events_trends.py",
     # Category E: Event frequency rules — broad time-window queries
     "tests/snuba/rules/conditions/test_event_frequency.py",
-    # Category F: Relay integration — event pipeline timing issues under load
-    "tests/relay_integration/test_integration.py",
+    # Category F: Span counts — broad aggregation
+    "tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py",
+    # Category G: Release health tasks — FK issues under xdist
+    "tests/sentry/release_health/test_tasks.py",
+    # Category H: Suspect flags — broad ClickHouse aggregation
+    "tests/sentry/issues/test_suspect_flags.py",
 }
+
+# Entire directories forced to serial. Tests under relay_integration/ use
+# RelayStoreHelper to store events through the full Relay→Snuba pipeline and
+# read them back from ClickHouse. Without TRUNCATE, the read-back frequently
+# returns None or stale data. Multiple files failed across 3 runs — not worth
+# playing whack-a-mole, just force the whole directory.
+FORCE_SERIAL_DIRS: tuple[str, ...] = (
+    "tests/relay_integration/",
+)
 
 
 def _force_serial(item: pytest.Item) -> bool:
-    """Check if a test is in the FORCE_SERIAL_FILES set.
+    """Check if a test is in FORCE_SERIAL_FILES or under a FORCE_SERIAL_DIRS prefix.
 
-    These tests have broadly-scoped ClickHouse queries that see data from other
-    xdist workers when reset_snuba is skipped. They must run single-threaded.
+    These tests have broadly-scoped ClickHouse queries or relay pipeline issues
+    that cause failures when reset_snuba is skipped under xdist.
     """
     test_file = item.nodeid.split("::")[0]
-    return test_file in FORCE_SERIAL_FILES
+    if test_file in FORCE_SERIAL_FILES:
+        return True
+    return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
