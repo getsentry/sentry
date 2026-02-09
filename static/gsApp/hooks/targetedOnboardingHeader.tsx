@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconBusiness} from 'sentry/icons';
@@ -71,7 +72,9 @@ export default withSubscription(TargetedOnboardingHeader, {
   noLoader: true,
 });
 
-const HeaderActionBar = styled(ButtonBar)`
+const HeaderActionBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-left: ${space(2)};
 `;
 

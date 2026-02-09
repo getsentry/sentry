@@ -1,35 +1,13 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SpaceSize} from 'sentry/utils/theme';
-
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
-  gap?: SpaceSize;
-  merged?: boolean;
 }
 
-export function ButtonBar({
-  children,
-  merged = false,
-  gap = 'md',
-  ...props
-}: ButtonBarProps) {
-  return (
-    <StyledButtonBar merged={merged} gap={gap} {...props}>
-      {children}
-    </StyledButtonBar>
-  );
+export function ButtonBar({children, ...props}: ButtonBarProps) {
+  return <StyledButtonBar {...props}>{children}</StyledButtonBar>;
 }
-
-const StyledButtonBar = styled('div')<{gap: SpaceSize; merged: boolean}>`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${p => p.theme.space[p.gap]};
-  align-items: center;
-
-  ${p => p.merged && MergedButtonBarStyles}
-`;
 
 const MergedButtonBarStyles = () => css`
   /* Raised buttons show borders on both sides. Useful to create pill bars */
@@ -94,4 +72,13 @@ const MergedButtonBarStyles = () => css`
       }
     }
   }
+`;
+
+const StyledButtonBar = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-column-gap: 0;
+  align-items: center;
+
+  ${MergedButtonBarStyles}
 `;

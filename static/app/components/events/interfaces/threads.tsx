@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -265,7 +265,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
-                  <ButtonBar merged gap="0">
+                  <Flex direction="row" align="center" gap="md">
                     <Button
                       title={t('Previous Thread')}
                       tooltipProps={{delay: 1000}}
@@ -286,7 +286,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                         handleChangeThread('next');
                       }}
                     />
-                  </ButtonBar>
+                  </Flex>
                   <ThreadSelector
                     threads={threads}
                     activeThread={activeThread}

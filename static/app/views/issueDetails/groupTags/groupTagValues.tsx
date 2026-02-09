@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import type {FlexProps} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
@@ -295,7 +295,7 @@ export function GroupTagValues() {
       <Layout.Main width="full">
         <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               size="sm"
               priority="default"
@@ -313,7 +313,7 @@ export function GroupTagValues() {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           isLoading={isLoading}

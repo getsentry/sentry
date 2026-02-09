@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -51,7 +51,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   }, [timelineScale, maxScale, setTimelineScale, organization]);
 
   return (
-    <ButtonBar gap="0">
+    <Flex direction="row" align="center" gap="0">
       <Button
         size="xs"
         title={t('Zoom out')}
@@ -74,7 +74,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
         aria-label={t('Zoom in')}
         disabled={timelineScale === maxScale || isLoading}
       />
-    </ButtonBar>
+    </Flex>
   );
 }
 

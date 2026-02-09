@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import documentation from '!!type-loader!@sentry/scraps/button';
 
 import {Button, ButtonBar, type ButtonProps} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
@@ -10,7 +11,6 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
 
   story('Default', () => {
     const [active, setActive] = useState('One');
-    const [merged, setMerged] = useState('One');
 
     function makeProps(id: string): Partial<ButtonProps> {
       return {
@@ -19,21 +19,12 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
       };
     }
 
-    function makeMergedProps(id: string): Partial<ButtonProps> {
-      return {
-        priority: merged === id ? 'primary' : 'default',
-        onClick: () => setMerged(id),
-      };
-    }
-
     return (
       <Fragment>
         <p>
-          A <Storybook.JSXNode name="ButtonBar" /> is a component that groups related
-          buttons together. It can be used in two modes: regular (with gaps between
-          buttons) or merged (buttons joined together into a single control). Pass the
-          'merged' prop to create a merged button group. You can also customize the gap
-          size between buttons using the 'gap' prop when not merged.
+          A <Storybook.JSXNode name="ButtonBar" /> is a specialized component for creating
+          merged button groups (pill bars). Buttons are visually joined together with
+          shared borders and no gaps between them, creating a cohesive control unit.
         </p>
         <p>
           When using a <Storybook.JSXNode name="ButtonBar" /> with interactive buttons,
@@ -44,7 +35,7 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
           is handled by the parent component, not the{' '}
           <Storybook.JSXNode name="ButtonBar" /> itself.
         </p>
-        <ButtonBar gap="0">
+        <ButtonBar>
           {['One', 'Two', 'Three'].map(id => (
             <Button key={id} {...makeProps(id)}>
               {id}
@@ -53,34 +44,32 @@ export default Storybook.story('ButtonBar', (story, APIReference) => {
         </ButtonBar>
 
         <p>
-          You can also pass the 'merged' prop to the{' '}
-          <Storybook.JSXNode name="ButtonBar" /> to merge the buttons together.
+          Managing the active state is optional, and you can also just use the ButtonBar
+          for layout without state management.
         </p>
-        <ButtonBar merged gap="0">
-          {['One', 'Two', 'Three'].map(id => (
-            <Button key={id} {...makeMergedProps(id)}>
-              {id}
-            </Button>
-          ))}
-        </ButtonBar>
-
-        <p>
-          Managing the active state is optional, and you can also just use the buttonbar
-          to manage the button layout.
-        </p>
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           {['One', 'Two', 'Three'].map(id => (
             <Button key={id}>{id}</Button>
           ))}
         </ButtonBar>
 
         <p>
-          <Storybook.JSXNode name="ButtonBar" />s can have a single button in which case
-          it looks like a button.
+          <Storybook.JSXNode name="ButtonBar" />s can have a single button, in which case
+          it looks like a regular button.
         </p>
-        <ButtonBar gap="0">
+        <ButtonBar>
           <Button>One Lonely Button</Button>
         </ButtonBar>
+
+        <p>
+          For button groups with spacing between buttons, use{' '}
+          <Storybook.JSXNode name="Grid" /> instead with{' '}
+          <Storybook.JSXProperty name="flow" value="column" /> and your desired gap:
+        </p>
+        <Grid flow="column" align="center" gap="md">
+          <Button>Cancel</Button>
+          <Button priority="primary">Save</Button>
+        </Grid>
       </Fragment>
     );
   });

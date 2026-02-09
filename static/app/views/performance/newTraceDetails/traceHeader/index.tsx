@@ -1,5 +1,4 @@
-import {ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
@@ -89,7 +88,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view,
             })}
           />
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <FeedbackButton
               size="xs"
               feedbackOptions={{
@@ -100,7 +99,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
           <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
