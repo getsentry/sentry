@@ -33,7 +33,7 @@ class SourceCodeManagerEventStream:
 
         event_types = union_members(type_hints[params[0]])
         for event_type in event_types:
-            self.__listeners[event_type][fn.__name__] = fn
+            self.__listeners[event_type].append(fn)
             self.__listeners_by_name[fn.__name__] = fn
 
         return fn
@@ -58,7 +58,7 @@ def serialize_provider_event(event: SubscriptionEvent) -> tuple[EventTypeHint, E
 def produce_to_listeners(
     event: SubscriptionEvent,
     silo: HybridCloudSilo,
-    produce_to_listener: Callable[[bytes, EventTypeHint, str, HybridCloudSilo]],
+    produce_to_listener: Callable[[bytes, EventTypeHint, str, HybridCloudSilo], None],
 ) -> None:
     """
     Accepts a raw SubscriptionEvent and attempts to determine its type before sending it to the
@@ -69,7 +69,7 @@ def produce_to_listeners(
     :param produce_to_listener:
     """
     event_type_hint, parsed_event = serialize_provider_event(event)
-    message = serialize_event(parsed_event)
+    message = serialize_event(parsed_event, event_type_hint)
 
     for listener in scm_event_stream.__listeners[type(parsed_event)]:
         produce_to_listener(message, event_type_hint, listener.__name__, silo)
