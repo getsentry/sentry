@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -64,7 +64,7 @@ export function WidgetBuilderXAxisSelector() {
       return Object.values(stringSpanTags).map(tag => ({
         label: prettifyTagKey(tag.name),
         value: tag.key,
-        trailingItems: () => <TypeBadge kind={FieldKind.FIELD} />,
+        trailingItems: () => <TypeBadge valueKind={FieldValueKind.TAG} />,
       }));
     }
 
@@ -86,7 +86,7 @@ export function WidgetBuilderXAxisSelector() {
         .map(option => ({
           label: option.value.meta.name,
           value: option.value.meta.name,
-          trailingItems: () => <TypeBadge kind={FieldKind.FIELD} />,
+          trailingItems: () => <TypeBadge valueKind={option.value.kind} />,
         }));
     }
 
