@@ -182,18 +182,11 @@ export function useSortedFilterKeyItems({
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
-  const queryParams = useMemo(() => [filterValue] as const, [filterValue]);
-  const baseQueryKey = useMemo(
-    () => ['search-query-builder-tag-keys', queryParams] as const,
-    [queryParams]
-  );
-  const debouncedQueryKey = useDebouncedValue(baseQueryKey);
-
-  const isDebouncing = baseQueryKey !== debouncedQueryKey;
-
+  const debouncedFilterValue = useDebouncedValue(filterValue);
+  const isDebouncing = filterValue !== debouncedFilterValue;
   const {data: asyncKeys, isFetching} = useQuery({
-    queryKey: debouncedQueryKey,
-    queryFn: ctx => getTagKeys?.(...ctx.queryKey[1]) ?? [],
+    queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
+    queryFn: ctx => getTagKeys?.(ctx.queryKey[1] ?? '') ?? [],
     placeholderData: keepPreviousData,
     enabled: shouldFetchAsync,
   });
