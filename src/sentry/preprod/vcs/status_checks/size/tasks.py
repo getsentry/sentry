@@ -261,7 +261,7 @@ def create_preprod_status_check_task(
 
     if post_policy != StatusCheckPostPolicy.ALWAYS_POST:
         lock = locks.get(
-            f"preprod:status-check:{commit_comparison.id}",
+            f"preprod:status-check:size-analysis:{commit_comparison.id}",
             duration=30,
             name="preprod_status_check",
         )
