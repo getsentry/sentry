@@ -89,7 +89,7 @@ export function useFormTypingAnimation({
         }
 
         animationFrameRef.current = null;
-        formModel.setValue(fieldName, text, {quiet});
+        formModel.setValue(fieldName, text);
       };
 
       animationFrameRef.current = window.requestAnimationFrame(animate);
