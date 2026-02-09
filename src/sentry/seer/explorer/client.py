@@ -590,8 +590,8 @@ class SeerExplorerClient:
             user_id=user_id,
         )
 
-    def get_issues_with_prs(self) -> list[dict]:
-        path = "/v1/automation/explorer/runs/with-prs"
+    def get_pr_summaries(self) -> list[dict]:
+        path = "/v1/automation/explorer/pr-summaries"
         payload = {"organization_id": self.organization.id}
         body = orjson.dumps(payload)
         response = requests.post(

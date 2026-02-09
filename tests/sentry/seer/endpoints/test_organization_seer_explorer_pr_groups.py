@@ -9,8 +9,8 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
-class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
-    endpoint = "sentry-api-0-organization-explorer-issues-with-prs"
+class TestOrganizationSeerExplorerPRGroupsEndpoint(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
         super().setUp()
@@ -26,14 +26,14 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         self.seer_access_patcher.start()
 
         self.client_patcher = patch(
-            "sentry.seer.endpoints.organization_explorer_issues_with_prs.SeerExplorerClient"
+            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient"
         )
         self.mock_client_class = self.client_patcher.start()
         self.mock_client = MagicMock()
         self.mock_client_class.return_value = self.mock_client
 
         self.serialize_patcher = patch(
-            "sentry.seer.endpoints.organization_explorer_issues_with_prs.serialize"
+            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.serialize"
         )
         self.mock_serialize = self.serialize_patcher.start()
 
@@ -47,6 +47,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         self,
         group_id,
         run_id=100,
+        user_id=1,
         created_at="2025-01-15T00:00:00Z",
         repo_pr_states=None,
         title="test run",
@@ -64,6 +65,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         return {
             "run_id": run_id,
             "group_id": group_id,
+            "user_id": user_id,
             "title": title,
             "prs": prs,
             "repo_pr_states": pr_states,
@@ -87,7 +89,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
                 }
             },
         )
-        self.mock_client.get_issues_with_prs.return_value = [seer_item]
+        self.mock_client.get_pr_summaries.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test Issue"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -98,6 +100,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         assert data[0]["id"] == str(group.id)
         assert data[0]["explorerPrData"] == {
             "runId": 42,
+            "userId": 1,
             "createdAt": "2025-01-15T12:00:00Z",
             "repoPrStates": {
                 "getsentry/sentry": {
@@ -112,7 +115,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         self.mock_client_class.assert_called_once()
 
     def test_get_empty_seer_response(self) -> None:
-        self.mock_client.get_issues_with_prs.return_value = []
+        self.mock_client.get_pr_summaries.return_value = []
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -121,7 +124,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         self.mock_serialize.assert_not_called()
 
     def test_get_none_seer_response(self) -> None:
-        self.mock_client.get_issues_with_prs.return_value = None
+        self.mock_client.get_pr_summaries.return_value = None
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -131,9 +134,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
     def test_get_missing_project_param_returns_all_projects(self) -> None:
         """Without ?project=, get_projects() returns all accessible org projects."""
         group = self.create_group(project=self.project)
-        self.mock_client.get_issues_with_prs.return_value = [
-            self._make_seer_item(group_id=group.id)
-        ]
+        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=group.id)]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url)
@@ -152,7 +153,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         other_project = self.create_project(organization=self.organization)
         group_in_other_project = self.create_group(project=other_project)
 
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=group_in_project.id, run_id=1),
             self._make_seer_item(group_id=group_in_other_project.id, run_id=2),
         ]
@@ -171,7 +172,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=project2)
 
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=group1.id, run_id=1),
             self._make_seer_item(group_id=group2.id, run_id=2),
         ]
@@ -190,7 +191,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
 
     def test_get_no_matching_groups_returns_empty(self) -> None:
         """When Seer returns group IDs that don't exist in the requested project, return empty."""
-        self.mock_client.get_issues_with_prs.return_value = [self._make_seer_item(group_id=999999)]
+        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=999999)]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -202,7 +203,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         """Runs without a group_id (non-autofix) are filtered out before querying groups."""
         group = self.create_group(project=self.project)
 
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=group.id, run_id=1),
             self._make_seer_item(group_id=None, run_id=2),
         ]
@@ -217,7 +218,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
 
     def test_get_all_null_group_ids_returns_empty(self) -> None:
         """When all runs have null group_id, return empty."""
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=None, run_id=1),
             self._make_seer_item(group_id=None, run_id=2),
         ]
@@ -238,7 +239,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
 
     def test_get_seer_api_http_error(self) -> None:
         """An HTTPError from the Seer API returns 502."""
-        self.mock_client.get_issues_with_prs.side_effect = requests.HTTPError("Seer API Error")
+        self.mock_client.get_pr_summaries.side_effect = requests.HTTPError("Seer API Error")
 
         response = self.client.get(self.url + f"?project={self.project.id}")
 
@@ -249,7 +250,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
 
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=group1.id, run_id=10),
             self._make_seer_item(group_id=group2.id, run_id=20),
         ]
@@ -271,7 +272,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         group = self.create_group(project=self.project)
         extra_group = self.create_group(project=self.project)
 
-        self.mock_client.get_issues_with_prs.return_value = [
+        self.mock_client.get_pr_summaries.return_value = [
             self._make_seer_item(group_id=group.id, run_id=5),
         ]
         self.mock_serialize.return_value = [
@@ -297,7 +298,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
                 }
             },
         )
-        self.mock_client.get_issues_with_prs.return_value = [seer_item]
+        self.mock_client.get_pr_summaries.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -313,7 +314,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
     def test_get_empty_repo_pr_states(self) -> None:
         group = self.create_group(project=self.project)
         seer_item = self._make_seer_item(group_id=group.id, repo_pr_states={})
-        self.mock_client.get_issues_with_prs.return_value = [seer_item]
+        self.mock_client.get_pr_summaries.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -342,7 +343,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
                 },
             },
         )
-        self.mock_client.get_issues_with_prs.return_value = [seer_item]
+        self.mock_client.get_pr_summaries.return_value = [seer_item]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         response = self.client.get(self.url + f"?project={self.project.id}")
@@ -357,9 +358,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         from sentry.api.serializers.models.group import GroupSerializerSnuba
 
         group = self.create_group(project=self.project)
-        self.mock_client.get_issues_with_prs.return_value = [
-            self._make_seer_item(group_id=group.id)
-        ]
+        self.mock_client.get_pr_summaries.return_value = [self._make_seer_item(group_id=group.id)]
         self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
 
         self.client.get(self.url + f"?project={self.project.id}")
@@ -378,8 +377,8 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
         assert response.status_code == 403
 
 
-class TestOrganizationExplorerIssuesWithPRsEndpointAuth(APITestCase):
-    endpoint = "sentry-api-0-organization-explorer-issues-with-prs"
+class TestOrganizationSeerExplorerPRGroupsEndpointAuth(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
         super().setUp()
@@ -401,8 +400,8 @@ class TestOrganizationExplorerIssuesWithPRsEndpointAuth(APITestCase):
 
 
 @with_feature("organizations:seer-explorer")
-class TestOrganizationExplorerIssuesWithPRsPermissionErrors(APITestCase):
-    endpoint = "sentry-api-0-organization-explorer-issues-with-prs"
+class TestOrganizationSeerExplorerPRGroupsPermissionErrors(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-explorer-pr-groups"
 
     def setUp(self) -> None:
         super().setUp()
@@ -413,7 +412,7 @@ class TestOrganizationExplorerIssuesWithPRsPermissionErrors(APITestCase):
 
     def test_missing_gen_ai_features_flag(self) -> None:
         with patch(
-            "sentry.seer.endpoints.organization_explorer_issues_with_prs.SeerExplorerClient",
+            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
             side_effect=SeerPermissionError("Feature flag not enabled"),
         ):
             response = self.client.get(self.url + f"?project={self.project.id}")
@@ -422,7 +421,7 @@ class TestOrganizationExplorerIssuesWithPRsPermissionErrors(APITestCase):
 
     def test_missing_seer_acknowledgement(self) -> None:
         with patch(
-            "sentry.seer.endpoints.organization_explorer_issues_with_prs.SeerExplorerClient",
+            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
             side_effect=SeerPermissionError("Seer has not been acknowledged by the organization."),
         ):
             response = self.client.get(self.url + f"?project={self.project.id}")
@@ -433,7 +432,7 @@ class TestOrganizationExplorerIssuesWithPRsPermissionErrors(APITestCase):
 
     def test_missing_allow_joinleave_org_flag(self) -> None:
         with patch(
-            "sentry.seer.endpoints.organization_explorer_issues_with_prs.SeerExplorerClient",
+            "sentry.seer.endpoints.organization_seer_explorer_pr_groups.SeerExplorerClient",
             side_effect=SeerPermissionError(
                 "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
             ),

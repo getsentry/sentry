@@ -23,20 +23,20 @@ from sentry.seer.models import SeerPermissionError
 logger = logging.getLogger(__name__)
 
 
-class OrganizationExplorerIssuesWithPRsPermission(OrganizationPermission):
+class OrganizationSeerExplorerPRGroupsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
 
 
 @region_silo_endpoint
-class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
+class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    permission_classes = (OrganizationExplorerIssuesWithPRsPermission,)
+    permission_classes = (OrganizationSeerExplorerPRGroupsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         # get_projects() parses ?project= from the query string, validates that
@@ -51,7 +51,7 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
 
         try:
             client = SeerExplorerClient(organization, request.user)
-            seer_data = client.get_issues_with_prs()
+            seer_data = client.get_pr_summaries()
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except Exception as e:
