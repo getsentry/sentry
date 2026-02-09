@@ -1,7 +1,6 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -48,13 +47,6 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
-        {props.priority !== 'link' && (
-          <InteractionStateLayer
-            higherOpacity={
-              props.priority && ['primary', 'danger'].includes(props.priority)
-            }
-          />
-        )}
         <ButtonLabel size={size}>
           {props.icon && (
             <Icon size={size} hasChildren={hasChildren}>
