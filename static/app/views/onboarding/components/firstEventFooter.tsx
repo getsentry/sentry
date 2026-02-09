@@ -147,7 +147,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap="xl">
+      <OnboardingButtonBar>
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>
@@ -156,7 +156,7 @@ export default function FirstEventFooter({
 }
 
 const OnboardingButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
+  <Grid flow="column" align="center" gap="xl" {...props} />
 ))`
   margin: ${space(2)} ${space(4)};
   justify-self: end;

@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
@@ -94,7 +94,7 @@ export function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <Grid flow="column" align="center" gap="md">
+                  <ButtonBar>
                     <Button
                       type="button"
                       size="sm"
@@ -112,7 +112,7 @@ export function CollapsibleChainLink({
                     >
                       {'\u23CE'}
                     </Button>
-                  </Grid>
+                  </ButtonBar>
                 </Flex>
               </form>
             </AddEditContainer>

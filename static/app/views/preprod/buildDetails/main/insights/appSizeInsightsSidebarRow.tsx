@@ -2,8 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -196,7 +196,7 @@ export function AppSizeInsightsSidebarRow({
                   <Text size="sm" variant="muted">
                     {t('Page %s of %s', currentPage + 1, totalPages)}
                   </Text>
-                  <Grid flow="column" align="center" gap="md">
+                  <ButtonBar>
                     <Button
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous')}
@@ -211,7 +211,7 @@ export function AppSizeInsightsSidebarRow({
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages - 1}
                     />
-                  </Grid>
+                  </ButtonBar>
                 </Flex>
               )}
             </Fragment>

@@ -288,7 +288,7 @@ function EditAccessSelector({
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
-    <FilterButtons gap="lg">
+    <FilterButtons>
       <Button
         size="sm"
         onClick={() => {

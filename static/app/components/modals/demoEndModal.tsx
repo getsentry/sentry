@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -132,10 +131,10 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
         >
           {t('Sign up for Sentry')}
         </LinkButton>
-        <Grid flow="column" align="center" gap="md">
+        <ButtonBar>
           <Button onClick={handleMoreTours}>{t('More Tours')} </Button>
           <Button onClick={handleRestart}>{t('Restart Tour')}</Button>
-        </Grid>
+        </ButtonBar>
       </ButtonContainer>
     </EndModal>
   );
@@ -169,6 +168,12 @@ const ModalHeader = styled('div')`
   }
 `;
 
+const ButtonBar = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  justify-content: center;
+`;
 const ButtonContainer = styled('div')`
   display: flex;
   flex-direction: column;

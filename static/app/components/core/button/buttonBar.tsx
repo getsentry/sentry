@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-interface ButtonBarProps extends GridProps {
-  children: React.ReactNode;
+interface ButtonBarProps extends Omit<GridProps, 'gap'> {
+  children: NonNullable<React.ReactNode>;
 }
 
 export const ButtonBar = styled(({children, ...props}: ButtonBarProps) => {
   return (
-    <Grid flow="column" align="center" gap="md" {...props}>
+    <Grid flow="column" align="center" gap="0" {...props}>
       {children}
     </Grid>
   );

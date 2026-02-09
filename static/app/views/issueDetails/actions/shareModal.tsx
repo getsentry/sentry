@@ -145,7 +145,7 @@ export default function ShareIssueModal({
               {t('Include Event ID in link')}
             </CheckboxContainer>
           )}
-          <StyledButtonBar gap="xs">
+          <StyledButtonBar>
             <Button
               size="sm"
               onClick={handleCopyMarkdownLink}

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
@@ -268,10 +268,10 @@ function SpikeProtectionProjects({subscription}: Props) {
     <Fragment>
       <Flex justify="between" marginBottom="xl">
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar>
+        <ButtonBar marginLeft="xl">
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
-        </StyledButtonBar>
+        </ButtonBar>
       </Flex>
       <StyledPanelTable
         disablePadding={
@@ -362,10 +362,4 @@ const StyledPanelToggle = styled(SpikeProtectionProjectToggle)`
   padding: 0;
   padding-left: ${space(1)};
   align-items: start;
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin-left: ${space(2)};
 `;
