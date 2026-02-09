@@ -17,12 +17,14 @@ describe('SentryAppAvatar', () => {
             avatarUrl: 'https://example.com/color-logo.png',
             avatarUuid: 'color-123',
             color: true,
+            photoType: 'logo',
           },
           {
             avatarType: 'upload',
             avatarUrl: 'https://example.com/non-color-icon.png',
             avatarUuid: 'non-color-456',
             color: false,
+            photoType: 'icon',
           },
         ],
       });
@@ -41,12 +43,14 @@ describe('SentryAppAvatar', () => {
             avatarUrl: 'https://example.com/color-logo.png',
             avatarUuid: 'color-123',
             color: true,
+            photoType: 'logo',
           },
           {
             avatarType: 'upload',
             avatarUrl: 'https://example.com/non-color-icon.png',
             avatarUuid: 'non-color-456',
             color: false,
+            photoType: 'icon',
           },
         ],
       });
@@ -65,6 +69,7 @@ describe('SentryAppAvatar', () => {
             avatarUrl: 'https://example.com/color-logo.png',
             avatarUuid: 'color-123',
             color: true,
+            photoType: 'logo',
           },
         ],
       });
@@ -88,6 +93,7 @@ describe('SentryAppAvatar', () => {
             avatarUrl: 'https://example.com/color-logo.png',
             avatarUuid: 'color-123',
             color: true,
+            photoType: 'logo',
           },
         ],
       });
@@ -109,6 +115,7 @@ describe('SentryAppAvatar', () => {
             avatarUrl: '',
             avatarUuid: null,
             color: true,
+            photoType: 'logo',
           },
         ],
       });
