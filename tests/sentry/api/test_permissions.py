@@ -18,9 +18,11 @@ class PermissionsTest(DRFPermissionTestCase):
     staff_permission = StaffPermission()
     superuser_staff_flagged_permission = SuperuserOrStaffFeatureFlaggedPermission()
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_permission(self) -> None:
         assert self.superuser_permission.has_permission(self.superuser_request, APIView())
 
+    @override_options({"staff.ga-rollout": True})
     def test_staff_permission(self) -> None:
         assert self.staff_permission.has_permission(self.staff_request, APIView())
 
@@ -34,6 +36,7 @@ class PermissionsTest(DRFPermissionTestCase):
         # With active staff
         assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, APIView())
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_or_staff_feature_flagged_permission_inactive_option(self) -> None:
         # With active staff
         assert not self.superuser_staff_flagged_permission.has_permission(

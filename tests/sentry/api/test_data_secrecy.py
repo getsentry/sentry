@@ -15,6 +15,7 @@ class DataSecrecyTestCase(APITestCase):
         self.organization.save()
 
     @with_feature("organizations:data-secrecy")
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_no_access(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
@@ -24,21 +25,24 @@ class DataSecrecyTestCase(APITestCase):
             self.get_error_response(self.organization.slug, status_code=401)
 
     @with_feature("organizations:data-secrecy")
-    def test_superuser_has_access(self) -> None:
+    @override_options({"staff.ga-rollout": True})
+    def test_staff_has_access(self) -> None:
         self.organization.flags.prevent_superuser_access = False
         self.organization.save()
-        superuser = self.create_user(is_superuser=True)
-        self.login_as(superuser, superuser=True)
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user, staff=True)
 
-        # superuser can access orgs without data secrecy
+        # staff can access orgs without data secrecy
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.get_success_response(self.organization.slug)
 
+    @override_options({"staff.ga-rollout": True})
     def test_non_member_no_access(self) -> None:
         self.login_as(self.create_user())
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.get_error_response(self.organization.slug, status_code=403)
 
+    @override_options({"staff.ga-rollout": True})
     def test_member_has_access(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.get_success_response(self.organization.slug)
