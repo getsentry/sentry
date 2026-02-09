@@ -101,6 +101,7 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
                 if item:
                     serialized_group["explorerPrData"] = {
                         "runId": item["run_id"],
+                        "userId": item["user_id"],
                         "createdAt": item["created_at"],
                         "repoPrStates": {
                             repo_name: {
