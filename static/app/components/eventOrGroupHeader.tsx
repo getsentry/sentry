@@ -29,7 +29,7 @@ interface EventOrGroupHeaderProps {
   hideLevel?: boolean;
   /**
    * Extra query params to include in the issue details link.
-   * Useful for feature-specific deep-linking (e.g. includeUptime=1).
+   * Useful for feature-specific deep-linking.
    */
   issueLinkExtraQuery?: Record<string, any>;
   /** Group link clicked */

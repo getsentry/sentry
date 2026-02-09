@@ -57,7 +57,8 @@ type Props = {
    */
   endpointPath?: string;
   /**
-   * Extra query params to include in the issue details link for each row.
+   * Extra query params to include in the issue details link.
+   * Useful for feature-specific deep-linking.
    */
   issueLinkExtraQuery?: Record<string, any>;
   onFetchSuccess?: (
