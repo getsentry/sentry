@@ -407,7 +407,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         resp = self.client.put(self.path, {"raw": "*.js #other-team"})
         assert resp.status_code == 400
-        assert "do not have permission" in str(resp.data["raw"][0])
+        assert "can only assign teams you are a member of" in str(resp.data["raw"][0]).lower()
 
         ownership = ProjectOwnership.objects.filter(project=self.project).first()
         assert ownership is None or ownership.raw is None
@@ -447,4 +447,68 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
         assert resp.status_code == 400
-        assert "do not have permission" in str(resp.data["raw"][0])
+        assert "can only assign teams you are a member of" in str(resp.data["raw"][0]).lower()
+
+    def test_open_membership_allows_any_team(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can add ownership rules
+        for teams they are not members of.
+        """
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.member_user)
+
+        # Member should be able to assign ownership to team they're not a member of
+        resp = self.client.put(self.path, {"raw": "*.js #other-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #other-team"
+
+    def test_open_membership_allows_mixed_teams(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can save ownership rules
+        that reference multiple teams, even if they're not members of all of them.
+        This is the main regression test for the reported issue.
+        """
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        third_team = self.create_team(organization=self.organization, slug="third-team", members=[])
+        self.project.add_team(other_team)
+        self.project.add_team(third_team)
+
+        self.login_as(user=self.member_user)
+
+        # Member should be able to save rules with multiple teams
+        resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team #third-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #tiger-team #other-team #third-team"
+
+    def test_open_membership_allows_no_changes_save(self) -> None:
+        """
+        Test that when Open Team Membership is enabled, members can re-save existing
+        ownership rules without making changes, even if the rules reference teams they're
+        not members of. This is the specific scenario from the bug report.
+        """
+        # Setup: Admin creates rules with multiple teams
+        other_team = self.create_team(organization=self.organization, slug="other-team", members=[])
+        self.project.add_team(other_team)
+
+        self.login_as(user=self.user)
+        self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
+
+        # Enable Open Team Membership
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        # Member (only in tiger-team) should be able to save without changes
+        self.login_as(user=self.member_user)
+        resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
+        assert resp.status_code == 200
+        assert resp.data["raw"] == "*.js #tiger-team #other-team"

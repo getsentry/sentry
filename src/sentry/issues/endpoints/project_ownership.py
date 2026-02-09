@@ -68,7 +68,12 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     def _validate_team_ownership(self, rules):
         """
         Validate that the user has permission to assign ownership to the teams
-        referenced in the rules. Users must either have team:admin scope or be
+        referenced in the rules.
+        
+        Validation is skipped if:
+        - Open Team Membership is enabled for the organization (users can join any team)
+        
+        Otherwise, users must either have team:admin scope or be
         a member of each team they're assigning ownership to.
         """
         team_slugs = {
@@ -78,6 +83,14 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             if owner.get("type") == "team"
         }
         if not team_slugs:
+            return
+
+        project = self.context["ownership"].project
+        organization = project.organization
+
+        # If Open Team Membership is enabled, users can assign any team
+        # since they could join any team anyway
+        if organization.flags.allow_joinleave:
             return
 
         request = self.context.get("request")
@@ -90,10 +103,9 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         user = getattr(request, "user", None) if request else None
         if not user or not user.is_authenticated:
             raise serializers.ValidationError(
-                {"raw": "You do not have permission to assign ownership to one or more teams."}
+                {"raw": "You can only assign teams you are a member of."}
             )
 
-        project = self.context["ownership"].project
         user_team_count = OrganizationMemberTeam.objects.filter(
             team__slug__in=team_slugs,
             team__projectteam__project=project,
@@ -103,7 +115,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 
         if user_team_count < len(team_slugs):
             raise serializers.ValidationError(
-                {"raw": "You do not have permission to assign ownership to one or more teams."}
+                {"raw": "You can only assign teams you are a member of."}
             )
 
     def get_max_length(self):
