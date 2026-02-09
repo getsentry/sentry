@@ -128,11 +128,19 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
       ...error.dataSource,
     };
   }
-  if ('dataSources' in error && typeof error.dataSources === 'object') {
-    return {
-      ...error,
-      ...error.dataSources,
-    };
+  if ('dataSources' in error) {
+    if (Array.isArray(error.dataSources)) {
+      return {
+        ...error,
+        ...error.dataSources[0],
+      };
+    }
+    if (typeof error.dataSources === 'object') {
+      return {
+        ...error,
+        ...error.dataSources,
+      };
+    }
   }
   return error;
 };
