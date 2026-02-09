@@ -128,7 +128,9 @@ export function CategoricalSeriesWidgetVisualization(
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
     const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
 
-    const trimmed = shouldTrimAffixes ? trimCommonAffixes(allCategories) : allCategories;
+    const trimmed = shouldTrimAffixes
+      ? trimCommonAffixes(allCategories, {separator: '/'})
+      : allCategories;
 
     const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
     const truncateLength =
