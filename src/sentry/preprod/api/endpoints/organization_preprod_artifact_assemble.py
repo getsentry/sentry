@@ -51,7 +51,6 @@ def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
         "head_sha": head_sha,
         "head_repo_name": data.get("head_repo_name"),
         "provider": data.get("provider"),
-        "head_ref": data.get("head_ref"),
     }
 
     if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
