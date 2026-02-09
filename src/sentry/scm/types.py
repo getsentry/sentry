@@ -1,14 +1,12 @@
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol, TypedDict
 
+type Action = Literal["check_run", "comment", "pull_request"]
 type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
-type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type ExternalId = str
-# Normalized reaction identifiers shared across all SCM providers.
+type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type Reaction = Literal["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"]
-# Identifies the caller so providers can apply per-referrer rate-limit policies.
 type Referrer = Literal["emerge", "shared"]
-# A repository can be identified by its internal DB id or by a (provider, external_id) pair.
 type RepositoryId = int | tuple[ProviderName, ExternalId]
 
 

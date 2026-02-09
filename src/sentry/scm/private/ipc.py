@@ -16,20 +16,19 @@ import msgspec
 import sentry_sdk
 
 from sentry.scm.types import (
+    CheckRunAction,
     CheckRunEvent,
+    CommentAction,
     CommentEvent,
+    CommentType,
     ProviderName,
+    PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import scm_tasks
-
-
-def x() -> CheckRunEvent: ...
-def y() -> CommentEvent: ...
-def z() -> PullRequestEvent: ...
 
 
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -45,6 +44,136 @@ class SubscriptionEventSentryMetaParser(msgspec.Struct, gc=False, frozen=True):
     id: int | None
     integration_id: int
     organization_id: int
+
+
+class AuthorParser(msgspec.Struct, gc=False, frozen=True):
+    id: str
+    username: str
+
+
+class CheckRunEventDataParser(msgspec.Struct, gc=False, frozen=True):
+    external_id: str
+    html_url: str
+
+
+class CheckRunEventParser(msgspec.Struct, gc=False, frozen=True):
+    action: CheckRunAction
+    check_run: CheckRunEventDataParser
+    subscription_event: SubscriptionEventParser
+
+
+class CommentEventDataParser(msgspec.Struct, gc=False, frozen=True):
+    id: str
+    body: str | None
+    author: AuthorParser | None
+
+
+class CommentEventParser(msgspec.Struct, gc=False, frozen=True):
+    action: CommentAction
+    comment_type: CommentType
+    comment: CommentEventDataParser
+    subscription_event: SubscriptionEventParser
+
+
+class PullRequestBranchParser(msgspec.Struct, gc=False, frozen=True):
+    sha: str
+
+
+class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):
+    id: str
+    title: str
+    description: str | None
+    head: PullRequestBranchParser
+    base: PullRequestBranchParser
+    is_private_repo: bool
+    author: AuthorParser | None
+
+
+class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
+    action: PullRequestAction
+    pull_request: PullRequestEventDataParser
+    subscription_event: SubscriptionEventParser
+
+
+check_run_event_decoder = msgspec.msgpack.Decoder(CheckRunEventParser)
+comment_event_decoder = msgspec.msgpack.Decoder(CommentEventParser)
+pull_request_event_decoder = msgspec.msgpack.Decoder(PullRequestEventParser)
+
+
+def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEvent:
+    return {
+        "event": parsed.event,
+        "event_type_hint": parsed.event_type_hint,
+        "extra": parsed.extra,
+        "received_at": parsed.received_at,
+        "sentry_meta": (
+            [
+                {
+                    "id": item.id,
+                    "integration_id": item.integration_id,
+                    "organization_id": item.organization_id,
+                }
+                for item in parsed.sentry_meta
+            ]
+            if parsed.sentry_meta
+            else None
+        ),
+        "type": parsed.type,
+    }
+
+
+def deserialize_check_run_event(event_bytes: bytes) -> CheckRunEvent:
+    parsed = check_run_event_decoder.decode(event_bytes)
+    return CheckRunEvent(
+        action=parsed.action,
+        check_run={
+            "external_id": parsed.check_run.external_id,
+            "html_url": parsed.check_run.html_url,
+        },
+        subscription_event=_map_subscription_event(parsed.subscription_event),
+    )
+
+
+def deserialize_comment_event(event_bytes: bytes) -> CommentEvent:
+    parsed = comment_event_decoder.decode(event_bytes)
+    return CommentEvent(
+        action=parsed.action,
+        comment_type=parsed.comment_type,
+        comment={
+            "id": parsed.comment.id,
+            "body": parsed.comment.body,
+            "author": (
+                {"id": parsed.comment.author.id, "username": parsed.comment.author.username}
+                if parsed.comment.author
+                else None
+            ),
+        },
+        subscription_event=_map_subscription_event(parsed.subscription_event),
+    )
+
+
+def deserialize_pull_request_event(event_bytes: bytes) -> PullRequestEvent:
+    parsed = pull_request_event_decoder.decode(event_bytes)
+    return PullRequestEvent(
+        action=parsed.action,
+        pull_request={
+            "id": parsed.pull_request.id,
+            "title": parsed.pull_request.title,
+            "description": parsed.pull_request.description,
+            "head": {"sha": parsed.pull_request.head.sha},
+            "base": {"sha": parsed.pull_request.base.sha},
+            "is_private_repo": parsed.pull_request.is_private_repo,
+            "author": (
+                {
+                    "id": parsed.pull_request.author.id,
+                    "username": parsed.pull_request.author.username,
+                }
+                if parsed.pull_request.author
+                else None
+            ),
+        },
+        subscription_event=_map_subscription_event(parsed.subscription_event),
+    )
 
 
 decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
