@@ -43,6 +43,85 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+GET_PULL_REQUEST_COMMENTS_QUERY = """
+query GetPullRequestComments(
+    $owner: String!,
+    $repo: String!,
+    $prNumber: Int!,
+    $commentsAfter: String,
+    $includeComments: Boolean!,
+    $reviewThreadsAfter: String,
+    $includeThreads: Boolean!
+) {
+    repository(owner: $owner, name: $repo) {
+        pullRequest(number: $prNumber) {
+            comments(first: 100, after: $commentsAfter) @include(if: $includeComments) {
+                nodes {
+                    id
+                    body
+                    isMinimized
+                    author { login __typename }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+            reviewThreads(first: 100, after: $reviewThreadsAfter) @include(if: $includeThreads) {
+                nodes {
+                    id
+                    isCollapsed
+                    isOutdated
+                    isResolved
+                    comments(last: 100) {
+                        nodes {
+                            id
+                            fullDatabaseId
+                            url
+                            body
+                            isMinimized
+                            path
+                            startLine
+                            line
+                            diffHunk
+                            createdAt
+                            updatedAt
+                            reactions(last: 10) {
+                                nodes { content }
+                                totalCount
+                            }
+                            author { login __typename }
+                        }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+
+MINIMIZE_COMMENT_MUTATION = """
+mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) {
+    minimizeComment(input: {subjectId: $commentId, classifier: $reason}) {
+        minimizedComment { isMinimized }
+    }
+}
+"""
+
+RESOLVE_REVIEW_THREAD_MUTATION = """
+mutation ResolveReviewThread($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+        thread { isResolved }
+    }
+}
+"""
+
+DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION = """
+mutation DeletePullRequestReviewComment($commentNodeId: ID!) {
+    deletePullRequestReviewComment(input: {id: $commentNodeId}) {
+        clientMutationId
+    }
+}
+"""
+
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
@@ -821,6 +900,52 @@ class GitHubBaseClient(
                 raise ApiError(err_message)
 
         return response.get("data", {})
+
+    def get_pull_request_comments_graphql(
+        self,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        *,
+        comments_after: str | None = None,
+        include_comments: bool = True,
+        review_threads_after: str | None = None,
+        include_threads: bool = True,
+    ) -> dict[str, Any]:
+        """Fetch PR comments and review threads via GraphQL with independent pagination."""
+        variables: dict[str, Any] = {
+            "owner": owner,
+            "repo": repo,
+            "prNumber": pr_number,
+            "includeComments": include_comments,
+            "includeThreads": include_threads,
+        }
+        if comments_after is not None:
+            variables["commentsAfter"] = comments_after
+        if review_threads_after is not None:
+            variables["reviewThreadsAfter"] = review_threads_after
+        return self._graphql(GET_PULL_REQUEST_COMMENTS_QUERY, variables)
+
+    def minimize_comment(self, comment_node_id: str, reason: str) -> dict[str, Any]:
+        """Minimize (collapse) a comment by its GraphQL node ID."""
+        return self._graphql(
+            MINIMIZE_COMMENT_MUTATION,
+            {"commentId": comment_node_id, "reason": reason},
+        )
+
+    def resolve_review_thread(self, thread_node_id: str) -> dict[str, Any]:
+        """Resolve a review thread by its GraphQL node ID."""
+        return self._graphql(
+            RESOLVE_REVIEW_THREAD_MUTATION,
+            {"threadId": thread_node_id},
+        )
+
+    def delete_pull_request_review_comment(self, comment_node_id: str) -> dict[str, Any]:
+        """Delete a pull request review comment by its GraphQL node ID."""
+        return self._graphql(
+            DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION,
+            {"commentNodeId": comment_node_id},
+        )
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

@@ -331,6 +331,120 @@ def make_github_check_run(
     }
 
 
+def make_github_graphql_issue_comment(
+    node_id: str = "IC_abc123",
+    body: str = "Test issue comment",
+    is_minimized: bool = False,
+    author_login: str = "testuser",
+    author_typename: str = "User",
+) -> dict[str, Any]:
+    """Factory for GraphQL issue comment nodes."""
+    return {
+        "id": node_id,
+        "body": body,
+        "isMinimized": is_minimized,
+        "author": {"login": author_login, "__typename": author_typename},
+    }
+
+
+def make_github_graphql_review_thread_comment(
+    node_id: str = "PRRC_abc123",
+    full_database_id: int | None = 12345,
+    url: str = "https://github.com/test-org/test-repo/pull/1#discussion_r100",
+    body: str = "Review thread comment",
+    is_minimized: bool = False,
+    path: str | None = "src/main.py",
+    start_line: int | None = 1,
+    line: int | None = 5,
+    diff_hunk: str | None = "@@ -1,3 +1,4 @@",
+    created_at: str | None = "2026-02-04T10:00:00Z",
+    updated_at: str | None = "2026-02-04T10:00:00Z",
+    reactions: list[dict[str, Any]] | None = None,
+    reactions_total_count: int = 0,
+    author_login: str = "reviewer",
+    author_typename: str = "User",
+) -> dict[str, Any]:
+    """Factory for GraphQL review thread comment nodes."""
+    return {
+        "id": node_id,
+        "fullDatabaseId": full_database_id,
+        "url": url,
+        "body": body,
+        "isMinimized": is_minimized,
+        "path": path,
+        "startLine": start_line,
+        "line": line,
+        "diffHunk": diff_hunk,
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+        "reactions": {
+            "nodes": reactions if reactions is not None else [],
+            "totalCount": reactions_total_count,
+        },
+        "author": {"login": author_login, "__typename": author_typename},
+    }
+
+
+def make_github_graphql_review_thread(
+    node_id: str = "PRT_abc123",
+    is_collapsed: bool = False,
+    is_outdated: bool = False,
+    is_resolved: bool = False,
+    comments: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Factory for GraphQL review thread nodes."""
+    return {
+        "id": node_id,
+        "isCollapsed": is_collapsed,
+        "isOutdated": is_outdated,
+        "isResolved": is_resolved,
+        "comments": {
+            "nodes": (
+                comments if comments is not None else [make_github_graphql_review_thread_comment()]
+            ),
+        },
+    }
+
+
+def make_github_graphql_pr_comments_response(
+    issue_comments: list[dict[str, Any]] | None = None,
+    review_threads: list[dict[str, Any]] | None = None,
+    comments_has_next_page: bool = False,
+    comments_end_cursor: str | None = None,
+    threads_has_next_page: bool = False,
+    threads_end_cursor: str | None = None,
+) -> dict[str, Any]:
+    """Factory for a full GraphQL PR comments response (the 'data' dict)."""
+    return {
+        "repository": {
+            "pullRequest": {
+                "comments": {
+                    "nodes": (
+                        issue_comments
+                        if issue_comments is not None
+                        else [make_github_graphql_issue_comment()]
+                    ),
+                    "pageInfo": {
+                        "hasNextPage": comments_has_next_page,
+                        "endCursor": comments_end_cursor,
+                    },
+                },
+                "reviewThreads": {
+                    "nodes": (
+                        review_threads
+                        if review_threads is not None
+                        else [make_github_graphql_review_thread()]
+                    ),
+                    "pageInfo": {
+                        "hasNextPage": threads_has_next_page,
+                        "endCursor": threads_end_cursor,
+                    },
+                },
+            }
+        }
+    }
+
+
 class BaseTestProvider(Provider):
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
@@ -864,6 +978,17 @@ class BaseTestProvider(Provider):
             raw=raw,
         )
 
+    # GraphQL mutation operations
+
+    def minimize_comment(self, repository: Repository, comment_node_id: str, reason: str) -> None:
+        return None
+
+    def resolve_review_thread(self, repository: Repository, thread_node_id: str) -> None:
+        return None
+
+    def delete_review_comment_graphql(self, repository: Repository, comment_node_id: str) -> None:
+        return None
+
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -876,7 +1001,10 @@ class FakeGitHubApiClient(GitHubApiClient):
     def __init__(self) -> None:
         super().__init__(integration=MagicMock(spec=Integration))
         self.issue_comments: list[dict[str, Any]] = []
-        self.pull_request_comments: list[dict[str, Any]] = []
+        self.graphql_pr_comments_data: dict[str, Any] | None = None
+        self.minimize_comment_data: dict[str, Any] | None = None
+        self.resolve_thread_data: dict[str, Any] | None = None
+        self.delete_review_comment_data: dict[str, Any] | None = None
         self.pull_request_data: dict[str, Any] | None = None
         self.comment_reactions: list[dict[str, Any]] = []
         self.issue_reactions: list[dict[str, Any]] = []
@@ -921,10 +1049,52 @@ class FakeGitHubApiClient(GitHubApiClient):
             return make_github_pull_request()
         return self.pull_request_data
 
-    def get_pull_request_comments(self, repo: str, pull_number: str) -> list[dict[str, Any]]:
-        self._record_call("get_pull_request_comments", repo, pull_number)
+    def get_pull_request_comments_graphql(
+        self,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        *,
+        comments_after: str | None = None,
+        include_comments: bool = True,
+        review_threads_after: str | None = None,
+        include_threads: bool = True,
+    ) -> dict[str, Any]:
+        self._record_call(
+            "get_pull_request_comments_graphql",
+            owner,
+            repo,
+            pr_number,
+            comments_after=comments_after,
+            include_comments=include_comments,
+            review_threads_after=review_threads_after,
+            include_threads=include_threads,
+        )
         self._maybe_raise()
-        return self.pull_request_comments
+        if self.graphql_pr_comments_data is not None:
+            return self.graphql_pr_comments_data
+        return make_github_graphql_pr_comments_response()
+
+    def minimize_comment(self, comment_node_id: str, reason: str) -> dict[str, Any]:
+        self._record_call("minimize_comment", comment_node_id, reason)
+        self._maybe_raise()
+        if self.minimize_comment_data is not None:
+            return self.minimize_comment_data
+        return {"minimizeComment": {"minimizedComment": {"isMinimized": True}}}
+
+    def resolve_review_thread(self, thread_node_id: str) -> dict[str, Any]:
+        self._record_call("resolve_review_thread", thread_node_id)
+        self._maybe_raise()
+        if self.resolve_thread_data is not None:
+            return self.resolve_thread_data
+        return {"resolveReviewThread": {"thread": {"isResolved": True}}}
+
+    def delete_pull_request_review_comment(self, comment_node_id: str) -> dict[str, Any]:
+        self._record_call("delete_pull_request_review_comment", comment_node_id)
+        self._maybe_raise()
+        if self.delete_review_comment_data is not None:
+            return self.delete_review_comment_data
+        return {"deletePullRequestReviewComment": {"clientMutationId": None}}
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> dict[str, Any]:
         self._record_call("create_comment", repo, issue_id, data)

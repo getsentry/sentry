@@ -245,6 +245,36 @@ def _transform_check_run(raw: dict[str, Any]) -> CheckRunActionResult:
     )
 
 
+def _transform_graphql_author(raw_author: dict[str, Any] | None) -> Author | None:
+    if raw_author is None:
+        return None
+    return Author(id=raw_author.get("login", ""), username=raw_author.get("login", ""))
+
+
+def _transform_graphql_comment(raw: dict[str, Any]) -> CommentActionResult:
+    return CommentActionResult(
+        comment=Comment(
+            id=raw["id"],
+            body=raw.get("body", ""),
+            author=_transform_graphql_author(raw.get("author")),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_graphql_pr_comments(raw: dict[str, Any]) -> list[CommentActionResult]:
+    """Flatten GraphQL issue comments and review thread comments into a single list."""
+    pr_data = raw.get("repository", {}).get("pullRequest", {})
+    results: list[CommentActionResult] = []
+    for node in pr_data.get("comments", {}).get("nodes", []):
+        results.append(_transform_graphql_comment(node))
+    for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
+        for node in thread.get("comments", {}).get("nodes", []):
+            results.append(_transform_graphql_comment(node))
+    return results
+
+
 def _transform_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:
     return PullRequestFile(
         filename=raw_file["filename"],
@@ -333,13 +363,16 @@ class GitHubProvider(Provider):
     def get_pull_request_comments(
         self, repository: Repository, pull_request_id: str
     ) -> list[CommentActionResult]:
+        owner, repo = repository["name"].split("/", 1)
         try:
-            raw_comments = self.client.get_pull_request_comments(
-                repository["name"], pull_request_id
+            raw = self.client.get_pull_request_comments_graphql(
+                owner,
+                repo,
+                int(pull_request_id),
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return [_transform_comment(c) for c in raw_comments]
+        return _transform_graphql_pr_comments(raw)
 
     def create_pull_request_comment(
         self, repository: Repository, pull_request_id: str, body: str
@@ -517,7 +550,6 @@ class GitHubProvider(Provider):
         self,
         repository: Repository,
         tree: list[InputTreeEntry],
-        *,
         base_tree: str | None = None,
     ) -> GitTreeActionResult:
         data: dict[str, Any] = {"tree": tree}
@@ -603,7 +635,6 @@ class GitHubProvider(Provider):
         body: str,
         head: str,
         base: str,
-        *,
         draft: bool = False,
     ) -> PullRequestActionResult:
         data: dict[str, Any] = {
@@ -623,7 +654,6 @@ class GitHubProvider(Provider):
         self,
         repository: Repository,
         pull_request_id: str,
-        *,
         title: str | None = None,
         body: str | None = None,
         state: str | None = None,
@@ -660,7 +690,6 @@ class GitHubProvider(Provider):
         body: str,
         commit_sha: str,
         path: str,
-        *,
         line: int | None = None,
         side: str | None = None,
         start_line: int | None = None,
@@ -692,7 +721,6 @@ class GitHubProvider(Provider):
         commit_sha: str,
         event: str,
         comments: list[ReviewCommentInput],
-        *,
         body: str | None = None,
     ) -> ReviewActionResult:
         data: dict[str, Any] = {
@@ -715,7 +743,6 @@ class GitHubProvider(Provider):
         repository: Repository,
         name: str,
         head_sha: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         external_id: str | None = None,
@@ -760,7 +787,6 @@ class GitHubProvider(Provider):
         self,
         repository: Repository,
         check_run_id: str,
-        *,
         status: str | None = None,
         conclusion: str | None = None,
         output: CheckRunOutput | None = None,
@@ -777,3 +803,23 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return _transform_check_run(raw)
+
+    # GraphQL mutation operations
+
+    def minimize_comment(self, repository: Repository, comment_node_id: str, reason: str) -> None:
+        try:
+            self.client.minimize_comment(comment_node_id, reason)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+
+    def resolve_review_thread(self, repository: Repository, thread_node_id: str) -> None:
+        try:
+            self.client.resolve_review_thread(thread_node_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+
+    def delete_review_comment_graphql(self, repository: Repository, comment_node_id: str) -> None:
+        try:
+            self.client.delete_pull_request_review_comment(comment_node_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e

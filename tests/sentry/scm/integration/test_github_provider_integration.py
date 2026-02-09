@@ -171,41 +171,49 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_pull_request_comments(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1/comments",
-            json=[
-                {
-                    "url": f"https://api.github.com/repos/{REPO_NAME}/pulls/comments/1",
-                    "pull_request_review_id": 42,
-                    "id": 10,
-                    "node_id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDEw",
-                    "diff_hunk": "@@ -16,33 +16,40 @@ public class Connection : IConnection...",
-                    "path": "file1.txt",
-                    "commit_id": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
-                    "user": {
-                        "login": "octocat",
-                        "id": 1,
-                        "node_id": "MDQ6VXNlcjE=",
-                        "avatar_url": "https://github.com/images/error/octocat_happy.gif",
-                        "type": "User",
-                        "site_admin": False,
-                    },
-                    "body": "Great stuff!",
-                    "created_at": "2011-04-14T16:00:49Z",
-                    "updated_at": "2011-04-14T16:00:49Z",
-                    "html_url": f"https://github.com/{REPO_NAME}/pull/1#discussion-diff-1",
-                    "pull_request_url": f"https://api.github.com/repos/{REPO_NAME}/pulls/1",
-                    "author_association": "NONE",
-                },
-            ],
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {"limit": 5000, "remaining": 4999, "reset": 9999999999, "used": 1}
+                }
+            },
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {
+                    "repository": {
+                        "pullRequest": {
+                            "comments": {
+                                "nodes": [
+                                    {
+                                        "id": "IC_10",
+                                        "body": "Great stuff!",
+                                        "isMinimized": False,
+                                        "author": {"login": "octocat", "__typename": "User"},
+                                    }
+                                ],
+                                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            },
+                            "reviewThreads": {
+                                "nodes": [],
+                                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            },
+                        }
+                    }
+                }
+            },
         )
 
-        comments = self.provider.get_pull_request_comments(self.repository, "1")
+        result = self.provider.get_pull_request_comments(self.repository, "1")
 
-        assert len(comments) == 1
-        assert comments[0]["comment"]["id"] == "10"
-        assert comments[0]["comment"]["body"] == "Great stuff!"
-        assert comments[0]["comment"]["author"] is not None
-        assert comments[0]["comment"]["author"]["username"] == "octocat"
+        assert len(result) == 1
+        assert result[0]["comment"]["id"] == "IC_10"
+        assert result[0]["comment"]["body"] == "Great stuff!"
+        assert result[0]["comment"]["author"] is not None
+        assert result[0]["comment"]["author"]["username"] == "octocat"
+        assert result[0]["provider"] == "github"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

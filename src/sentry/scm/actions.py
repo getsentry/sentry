@@ -372,3 +372,14 @@ class SourceCodeManager:
                 r, check_run_id, status=status, conclusion=conclusion, output=output
             )
         )
+
+    # GraphQL mutation operations
+
+    def minimize_comment(self, comment_node_id: str, reason: str) -> None:
+        return self._exec(lambda r, p: p.minimize_comment(r, comment_node_id, reason))
+
+    def resolve_review_thread(self, thread_node_id: str) -> None:
+        return self._exec(lambda r, p: p.resolve_review_thread(r, thread_node_id))
+
+    def delete_review_comment_graphql(self, comment_node_id: str) -> None:
+        return self._exec(lambda r, p: p.delete_review_comment_graphql(r, comment_node_id))

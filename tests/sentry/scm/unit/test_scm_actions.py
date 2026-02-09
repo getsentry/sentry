@@ -99,6 +99,10 @@ ALL_ACTIONS = (
     ("create_check_run", {"name": "check", "head_sha": "abc"}),
     ("get_check_run", {"check_run_id": "300"}),
     ("update_check_run", {"check_run_id": "300"}),
+    # GraphQL mutation operations
+    ("minimize_comment", {"comment_node_id": "IC_abc", "reason": "OUTDATED"}),
+    ("resolve_review_thread", {"thread_node_id": "PRT_abc"}),
+    ("delete_review_comment_graphql", {"comment_node_id": "PRRC_abc"}),
 )
 
 
@@ -500,6 +504,21 @@ ACTION_TESTS = (
         SourceCodeManager.update_check_run,
         {"check_run_id": "300"},
         _check_update_check_run,
+    ),
+    (
+        SourceCodeManager.minimize_comment,
+        {"comment_node_id": "IC_abc", "reason": "OUTDATED"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.resolve_review_thread,
+        {"thread_node_id": "PRT_abc"},
+        _check_none,
+    ),
+    (
+        SourceCodeManager.delete_review_comment_graphql,
+        {"comment_node_id": "PRRC_abc"},
+        _check_none,
     ),
 )
 

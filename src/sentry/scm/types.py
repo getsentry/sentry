@@ -524,3 +524,24 @@ class Provider(Protocol):
         conclusion: str | None = None,
         output: CheckRunOutput | None = None,
     ) -> CheckRunActionResult: ...
+
+    # GraphQL operations
+
+    def minimize_comment(
+        self,
+        repository: Repository,
+        comment_node_id: str,
+        reason: str,
+    ) -> None: ...
+
+    def resolve_review_thread(
+        self,
+        repository: Repository,
+        thread_node_id: str,
+    ) -> None: ...
+
+    def delete_review_comment_graphql(
+        self,
+        repository: Repository,
+        comment_node_id: str,
+    ) -> None: ...
