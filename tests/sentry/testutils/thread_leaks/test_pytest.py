@@ -12,6 +12,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 log_test_info = builtins.print
 
 
+@pytest.mark.tier2
 @pytest.mark.usefixtures("thread_leak_test_environment")
 class TestSentryCapture:
     """Test the Sentry event capture functionality for thread leaks."""

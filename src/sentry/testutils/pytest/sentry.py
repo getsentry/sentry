@@ -439,7 +439,7 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
 
 
 def _needs_snuba(item: pytest.Item) -> bool:
-    """Check if a test item requires Snuba (ClickHouse).
+    """Check if a test item requires Snuba (ClickHouse) or the full backend-ci stack.
 
     Tests can declare Snuba dependency via:
     - @pytest.mark.snuba (on SnubaTestCase and subclasses)
@@ -448,8 +448,10 @@ def _needs_snuba(item: pytest.Item) -> bool:
       (Kafka consumers write to ClickHouse; these tests then read it back)
     - pytestmark = [requires_snuba] or [requires_kafka] (module-level)
     - Inheriting from RelayStoreHelper (reads from ClickHouse via eventstore)
+    - @pytest.mark.tier2 (escape hatch for tests that need the full stack
+      for non-Snuba reasons, e.g. environment-sensitive initialization)
     """
-    if any(mark.name == "snuba" for mark in item.iter_markers()):
+    if any(mark.name in ("snuba", "tier2") for mark in item.iter_markers()):
         return True
     for mark in item.iter_markers("usefixtures"):
         if "_requires_snuba" in mark.args or "_requires_kafka" in mark.args:
