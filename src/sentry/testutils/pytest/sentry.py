@@ -35,6 +35,17 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def _get_xdist_redis_db() -> int:
+    """Under xdist, each worker uses a unique Redis DB to prevent cross-contamination
+    from flushdb() calls in pytest_runtest_teardown. Without this, one worker's
+    teardown wipes another worker's snowflake ID counters, rate limiter state, and caches."""
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker_id:
+        worker_num = int(worker_id.replace("gw", ""))
+        return TEST_REDIS_DB + worker_num
+    return TEST_REDIS_DB
+
+
 def _use_monolith_dbs() -> bool:
     return os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
@@ -69,10 +80,27 @@ def _configure_test_env_regions() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # Under xdist, all workers must generate the same region name for consistent
+    # test collection. PYTEST_XDIST_TESTRUNUID is shared across all workers per
+    # session but unique per run, so it works as a deterministic seed.
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+
+    # Under xdist, each worker gets a unique region snowflake_id so that
+    # snowflake-based model IDs (Project, Organization, Team) are globally
+    # unique across workers. The REGION_ID segment is 12 bits (0-4095) in the
+    # snowflake schema, so there's plenty of room for xdist workers.
+    # The region *name* stays the same (for deterministic test collection);
+    # only snowflake_id differs (used solely during ID generation).
+    xdist_worker = os.environ.get("PYTEST_XDIST_WORKER")
+    region_snowflake_id = int(xdist_worker.replace("gw", "")) + 1 if xdist_worker else 0
 
     default_region = Region(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -94,6 +122,20 @@ def _configure_test_env_regions() -> None:
     settings.APIGATEWAY_PROXY_SKIP_RELAY = True
 
     monkey_patch_single_process_silo_mode_state()
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--xdist-group",
+        choices=("parallel", "serial"),
+        default=None,
+        help=(
+            "Split tests into xdist-compatible groups. "
+            "'parallel' selects tests that do NOT trigger reset_snuba (TRUNCATE TABLE) — "
+            "safe for xdist parallelism. "
+            "'serial' selects tests that DO trigger reset_snuba — must run single-threaded."
+        ),
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -203,7 +245,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": _get_xdist_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -417,6 +459,72 @@ def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     items[:] = new_items
 
 
+# Files with ClickHouse queries that are not properly scoped by project_id/org_id.
+# These tests fail under xdist when reset_snuba (TRUNCATE TABLE) is skipped because
+# they see stale data from other xdist workers. They must run single-threaded with
+# normal reset_snuba cleanup.
+#
+# This list should shrink over time as tests are fixed to scope their queries.
+FORCE_SERIAL_FILES: set[str] = {
+    # Category A: Metrics queries that aggregate broadly
+    "tests/sentry/releases/endpoints/test_organization_release_health_data.py",
+    "tests/sentry/sentry_metrics/querying/data/test_api.py",
+    "tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.py",
+    "tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py",
+    "tests/sentry/release_health/release_monitor/test_metrics.py",
+    # Category B: Dynamic sampling — intentionally broad org scanning
+    "tests/sentry/dynamic_sampling/tasks/test_common.py",
+    "tests/sentry/dynamic_sampling/tasks/test_tasks.py",
+    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_transactions.py",
+    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_projects.py",
+    # Category C: Report/summary tests
+    "tests/sentry/tasks/test_daily_summary.py",
+    "tests/sentry/tasks/test_weekly_reports.py",
+    "tests/sentry/rules/history/test_preview.py",
+    # Category D: Endpoint tests with broad queries (both sentry/ and snuba/ paths)
+    "tests/sentry/api/endpoints/test_organization_events_histogram.py",
+    "tests/sentry/api/endpoints/test_organization_events_trends.py",
+    "tests/sentry/api/endpoints/test_organization_root_cause_analysis.py",
+    "tests/sentry/replays/endpoints/test_organization_replay_index.py",
+    "tests/snuba/api/endpoints/test_organization_events_histogram.py",
+    "tests/snuba/api/endpoints/test_organization_events_trends.py",
+    # Category E: Event frequency rules — broad time-window queries
+    "tests/snuba/rules/conditions/test_event_frequency.py",
+    # Category F: Span counts — broad aggregation
+    "tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py",
+    # Category G: Release health tasks — FK issues under xdist
+    "tests/sentry/release_health/test_tasks.py",
+    # Category H: Suspect flags — broad ClickHouse aggregation
+    "tests/sentry/issues/test_suspect_flags.py",
+    # Category I: Sessions/metrics — broad aggregation across projects
+    "tests/snuba/api/endpoints/test_organization_sessions.py",
+    "tests/sentry/api/endpoints/test_organization_on_demand_metrics_estimation_stats.py",
+    # Category J: Vitals/velocity — broad event aggregation
+    "tests/snuba/api/endpoints/test_organization_events_vitals.py",
+    "tests/sentry/issues/escalating/test_issue_velocity.py",
+}
+
+# Entire directories forced to serial. Tests under relay_integration/ use
+# RelayStoreHelper to store events through the full Relay→Snuba pipeline and
+# read them back from ClickHouse. Without TRUNCATE, the read-back frequently
+# returns None or stale data.
+FORCE_SERIAL_DIRS: tuple[str, ...] = (
+    "tests/relay_integration/",
+)
+
+
+def _force_serial(item: pytest.Item) -> bool:
+    """Check if a test is in FORCE_SERIAL_FILES or under a FORCE_SERIAL_DIRS prefix.
+
+    These tests have broadly-scoped ClickHouse queries or relay pipeline issues
+    that cause failures when reset_snuba is skipped under xdist.
+    """
+    test_file = item.nodeid.split("::")[0]
+    if test_file in FORCE_SERIAL_FILES:
+        return True
+    return any(test_file.startswith(d) for d in FORCE_SERIAL_DIRS)
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -483,6 +591,32 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+    # Two-group split for xdist. Under xdist, reset_snuba is skipped (no-op)
+    # so tests rely on unique snowflake IDs for ClickHouse isolation instead of
+    # TRUNCATE TABLE. A small set of tests (FORCE_SERIAL_FILES) have broadly-scoped
+    # ClickHouse queries that break under this model — those must run serial.
+    #   --xdist-group=parallel: all tests EXCEPT FORCE_SERIAL_FILES (safe for -n N)
+    #   --xdist-group=serial:   only FORCE_SERIAL_FILES tests (single-threaded)
+    xdist_group = config.getoption("--xdist-group", default=None)
+    if xdist_group is not None:
+        parallel_items = []
+        serial_items = []
+        for item in items:
+            if _force_serial(item):
+                serial_items.append(item)
+            else:
+                parallel_items.append(item)
+
+        if xdist_group == "parallel":
+            items[:] = parallel_items
+            deselected = serial_items
+        else:  # "serial"
+            items[:] = serial_items
+            deselected = parallel_items
+
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
 
 
 def pytest_xdist_setupnodes() -> None:
