@@ -261,7 +261,10 @@ def _transform_graphql_author(raw_author: dict[str, Any] | None) -> Author | Non
     return Author(id=raw_author.get("login", ""), username=raw_author.get("login", ""))
 
 
-def _transform_graphql_comment(raw: dict[str, Any]) -> CommentActionResult:
+def _transform_graphql_comment(
+    raw: dict[str, Any], *, comment_type: str = "issue_comment"
+) -> CommentActionResult:
+    enriched_raw = {**raw, "comment_type": comment_type}
     return CommentActionResult(
         comment=Comment(
             id=raw["id"],
@@ -269,19 +272,35 @@ def _transform_graphql_comment(raw: dict[str, Any]) -> CommentActionResult:
             author=_transform_graphql_author(raw.get("author")),
         ),
         provider="github",
-        raw=raw,
+        raw=enriched_raw,
     )
 
 
 def _transform_graphql_pr_comments(raw: dict[str, Any]) -> list[CommentActionResult]:
-    """Flatten GraphQL issue comments and review thread comments into a single list."""
+    """Flatten GraphQL issue comments and review thread comments into a single list.
+
+    Review thread comments have their ``raw`` dict enriched with thread-level
+    metadata (``thread_id``, ``isResolved``, ``isOutdated``, ``isCollapsed``)
+    so callers can access it without a separate query.
+    """
     pr_data = raw.get("repository", {}).get("pullRequest", {})
     results: list[CommentActionResult] = []
+
     for node in pr_data.get("comments", {}).get("nodes", []):
-        results.append(_transform_graphql_comment(node))
+        results.append(_transform_graphql_comment(node, comment_type="issue_comment"))
+
     for thread in pr_data.get("reviewThreads", {}).get("nodes", []):
+        thread_meta = {
+            "thread_id": thread.get("id"),
+            "isResolved": thread.get("isResolved", False),
+            "isOutdated": thread.get("isOutdated", False),
+            "isCollapsed": thread.get("isCollapsed", False),
+        }
         for node in thread.get("comments", {}).get("nodes", []):
-            results.append(_transform_graphql_comment(node))
+            result = _transform_graphql_comment(node, comment_type="pull_request_review_comment")
+            result["raw"].update(thread_meta)
+            results.append(result)
+
     return results
 
 

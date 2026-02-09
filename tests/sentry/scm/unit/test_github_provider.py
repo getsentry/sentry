@@ -483,12 +483,19 @@ def _check_graphql_pr_comments(result: Any) -> None:
     assert result[0]["comment"]["author"] is not None
     assert result[0]["comment"]["author"]["username"] == "testuser"
     assert result[0]["provider"] == "github"
+    assert result[0]["raw"]["comment_type"] == "issue_comment"
     # Second: review thread comment
     assert result[1]["comment"]["id"] == "PRRC_abc123"
     assert result[1]["comment"]["body"] == "Review thread comment"
     assert result[1]["comment"]["author"] is not None
     assert result[1]["comment"]["author"]["username"] == "reviewer"
     assert result[1]["provider"] == "github"
+    assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
+    # Thread metadata injected into raw
+    assert result[1]["raw"]["thread_id"] == "PRT_abc123"
+    assert result[1]["raw"]["isResolved"] is False
+    assert result[1]["raw"]["isOutdated"] is False
+    assert result[1]["raw"]["isCollapsed"] is False
 
 
 def _check_pull_request(result: Any) -> None:
@@ -1325,8 +1332,32 @@ class TestGetPullRequestCommentsEdgeCases:
         assert len(result) == 2
         assert result[0]["comment"]["id"] == "IC_1"
         assert result[0]["comment"]["body"] == "issue comment"
+        assert result[0]["raw"]["comment_type"] == "issue_comment"
         assert result[1]["comment"]["id"] == "PRRC_1"
         assert result[1]["comment"]["body"] == "thread comment"
+        assert result[1]["raw"]["comment_type"] == "pull_request_review_comment"
+
+    def test_thread_metadata_injected_into_raw(self):
+        comment = make_github_graphql_review_thread_comment(node_id="PRRC_1")
+        thread = make_github_graphql_review_thread(
+            node_id="PRT_resolved",
+            is_resolved=True,
+            is_outdated=True,
+            is_collapsed=True,
+            comments=[comment],
+        )
+        raw = make_github_graphql_pr_comments_response(issue_comments=[], review_threads=[thread])
+        client = _make_client(graphql_pr_comments_data=raw)
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_pull_request_comments(repository, "42")
+
+        assert len(result) == 1
+        assert result[0]["raw"]["thread_id"] == "PRT_resolved"
+        assert result[0]["raw"]["isResolved"] is True
+        assert result[0]["raw"]["isOutdated"] is True
+        assert result[0]["raw"]["isCollapsed"] is True
 
     def test_splits_owner_repo_correctly(self):
         client = _make_client()
