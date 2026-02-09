@@ -116,7 +116,6 @@ class ProjectFilterAddReleaseTest(APITestCase):
         assert "release" in response.data
 
     def test_requires_authentication(self):
-        self.logout()
         project = self.create_project()
 
         self.get_error_response(
