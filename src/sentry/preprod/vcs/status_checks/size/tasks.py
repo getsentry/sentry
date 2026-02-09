@@ -263,7 +263,7 @@ def create_preprod_status_check_task(
         lock = locks.get(
             f"preprod:status-check:size-analysis:{commit_comparison.id}",
             duration=30,
-            name="preprod_status_check",
+            name="preprod_status_check_size_analysis",
         )
         try:
             with lock.blocking_acquire(initial_delay=0.1, timeout=5):
