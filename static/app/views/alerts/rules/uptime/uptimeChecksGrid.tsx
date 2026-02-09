@@ -301,6 +301,6 @@ const TraceCell = styled(Cell)`
   gap: ${space(1)};
 `;
 
-const StatusCell = styled(Cell)`
+const StatusCell = styled(Cell)<{color: string}>`
   color: ${p => p.color};
 `;
