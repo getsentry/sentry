@@ -85,11 +85,13 @@ export function createIssueLink({
   referrer,
   location,
   query,
+  extraQuery,
 }: {
   data: Event | Group | GroupTombstoneHelper;
   location: Location;
   organization: Organization;
   eventId?: string;
+  extraQuery?: Record<string, any>;
   query?: string;
   referrer?: string;
 }): LocationDescriptorObject {
@@ -121,6 +123,7 @@ export function createIssueLink({
       // selected)
       ...(location.query.project === undefined ? {_allp: 1} : {}),
       ...(project ? {project: project.id} : {}),
+      ...extraQuery,
     },
   };
 }

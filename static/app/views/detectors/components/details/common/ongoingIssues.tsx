@@ -46,7 +46,11 @@ export function DetectorDetailsOngoingIssues({
     >
       <ErrorBoundary mini>
         <div>
-          <GroupList numPlaceholderRows={5} queryParams={{...queryParams, limit: 5}} />
+          <GroupList
+            numPlaceholderRows={5}
+            queryParams={{...queryParams, limit: 5}}
+            issueLinkExtraQuery={{includeUptime: '1'}}
+          />
         </div>
       </ErrorBoundary>
     </Section>
