@@ -550,6 +550,9 @@ FORCE_SERIAL_FILES: set[str] = {
     "tests/sentry/release_health/test_tasks.py",
     # Category H: Suspect flags — broad ClickHouse aggregation
     "tests/sentry/issues/test_suspect_flags.py",
+    # Category I: Sessions/metrics — broad aggregation across projects
+    "tests/snuba/api/endpoints/test_organization_sessions.py",
+    "tests/sentry/api/endpoints/test_organization_on_demand_metrics_estimation_stats.py",
 }
 
 # Entire directories forced to serial. Tests under relay_integration/ use

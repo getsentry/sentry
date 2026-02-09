@@ -118,10 +118,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4]
+        instance: [0, 1, 2, 3]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 5
+      MATRIX_INSTANCE_TOTAL: 4
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic collection across xdist workers
       PYTHONHASHSEED: '0'
@@ -146,7 +146,7 @@ jobs:
           SELECTED_TESTS_FILE: /tmp/tier1-tests.txt
         run: |
           echo "=== Tier 1: Postgres + Redis only (no Snuba stack) ==="
-          echo "Shard ${{ matrix.instance }} of 5, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 4, xdist workers: 3"
           echo "Test files: $(wc -l < /tmp/tier1-tests.txt)"
           python3 -b -m pytest \
             tests \
@@ -252,10 +252,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1]
+        instance: [0, 1, 2]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 2
+      MATRIX_INSTANCE_TOTAL: 3
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
