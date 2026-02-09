@@ -496,10 +496,7 @@ class SlackEntrypointTest(TestCase):
         )
         mock_schedule_all_thread_updates.assert_called_once()
         data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        if ENABLE_SEER_CODING_DEFAULT:
-            assert data.has_progressed is True
-        else:
-            assert data.has_progressed is False
+        assert data.has_progressed is ENABLE_SEER_CODING_DEFAULT
 
     @patch("sentry.seer.entrypoints.integrations.slack.schedule_all_thread_updates")
     @patch("sentry.seer.entrypoints.integrations.slack.organization_service.get_option")
