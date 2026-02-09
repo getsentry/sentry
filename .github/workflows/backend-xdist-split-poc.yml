@@ -28,10 +28,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+        instance: [0, 1, 2, 3, 4, 5]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 14
+      MATRIX_INSTANCE_TOTAL: 6
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic dict/set iteration across xdist
       # workers, preventing "Different tests were collected" errors from
@@ -50,7 +50,7 @@ jobs:
       - name: Run xdist-compatible tests (-n 3)
         run: |
           echo "=== Group A: xdist-compatible tests (no TRUNCATE) ==="
-          echo "Shard ${{ matrix.instance }} of 14, xdist workers: 3"
+          echo "Shard ${{ matrix.instance }} of 6, xdist workers: 3"
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -87,10 +87,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 8
+      MATRIX_INSTANCE_TOTAL: 16
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
