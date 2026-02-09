@@ -553,6 +553,9 @@ FORCE_SERIAL_FILES: set[str] = {
     # Category I: Sessions/metrics — broad aggregation across projects
     "tests/snuba/api/endpoints/test_organization_sessions.py",
     "tests/sentry/api/endpoints/test_organization_on_demand_metrics_estimation_stats.py",
+    # Category J: Vitals/velocity — broad event aggregation
+    "tests/snuba/api/endpoints/test_organization_events_vitals.py",
+    "tests/sentry/issues/escalating/test_issue_velocity.py",
 }
 
 # Entire directories forced to serial. Tests under relay_integration/ use
