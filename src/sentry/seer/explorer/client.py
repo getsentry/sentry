@@ -589,3 +589,18 @@ class SeerExplorerClient:
             provider=provider,
             user_id=user_id,
         )
+
+    def get_issues_with_prs(self) -> list[dict]:
+        path = "/v1/automation/explorer/runs/with-prs"
+        payload = {"organization_id": self.organization.id}
+        body = orjson.dumps(payload)
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+        response.raise_for_status()
+        return response.json().get("data", [])

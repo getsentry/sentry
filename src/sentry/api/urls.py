@@ -525,6 +525,9 @@ from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
+from sentry.seer.endpoints.organization_explorer_issues_with_prs import (
+    OrganizationExplorerIssuesWithPRsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
 )
@@ -2390,6 +2393,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
         OrganizationSeerExplorerRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-runs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-prs/$",
+        OrganizationExplorerIssuesWithPRsEndpoint.as_view(),
+        name="sentry-api-0-organization-explorer-issues-with-prs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
