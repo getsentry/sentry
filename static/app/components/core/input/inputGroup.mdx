@@ -197,7 +197,12 @@ export function InteractiveDemo() {
       <InputGroup>
         <InputGroup.Input placeholder="Search" />
         <InputGroup.TrailingItems>
-          <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+          <Button
+            priority="transparent"
+            icon={<IconSettings />}
+            size="zero"
+            aria-label="Settings"
+          />
         </InputGroup.TrailingItems>
       </InputGroup>
     </Storybook.Grid>
@@ -212,7 +217,12 @@ export function InteractiveDemo() {
 <InputGroup>
   <InputGroup.Input placeholder="Search" />
   <InputGroup.TrailingItems>
-    <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+    <Button
+      priority="transparent"
+      icon={<IconSettings />}
+      size="zero"
+      aria-label="Settings"
+    />
   </InputGroup.TrailingItems>
 </InputGroup>
 ```
@@ -247,7 +257,7 @@ export function CombinedDemo() {
           <IconAttachment key="trailing-icon" size="sm" />,
           <Button
             key="trailing-button"
-            borderless
+            priority="transparent"
             icon={<IconSettings />}
             size="zero"
             aria-label="Settings"
@@ -269,7 +279,12 @@ export function CombinedDemo() {
   </InputGroup.LeadingItems>
   <InputGroup.Input placeholder="Search" />
   <InputGroup.TrailingItems>
-    <Button borderless icon={<IconSettings />} size="zero" aria-label="Settings" />
+    <Button
+      priority="transparent"
+      icon={<IconSettings />}
+      size="zero"
+      aria-label="Settings"
+    />
   </InputGroup.TrailingItems>
 </InputGroup>
 ```
@@ -309,7 +324,7 @@ const [value, setValue] = useState('');
   {value && (
     <InputGroup.TrailingItems>
       <Button
-        borderless
+        priority="transparent"
         icon={<IconClose />}
         size="zero"
         aria-label="Clear"
@@ -354,7 +369,12 @@ Show a loading indicator when fetching results:
 <InputGroup>
   <InputGroup.TextArea placeholder="Enter a description..." rows={4} />
   <InputGroup.TrailingItems>
-    <Button borderless icon={<IconAttachment />} size="zero" aria-label="Attach file" />
+    <Button
+      priority="transparent"
+      icon={<IconAttachment />}
+      size="zero"
+      aria-label="Attach file"
+    />
   </InputGroup.TrailingItems>
 </InputGroup>
 ```
@@ -401,7 +421,7 @@ Show a loading indicator when fetching results:
 ```jsx
 <InputGroup.TrailingItems>
   <Button
-    borderless
+    priority="transparent"
     icon={<IconClose />}
     size="zero"
     aria-label="Clear search"
