@@ -22,6 +22,9 @@ from sentry.scm.types import (
     InputTreeEntry,
     Provider,
     PullRequestActionResult,
+    PullRequestCommitActionResult,
+    PullRequestDiffActionResult,
+    PullRequestFileActionResult,
     Reaction,
     ReactionResult,
     Referrer,
@@ -238,3 +241,43 @@ class SourceCodeManager:
         self, message: str, tree_sha: str, parent_shas: list[str]
     ) -> GitCommitObjectActionResult:
         return self._exec(lambda r, p: p.create_git_commit(r, message, tree_sha, parent_shas))
+
+    # Expanded pull request operations
+
+    def get_pull_request_files(self, pull_request_id: str) -> PullRequestFileActionResult:
+        return self._exec(lambda r, p: p.get_pull_request_files(r, pull_request_id))
+
+    def get_pull_request_commits(self, pull_request_id: str) -> PullRequestCommitActionResult:
+        return self._exec(lambda r, p: p.get_pull_request_commits(r, pull_request_id))
+
+    def get_pull_request_diff(self, pull_request_id: str) -> PullRequestDiffActionResult:
+        return self._exec(lambda r, p: p.get_pull_request_diff(r, pull_request_id))
+
+    def list_pull_requests(
+        self, state: str = "open", head: str | None = None
+    ) -> list[PullRequestActionResult]:
+        return self._exec(lambda r, p: p.list_pull_requests(r, state, head))
+
+    def create_pull_request(
+        self, title: str, body: str, head: str, base: str, *, draft: bool = False
+    ) -> PullRequestActionResult:
+        return self._exec(
+            lambda r, p: p.create_pull_request(r, title, body, head, base, draft=draft)
+        )
+
+    def update_pull_request(
+        self,
+        pull_request_id: str,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        state: str | None = None,
+    ) -> PullRequestActionResult:
+        return self._exec(
+            lambda r, p: p.update_pull_request(
+                r, pull_request_id, title=title, body=body, state=state
+            )
+        )
+
+    def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
+        return self._exec(lambda r, p: p.request_review(r, pull_request_id, reviewers))

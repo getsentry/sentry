@@ -68,6 +68,14 @@ ALL_ACTIONS = (
     ("get_git_commit", {"sha": "abc123"}),
     ("create_git_tree", {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
     ("create_git_commit", {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
+    # Expanded pull request operations
+    ("get_pull_request_files", {"pull_request_id": "1"}),
+    ("get_pull_request_commits", {"pull_request_id": "1"}),
+    ("get_pull_request_diff", {"pull_request_id": "1"}),
+    ("list_pull_requests", {}),
+    ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    ("update_pull_request", {"pull_request_id": "1"}),
+    ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
 )
 
 
@@ -143,7 +151,13 @@ def _check_issue_comments(result: Any) -> None:
 
 def _check_pull_request(result: Any) -> None:
     pr = result["pull_request"]
+    assert pr["id"] == 42
+    assert pr["number"] == 1
+    assert pr["title"] == "Test PR"
     assert pr["head"]["sha"] == "abc123"
+    assert pr["head"]["ref"] == "feature-branch"
+    assert pr["base"]["sha"] == "def456"
+    assert result["provider"] == "test"
 
 
 def _check_pull_request_comments(result: Any) -> None:
@@ -257,6 +271,43 @@ def _check_create_git_commit(result: Any) -> None:
     assert result["provider"] == "test"
 
 
+def _check_pr_files(result: Any) -> None:
+    assert len(result["files"]) == 1
+    assert result["files"][0]["filename"] == "src/main.py"
+    assert result["provider"] == "test"
+
+
+def _check_pr_commits(result: Any) -> None:
+    assert len(result["commits"]) == 1
+    assert result["commits"][0]["sha"] == "commit123"
+    assert result["commits"][0]["message"] == "Fix bug"
+    assert result["provider"] == "test"
+
+
+def _check_pr_diff(result: Any) -> None:
+    assert "diff --git" in result["diff"]
+    assert result["provider"] == "test"
+
+
+def _check_list_pull_requests(result: Any) -> None:
+    assert len(result) == 1
+    assert result[0]["pull_request"]["number"] == 1
+    assert result[0]["provider"] == "test"
+
+
+def _check_create_pull_request(result: Any) -> None:
+    pr = result["pull_request"]
+    assert pr["title"] == "T"
+    assert pr["body"] == "B"
+    assert result["provider"] == "test"
+
+
+def _check_update_pull_request(result: Any) -> None:
+    pr = result["pull_request"]
+    assert pr["title"] == "Test PR"
+    assert result["provider"] == "test"
+
+
 def _check_none(result: Any) -> None:
     assert result is None
 
@@ -343,6 +394,21 @@ ACTION_TESTS = (
         SourceCodeManager.create_git_commit,
         {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
         _check_create_git_commit,
+    ),
+    (SourceCodeManager.get_pull_request_files, {"pull_request_id": "1"}, _check_pr_files),
+    (SourceCodeManager.get_pull_request_commits, {"pull_request_id": "1"}, _check_pr_commits),
+    (SourceCodeManager.get_pull_request_diff, {"pull_request_id": "1"}, _check_pr_diff),
+    (SourceCodeManager.list_pull_requests, {}, _check_list_pull_requests),
+    (
+        SourceCodeManager.create_pull_request,
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        _check_create_pull_request,
+    ),
+    (SourceCodeManager.update_pull_request, {"pull_request_id": "1"}, _check_update_pull_request),
+    (
+        SourceCodeManager.request_review,
+        {"pull_request_id": "1", "reviewers": ["user1"]},
+        _check_none,
     ),
 )
 

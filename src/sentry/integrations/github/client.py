@@ -473,6 +473,37 @@ class GitHubBaseClient(
         """https://docs.github.com/en/rest/git/commits#create-a-commit"""
         return self.post(f"/repos/{repo}/git/commits", data=data)
 
+    def list_pull_requests(self, repo: str, state: str = "open", head: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-pull-requests"""
+        params: dict[str, Any] = {"state": state}
+        if head:
+            params["head"] = head
+        return self.get(f"/repos/{repo}/pulls", params=params)
+
+    def get_pull_request_commits(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request"""
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/commits")
+
+    def get_pull_request_diff(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request (diff format)"""
+        return self.get(
+            f"/repos/{repo}/pulls/{pull_number}",
+            headers={"Accept": "application/vnd.github.v3.diff"},
+            allow_text=True,
+        )
+
+    def create_pull_request(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls", data=data)
+
+    def update_pull_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#update-a-pull-request"""
+        return self.patch(f"/repos/{repo}/pulls/{pull_number}", data=data)
+
+    def create_review_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/review-requests#request-reviewers-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/requested_reviewers", data=data)
+
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """

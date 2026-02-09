@@ -50,12 +50,22 @@ class PullRequestBranch(TypedDict):
     """A branch reference within a pull request (head or base)."""
 
     sha: str
+    ref: str
 
 
 class PullRequest(TypedDict):
     """Provider-agnostic representation of a pull request."""
 
+    id: int
+    number: int
+    title: str
+    body: str | None
+    state: str
+    merged: bool
+    url: str
+    html_url: str
     head: PullRequestBranch
+    base: PullRequestBranch
 
 
 class PullRequestActionResult(TypedDict):
@@ -183,6 +193,38 @@ class GitCommitObjectActionResult(TypedDict):
     git_commit: GitCommitObject
     provider: ProviderName
     raw: dict[str, Any]
+
+
+class PullRequestFile(TypedDict):
+    filename: str
+    status: str
+    patch: str | None
+    changes: int
+    sha: str
+    previous_filename: str | None
+
+
+class PullRequestFileActionResult(TypedDict):
+    files: list[PullRequestFile]
+    provider: ProviderName
+    raw: list[dict[str, Any]]
+
+
+class PullRequestCommit(TypedDict):
+    sha: str
+    message: str
+    author: CommitAuthor | None
+
+
+class PullRequestCommitActionResult(TypedDict):
+    commits: list[PullRequestCommit]
+    provider: ProviderName
+    raw: list[dict[str, Any]]
+
+
+class PullRequestDiffActionResult(TypedDict):
+    diff: str
+    provider: ProviderName
 
 
 class Provider(Protocol):
@@ -317,3 +359,46 @@ class Provider(Protocol):
         tree_sha: str,
         parent_shas: list[str],
     ) -> GitCommitObjectActionResult: ...
+
+    # Expanded pull request operations
+
+    def get_pull_request_files(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestFileActionResult: ...
+
+    def get_pull_request_commits(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestCommitActionResult: ...
+
+    def get_pull_request_diff(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestDiffActionResult: ...
+
+    def list_pull_requests(
+        self, repository: Repository, state: str = "open", head: str | None = None
+    ) -> list[PullRequestActionResult]: ...
+
+    def create_pull_request(
+        self,
+        repository: Repository,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+        *,
+        draft: bool = False,
+    ) -> PullRequestActionResult: ...
+
+    def update_pull_request(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        state: str | None = None,
+    ) -> PullRequestActionResult: ...
+
+    def request_review(
+        self, repository: Repository, pull_request_id: str, reviewers: list[str]
+    ) -> None: ...

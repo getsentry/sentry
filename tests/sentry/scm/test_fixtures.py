@@ -25,6 +25,12 @@ from sentry.scm.types import (
     Provider,
     PullRequest,
     PullRequestActionResult,
+    PullRequestBranch,
+    PullRequestCommit,
+    PullRequestCommitActionResult,
+    PullRequestDiffActionResult,
+    PullRequestFile,
+    PullRequestFileActionResult,
     Reaction,
     ReactionResult,
     Referrer,
@@ -52,8 +58,13 @@ def make_github_comment(
 
 def make_github_pull_request(
     pr_id: int = 42,
+    number: int = 1,
     title: str = "Test PR",
     body: str | None = "PR description",
+    state: str = "open",
+    merged: bool = False,
+    url: str = "https://api.github.com/repos/test-org/test-repo/pulls/1",
+    html_url: str = "https://github.com/test-org/test-repo/pull/1",
     head_sha: str = "abc123",
     base_sha: str = "def456",
     head_ref: str = "feature-branch",
@@ -64,8 +75,13 @@ def make_github_pull_request(
     """Factory for GitHub PR API responses."""
     return {
         "id": pr_id,
+        "number": number,
         "title": title,
         "body": body,
+        "state": state,
+        "merged": merged,
+        "url": url,
+        "html_url": html_url,
         "head": {"ref": head_ref, "sha": head_sha},
         "base": {"ref": base_ref, "sha": base_sha},
         "user": {"id": user_id, "login": username},
@@ -215,6 +231,55 @@ def make_github_git_commit_object(
     }
 
 
+def make_github_pull_request_file(
+    filename: str = "src/main.py",
+    status: str = "modified",
+    patch: str | None = "@@ -1,3 +1,4 @@\n+new line",
+    changes: int = 1,
+    sha: str = "file123",
+    previous_filename: str | None = None,
+) -> dict[str, Any]:
+    """Factory for GitHub pull request file API responses."""
+    result: dict[str, Any] = {
+        "filename": filename,
+        "status": status,
+        "changes": changes,
+        "sha": sha,
+    }
+    if patch is not None:
+        result["patch"] = patch
+    if previous_filename is not None:
+        result["previous_filename"] = previous_filename
+    return result
+
+
+def make_github_pull_request_commit(
+    sha: str = "commit123",
+    message: str = "Fix bug",
+    author_name: str = "Test User",
+    author_email: str = "test@example.com",
+    author_date: str = "2026-02-04T10:00:00Z",
+    author_login: str | None = "testuser",
+) -> dict[str, Any]:
+    """Factory for GitHub pull request commit API responses."""
+    result: dict[str, Any] = {
+        "sha": sha,
+        "commit": {
+            "message": message,
+            "author": {
+                "name": author_name,
+                "email": author_email,
+                "date": author_date,
+            },
+        },
+    }
+    if author_login is not None:
+        result["author"] = {"login": author_login}
+    else:
+        result["author"] = None
+    return result
+
+
 class BaseTestProvider(Provider):
 
     def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
@@ -225,12 +290,19 @@ class BaseTestProvider(Provider):
     def get_pull_request(
         self, repository: Repository, pull_request_id: str
     ) -> PullRequestActionResult:
-        raw: dict[str, Any] = {
-            "head": {"sha": "abc123"},
-        }
+        raw = make_github_pull_request()
         return PullRequestActionResult(
             pull_request=PullRequest(
-                head={"sha": raw["head"]["sha"]},
+                id=raw["id"],
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
+                url=raw["url"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
             ),
             provider="test",
             raw=raw,
@@ -492,6 +564,140 @@ class BaseTestProvider(Provider):
             raw={},
         )
 
+    # Expanded pull request operations
+
+    def get_pull_request_files(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestFileActionResult:
+        return PullRequestFileActionResult(
+            files=[
+                PullRequestFile(
+                    filename="src/main.py",
+                    status="modified",
+                    patch="@@ -1 +1 @@",
+                    changes=1,
+                    sha="file123",
+                    previous_filename=None,
+                )
+            ],
+            provider="test",
+            raw=[],
+        )
+
+    def get_pull_request_commits(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestCommitActionResult:
+        return PullRequestCommitActionResult(
+            commits=[
+                PullRequestCommit(
+                    sha="commit123",
+                    message="Fix bug",
+                    author=CommitAuthor(
+                        name="Test User",
+                        email="test@example.com",
+                        date="2026-02-04T10:00:00Z",
+                    ),
+                )
+            ],
+            provider="test",
+            raw=[],
+        )
+
+    def get_pull_request_diff(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestDiffActionResult:
+        return PullRequestDiffActionResult(
+            diff="diff --git a/file.py b/file.py\n--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
+            provider="test",
+        )
+
+    def list_pull_requests(
+        self, repository: Repository, state: str = "open", head: str | None = None
+    ) -> list[PullRequestActionResult]:
+        raw = make_github_pull_request()
+        return [
+            PullRequestActionResult(
+                pull_request=PullRequest(
+                    id=raw["id"],
+                    number=raw["number"],
+                    title=raw["title"],
+                    body=raw["body"],
+                    state=raw["state"],
+                    merged=raw["merged"],
+                    url=raw["url"],
+                    html_url=raw["html_url"],
+                    head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                    base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+                ),
+                provider="test",
+                raw=raw,
+            )
+        ]
+
+    def create_pull_request(
+        self,
+        repository: Repository,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+        *,
+        draft: bool = False,
+    ) -> PullRequestActionResult:
+        raw = make_github_pull_request(title=title, body=body)
+        return PullRequestActionResult(
+            pull_request=PullRequest(
+                id=raw["id"],
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
+                url=raw["url"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+            ),
+            provider="test",
+            raw=raw,
+        )
+
+    def update_pull_request(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        state: str | None = None,
+    ) -> PullRequestActionResult:
+        raw = make_github_pull_request(
+            title=title or "Test PR",
+            body=body or "PR description",
+            state=state or "open",
+        )
+        return PullRequestActionResult(
+            pull_request=PullRequest(
+                id=raw["id"],
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
+                url=raw["url"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+            ),
+            provider="test",
+            raw=raw,
+        )
+
+    def request_review(
+        self, repository: Repository, pull_request_id: str, reviewers: list[str]
+    ) -> None:
+        return None
+
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -516,6 +722,12 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.git_commit_data: dict[str, Any] | None = None
         self.created_tree_data: dict[str, Any] | None = None
         self.created_commit_data: dict[str, Any] | None = None
+        self.pr_files_data: list[dict[str, Any]] | None = None
+        self.pr_commits_data: list[dict[str, Any]] | None = None
+        self.pr_diff_data: str = "diff --git a/f.py b/f.py"
+        self.pull_requests_data: list[dict[str, Any]] | None = None
+        self.created_pr_data: dict[str, Any] | None = None
+        self.updated_pr_data: dict[str, Any] | None = None
 
         self.raise_api_error: bool = False
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
@@ -668,3 +880,61 @@ class FakeGitHubApiClient(GitHubApiClient):
             tree_sha=data.get("tree", ""),
             message=data.get("message", ""),
         )
+
+    def get_pull_request_files(self, repo: str, pull_number: str) -> list[dict[str, Any]]:
+        self._record_call("get_pull_request_files", repo, pull_number)
+        self._maybe_raise()
+        if self.pr_files_data is not None:
+            return self.pr_files_data
+        return [make_github_pull_request_file()]
+
+    def get_pull_request_commits(self, repo: str, pull_number: str) -> list[dict[str, Any]]:
+        self._record_call("get_pull_request_commits", repo, pull_number)
+        self._maybe_raise()
+        if self.pr_commits_data is not None:
+            return self.pr_commits_data
+        return [make_github_pull_request_commit()]
+
+    def get_pull_request_diff(self, repo: str, pull_number: str) -> Any:
+        self._record_call("get_pull_request_diff", repo, pull_number)
+        self._maybe_raise()
+        return MagicMock(text=self.pr_diff_data)
+
+    def list_pull_requests(
+        self, repo: str, state: str = "open", head: str | None = None
+    ) -> list[dict[str, Any]]:
+        self._record_call("list_pull_requests", repo, state, head)
+        self._maybe_raise()
+        if self.pull_requests_data is not None:
+            return self.pull_requests_data
+        return [make_github_pull_request()]
+
+    def create_pull_request(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_pull_request", repo, data)
+        self._maybe_raise()
+        if self.created_pr_data is not None:
+            return self.created_pr_data
+        return make_github_pull_request(
+            title=data.get("title", "Test PR"),
+            body=data.get("body", "PR description"),
+        )
+
+    def update_pull_request(
+        self, repo: str, pull_number: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        self._record_call("update_pull_request", repo, pull_number, data)
+        self._maybe_raise()
+        if self.updated_pr_data is not None:
+            return self.updated_pr_data
+        return make_github_pull_request(
+            title=data.get("title", "Test PR"),
+            body=data.get("body", "PR description"),
+            state=data.get("state", "open"),
+        )
+
+    def create_review_request(
+        self, repo: str, pull_number: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        self._record_call("create_review_request", repo, pull_number, data)
+        self._maybe_raise()
+        return {}

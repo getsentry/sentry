@@ -25,6 +25,12 @@ from sentry.scm.types import (
     Provider,
     PullRequest,
     PullRequestActionResult,
+    PullRequestBranch,
+    PullRequestCommit,
+    PullRequestCommitActionResult,
+    PullRequestDiffActionResult,
+    PullRequestFile,
+    PullRequestFileActionResult,
     Reaction,
     ReactionResult,
     Referrer,
@@ -193,10 +199,39 @@ def _transform_git_commit_object(raw: dict[str, Any]) -> GitCommitObjectActionRe
     )
 
 
+def _transform_pull_request_file(raw_file: dict[str, Any]) -> PullRequestFile:
+    return PullRequestFile(
+        filename=raw_file["filename"],
+        status=raw_file.get("status", ""),
+        patch=raw_file.get("patch"),
+        changes=raw_file.get("changes", 0),
+        sha=raw_file.get("sha", ""),
+        previous_filename=raw_file.get("previous_filename"),
+    )
+
+
+def _transform_pull_request_commit(raw: dict[str, Any]) -> PullRequestCommit:
+    raw_author = raw.get("commit", {}).get("author")
+    return PullRequestCommit(
+        sha=raw["sha"],
+        message=raw.get("commit", {}).get("message", ""),
+        author=_transform_commit_author(raw_author),
+    )
+
+
 def _transform_pull_request(raw: dict[str, Any]) -> PullRequestActionResult:
     return PullRequestActionResult(
         pull_request=PullRequest(
-            head={"sha": raw["head"]["sha"]},
+            id=raw["id"],
+            number=raw["number"],
+            title=raw["title"],
+            body=raw.get("body"),
+            state=raw["state"],
+            merged=raw.get("merged", False),
+            url=raw.get("url", ""),
+            html_url=raw.get("html_url", ""),
+            head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+            base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
         ),
         provider="github",
         raw=raw,
@@ -465,3 +500,107 @@ class GitHubProvider(Provider):
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return _transform_git_commit_object(raw)
+
+    # Expanded pull request operations
+
+    def get_pull_request_files(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestFileActionResult:
+        try:
+            raw_files = self.client.get_pull_request_files(repository["name"], pull_request_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return PullRequestFileActionResult(
+            files=[_transform_pull_request_file(f) for f in raw_files],
+            provider="github",
+            raw=raw_files,
+        )
+
+    def get_pull_request_commits(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestCommitActionResult:
+        try:
+            raw_commits = self.client.get_pull_request_commits(repository["name"], pull_request_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return PullRequestCommitActionResult(
+            commits=[_transform_pull_request_commit(c) for c in raw_commits],
+            provider="github",
+            raw=raw_commits,
+        )
+
+    def get_pull_request_diff(
+        self, repository: Repository, pull_request_id: str
+    ) -> PullRequestDiffActionResult:
+        try:
+            resp = self.client.get_pull_request_diff(repository["name"], pull_request_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return PullRequestDiffActionResult(
+            diff=resp.text,
+            provider="github",
+        )
+
+    def list_pull_requests(
+        self, repository: Repository, state: str = "open", head: str | None = None
+    ) -> list[PullRequestActionResult]:
+        try:
+            raw_prs = self.client.list_pull_requests(repository["name"], state, head)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return [_transform_pull_request(pr) for pr in raw_prs]
+
+    def create_pull_request(
+        self,
+        repository: Repository,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+        *,
+        draft: bool = False,
+    ) -> PullRequestActionResult:
+        data: dict[str, Any] = {
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base,
+            "draft": draft,
+        }
+        try:
+            raw = self.client.create_pull_request(repository["name"], data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_pull_request(raw)
+
+    def update_pull_request(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        *,
+        title: str | None = None,
+        body: str | None = None,
+        state: str | None = None,
+    ) -> PullRequestActionResult:
+        data: dict[str, Any] = {}
+        if title is not None:
+            data["title"] = title
+        if body is not None:
+            data["body"] = body
+        if state is not None:
+            data["state"] = state
+        try:
+            raw = self.client.update_pull_request(repository["name"], pull_request_id, data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_pull_request(raw)
+
+    def request_review(
+        self, repository: Repository, pull_request_id: str, reviewers: list[str]
+    ) -> None:
+        try:
+            self.client.create_review_request(
+                repository["name"], pull_request_id, {"reviewers": reviewers}
+            )
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e

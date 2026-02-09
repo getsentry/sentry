@@ -17,6 +17,8 @@ from tests.sentry.scm.test_fixtures import (
     make_github_file_content,
     make_github_git_commit_object,
     make_github_pull_request,
+    make_github_pull_request_commit,
+    make_github_pull_request_file,
     make_github_reaction,
 )
 
@@ -70,6 +72,13 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_git_commit", {"sha": "abc123"}),
     ("create_git_tree", {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
     ("create_git_commit", {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
+    ("get_pull_request_files", {"pull_request_id": "42"}),
+    ("get_pull_request_commits", {"pull_request_id": "42"}),
+    ("get_pull_request_diff", {"pull_request_id": "42"}),
+    ("list_pull_requests", {}),
+    ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    ("update_pull_request", {"pull_request_id": "42"}),
+    ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
 ]
 
 
@@ -230,6 +239,57 @@ CLIENT_DELEGATION_TESTS: list[
             {},
         ),
     ),
+    (
+        "get_pull_request_files",
+        {"pull_request_id": "42"},
+        ("get_pull_request_files", ("test-org/test-repo", "42"), {}),
+    ),
+    (
+        "get_pull_request_commits",
+        {"pull_request_id": "42"},
+        ("get_pull_request_commits", ("test-org/test-repo", "42"), {}),
+    ),
+    (
+        "get_pull_request_diff",
+        {"pull_request_id": "42"},
+        ("get_pull_request_diff", ("test-org/test-repo", "42"), {}),
+    ),
+    (
+        "list_pull_requests",
+        {},
+        ("list_pull_requests", ("test-org/test-repo", "open", None), {}),
+    ),
+    (
+        "list_pull_requests",
+        {"state": "closed", "head": "org:branch"},
+        ("list_pull_requests", ("test-org/test-repo", "closed", "org:branch"), {}),
+    ),
+    (
+        "create_pull_request",
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        (
+            "create_pull_request",
+            (
+                "test-org/test-repo",
+                {"title": "T", "body": "B", "head": "h", "base": "b", "draft": False},
+            ),
+            {},
+        ),
+    ),
+    (
+        "update_pull_request",
+        {"pull_request_id": "42", "title": "New title"},
+        ("update_pull_request", ("test-org/test-repo", "42", {"title": "New title"}), {}),
+    ),
+    (
+        "request_review",
+        {"pull_request_id": "42", "reviewers": ["user1"]},
+        (
+            "create_review_request",
+            ("test-org/test-repo", "42", {"reviewers": ["user1"]}),
+            {},
+        ),
+    ),
 ]
 
 
@@ -286,7 +346,19 @@ def _check_pr_comments(result: Any) -> None:
 
 def _check_pull_request(result: Any) -> None:
     pr = result["pull_request"]
+    assert pr["id"] == 42
+    assert pr["number"] == 1
+    assert pr["title"] == "Test PR"
+    assert pr["body"] == "PR description"
+    assert pr["state"] == "open"
+    assert pr["merged"] is False
+    assert pr["url"] == "https://api.github.com/repos/test-org/test-repo/pulls/1"
+    assert pr["html_url"] == "https://github.com/test-org/test-repo/pull/1"
     assert pr["head"]["sha"] == "abc123"
+    assert pr["head"]["ref"] == "feature-branch"
+    assert pr["base"]["sha"] == "def456"
+    assert pr["base"]["ref"] == "main"
+    assert result["provider"] == "github"
 
 
 def _check_comment_reactions(result: Any) -> None:
@@ -385,6 +457,55 @@ def _check_create_git_commit(result: Any) -> None:
     gc = result["git_commit"]
     assert gc["sha"] == "newcommit123"
     assert gc["message"] == "msg"
+    assert result["provider"] == "github"
+
+
+def _check_pr_files(result: Any) -> None:
+    assert len(result["files"]) == 1
+    f = result["files"][0]
+    assert f["filename"] == "src/main.py"
+    assert f["status"] == "modified"
+    assert f["patch"] is not None
+    assert f["changes"] == 1
+    assert f["sha"] == "file123"
+    assert f["previous_filename"] is None
+    assert result["provider"] == "github"
+
+
+def _check_pr_commits(result: Any) -> None:
+    assert len(result["commits"]) == 1
+    c = result["commits"][0]
+    assert c["sha"] == "commit123"
+    assert c["message"] == "Fix bug"
+    assert c["author"] is not None
+    assert c["author"]["name"] == "Test User"
+    assert c["author"]["email"] == "test@example.com"
+    assert result["provider"] == "github"
+
+
+def _check_pr_diff(result: Any) -> None:
+    assert "diff --git" in result["diff"]
+    assert result["provider"] == "github"
+
+
+def _check_list_pull_requests(result: Any) -> None:
+    assert len(result) == 1
+    pr = result[0]["pull_request"]
+    assert pr["number"] == 1
+    assert pr["title"] == "Test PR"
+    assert result[0]["provider"] == "github"
+
+
+def _check_create_pull_request(result: Any) -> None:
+    pr = result["pull_request"]
+    assert pr["title"] == "New PR"
+    assert pr["body"] == "PR body"
+    assert result["provider"] == "github"
+
+
+def _check_update_pull_request(result: Any) -> None:
+    pr = result["pull_request"]
+    assert pr["title"] == "Updated"
     assert result["provider"] == "github"
 
 
@@ -490,6 +611,42 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
         {"created_commit_data": make_github_git_commit_object(sha="newcommit123", message="msg")},
         _check_create_git_commit,
+    ),
+    (
+        "get_pull_request_files",
+        {"pull_request_id": "42"},
+        {"pr_files_data": [make_github_pull_request_file()]},
+        _check_pr_files,
+    ),
+    (
+        "get_pull_request_commits",
+        {"pull_request_id": "42"},
+        {"pr_commits_data": [make_github_pull_request_commit()]},
+        _check_pr_commits,
+    ),
+    (
+        "get_pull_request_diff",
+        {"pull_request_id": "42"},
+        {"pr_diff_data": "diff --git a/f.py b/f.py\n-old\n+new"},
+        _check_pr_diff,
+    ),
+    (
+        "list_pull_requests",
+        {},
+        {"pull_requests_data": [make_github_pull_request()]},
+        _check_list_pull_requests,
+    ),
+    (
+        "create_pull_request",
+        {"title": "New PR", "body": "PR body", "head": "feature", "base": "main"},
+        {"created_pr_data": make_github_pull_request(title="New PR", body="PR body")},
+        _check_create_pull_request,
+    ),
+    (
+        "update_pull_request",
+        {"pull_request_id": "42", "title": "Updated"},
+        {"updated_pr_data": make_github_pull_request(title="Updated")},
+        _check_update_pull_request,
     ),
 ]
 
@@ -633,3 +790,74 @@ class TestGetFileContentEdgeCases:
 
         assert result["file_content"]["content"] == ""
         assert result["file_content"]["size"] == 0
+
+
+class TestListPullRequestsEdgeCases:
+    def test_returns_empty_list_when_no_prs(self):
+        client = _make_client(pull_requests_data=[])
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.list_pull_requests(repository)
+
+        assert result == []
+
+
+class TestCreatePullRequestEdgeCases:
+    def test_passes_draft_flag(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_pull_request(repository, "T", "B", "feature", "main", draft=True)
+
+        assert (
+            "create_pull_request",
+            (
+                "test-org/test-repo",
+                {"title": "T", "body": "B", "head": "feature", "base": "main", "draft": True},
+            ),
+            {},
+        ) in client.calls
+
+
+class TestUpdatePullRequestEdgeCases:
+    def test_only_includes_non_none_fields(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.update_pull_request(repository, "42", title="New title")
+
+        assert (
+            "update_pull_request",
+            ("test-org/test-repo", "42", {"title": "New title"}),
+            {},
+        ) in client.calls
+
+    def test_empty_update_sends_empty_data(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.update_pull_request(repository, "42")
+
+        assert (
+            "update_pull_request",
+            ("test-org/test-repo", "42", {}),
+            {},
+        ) in client.calls
+
+
+class TestPullRequestCommitEdgeCases:
+    def test_handles_none_author(self):
+        raw = make_github_pull_request_commit(author_login=None)
+        raw["commit"]["author"] = None
+        client = _make_client(pr_commits_data=[raw])
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_pull_request_commits(repository, "42")
+
+        assert len(result["commits"]) == 1
+        assert result["commits"][0]["author"] is None
