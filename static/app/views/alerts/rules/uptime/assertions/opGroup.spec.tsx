@@ -151,7 +151,7 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(document.body);
 
       // Click to remove negation (same "Negate result" option toggles it off)
-      await userEvent.click(screen.getByRole('button', {name: 'Assert Not Any'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Assert None'}));
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
@@ -164,9 +164,9 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
-      // Verify label is "Assert None"
+      // Verify label is "Assert Not All"
       expect(
-        await screen.findByRole('button', {name: 'Assert None'})
+        await screen.findByRole('button', {name: 'Assert Not All'})
       ).toBeInTheDocument();
     });
 

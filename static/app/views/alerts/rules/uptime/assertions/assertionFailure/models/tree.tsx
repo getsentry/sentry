@@ -135,14 +135,18 @@ export class Tree {
 
       // If the node is a GROUP op and its parent is a NOT op
       // we negate the node. This is done to simplify the tree.
-      // Example: 'Assert NOT then Assert All' to 'Assert None'
+      // Example: 'Assert NOT then Assert All' to 'Assert NOT All'
       if (
         isGroupOp(node.value) &&
         parent &&
+        // Note: Chained NOT operations are not merged.
+        // The assertions UI enforces that a NOT op may only parent a GROUP op.
         isNotOp(parent.value) &&
         parent.children.length === 1
       ) {
         node.isNegated = true;
+
+        // Safe: removes parent, not current node, so child iteration continues correctly
         this.removeNode(parent);
       }
       node.children.forEach(visit);
