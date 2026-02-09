@@ -249,7 +249,6 @@ class Organization(ReplicatedRegionModel):
         if slugify_target is not None:
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if self.pk is None:  # if org is new

@@ -330,7 +330,7 @@ class Sanitizer:
         """
 
         name = self.map_name(old_name)
-        slug = None if old_slug is None else slugify(old_name.lower().replace("_", "-").strip("-"))
+        slug = None if old_slug is None else slugify(old_name)
         return (name, slug)
 
     def map_string(
@@ -571,7 +571,7 @@ class Sanitizer:
         (name, slug) = self.map_name_and_slug_pair(old_name, old_slug)
         _set_field_value(json, name_field, self.map_name(old_name))
         if slug is not None:
-            _set_field_value(json, slug_field, slugify(name.lower().replace("_", "-").strip("-")))
+            _set_field_value(json, slug_field, slugify(name))
 
         return (name, slug)
 
