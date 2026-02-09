@@ -1,5 +1,5 @@
 from sentry.scm.private.event_stream import EventType, scm_event_stream
-from sentry.scm.types import CommentEvent, PullRequestEvent
+from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent, SubscriptionEvent
 
 # Import your listeners below this line. You'll need to ensure your listener is
 # uniquely named. You can alias it here as "my_check_run_listener" or name it
@@ -16,4 +16,6 @@ __all__ = [
     "EventType",
     "CommentEvent",
     "PullRequestEvent",
+    "CheckRunEvent",
+    "SubscriptionEvent",
 ]

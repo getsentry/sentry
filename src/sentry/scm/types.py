@@ -3,7 +3,7 @@ from typing import Any, Literal, Protocol, TypedDict
 
 type Action = Literal["check_run", "comment", "pull_request"]
 type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent" | "SubscriptionEvent"
-type EventTypeHint = Literal["check_run", "comment", "pull_request"]
+type EventTypeHint = Literal["check_run", "comment", "pull_request", "unknown"]
 type ExternalId = str
 type HybridCloudSilo = Literal["control", "region"]
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]

@@ -15,6 +15,7 @@ from collections.abc import Callable
 import msgspec
 import sentry_sdk
 
+from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import (
     CheckRunAction,
     CheckRunEvent,
@@ -23,6 +24,7 @@ from sentry.scm.types import (
     CommentType,
     EventType,
     EventTypeHint,
+    HybridCloudSilo,
     ProviderName,
     PullRequestAction,
     PullRequestEvent,
@@ -383,17 +385,32 @@ def serialize_event(event: EventType, event_type: EventTypeHint) -> bytes:
 # \__|       \______/ \_______/ \__|\__|\_______/ \__|  \__| \_______|\__|
 
 
+def produce_to_listener(
+    message: bytes,
+    event_type_hint: EventTypeHint,
+    listener_name: str,
+    silo: HybridCloudSilo,
+) -> None:
+    if silo == "control":
+        run_webhook_handler_control_task.delay(listener_name, message, event_type_hint)
+    else:
+        run_webhook_handler_region_task.delay(listener_name, message, event_type_hint)
+
+
 @instrumented_task(
     silo_mode=SiloMode.CONTROL,
     name="sentry.scm.run_webhook_handler_control_task",
     namespace=scm_tasks,
     processing_deadline_duration=10,
 )
-def run_webhook_handler_control_task(handler_name: str, event_bytes: bytes) -> None:
+def run_webhook_handler_control_task(
+    listener_name: str, message: bytes, event_type_hint: EventTypeHint
+) -> None:
+    listener = scm_event_stream.listeners[event_type_hint][listener_name]
     run_webhook_handler(
-        handler_name,
-        event_bytes,
-        get_handler=lambda s: lambda e: None,
+        listener,
+        message,
+        event_type_hint,
         report_exception=report_exception,
     )
 
@@ -404,20 +421,23 @@ def run_webhook_handler_control_task(handler_name: str, event_bytes: bytes) -> N
     namespace=scm_tasks,
     processing_deadline_duration=10,
 )
-def run_webhook_handler_region_task(handler_name: str, event_bytes: bytes) -> None:
+def run_webhook_handler_region_task(
+    listener_name: str, message: bytes, event_type_hint: EventTypeHint
+) -> None:
+    listener = scm_event_stream.listeners[event_type_hint][listener_name]
     run_webhook_handler(
-        handler_name,
-        event_bytes,
-        get_handler=lambda s: lambda e: None,
+        listener,
+        message,
+        event_type_hint,
         report_exception=report_exception,
     )
 
 
 def run_webhook_handler(
-    handler_name: str,
-    event_bytes: bytes,
+    listener: str,
+    message: bytes,
+    event_type_hint: EventTypeHint,
     *,
-    get_handler: Callable[[str], Callable[[SubscriptionEvent], None]],
     report_exception: Callable[[Exception], None],
     record_metric: Callable[[str, int, dict[str, str]], None],
     get_current_time: Callable[[], float] = time.time,
