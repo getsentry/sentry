@@ -173,7 +173,7 @@ class OAuthDeviceAuthorizationCORSTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
-            allowed_origins="https://myapp.example.com https://other.example.com",
+            allowed_origins="https://myapp.example.com\nhttps://other.example.com",
         )
 
     def test_options_preflight_returns_cors_headers(self) -> None:

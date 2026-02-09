@@ -2003,15 +2003,15 @@ class OAuthTokenCORSTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "https://myapp.example.com"
         assert resp["Access-Control-Allow-Methods"] == "POST, OPTIONS"
 
-    def test_options_preflight_with_invalid_origin(self) -> None:
-        """OPTIONS with non-matching origin should return 400."""
+    def test_options_preflight_allows_unknown_origin(self) -> None:
+        """OPTIONS preflight allows any origin since client_id isn't sent yet."""
         resp = self.client.options(
             self.path,
-            HTTP_ORIGIN="https://evil.example.com",
+            HTTP_ORIGIN="https://unknown.example.com",
             HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
         )
-        assert resp.status_code == 400
-        assert "Access-Control-Allow-Origin" not in resp
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"] == "https://unknown.example.com"
 
     def test_post_with_valid_origin_returns_cors_headers(self) -> None:
         """POST with origin matching allowed_origins should include CORS headers."""
