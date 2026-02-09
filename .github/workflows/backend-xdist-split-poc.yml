@@ -1,0 +1,128 @@
+name: '[POC] backend xdist two-group'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mchen/xdist-two-group
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+
+jobs:
+  # ─── Group A: xdist-compatible tests (no TRUNCATE TABLE) ─────────────
+  # These tests do NOT trigger reset_snuba. Safe for parallel execution.
+  # Includes both non-Snuba tests (~71%) and Snuba writes-only tests (~14%).
+  parallel-test:
+    name: 'parallel (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 14
+      TEST_GROUP_STRATEGY: roundrobin
+      # Fixed hash seed ensures deterministic dict/set iteration across xdist
+      # workers, preventing "Different tests were collected" errors from
+      # parametrized tests whose values come from dicts/sets.
+      PYTHONHASHSEED: '0'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run xdist-compatible tests (-n 3)
+        run: |
+          echo "=== Group A: xdist-compatible tests (no TRUNCATE) ==="
+          echo "Shard ${{ matrix.instance }} of 14, xdist workers: 3"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-group=parallel \
+            -n 3 \
+            --dist=loadfile \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-parallel
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
+
+  # ─── Group B: serial-only tests (triggers TRUNCATE TABLE) ───────────
+  # These tests trigger reset_snuba which does TRUNCATE TABLE on ClickHouse.
+  # TRUNCATE is table-wide so these cannot run in parallel via xdist.
+  serial-test:
+    name: 'serial (${{ matrix.instance }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3, 4, 5, 6, 7]
+
+    env:
+      MATRIX_INSTANCE_TOTAL: 8
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Run serial-only tests (single-threaded)
+        run: |
+          echo "=== Group B: serial-only tests (TRUNCATE TABLE) ==="
+          echo "Shard ${{ matrix.instance }} of 8, single-threaded"
+          python3 -b -m pytest \
+            tests \
+            --reuse-db \
+            --ignore tests/acceptance \
+            --ignore tests/apidocs \
+            --ignore tests/js \
+            --ignore tests/tools \
+            --xdist-group=serial \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=".artifacts/pytest.junit.xml" \
+            -o junit_suite_name=pytest-serial
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi

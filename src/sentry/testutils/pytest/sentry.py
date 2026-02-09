@@ -135,6 +135,17 @@ def pytest_addoption(parser: pytest.Parser) -> None:
             "'exclude' runs only non-ClickHouse tests (safe for xdist parallelism)."
         ),
     )
+    parser.addoption(
+        "--xdist-group",
+        choices=("parallel", "serial"),
+        default=None,
+        help=(
+            "Split tests into xdist-compatible groups. "
+            "'parallel' selects tests that do NOT trigger reset_snuba (TRUNCATE TABLE) — "
+            "safe for xdist parallelism. "
+            "'serial' selects tests that DO trigger reset_snuba — must run single-threaded."
+        ),
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -466,6 +477,41 @@ def _needs_snuba(item: pytest.Item) -> bool:
     return False
 
 
+def _triggers_snuba_reset(item: pytest.Item) -> bool:
+    """Check if a test triggers reset_snuba (TRUNCATE TABLE on ClickHouse).
+
+    These tests MUST run single-threaded because TRUNCATE is table-wide — under
+    xdist, one worker's reset wipes another worker's ClickHouse data mid-test.
+
+    Tests trigger reset_snuba via:
+    - SnubaTestCase's autouse `initialize` fixture (requests reset_snuba)
+      → detected by @pytest.mark.snuba on SnubaTestCase and all subclasses
+    - Explicit @pytest.mark.usefixtures("reset_snuba") on other test classes
+      (ProfilesSnubaTestCase, UptimeCheckSnubaTestCase, MetricsAPIBaseTestCase, etc.)
+    - OutcomesSnubaTest and ReplaysSnubaTestCase do their own TRUNCATE in setUp
+      → detected by @pytest.mark.snuba on these classes
+    - RelayStoreHelper reads from ClickHouse and needs clean state
+
+    Tests with only requires_snuba / requires_kafka do NOT trigger reset_snuba.
+    They write to ClickHouse via store_event() but never read from it, so they
+    are safe for xdist parallelism.
+    """
+    # @pytest.mark.snuba = SnubaTestCase and all its subclasses (OutcomesSnubaTest,
+    # ReplaysSnubaTestCase, BaseMetricsLayerTestCase, etc.)
+    if any(mark.name == "snuba" for mark in item.iter_markers()):
+        return True
+    # Explicit @pytest.mark.usefixtures("reset_snuba") on non-SnubaTestCase classes
+    for mark in item.iter_markers("usefixtures"):
+        if "reset_snuba" in mark.args:
+            return True
+    # RelayStoreHelper reads from ClickHouse via eventstore
+    if item.cls is not None:
+        for base in item.cls.__mro__:
+            if base.__name__ == "RelayStoreHelper":
+                return True
+    return False
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -554,6 +600,31 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         else:  # "only"
             items[:] = snuba_items
             deselected = non_snuba_items
+
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+
+    # Two-group split for xdist: separates tests by whether they trigger
+    # reset_snuba (TRUNCATE TABLE). Tests that don't trigger it are safe for
+    # xdist parallelism regardless of whether they need Snuba running.
+    #   --xdist-group=parallel: tests that do NOT trigger TRUNCATE (safe for -n N)
+    #   --xdist-group=serial:   tests that DO trigger TRUNCATE (single-threaded)
+    xdist_group = config.getoption("--xdist-group", default=None)
+    if xdist_group is not None:
+        parallel_items = []
+        serial_items = []
+        for item in items:
+            if _triggers_snuba_reset(item):
+                serial_items.append(item)
+            else:
+                parallel_items.append(item)
+
+        if xdist_group == "parallel":
+            items[:] = parallel_items
+            deselected = serial_items
+        else:  # "serial"
+            items[:] = serial_items
+            deselected = parallel_items
 
         if deselected:
             config.hook.pytest_deselected(items=deselected)
