@@ -507,7 +507,6 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     targetType,
     targetIdentifier,
     targetDisplay,
-    ...(actionHandler.sentryApp?.id && {}),
   };
 }
 
