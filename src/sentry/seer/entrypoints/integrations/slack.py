@@ -258,28 +258,25 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                 return
 
         # Determine whether an automation has progressed beyond the current stopping point
+        current_hierarchy = STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
         automation_stopping_point = cache_payload["automation_stopping_point"]
         if automation_stopping_point:
             data_kwargs["has_progressed"] = (
-                STOPPING_POINT_HIERARCHY[automation_stopping_point]
-                > STOPPING_POINT_HIERARCHY[data_kwargs["current_point"]]
+                STOPPING_POINT_HIERARCHY[automation_stopping_point] > current_hierarchy
             )
             logging_ctx["automation_stopping_point"] = str(automation_stopping_point)
-        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
 
-        # Special case for solution stopping point, we progress beyond it if coding is enabled
-        # (if triggered manually, we always respect automation stopping point)
-        if (
-            data_kwargs["current_point"] == AutofixStoppingPoint.SOLUTION
-            and not automation_stopping_point
-        ):
+        # Although, if the organization has coding disabled, we never progress.
+        if current_hierarchy >= STOPPING_POINT_HIERARCHY[AutofixStoppingPoint.SOLUTION]:
             has_coding_enabled = organization_service.get_option(
                 organization_id=cache_payload["organization_id"],
                 key="sentry:enable_seer_coding",
             )
             if has_coding_enabled is None:
                 has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
-            data_kwargs["has_progressed"] = has_coding_enabled
+            if not has_coding_enabled:
+                data_kwargs["has_progressed"] = False
+        logging_ctx["has_progressed"] = data_kwargs.get("has_progressed", False)
 
         data = SeerAutofixUpdate(**data_kwargs)
         schedule_all_thread_updates(
