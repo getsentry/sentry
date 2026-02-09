@@ -14,11 +14,9 @@ import {
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {DataCategory} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -37,6 +35,7 @@ import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams
 import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
 import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
@@ -182,10 +181,12 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
 }
 
 function PageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
+  // EAP only retains/samples data for the last 30 days,
+  // so conversation data and aggregations are not accurate beyond that window.
+  const datePageFilterProps = useDatePageFilterProps({
+    maxPickableDays: MAX_PICKABLE_DAYS,
+    maxUpgradableDays: MAX_PICKABLE_DAYS,
   });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>

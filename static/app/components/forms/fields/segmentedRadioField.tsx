@@ -125,7 +125,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     z-index: ${p => p.theme.zIndex.initial};
   }
 
