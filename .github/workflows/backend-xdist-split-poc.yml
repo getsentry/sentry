@@ -15,9 +15,10 @@ env:
   SNUBA_NO_WORKERS: 1
 
 jobs:
-  # ─── Group A: xdist-compatible tests (no TRUNCATE TABLE) ─────────────
-  # These tests do NOT trigger reset_snuba. Safe for parallel execution.
-  # Includes both non-Snuba tests (~71%) and Snuba writes-only tests (~14%).
+  # ─── Group A: xdist-parallel tests (~99% of tests) ──────────────────
+  # reset_snuba is skipped (XDIST_SKIP_SNUBA_RESET=1). Tests rely on unique
+  # snowflake IDs for ClickHouse isolation. Only tests in FORCE_SERIAL_FILES
+  # (broadly-scoped ClickHouse queries) are excluded.
   parallel-test:
     name: 'parallel (${{ matrix.instance }})'
     runs-on: ubuntu-24.04
@@ -28,15 +29,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 6
+      MATRIX_INSTANCE_TOTAL: 20
       TEST_GROUP_STRATEGY: roundrobin
       # Fixed hash seed ensures deterministic dict/set iteration across xdist
       # workers, preventing "Different tests were collected" errors from
       # parametrized tests whose values come from dicts/sets.
       PYTHONHASHSEED: '0'
+      # Skip reset_snuba (TRUNCATE TABLE) — rely on unique snowflake IDs instead.
+      XDIST_SKIP_SNUBA_RESET: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -47,10 +50,10 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run xdist-compatible tests (-n 3)
+      - name: Run parallel tests (xdist -n 3)
         run: |
-          echo "=== Group A: xdist-compatible tests (no TRUNCATE) ==="
-          echo "Shard ${{ matrix.instance }} of 6, xdist workers: 3"
+          echo "=== Group A: xdist-parallel tests (reset_snuba skipped) ==="
+          echo "Shard ${{ matrix.instance }} of 20, xdist workers: 3"
           python3 -b -m pytest \
             tests \
             --reuse-db \
@@ -74,9 +77,9 @@ jobs:
             devservices logs
           fi
 
-  # ─── Group B: serial-only tests (triggers TRUNCATE TABLE) ───────────
-  # These tests trigger reset_snuba which does TRUNCATE TABLE on ClickHouse.
-  # TRUNCATE is table-wide so these cannot run in parallel via xdist.
+  # ─── Group B: serial tests (FORCE_SERIAL_FILES only) ────────────────
+  # ~15 files with broadly-scoped ClickHouse queries that fail when
+  # reset_snuba is skipped. These run single-threaded with normal cleanup.
   serial-test:
     name: 'serial (${{ matrix.instance }})'
     runs-on: ubuntu-24.04
@@ -87,10 +90,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        instance: [0, 1]
 
     env:
-      MATRIX_INSTANCE_TOTAL: 16
+      MATRIX_INSTANCE_TOTAL: 2
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
@@ -102,10 +105,10 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Run serial-only tests (single-threaded)
+      - name: Run serial tests (single-threaded)
         run: |
-          echo "=== Group B: serial-only tests (TRUNCATE TABLE) ==="
-          echo "Shard ${{ matrix.instance }} of 8, single-threaded"
+          echo "=== Group B: serial tests (FORCE_SERIAL_FILES, normal reset_snuba) ==="
+          echo "Shard ${{ matrix.instance }} of 2, single-threaded"
           python3 -b -m pytest \
             tests \
             --reuse-db \

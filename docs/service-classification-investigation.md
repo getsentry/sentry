@@ -964,3 +964,155 @@ Compared to:
 - xdist-only (two-phase): ~14 min
 - Tiered-only (runtime classification): ~18 min (Tier 2 bottleneck from smaller shard count)
 - **Combined: ~13-15 min** with better resource utilization
+
+## Making Snuba Tests Faster: Three Levels of Optimization
+
+### Level 1: Two-Group xdist Split (Sentry-only, implemented)
+
+**Key insight:** Not all Snuba tests trigger `TRUNCATE TABLE`. Only tests that use `reset_snuba`
+(via `SnubaTestCase`'s autouse fixture or explicit `@pytest.mark.usefixtures("reset_snuba")`) do.
+Tests with only `requires_snuba` write to ClickHouse but never read from it and never TRUNCATE.
+
+**Classification function: `_triggers_snuba_reset(item)`**
+
+Returns True if:
+1. `@pytest.mark.snuba` — SnubaTestCase and all subclasses (~200 files)
+2. `@pytest.mark.usefixtures("reset_snuba")` — explicit opt-in (ProfilesSnubaTestCase, etc.)
+3. `RelayStoreHelper` in MRO — reads from ClickHouse via eventstore
+
+Everything else (~85% of all tests) is safe for xdist parallelism.
+
+**Workflow:** `backend-xdist-split-poc.yml` — two job groups, same `backend-ci` environment:
+
+| Group | Shards | xdist | Tests | Why safe |
+| --- | --- | --- | --- | --- |
+| parallel | 6 | `-n 3 --dist=loadfile` | ~85% (non-TRUNCATE) | No TRUNCATE TABLE → no cross-worker data wipes |
+| serial | 16 | single-threaded | ~15% (TRUNCATE) | TRUNCATE is table-wide → must serialize |
+
+CLI: `--xdist-group=parallel` or `--xdist-group=serial`
+
+### Level 2: Project-Scoped Cleanup (requires small Snuba change)
+
+Replace `TRUNCATE TABLE` (wipes everything) with `DELETE WHERE project_id IN (...)` (wipes only
+the current test's data). Each test already creates objects with unique snowflake IDs, so data is
+uniquely identifiable.
+
+**Snuba change (~5-10 lines per endpoint):** Add optional `project_id` param to `/tests/{dataset}/drop`:
+
+```python
+project_ids = request.args.get("project_id")
+if project_ids:
+    clickhouse.execute(f"ALTER TABLE {table} DELETE WHERE project_id IN ({project_ids})")
+else:
+    clickhouse.execute(f"TRUNCATE TABLE {table}")  # backward compatible
+```
+
+**Sentry change:** Modify `reset_snuba` to track project_ids and pass them on cleanup.
+
+**Impact:** ALL Snuba tests become safe for xdist. No more serial group. 22 shards × `-n3` = 66
+effective workers. Estimated ~8-10 min wall-clock.
+
+**Concerns:** `ALTER TABLE DELETE` is async in ClickHouse <23.3. Need to verify CI's ClickHouse
+version supports synchronous lightweight deletes. Metrics tables use `org_id` not `project_id`.
+
+### Level 3: Batch Drop Endpoint (bundle with Level 2)
+
+`reset_snuba` makes **10 parallel HTTP calls** per test (one per dataset). Even with
+`ThreadPoolExecutor(10)`, overhead is ~50-100ms/test. Over ~5,000 TRUNCATE tests: ~4-8 min total.
+
+**Snuba change:** Single `/tests/drop_all` endpoint that handles all 10 tables in one call.
+**Impact:** ~30-60s saved per shard. Bundle with Level 2 as one Snuba PR.
+
+## The "No Cleanup" Approach: Eliminate reset_snuba Entirely
+
+### The Idea
+
+If every ClickHouse query is scoped by the test's unique `project_id` / `org_id`, stale data from
+other tests is invisible. No cleanup needed at all. This is the conceptually cleanest solution:
+tests are isolated by ID, not by wiping shared state.
+
+With snowflake IDs per xdist worker (already implemented), each test creates objects with globally
+unique IDs. If queries filter by those IDs, cross-contamination is impossible.
+
+### Iteration 5 Revisited: Why It Failed, and What's Fixable
+
+Iteration 5 tried skipping TRUNCATE entirely and got 50+ failures across ~15 files. Detailed
+analysis of each file:
+
+#### Category A: Already scoped, likely spurious failures (trivial to verify)
+
+| File | Base Class | Query Pattern | Assessment |
+| --- | --- | --- | --- |
+| `test_organization_release_health_data.py` (~12 failures) | MetricsAPIBaseTestCase | API endpoints with org/project params | Queries go through scoped API layer. Verify all endpoints pass project params correctly. |
+| `test_api.py` (~10 failures) | BaseMetricsTestCase | `run_queries()` with org/projects params | Already accepts `organization` and `projects` parameters. |
+| `test_metrics_enhanced_performance.py` (~7 failures) | BaseMetricsLayerTestCase | `get_series()` with `build_metrics_query(project_ids=...)` | Already scoped by project. |
+| `test_release_health.py` (2 failures) | BaseMetricsLayerTestCase | `get_series()` with project scoping | Same as above. |
+
+These 4 files account for ~31 of the ~50 failures. They use query APIs that already accept
+project/org parameters. The failures may have been caused by the query layer not enforcing filters
+strictly, or by aggregation queries that bypass the project filter at the ClickHouse level.
+Need deeper investigation to confirm.
+
+#### Category B: Intentionally broad queries — fixable with assertion changes
+
+| File | Base Class | Query Pattern | Assessment |
+| --- | --- | --- | --- |
+| `test_common.py` (2) | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()` — iterates ALL active orgs | Tests assert exact counts (`total_orgs == 10`). Under xdist, other workers' orgs inflate count. Fix: change to subset assertions (`assert all(id in found for id in created_ids)`). |
+| `test_tasks.py` (4) | BaseMetricsLayerTestCase + SnubaTestCase | `GetActiveOrgs()`, `sliding_window_org()` | Same pattern — scans all orgs, asserts exact counts. |
+| `test_boost_low_volume_transactions.py` (2) | BaseMetricsLayerTestCase + SnubaTestCase | `FetchProjectTransactionVolumes(org_ids=...)` | Accepts org_ids but tests may assert exact totals. |
+| `test_boost_low_volume_projects.py` (1-3) | BaseMetricsLayerTestCase + SnubaTestCase | Similar to above | Same pattern. |
+
+These dynamic sampling tests use functions like `GetActiveOrgs()` that **intentionally** scan all
+organizations with metrics data. The production code needs this behavior. However, the test
+assertions can be changed from exact-count to subset-based:
+
+```python
+# Before (fails under xdist — other workers' orgs inflate count):
+assert total_orgs == 10
+
+# After (works under xdist — only checks our orgs are present):
+assert all(org_id in found_org_ids for org_id in created_org_ids)
+assert len(found_org_ids) >= len(created_org_ids)
+```
+
+The batch-size assertions (`assert num_orgs == 3` for pagination testing) are harder — they depend
+on total data volume. These specific tests may need to stay in the serial group or use a scoped
+variant of `GetActiveOrgs` for testing.
+
+#### Category C: Report/summary tests — likely scoped by org
+
+| File | Base Class | Assessment |
+| --- | --- | --- |
+| `test_daily_summary.py` (1-3) | SnubaTestCase | Generates reports for specific org. Likely scoped but may aggregate event counts broadly. |
+| `test_weekly_reports.py` (1-3) | OutcomesSnubaTest + SnubaTestCase | Same — report generation per org. |
+| `test_preview.py` (1-3) | SnubaTestCase | Rule preview queries — may aggregate group IDs from ClickHouse. |
+
+#### Category D: Endpoint tests — API layer typically scoped
+
+| File | Base Class | Assessment |
+| --- | --- | --- |
+| `test_organization_events_histogram.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
+| `test_organization_events_trends.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
+| `test_organization_root_cause_analysis.py` (1-3) | SnubaTestCase | API endpoint — should scope by project. |
+| `test_organization_replay_index.py` (1-3) | ReplaysSnubaTestCase | Replay queries — should scope by project. |
+
+### Feasibility Assessment
+
+| Category | Files | Failures | Fix Approach | Difficulty |
+| --- | --- | --- | --- | --- |
+| A: Already scoped | 4 | ~31 | Verify query layer enforces filters | Needs investigation |
+| B: Broad queries | 4 | ~9 | Change assertions to subset-based | Moderate (test changes only) |
+| C: Report tests | 3 | ~5 | Likely scoped, verify | Trivial |
+| D: Endpoint tests | 4 | ~5 | API layer scopes, verify | Trivial |
+
+**Bottom line:** The 50+ failures are concentrated in 15 files. ~60% of failures (Category A) may
+already be scoped and need verification. ~20% (Category B) need assertion changes from exact-count
+to subset-based. ~20% (Categories C+D) are likely already scoped via API/report layers.
+
+The "no cleanup" approach is viable if:
+1. Category A queries are confirmed to be properly scoped at the ClickHouse level
+2. Category B tests are refactored to use subset assertions
+3. A small `FORCE_SERIAL` escape hatch exists for any genuinely unfixable tests
+
+This would eliminate `reset_snuba` entirely under xdist, giving maximum parallelism with zero
+cleanup overhead — the cleanest possible solution.

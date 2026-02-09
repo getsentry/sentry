@@ -512,6 +512,46 @@ def _triggers_snuba_reset(item: pytest.Item) -> bool:
     return False
 
 
+# Files with ClickHouse queries that are not properly scoped by project_id/org_id.
+# These tests fail under xdist when reset_snuba (TRUNCATE TABLE) is skipped because
+# they see stale data from other xdist workers. They must run single-threaded with
+# normal reset_snuba cleanup.
+#
+# This list should shrink over time as tests are fixed to scope their queries.
+# See docs/service-classification-investigation.md "The No Cleanup Approach" for details.
+FORCE_SERIAL_FILES: set[str] = {
+    # Category A: Metrics queries that may aggregate broadly
+    "tests/sentry/releases/endpoints/test_organization_release_health_data.py",
+    "tests/sentry/sentry_metrics/querying/data/test_api.py",
+    "tests/sentry/snuba/metrics/test_metrics_layer/test_metrics_enhanced_performance.py",
+    "tests/sentry/snuba/metrics/test_metrics_layer/test_release_health.py",
+    # Category B: Dynamic sampling — intentionally broad org scanning
+    "tests/sentry/dynamic_sampling/tasks/test_common.py",
+    "tests/sentry/dynamic_sampling/tasks/test_tasks.py",
+    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_transactions.py",
+    "tests/sentry/dynamic_sampling/tasks/test_boost_low_volume_projects.py",
+    # Category C: Report/summary tests
+    "tests/sentry/tasks/test_daily_summary.py",
+    "tests/sentry/tasks/test_weekly_reports.py",
+    "tests/sentry/rules/history/test_preview.py",
+    # Category D: Endpoint tests with potentially broad queries
+    "tests/sentry/api/endpoints/test_organization_events_histogram.py",
+    "tests/sentry/api/endpoints/test_organization_events_trends.py",
+    "tests/sentry/api/endpoints/test_organization_root_cause_analysis.py",
+    "tests/sentry/replays/endpoints/test_organization_replay_index.py",
+}
+
+
+def _force_serial(item: pytest.Item) -> bool:
+    """Check if a test is in the FORCE_SERIAL_FILES set.
+
+    These tests have broadly-scoped ClickHouse queries that see data from other
+    xdist workers when reset_snuba is skipped. They must run single-threaded.
+    """
+    test_file = item.nodeid.split("::")[0]
+    return test_file in FORCE_SERIAL_FILES
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """After collection, select tests based on selective file filter and group strategy.
 
@@ -604,17 +644,18 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if deselected:
             config.hook.pytest_deselected(items=deselected)
 
-    # Two-group split for xdist: separates tests by whether they trigger
-    # reset_snuba (TRUNCATE TABLE). Tests that don't trigger it are safe for
-    # xdist parallelism regardless of whether they need Snuba running.
-    #   --xdist-group=parallel: tests that do NOT trigger TRUNCATE (safe for -n N)
-    #   --xdist-group=serial:   tests that DO trigger TRUNCATE (single-threaded)
+    # Two-group split for xdist. Under xdist, reset_snuba is skipped (no-op)
+    # so tests rely on unique snowflake IDs for ClickHouse isolation instead of
+    # TRUNCATE TABLE. A small set of tests (FORCE_SERIAL_FILES) have broadly-scoped
+    # ClickHouse queries that break under this model — those must run serial.
+    #   --xdist-group=parallel: all tests EXCEPT FORCE_SERIAL_FILES (safe for -n N)
+    #   --xdist-group=serial:   only FORCE_SERIAL_FILES tests (single-threaded)
     xdist_group = config.getoption("--xdist-group", default=None)
     if xdist_group is not None:
         parallel_items = []
         serial_items = []
         for item in items:
-            if _triggers_snuba_reset(item):
+            if _force_serial(item):
                 serial_items.append(item)
             else:
                 parallel_items.append(item)
