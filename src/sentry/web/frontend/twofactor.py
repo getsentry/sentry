@@ -211,9 +211,7 @@ class TwoFactorAuthView(BaseView):
 
                     if interface.type == U2fInterface.type:
                         activation.challenge = {}
-                        activation.challenge["webAuthnAuthenticationData"] = b64encode(
-                            challenge
-                        )
+                        activation.challenge["webAuthnAuthenticationData"] = b64encode(challenge)
             except SMSRateLimitExceeded as e:
                 logger.warning(
                     "login.2fa.sms.rate-limited-exceeded",

@@ -32,11 +32,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
-from sentry.utils.auth import (
-    DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
-    has_completed_sso,
-    initiate_login,
-)
+from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -69,17 +65,13 @@ class BaseAuthIndexEndpoint(Endpoint):
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
         redirect = request.META.get("HTTP_REFERER", None)
-        if not url_has_allowed_host_and_scheme(
-            redirect, allowed_hosts=(request.get_host(),)
-        ):
+        if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
         organization_context = organization_service.get_organization_by_id(
             id=org_id, include_teams=False, include_projects=False
         )
-        assert organization_context, (
-            "Failed to fetch organization in _reauthenticate_with_sso"
-        )
+        assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
             request=request,
@@ -87,15 +79,10 @@ class BaseAuthIndexEndpoint(Endpoint):
         )
 
     @staticmethod
-    def _verify_user_via_inputs(
-        validator: AuthVerifyValidator, request: Request
-    ) -> bool:
+    def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
         assert request.user.is_authenticated
         # See if we have a u2f challenge/response
-        if (
-            "challenge" in validator.validated_data
-            and "response" in validator.validated_data
-        ):
+        if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 assert isinstance(interface, U2fInterface)
@@ -103,18 +90,14 @@ class BaseAuthIndexEndpoint(Endpoint):
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
-                authenticated = interface.validate_response(
-                    request, challenge, response
-                )
+                authenticated = interface.validate_response(request, challenge, response)
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
                         extra={"user": request.user.id},
                     )
                 else:
-                    metrics.incr(
-                        "auth.2fa.success", sample_rate=1.0, skip_internal=False
-                    )
+                    metrics.incr("auth.2fa.success", sample_rate=1.0, skip_internal=False)
                 return authenticated
             except ValueError as err:
                 logger.warning(
@@ -135,9 +118,7 @@ class BaseAuthIndexEndpoint(Endpoint):
                 validator.validated_data["password"]
             )
             if authenticated:
-                metrics.incr(
-                    "auth.password.success", sample_rate=1.0, skip_internal=False
-                )
+                metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
         return False
 
@@ -197,8 +178,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
-            if (not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and verify_authenticator)
-            or is_self_hosted()
+            if (not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and verify_authenticator) or is_self_hosted()
             else True
         )
 
@@ -280,9 +260,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             try:
                 validator.is_valid(raise_exception=True)
             except ValidationError:
-                return Response(
-                    {"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400
-                )
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
@@ -290,10 +268,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
                 if SUPERUSER_ORG_ID:
-                    verify_authenticator = (
-                        organization_service.check_organization_by_id(
-                            id=SUPERUSER_ORG_ID, only_visible=False
-                        )
+                    verify_authenticator = organization_service.check_organization_by_id(
+                        id=SUPERUSER_ORG_ID, only_visible=False
                     )
 
                 if verify_authenticator:
@@ -313,18 +289,12 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     },
                 )
             try:
-                authenticated = self._validate_superuser(
-                    validator, request, verify_authenticator
-                )
+                authenticated = self._validate_superuser(validator, request, verify_authenticator)
             except ValidationError:
-                return Response(
-                    {"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400
-                )
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
         if not authenticated:
-            return Response(
-                {"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the httprequest object instead of request
@@ -375,12 +345,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         # Force cookies to be deleted
         response = Response()
-        response.delete_cookie(
-            settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN
-        )
-        response.delete_cookie(
-            settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN
-        )
+        response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
 
         if referrer := request.GET.get("referrer"):
             analytics.record(

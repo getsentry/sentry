@@ -114,9 +114,7 @@ class AuthIdentityHandler:
         )
 
     @staticmethod
-    def warn_about_ambiguous_email(
-        email: str, users: Collection[User], chosen_user: User
-    ) -> None:
+    def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_level("warning")
             scope.set_tag("email", email)
@@ -292,9 +290,7 @@ class AuthIdentityHandler:
         )
         return user, om
 
-    def _handle_new_membership(
-        self, auth_identity: AuthIdentity
-    ) -> RpcOrganizationMember:
+    def _handle_new_membership(self, auth_identity: AuthIdentity) -> RpcOrganizationMember:
         user, om = self._handle_membership(
             request=self.request,
             organization=self.organization,
@@ -319,15 +315,11 @@ class AuthIdentityHandler:
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
-            return AuthIdentity.objects.get(
-                auth_provider_id=self.auth_provider.id, **params
-            )
+            return AuthIdentity.objects.get(auth_provider_id=self.auth_provider.id, **params)
         except AuthIdentity.DoesNotExist:
             return None
 
-    def handle_attach_identity(
-        self, member: RpcOrganizationMember | None = None
-    ) -> AuthIdentity:
+    def handle_attach_identity(self, member: RpcOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
@@ -421,16 +413,12 @@ class AuthIdentityHandler:
                 .delete()
             )
 
-            for outbox in self.auth_provider.outboxes_for_mark_invalid_sso(
-                auth_identity.user_id
-            ):
+            for outbox in self.auth_provider.outboxes_for_mark_invalid_sso(auth_identity.user_id):
                 outbox.save()
 
         return deletion_result
 
-    def _get_organization_member(
-        self, auth_identity: AuthIdentity
-    ) -> RpcOrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> RpcOrganizationMember:
         """
         Check to see if the user has a member associated, if not, create a new membership
         based on the auth_identity email.
@@ -452,9 +440,7 @@ class AuthIdentityHandler:
         if context:
             default_context.update(context)
 
-        return render_to_response(
-            template, default_context, self.request, status=status
-        )
+        return render_to_response(template, default_context, self.request, status=status)
 
     def _post_login_redirect(self) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)
@@ -510,10 +496,8 @@ class AuthIdentityHandler:
         context = {
             "identity": self.identity,
             "provider": self.provider_name,
-            "identity_display_name": self.identity.get("name")
-            or self.identity.get("email"),
-            "identity_identifier": self.identity.get("email")
-            or self.identity.get("id"),
+            "identity_display_name": self.identity.get("name") or self.identity.get("email"),
+            "identity_identifier": self.identity.get("email") or self.identity.get("id"),
             "existing_user": existing_user,
         }
         if not self._logged_in_user:
@@ -557,9 +541,7 @@ class AuthIdentityHandler:
                 },
             )
 
-        has_verified_email = self.user.id and cache.get(
-            f"{SSO_VERIFICATION_KEY}:{self.user.id}"
-        )
+        has_verified_email = self.user.id and cache.get(f"{SSO_VERIFICATION_KEY}:{self.user.id}")
         if has_verified_email and not verification_key:
             logger.info(
                 "sso.login-pipeline.verified-email-missing-session-key",
@@ -570,9 +552,7 @@ class AuthIdentityHandler:
             )
 
         is_new_account = not self.user.is_authenticated  # stateful
-        if self._app_user and (
-            self.identity.get("email_verified") or is_account_verified
-        ):
+        if self._app_user and (self.identity.get("email_verified") or is_account_verified):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -602,11 +582,7 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
-        if (
-            op == "confirm"
-            and (self.request.user.id == self.user.id)
-            or is_account_verified
-        ):
+        if op == "confirm" and (self.request.user.id == self.user.id) or is_account_verified:
             auth_identity = self.handle_attach_identity()
         elif op == "newuser":
             auth_identity = self.handle_new_user()
@@ -897,9 +873,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         )
 
         # Redirect to org-specific login to initiate correct SSO
-        redirect_uri = reverse(
-            "sentry-auth-organization", args=[self.organization.slug]
-        )
+        redirect_uri = reverse("sentry-auth-organization", args=[self.organization.slug])
         return HttpResponseRedirect(redirect_uri)
 
     def auth_handler(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
@@ -974,9 +948,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
-    def _finish_setup_pipeline(
-        self, identity: Mapping[str, Any]
-    ) -> HttpResponseRedirect:
+    def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
         the setup flow here is configuring SSO for an organization.
         It does that by creating the auth provider as well as an OrgMember identity linked to the active user
@@ -1031,9 +1003,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             )
         )
 
-        email_missing_links_control.delay(
-            self.organization.id, request.user.id, self.provider.key
-        )
+        email_missing_links_control.delay(self.organization.id, request.user.id, self.provider.key)
 
         messages.add_message(self.request, messages.SUCCESS, OK_SETUP_SSO)
 
@@ -1049,9 +1019,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
 
         if self.state.flow == FLOW_LOGIN:
             # create identity and authenticate the user
-            redirect_uri = reverse(
-                "sentry-auth-organization", args=[self.organization.slug]
-            )
+            redirect_uri = reverse("sentry-auth-organization", args=[self.organization.slug])
 
         elif self.state.flow == FLOW_SETUP_PROVIDER:
             redirect_uri = reverse(
@@ -1090,9 +1058,7 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             },
         )
 
-        messages.add_message(
-            self.request, messages.ERROR, f"Authentication error: {message}"
-        )
+        messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
 

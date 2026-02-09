@@ -45,9 +45,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         # Rate limit logins
         is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
-                md5_text(
-                    login_form.clean_username(request.data.get("username"))
-                ).hexdigest()
+                md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
@@ -65,23 +63,17 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             return self.respond_with_error(errors)
 
         if not login_form.is_valid():
-            metrics.incr(
-                "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
-            )
+            metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
             return self.respond_with_error(login_form.errors)
 
         user = login_form.get_user()
 
-        auth.login(
-            request, user, organization_id=organization.id if organization else None
-        )
+        auth.login(request, user, organization_id=organization.id if organization else None)
         # Django's login() internally calls session.cycle_key() for session
         # fixation prevention.  Rotate the CSRF token so it stays in sync
         # with the new session.
         rotate_token(request)
-        metrics.incr(
-            "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
-        )
+        metrics.incr("login.attempt", instance="success", skip_internal=True, sample_rate=1.0)
 
         if not user.is_active:
             return Response(
@@ -104,6 +96,4 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         )
 
     def respond_with_error(self, errors):
-        return Response(
-            {"detail": "Login attempt failed", "errors": errors}, status=400
-        )
+        return Response({"detail": "Login attempt failed", "errors": errors}, status=400)
