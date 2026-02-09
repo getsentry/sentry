@@ -53,6 +53,8 @@ def test_get_changed_test_files():
         "tests/sentry/api/test_base.py",
         "src/sentry/api/base.py",
         "tests/sentry/models/test_group.py",
+        "tests/tools/test_compute_selected_tests.py",
+        "tests/acceptance/test_foo.py",
         "README.md",
     ]
     assert get_changed_test_files(changed) == {

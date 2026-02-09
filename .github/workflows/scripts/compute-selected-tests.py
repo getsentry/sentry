@@ -34,12 +34,18 @@ def should_run_full_suite(changed_files: list[str]) -> bool:
     return False
 
 
+# Test directories excluded from backend test runs (must match calculate-backend-test-shards.py)
+EXCLUDED_TEST_PATTERNS: list[str | re.Pattern[str]] = [
+    re.compile(r"^tests/(acceptance|apidocs|js|tools)/"),
+]
+
+
 def get_changed_test_files(changed_files: list[str]) -> set[str]:
     test_files: set[str] = set()
     for file_path in changed_files:
-        # Match test files in the tests/ directory
         if file_path.startswith("tests/") and file_path.endswith(".py"):
-            test_files.add(file_path)
+            if not any(_matches_trigger(file_path, p) for p in EXCLUDED_TEST_PATTERNS):
+                test_files.add(file_path)
     return test_files
 
 
