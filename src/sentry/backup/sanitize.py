@@ -332,7 +332,7 @@ class Sanitizer:
         name = self.map_name(old_name)
         # Django's slugify() doesn't replace underscores with hyphens, so we need to do it manually
         # to ensure the slug matches ORG_SLUG_PATTERN which doesn't allow underscores
-        slug = None if old_slug is None else slugify(name.lower().replace("_", "-")).strip("-")
+        slug = None if old_slug is None else slugify(name.replace("_", "-")).strip("-")
         return (name, slug)
 
     def map_string(
