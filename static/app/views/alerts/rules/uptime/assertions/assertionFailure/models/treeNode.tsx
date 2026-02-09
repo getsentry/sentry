@@ -25,6 +25,10 @@ export abstract class TreeNode<T extends Op = Op> {
     }
   }
 
+  get id(): string {
+    return this.value.id;
+  }
+
   get nextOps(): Op[] {
     return 'children' in this.value ? this.value.children : [];
   }
@@ -70,6 +74,8 @@ export abstract class TreeNode<T extends Op = Op> {
 
     return connectors;
   }
+
+  abstract printNode(): string;
 
   abstract renderRow(): ReactNode;
 }
