@@ -57,9 +57,9 @@ export default function SeerSettingsPageWrapper({children}: Props) {
       <SettingsPageHeader
         title={t('Seer')}
         subtitle={tct(
-          'Choose how Seer automatically triages and diagnoses incoming issues before you even notice them. Seer currently includes [autofix:Autofix], an agent that can root-cause issues and create pull requests, and [code_review:AI Code Review], an agent that will review your pull requests to detect issues before they happen.',
+          'Choose how Seer automatically triages and diagnoses incoming issues before you even notice them. Seer currently includes [rca:Root Cause Analysis], an agent that can root-cause issues and create pull requests, and [code_review:AI Code Review], an agent that will review your pull requests to detect issues before they happen.',
           {
-            autofix: (
+            rca: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis" />
             ),
             code_review: (

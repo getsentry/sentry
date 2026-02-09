@@ -62,6 +62,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.seer.autofix.issue_summary import is_group_triggering_automation
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -508,6 +509,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self._is_compact = features.has(
             "organizations:slack-compact-alerts", self.group.organization
         )
+        self._has_seer_slack_access = SeerOperator.has_access(
+            organization=self.group.project.organization, entrypoint_key=SeerEntrypointKey.SLACK
+        )
+        self._is_triggering_automation = False
+        if self._has_seer_slack_access:
+            try:
+                self._is_triggering_automation = is_group_triggering_automation(self.group)
+            except Exception:
+                # The helper raises value errors in some cases for permission issues. We don't
+                # want to stop building the notification if that happens, just assume it is not
+                # triggering an automation.
+                pass
 
     def get_title_block(
         self,
@@ -689,6 +702,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self._is_compact and summary_text:
             blocks.append(self.get_context_block(summary_text))
 
+        if self._has_seer_slack_access and self._is_triggering_automation:
+            status_text = SeerSlackRenderer.render_status_text(group=self.group)
+            blocks.append(self.get_context_block(status_text))
+
         if not self._is_compact and len(suggested_assignees) > 0:
             blocks.append(self.get_suggested_assignees_block(suggested_assignees))
 
@@ -834,10 +851,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if SeerOperator.has_access(
-            organization=self.group.project.organization, entrypoint_key=SeerEntrypointKey.SLACK
-        ):
-            autofix_button = SeerSlackRenderer.render_alert_autofix_element(group=self.group)
+        if self._has_seer_slack_access and not self._is_triggering_automation:
+            autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
             # We have to coerce this since we're not using the proper SlackSDK client to emit this
             # notification yet, it just takes JSON.
             actions.append(autofix_button.to_dict())
