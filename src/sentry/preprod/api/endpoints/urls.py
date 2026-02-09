@@ -41,6 +41,7 @@ from .project_preprod_size import (
     ProjectPreprodSizeEndpoint,
     ProjectPreprodSizeWithIdentifierEndpoint,
 )
+from .public.project_preprod_size_analysis import ProjectPreprodPublicSizeAnalysisEndpoint
 from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
 from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
 from .pull_request.organization_pullrequest_size_analysis_download import (
@@ -124,6 +125,12 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod-artifact/rerun-status-checks/(?P<head_artifact_id>[^/]+)/$",
         PreprodArtifactRerunStatusChecksEndpoint.as_view(),
         name="sentry-api-0-preprod-artifact-rerun-status-checks",
+    ),
+    # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/$",
+        ProjectPreprodPublicSizeAnalysisEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-public-size-analysis",
     ),
 ]
 
