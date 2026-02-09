@@ -116,16 +116,6 @@ class ProjectFilterAddReleaseTest(APITestCase):
 
         assert "release" in response.data
 
-    def test_requires_authentication(self):
-        project = self.create_project()
-
-        self.get_error_response(
-            project.organization.slug,
-            project.slug,
-            release="1.2.3",
-            status_code=401,
-        )
-
     def test_requires_project_access(self):
         other_user = self.create_user()
         self.login_as(user=other_user)
@@ -136,4 +126,20 @@ class ProjectFilterAddReleaseTest(APITestCase):
             project.slug,
             release="1.2.3",
             status_code=403,
+        )
+
+
+@region_silo_test
+class ProjectFilterAddReleaseTestUnauthenticated(APITestCase):
+    endpoint = "sentry-api-0-project-filters-add-release"
+    method = "POST"
+
+    def test_requires_authentication(self):
+        project = self.create_project()
+
+        self.get_error_response(
+            project.organization.slug,
+            project.slug,
+            release="1.2.3",
+            status_code=401,
         )
