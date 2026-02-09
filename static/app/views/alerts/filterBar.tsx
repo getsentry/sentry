@@ -130,7 +130,7 @@ const Wrapper = styled('div')`
 `;
 
 const FilterButtons = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="lg" {...props} />
+  <Grid flow="column" align="center" {...props} />
 ))`
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
