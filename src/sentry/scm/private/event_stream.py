@@ -4,9 +4,7 @@ from collections.abc import Callable
 from types import UnionType
 from typing import DefaultDict, Union, get_args, get_origin, get_type_hints
 
-from sentry.scm.types import CheckRunEvent, CommentEvent, PullRequestEvent
-
-EventType = CheckRunEvent | CommentEvent | PullRequestEvent
+from sentry.scm.types import CheckRunEvent, CommentEvent, EventType, PullRequestEvent
 
 
 def union_members(tp: type) -> set[type]:
@@ -24,6 +22,10 @@ class SourceCodeManagerEventStream:
         self.__listeners: DefaultDict[type[EventType], list[Callable[[EventType], None]]] = (
             defaultdict(list)
         )
+
+        self.__check_run_listeners: dict[str, Callable[[CheckRunEvent], None]] = {}
+        self.__comment_listeners: dict[str, Callable[[CommentEvent], None]] = {}
+        self.__pull_request_listeners: dict[str, Callable[[PullRequestEvent], None]] = {}
 
     def listen(self, fn: Callable[[EventType], None]) -> Callable[[EventType], None]:
         """

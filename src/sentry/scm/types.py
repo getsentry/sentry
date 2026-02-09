@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from typing import Any, Literal, Protocol, TypedDict
 
+type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 type ExternalId = str
 # Normalized reaction identifiers shared across all SCM providers.
@@ -216,7 +218,8 @@ class CheckRunEventData(TypedDict):
     html_url: str
 
 
-class CheckRunEvent(TypedDict):
+@dataclass(frozen=True)
+class CheckRunEvent:
     action: CheckRunAction
     """The action that triggered the event. An enumeration of string values."""
 
@@ -226,7 +229,7 @@ class CheckRunEvent(TypedDict):
     subscription_event: SubscriptionEvent
     """
     The subscription event that was received by Sentry. This field contains the raw instructions
-    which parsed the action and pull_request fields. You can use this field to perform additional
+    which parsed the action and check_run fields. You can use this field to perform additional
     parsing if the default implementation is lacking.
 
     This field will also include any extra metadata that was generated prior to being submitted to
@@ -245,7 +248,8 @@ class CommentEventData(TypedDict):
     author: Author | None
 
 
-class CommentEvent(TypedDict):
+@dataclass(frozen=True)
+class CommentEvent:
     """ """
 
     action: CommentAction
@@ -260,7 +264,7 @@ class CommentEvent(TypedDict):
     subscription_event: SubscriptionEvent
     """
     The subscription event that was received by Sentry. This field contains the raw instructions
-    which parsed the action and pull_request fields. You can use this field to perform additional
+    which parsed the action and comment fields. You can use this field to perform additional
     parsing if the default implementation is lacking.
 
     This field will also include any extra metadata that was generated prior to being submitted to
@@ -292,7 +296,8 @@ class PullRequestEventData(TypedDict):
     author: Author | None
 
 
-class PullRequestEvent(TypedDict):
+@dataclass(frozen=True)
+class PullRequestEvent:
     """
     Pull request event type. This event is received when an action was performed on a pull-request.
     For example, opened, closed, or ready for review.

@@ -5,6 +5,7 @@ from sentry.scm.types import (
     CheckRunEvent,
     CommentAction,
     CommentEvent,
+    EventType,
     PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
@@ -52,13 +53,13 @@ check_run_decoder = msgspec.json.Decoder(GitHubCheckRunEvent)
 def parse_github_check_run_event(event: SubscriptionEvent) -> CheckRunEvent:
     e = check_run_decoder.decode(event["event"])
 
-    return {
-        "action": e.action,
-        "check_run": {
+    return CheckRunEvent(
+        action=e.action,
+        check_run={
             "external_id": e.check_run.external_id,
             "html_url": e.check_run.html_url,
         },
-    }
+    )
 
 
 #  $$$$$$\   $$$$$$\  $$\      $$\ $$\      $$\ $$$$$$$$\ $$\   $$\ $$$$$$$$\
@@ -98,10 +99,10 @@ issue_comment_decoder = msgspec.json.Decoder(GitHubIssueCommentEvent)
 def parse_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
     e = issue_comment_decoder.decode(event["event"])
 
-    return {
-        "action": e.action,
-        "comment_type": "pull_request" if e.issue.pull_request is not None else "issue",
-        "comment": {
+    return CommentEvent(
+        action=e.action,
+        comment_type="pull_request" if e.issue.pull_request is not None else "issue",
+        comment={
             "author": (
                 {
                     "id": str(e.comment.user.id),
@@ -113,8 +114,8 @@ def parse_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
             "body": e.comment.body,
             "id": str(e.comment.id),
         },
-        "subscription_event": event,
-    }
+        subscription_event=event,
+    )
 
 
 # $$$$$$$\  $$\   $$\ $$\       $$\             $$$$$$$\  $$$$$$$$\  $$$$$$\  $$\   $$\ $$$$$$$$\  $$$$$$\ $$$$$$$$\
@@ -160,9 +161,9 @@ pull_request_decoder = msgspec.json.Decoder(GitHubPullRequestEvent)
 def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
     e = pull_request_decoder.decode(event["event"])
 
-    return {
-        "action": e.action,
-        "pull_request": {
+    return PullRequestEvent(
+        action=e.action,
+        pull_request={
             "author": {"id": e.pull_request.user.id, "username": e.pull_request.user.login},
             "base": {"name": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
             "description": e.pull_request.body,
@@ -171,5 +172,16 @@ def parse_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEven
             "is_private_repo": e.pull_request.head.repo.private,
             "title": e.pull_request.title,
         },
-        "subscription_event": event,
-    }
+        subscription_event=event,
+    )
+
+
+def parse_github_event(event: SubscriptionEvent) -> EventType | None:
+    if event["event_type_hint"] == "pull_request":
+        return parse_github_pull_request_event(event)
+    elif event["event_type_hint"] == "comment":
+        return parse_github_comment_event(event)
+    elif event["event_type_hint"] == "check_run":
+        return parse_github_check_run_event(event)
+    else:
+        return None

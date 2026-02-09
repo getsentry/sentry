@@ -15,17 +15,23 @@ from collections.abc import Callable
 import msgspec
 import sentry_sdk
 
-from sentry.scm.types import ProviderName, SubscriptionEvent
+from sentry.scm.types import (
+    CheckRunEvent,
+    CommentEvent,
+    ProviderName,
+    PullRequestEvent,
+    SubscriptionEvent,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import scm_tasks
 
 
-# GC is disabled. You MUST NEVER use this in such a way that a reference cycle is created.
-# Fortunately this is a private struct not intended for use anywhere but here. So as long as we
-# know what to do we can give great performace to our consumers transparently.
-#
-# Frozen is set to ensure immuatability. Attributes may not be changed after being set.
+def x() -> CheckRunEvent: ...
+def y() -> CommentEvent: ...
+def z() -> PullRequestEvent: ...
+
+
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
     event_type_hint: str | None
     event: bytes
@@ -41,20 +47,6 @@ class SubscriptionEventSentryMetaParser(msgspec.Struct, gc=False, frozen=True):
     organization_id: int
 
 
-# $$$$$$$\                                          $$\           $$\ $$\
-# $$  __$$\                                         \__|          $$ |\__|
-# $$ |  $$ | $$$$$$\   $$$$$$$\  $$$$$$\   $$$$$$\  $$\  $$$$$$\  $$ |$$\ $$$$$$$$\  $$$$$$\   $$$$$$\
-# $$ |  $$ |$$  __$$\ $$  _____|$$  __$$\ $$  __$$\ $$ | \____$$\ $$ |$$ |\____$$  |$$  __$$\ $$  __$$\
-# $$ |  $$ |$$$$$$$$ |\$$$$$$\  $$$$$$$$ |$$ |  \__|$$ | $$$$$$$ |$$ |$$ |  $$$$ _/ $$$$$$$$ |$$ |  \__|
-# $$ |  $$ |$$   ____| \____$$\ $$   ____|$$ |      $$ |$$  __$$ |$$ |$$ | $$  _/   $$   ____|$$ |
-# $$$$$$$  |\$$$$$$$\ $$$$$$$  |\$$$$$$$\ $$ |      $$ |\$$$$$$$ |$$ |$$ |$$$$$$$$\ \$$$$$$$\ $$ |
-# \_______/  \_______|\_______/  \_______|\__|      \__| \_______|\__|\__|\________| \_______|\__|
-
-
-# A decoder global is defined. This is a performance optimization. Because this decoder will be
-# repeatedly called within a Kafka consumer (which should have a reasonably tight loop) this
-# optimization will improve deserialization performance for most consumer types (especially types
-# with rare events).
 decoder = msgspec.msgpack.Decoder(SubscriptionEventParser)
 
 
@@ -85,16 +77,6 @@ def deserialize_event(
     except msgspec.DecodeError as e:
         report_exception(e)
         return None
-
-
-#  $$$$$$\                      $$\           $$\ $$\
-# $$  __$$\                     \__|          $$ |\__|
-# $$ /  \__| $$$$$$\   $$$$$$\  $$\  $$$$$$\  $$ |$$\ $$$$$$$$\  $$$$$$\   $$$$$$\
-# \$$$$$$\  $$  __$$\ $$  __$$\ $$ | \____$$\ $$ |$$ |\____$$  |$$  __$$\ $$  __$$\
-#  \____$$\ $$$$$$$$ |$$ |  \__|$$ | $$$$$$$ |$$ |$$ |  $$$$ _/ $$$$$$$$ |$$ |  \__|
-# $$\   $$ |$$   ____|$$ |      $$ |$$  __$$ |$$ |$$ | $$  _/   $$   ____|$$ |
-# \$$$$$$  |\$$$$$$$\ $$ |      $$ |\$$$$$$$ |$$ |$$ |$$$$$$$$\ \$$$$$$$\ $$ |
-#  \______/  \_______|\__|      \__| \_______|\__|\__|\________| \_______|\__|
 
 
 encoder = msgspec.msgpack.Encoder()
