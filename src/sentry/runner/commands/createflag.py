@@ -2,7 +2,7 @@ from datetime import date
 
 import click
 
-from flagpole import Feature, Segment
+from flagpole import Feature, OwnerInfo, Segment
 from flagpole.conditions import (
     ConditionBase,
     ConditionOperatorKind,
@@ -133,7 +133,7 @@ def createflag(
             segments = segment_wizard()
         feature = Feature(
             name=f"feature.{scope}:{name}",
-            owner=owner,
+            owner=OwnerInfo(team=owner),
             segments=segments,
             created_at=date.today().isoformat(),
         )
@@ -211,7 +211,7 @@ def createissueflag(
 
             feature = Feature(
                 name=f"feature.{feature_name}",
-                owner=owner,
+                owner=OwnerInfo(team=owner),
                 segments=segments,
                 created_at=date.today().isoformat(),
             )

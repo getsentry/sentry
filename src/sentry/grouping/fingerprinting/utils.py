@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.utils import normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -229,7 +230,12 @@ def resolve_fingerprint_variable(
             or get_path(event.data, "logentry", "message")
             or get_path(event.data, "exception", "values", -1, "value")
         )
-        return message or "<no-message>"
+        normalized_message = (
+            normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
+            if message
+            else None
+        )
+        return normalized_message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
