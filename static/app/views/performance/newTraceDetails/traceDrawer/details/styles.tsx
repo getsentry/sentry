@@ -723,6 +723,7 @@ const SectionDivider = styled('hr')`
 const VerticalLine = styled('div')`
   width: 1px;
   height: 100%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   margin-top: ${space(0.5)};
 `;

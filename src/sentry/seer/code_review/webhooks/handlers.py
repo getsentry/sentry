@@ -90,6 +90,14 @@ def handle_webhook_event(
                 github_event_action=event.get("action", "unknown"),
                 reason=preflight.denial_reason,
             )
+            if organization.slug == "sentry":
+                logger.info(
+                    "github.webhook.code_review.denied",
+                    extra={
+                        **extra,
+                        "denial_reason": preflight.denial_reason,
+                    },
+                )
         return
 
     # Ensure only one request per delivery_id within the TTL window: skip if already processed

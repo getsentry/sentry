@@ -6,8 +6,8 @@ from jsonschema import ValidationError
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.groupopenperiod import get_latest_open_period
-from sentry.rules.age import AgeComparisonType
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase

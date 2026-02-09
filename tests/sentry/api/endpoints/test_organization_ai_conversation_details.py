@@ -120,7 +120,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_multi_trace_conversation(self) -> None:
         """Test returns all spans for a conversation across multiple traces"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=10).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
@@ -175,7 +175,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_conversation_attributes(self) -> None:
         """Test that the endpoint returns all AI conversation attributes"""
-        now = before_now(days=40).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -230,7 +230,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
-        now = before_now(days=50).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -276,7 +276,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_span_ordering(self) -> None:
         """Test spans are ordered by timestamp ascending"""
-        now = before_now(days=60).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -311,7 +311,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_only_returns_matching_conversation(self) -> None:
         """Test that only spans from the requested conversation are returned"""
-        now = before_now(days=70).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
         trace_id = uuid4().hex
@@ -361,7 +361,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_tool_attributes(self) -> None:
         """Test that tool spans include gen_ai.tool.name attribute"""
-        now = before_now(days=80).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -389,9 +389,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
 
-    def test_stats_period_is_ignored(self) -> None:
-        """Test that statsPeriod parameter is ignored so old links still work"""
-        timestamp = before_now(days=90).replace(microsecond=0)
+    def test_stats_period_overrides_to_30d(self) -> None:
+        """Test that statsPeriod is overridden to 30d so all recent data is returned"""
+        timestamp = before_now(days=15).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -402,13 +402,11 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
         )
 
-        # Use explicit start/end that includes the span, but add statsPeriod=1h
-        # which would normally restrict to last hour and exclude our 90-day-old span
+        # statsPeriod=1h would normally restrict to last hour and exclude our 15-day-old span,
+        # but endpoint overrides to 30d
         query = {
             "project": [self.project.id],
-            "start": (timestamp - timedelta(hours=1)).isoformat(),
-            "end": (timestamp + timedelta(hours=1)).isoformat(),
-            "statsPeriod": "1h",  # This should be ignored
+            "statsPeriod": "1h",
         }
 
         response = self.do_request(conversation_id, query)
@@ -423,7 +421,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         filter by gen_ai.operation.type:ai_client when summing tokens/costs
         to avoid double counting from agent spans that may also have token data.
         """
-        now = before_now(days=91).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 

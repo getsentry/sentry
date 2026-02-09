@@ -37,6 +37,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
@@ -1285,6 +1286,7 @@ function DebugIdMismatchMessage({
   debugId: string | null;
   projectSlug?: string;
 }) {
+  const organization = useOrganization();
   // At this point debugId is always defined. The types need to be fixed
   if (!debugId) {
     return (
@@ -1302,7 +1304,7 @@ function DebugIdMismatchMessage({
       debugId: projectSlug ? (
         <LinkButton
           to={{
-            pathname: `/settings/projects/${projectSlug}/source-maps/`,
+            pathname: `/settings/${organization.slug}/projects/${projectSlug}/source-maps/`,
             query: {
               query: debugId,
             },

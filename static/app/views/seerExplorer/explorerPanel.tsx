@@ -282,7 +282,7 @@ function ExplorerPanel() {
 
     // While input is focused, prevent backtick from triggering superuser ViewAsHookMiddleware
     if (e.key === '`') {
-      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
     }
 
     if (e.key === 'Enter' && !e.shiftKey) {

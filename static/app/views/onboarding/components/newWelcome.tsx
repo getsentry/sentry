@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -129,6 +130,14 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 
 export function NewWelcomeUI(props: StepProps) {
   useWelcomeAnalyticsEffect();
+
+  // Scroll to top on mount to fix iOS Safari retaining scroll position from previous page.
+  // Skip if there's a hash in the URL to avoid conflicting with anchor-based scrolling.
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 

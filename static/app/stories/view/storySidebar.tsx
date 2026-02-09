@@ -27,6 +27,7 @@ const SidebarContainer = styled('nav')`
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   width: 256px;
   background: ${p => p.theme.tokens.background.primary};
@@ -46,6 +47,7 @@ const SidebarContainer = styled('nav')`
     display: block;
     content: '';
     height: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
     margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
