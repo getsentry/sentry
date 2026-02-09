@@ -5,7 +5,6 @@ This test file addresses customer concerns about a potential 250 commit/author l
 reported in the #discuss-integrations Slack channel.
 """
 
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
