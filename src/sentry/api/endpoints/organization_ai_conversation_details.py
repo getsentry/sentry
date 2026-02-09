@@ -75,12 +75,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         now = timezone.now()
         max_retention_cutoff = now - max_retention
 
-        if stats_period:
-            # Always use full 30d range when statsPeriod is passed
+        if stats_period or not has_explicit_range:
+            # Always use full 30d range when statsPeriod is passed or no date params
             snuba_params.start = max_retention_cutoff
             snuba_params.end = now
         else:
-            # Validate start/end aren't older than retention limit
+            # Validate explicit start/end aren't older than retention limit
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
                 return Response(
                     {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
@@ -91,10 +91,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
                     status=400,
                 )
-            if not has_explicit_range:
-                # No date params passed - use full 30d range
-                snuba_params.start = max_retention_cutoff
-                snuba_params.end = now
 
         selected_columns = AI_CONVERSATION_ATTRIBUTES
 
