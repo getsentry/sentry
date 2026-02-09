@@ -53,6 +53,7 @@ export function Button({
           />
         )}
         <Flex
+          as="span"
           align="center"
           justify="center"
           minWidth="0"
@@ -61,6 +62,7 @@ export function Button({
         >
           {props.icon && (
             <Flex
+              as="span"
               align="center"
               flexShrink={0}
               marginRight={
