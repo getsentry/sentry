@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics, PreprodComparisonApproval
 from sentry.preprod.vcs.status_checks.size.tasks import (
     StatusCheckErrorType,
     create_preprod_status_check_task,
@@ -1444,3 +1444,370 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             kwargs = mock_provider.create_status_check.call_args.kwargs
             assert str(valid.id) in kwargs["target_url"]
             assert str(skipped.id) not in kwargs["target_url"]
+
+    def _create_multi_app_commit(self, artifact_configs):
+        """Helper to create multiple artifacts sharing a commit comparison.
+
+        Args:
+            artifact_configs: List of dicts with keys: app_id, state,
+                optionally: metrics_state, extras, error_message
+        Returns:
+            (commit_comparison, list of artifacts, mock_provider, client_patch, provider_patch)
+        """
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha=uuid.uuid4().hex[:40],
+            base_sha=uuid.uuid4().hex[:40],
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/multi-app",
+            base_ref="main",
+        )
+
+        artifacts = []
+        for config in artifact_configs:
+            artifact = Factories.create_preprod_artifact(
+                project=self.project,
+                state=config["state"],
+                app_id=config["app_id"],
+                commit_comparison=commit_comparison,
+                extras=config.get("extras"),
+                error_message=config.get("error_message"),
+            )
+            metrics_state = config.get("metrics_state")
+            if metrics_state is not None:
+                Factories.create_preprod_artifact_size_metrics(
+                    artifact=artifact,
+                    state=metrics_state,
+                )
+            artifacts.append(artifact)
+
+        repository = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+
+        mock_client = Mock()
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_12345"
+
+        client_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            return_value=(mock_client, repository),
+        )
+        provider_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            return_value=mock_provider,
+        )
+
+        return commit_comparison, artifacts, mock_provider, client_patch, provider_patch
+
+    def test_multiple_apps_only_one_in_progress_posted(self):
+        """Only one IN_PROGRESS check is posted when multiple uploading artifacts share a commit."""
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {"app_id": "com.app1", "state": PreprodArtifact.ArtifactState.UPLOADING, "metrics_state": None},
+                {"app_id": "com.app2", "state": PreprodArtifact.ArtifactState.UPLOADING, "metrics_state": None},
+                {"app_id": "com.app3", "state": PreprodArtifact.ArtifactState.UPLOADING, "metrics_state": None},
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                for a in artifacts:
+                    create_preprod_status_check_task(a.id)
+
+        assert mock_provider.create_status_check.call_count == 1
+        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+        assert call_kwargs["status"] == StatusCheckStatus.NEUTRAL  # No rules configured
+
+    def test_multiple_apps_terminal_posted_when_all_done(self):
+        """Terminal status is posted when all artifacts are fully processed."""
+        in_progress_extras = {
+            "posted_status_checks": {"size": {"posted_status": "in_progress"}}
+        }
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "extras": in_progress_extras,
+                },
+                {
+                    "app_id": "com.app2",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+                {
+                    "app_id": "com.app3",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(artifacts[0].id)
+
+        assert mock_provider.create_status_check.call_count == 1
+
+    def test_multiple_apps_skip_when_some_still_processing(self):
+        """Skip posting when some artifacts are still processing and IN_PROGRESS was already posted."""
+        in_progress_extras = {
+            "posted_status_checks": {"size": {"posted_status": "in_progress"}}
+        }
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "extras": in_progress_extras,
+                },
+                {
+                    "app_id": "com.app2",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+                {
+                    "app_id": "com.app3",
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
+                },
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # Run for a PROCESSED artifact — should skip because app3 is still uploading
+                create_preprod_status_check_task(artifacts[0].id)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    def test_one_app_fails_others_still_processing_skips(self):
+        """Skip posting when one app fails but others are still processing."""
+        in_progress_extras = {
+            "posted_status_checks": {"size": {"posted_status": "in_progress"}}
+        }
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.FAILED,
+                    "metrics_state": None,
+                    "error_message": "Upload failed",
+                    "extras": in_progress_extras,
+                },
+                {
+                    "app_id": "com.app2",
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
+                },
+                {
+                    "app_id": "com.app3",
+                    "state": PreprodArtifact.ArtifactState.UPLOADING,
+                    "metrics_state": None,
+                },
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(artifacts[0].id)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    def test_one_app_fails_others_done_posts_failure(self):
+        """Post FAILURE when one app fails and all others are terminal."""
+        in_progress_extras = {
+            "posted_status_checks": {"size": {"posted_status": "in_progress"}}
+        }
+        # Configure rules so status is preserved (not forced to NEUTRAL)
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100000000000}]',
+        )
+
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.FAILED,
+                    "metrics_state": None,
+                    "error_message": "Upload failed",
+                    "extras": in_progress_extras,
+                },
+                {
+                    "app_id": "com.app2",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+                {
+                    "app_id": "com.app3",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(artifacts[0].id)
+
+        assert mock_provider.create_status_check.call_count == 1
+        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+        assert call_kwargs["status"] == StatusCheckStatus.FAILURE
+
+    def test_rerun_always_posts(self):
+        """Rerun endpoint always posts even when a terminal status was already posted."""
+        terminal_extras = {
+            "posted_status_checks": {"size": {"posted_status": "neutral"}}
+        }
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "extras": terminal_extras,
+                },
+            ])
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(artifacts[0].id, caller="rerun_endpoint")
+
+        assert mock_provider.create_status_check.call_count == 1
+
+    def test_webhook_approval_posts_updated_status(self):
+        """Webhook approval changes FAILURE -> SUCCESS and posts the update."""
+        # Configure rules so status is preserved (not forced to NEUTRAL)
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 1}]',
+        )
+
+        failure_extras = {
+            "posted_status_checks": {"size": {"posted_status": "failure"}}
+        }
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                    "extras": failure_extras,
+                },
+            ])
+        )
+
+        # Create an approval record — this converts FAILURE -> SUCCESS
+        PreprodComparisonApproval.objects.create(
+            preprod_artifact=artifacts[0],
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            approved_by_id=self.user.id,
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                create_preprod_status_check_task(
+                    artifacts[0].id, caller="github_approve_webhook"
+                )
+
+        assert mock_provider.create_status_check.call_count == 1
+        call_kwargs = mock_provider.create_status_check.call_args.kwargs
+        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS
+
+    def test_single_app_still_two_posts(self):
+        """Single-app flow results in exactly 2 GitHub API calls: IN_PROGRESS + terminal."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha=uuid.uuid4().hex[:40],
+            base_sha=uuid.uuid4().hex[:40],
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/single",
+            base_ref="main",
+        )
+
+        artifact = Factories.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADING,
+            app_id="com.single",
+            commit_comparison=commit_comparison,
+        )
+
+        repository = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+
+        mock_client = Mock()
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_12345"
+
+        client_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_client",
+            return_value=(mock_client, repository),
+        )
+        provider_patch = patch(
+            "sentry.preprod.vcs.status_checks.size.tasks._get_status_check_provider",
+            return_value=mock_provider,
+        )
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # First call while UPLOADING → IN_PROGRESS
+                create_preprod_status_check_task(artifact.id)
+
+        assert mock_provider.create_status_check.call_count == 1
+
+        # Transition to PROCESSED with completed metrics
+        artifact.state = PreprodArtifact.ArtifactState.PROCESSED
+        artifact.save(update_fields=["state"])
+        Factories.create_preprod_artifact_size_metrics(artifact=artifact)
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                # Second call when PROCESSED → terminal
+                create_preprod_status_check_task(artifact.id)
+
+        assert mock_provider.create_status_check.call_count == 2
+
+    def test_api_failure_clears_claim(self):
+        """When the GitHub API call fails, the posted_status claim is cleared for retry."""
+        _, artifacts, mock_provider, client_patch, provider_patch = (
+            self._create_multi_app_commit([
+                {
+                    "app_id": "com.app1",
+                    "state": PreprodArtifact.ArtifactState.PROCESSED,
+                    "metrics_state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                },
+            ])
+        )
+
+        mock_provider.create_status_check.side_effect = Exception("GitHub API error")
+
+        with client_patch, provider_patch:
+            with self.tasks():
+                try:
+                    create_preprod_status_check_task(artifacts[0].id)
+                except Exception:
+                    pass
+
+        artifacts[0].refresh_from_db()
+        size_check = artifacts[0].extras.get("posted_status_checks", {}).get("size", {})
+        # posted_status should be cleared so a retry can post
+        assert "posted_status" not in size_check
+        # The failure should still be recorded
+        assert size_check.get("success") is False

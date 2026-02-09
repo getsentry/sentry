@@ -45,10 +45,12 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     IntegrationConfigurationError,
 )
+from sentry.locks import locks
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import json
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +250,45 @@ def create_preprod_status_check_task(
             status = StatusCheckStatus.NEUTRAL
             completed_at = preprod_artifact.date_updated
 
+    # Phase 1: Decision + Claim (under Redis lock)
+    # Reduces status check API calls from ~12+ to ~2 per commit for multi-app customers.
+    if caller != "rerun_endpoint":
+        lock = locks.get(
+            f"preprod:status-check:{commit_comparison.id}",
+            duration=30,
+            name="preprod_status_check",
+        )
+        try:
+            with lock.blocking_acquire(initial_delay=0.1, timeout=5):
+                fresh_extras = dict(
+                    PreprodArtifact.objects.filter(id__in=[a.id for a in all_artifacts])
+                    .values_list("id", "extras")
+                )
+                if _should_skip_status_check(
+                    all_artifacts, fresh_extras, size_metrics_map, status, caller
+                ):
+                    logger.info(
+                        "preprod.status_checks.create.skipped",
+                        extra={
+                            "artifact_id": preprod_artifact.id,
+                            "status": status.value,
+                            "caller": caller,
+                        },
+                    )
+                    return
+
+                _write_posted_status_claim(preprod_artifact, status.value)
+        except UnableToAcquireLock:
+            # Lock timeout — post anyway to avoid a stuck check
+            logger.warning(
+                "preprod.status_checks.create.lock_timeout",
+                extra={
+                    "artifact_id": preprod_artifact.id,
+                    "commit_comparison_id": commit_comparison.id,
+                },
+            )
+
+    # Phase 2: Execute (no lock held)
     try:
         check_id = provider.create_status_check(
             repo=commit_comparison.head_repo_name,
@@ -264,6 +305,7 @@ def create_preprod_status_check_task(
             include_approve_action=bool(triggered_rules),
         )
     except Exception as e:
+        _clear_posted_status_claim(preprod_artifact)
         extra: dict[str, Any] = {
             "artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
@@ -293,7 +335,11 @@ def create_preprod_status_check_task(
         return
 
     _update_posted_status_check(
-        preprod_artifact, check_type="size", success=True, check_id=check_id
+        preprod_artifact,
+        check_type="size",
+        success=True,
+        check_id=check_id,
+        posted_status=status.value,
     )
 
     logger.info(
@@ -314,6 +360,7 @@ def _update_posted_status_check(
     success: bool,
     check_id: str | None = None,
     error: Exception | None = None,
+    posted_status: str | None = None,
 ) -> None:
     """Update the posted_status_checks field in the artifact's extras."""
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
@@ -325,6 +372,8 @@ def _update_posted_status_check(
         check_result: dict[str, Any] = {"success": success}
         if success and check_id:
             check_result["check_id"] = check_id
+        if success and posted_status:
+            check_result["posted_status"] = posted_status
         if not success:
             check_result["error_type"] = _get_error_type(error).value
 
@@ -464,6 +513,93 @@ def _has_no_quota_artifact(
         for artifact in artifacts
         for m in size_metrics_map.get(artifact.id, [])
     )
+
+
+def _should_skip_status_check(
+    all_artifacts: list[PreprodArtifact],
+    fresh_extras: dict[int, dict | None],
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
+    status: StatusCheckStatus,
+    caller: str | None,
+) -> bool:
+    """Decide whether to skip posting a status check to reduce API calls.
+
+    Returns True to skip, False to post. On any error, returns False (post).
+    """
+    try:
+        # Rerun always posts
+        if caller == "rerun_endpoint":
+            return False
+
+        # Check if any sibling has already posted a status
+        any_posted = False
+        posted_statuses: set[str] = set()
+        for artifact_id, extras in fresh_extras.items():
+            if not extras:
+                continue
+            posted_checks = extras.get("posted_status_checks", {})
+            size_check = posted_checks.get("size", {})
+            posted = size_check.get("posted_status")
+            if posted:
+                any_posted = True
+                posted_statuses.add(posted)
+
+        # First post always goes through
+        if not any_posted:
+            return False
+
+        # If any artifact is still processing, skip (already posted IN_PROGRESS)
+        for artifact in all_artifacts:
+            if artifact.state in (
+                PreprodArtifact.ArtifactState.UPLOADING,
+                PreprodArtifact.ArtifactState.UPLOADED,
+            ):
+                return True
+            metrics_list = size_metrics_map.get(artifact.id, [])
+            for m in metrics_list:
+                if m.state in (
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                ):
+                    return True
+
+        # All artifacts terminal - check if same status already posted
+        if status.value in posted_statuses:
+            return True
+
+        # Status changed (e.g. failure -> success after approval), don't skip
+        return False
+    except Exception:
+        logger.exception("preprod.status_checks.should_skip.error")
+        return False
+
+
+def _write_posted_status_claim(preprod_artifact: PreprodArtifact, posted_status: str) -> None:
+    """Write posted_status claim into artifact extras inside the lock window."""
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
+        extras = artifact.extras or {}
+        posted_status_checks = extras.get("posted_status_checks", {})
+        size_check = posted_status_checks.get("size", {})
+        size_check["posted_status"] = posted_status
+        posted_status_checks["size"] = size_check
+        extras["posted_status_checks"] = posted_status_checks
+        artifact.extras = extras
+        artifact.save(update_fields=["extras"])
+
+
+def _clear_posted_status_claim(preprod_artifact: PreprodArtifact) -> None:
+    """Remove posted_status claim from artifact extras so a retry can post."""
+    with transaction.atomic(router.db_for_write(PreprodArtifact)):
+        artifact = PreprodArtifact.objects.select_for_update().get(id=preprod_artifact.id)
+        extras = artifact.extras or {}
+        posted_status_checks = extras.get("posted_status_checks", {})
+        size_check = posted_status_checks.get("size", {})
+        size_check.pop("posted_status", None)
+        posted_status_checks["size"] = size_check
+        extras["posted_status_checks"] = posted_status_checks
+        artifact.extras = extras
+        artifact.save(update_fields=["extras"])
 
 
 def _get_artifact_filter_context(artifact: PreprodArtifact) -> dict[str, str]:
