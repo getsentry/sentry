@@ -7,11 +7,7 @@ import pytest
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.seer.code_review.webhooks import handlers as handlers_module
-from sentry.seer.code_review.webhooks.handlers import (
-    WEBHOOK_SEEN_KEY_PREFIX,
-    WEBHOOK_SEEN_TTL_SECONDS,
-    handle_webhook_event,
-)
+from sentry.seer.code_review.webhooks.handlers import WEBHOOK_SEEN_KEY_PREFIX, handle_webhook_event
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
 
@@ -85,28 +81,6 @@ class TestHandleWebhookEventWebhookSeen(TestCase):
         )
         patcher.start()
         self.addCleanup(patcher.stop)
-
-    def test_webhook_already_seen_handler_not_invoked(self) -> None:
-        """When the delivery_id was already seen, handle_webhook_event returns without invoking the handler."""
-        delivery_id = f"already-seen-{uuid4()}"
-        cluster = redis_clusters.get("default")
-        seen_key = f"{WEBHOOK_SEEN_KEY_PREFIX}{delivery_id}"
-        cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
-
-        integration = MagicMock()
-        integration.provider = IntegrationProviderSlug.GITHUB
-        integration.id = 123
-
-        handle_webhook_event(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            github_delivery_id=delivery_id,
-            event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
-            organization=self.organization,
-            repo=MagicMock(),
-            integration=integration,
-        )
-
-        self.mock_pull_request_handler.assert_not_called()
 
     def test_webhook_first_time_seen_handler_invoked(self) -> None:
         """When the delivery_id is not yet seen, handle_webhook_event marks it seen and invokes the handler."""

@@ -1124,7 +1124,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
             if github_delivery_id is not None:
                 github_delivery_id = str(github_delivery_id)
-            sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
+                sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
 
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
