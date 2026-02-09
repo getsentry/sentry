@@ -4,6 +4,9 @@ from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     Author,
+    CheckRun,
+    CheckRunActionResult,
+    CheckRunOutput,
     Comment,
     CommentActionResult,
     Commit,
@@ -35,6 +38,11 @@ from sentry.scm.types import (
     ReactionResult,
     Referrer,
     Repository,
+    Review,
+    ReviewActionResult,
+    ReviewComment,
+    ReviewCommentActionResult,
+    ReviewCommentInput,
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -193,6 +201,44 @@ def _transform_git_commit_object(raw: dict[str, Any]) -> GitCommitObjectActionRe
             sha=raw["sha"],
             tree=GitCommitTree(sha=raw["tree"]["sha"]),
             message=raw.get("message", ""),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_review_comment(raw: dict[str, Any]) -> ReviewCommentActionResult:
+    return ReviewCommentActionResult(
+        review_comment=ReviewComment(
+            id=raw["id"],
+            html_url=raw.get("html_url", ""),
+            path=raw.get("path", ""),
+            body=raw.get("body", ""),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_review(raw: dict[str, Any]) -> ReviewActionResult:
+    return ReviewActionResult(
+        review=Review(
+            id=raw["id"],
+            html_url=raw.get("html_url", ""),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_check_run(raw: dict[str, Any]) -> CheckRunActionResult:
+    return CheckRunActionResult(
+        check_run=CheckRun(
+            id=raw["id"],
+            name=raw.get("name", ""),
+            status=raw.get("status", ""),
+            conclusion=raw.get("conclusion"),
+            html_url=raw.get("html_url", ""),
         ),
         provider="github",
         raw=raw,
@@ -604,3 +650,130 @@ class GitHubProvider(Provider):
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
+    # Review operations
+
+    def create_review_comment(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        body: str,
+        commit_sha: str,
+        path: str,
+        *,
+        line: int | None = None,
+        side: str | None = None,
+        start_line: int | None = None,
+        start_side: str | None = None,
+    ) -> ReviewCommentActionResult:
+        data: dict[str, Any] = {
+            "body": body,
+            "commit_id": commit_sha,
+            "path": path,
+        }
+        if line is not None:
+            data["line"] = line
+        if side is not None:
+            data["side"] = side
+        if start_line is not None:
+            data["start_line"] = start_line
+        if start_side is not None:
+            data["start_side"] = start_side
+        try:
+            raw = self.client.create_review_comment(repository["name"], pull_request_id, data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_review_comment(raw)
+
+    def create_review(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        commit_sha: str,
+        event: str,
+        comments: list[ReviewCommentInput],
+        *,
+        body: str | None = None,
+    ) -> ReviewActionResult:
+        data: dict[str, Any] = {
+            "commit_id": commit_sha,
+            "event": event,
+            "comments": comments,
+        }
+        if body is not None:
+            data["body"] = body
+        try:
+            raw = self.client.create_review(repository["name"], pull_request_id, data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_review(raw)
+
+    # Check run operations
+
+    def create_check_run(
+        self,
+        repository: Repository,
+        name: str,
+        head_sha: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        external_id: str | None = None,
+        started_at: str | None = None,
+        completed_at: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        data: dict[str, Any] = {
+            "name": name,
+            "head_sha": head_sha,
+        }
+        if status is not None:
+            data["status"] = status
+        if conclusion is not None:
+            data["conclusion"] = conclusion
+        if external_id is not None:
+            data["external_id"] = external_id
+        if started_at is not None:
+            data["started_at"] = started_at
+        if completed_at is not None:
+            data["completed_at"] = completed_at
+        if output is not None:
+            data["output"] = output
+        try:
+            raw = self.client.create_check_run(repository["name"], data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_check_run(raw)
+
+    def get_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+    ) -> CheckRunActionResult:
+        try:
+            raw = self.client.get_check_run(repository["name"], check_run_id)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_check_run(raw)
+
+    def update_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        data: dict[str, Any] = {}
+        if status is not None:
+            data["status"] = status
+        if conclusion is not None:
+            data["conclusion"] = conclusion
+        if output is not None:
+            data["output"] = output
+        try:
+            raw = self.client.update_check_run(repository["name"], check_run_id, data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_check_run(raw)

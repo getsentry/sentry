@@ -1,4 +1,4 @@
-from typing import Any, Literal, Protocol, TypedDict
+from typing import Any, Literal, Protocol, Required, TypedDict
 
 type ProviderName = str
 type ExternalId = str
@@ -227,6 +227,69 @@ class PullRequestDiffActionResult(TypedDict):
     provider: ProviderName
 
 
+class ReviewCommentInput(TypedDict, total=False):
+    """Input for an inline comment within a batch review."""
+
+    path: Required[str]
+    body: Required[str]
+    line: int
+    side: str  # "LEFT" or "RIGHT"
+    start_line: int
+    start_side: str  # "LEFT" or "RIGHT"
+
+
+class ReviewComment(TypedDict):
+    """Provider-agnostic representation of a review comment."""
+
+    id: int
+    html_url: str
+    path: str
+    body: str
+
+
+class ReviewCommentActionResult(TypedDict):
+    review_comment: ReviewComment
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class Review(TypedDict):
+    """Provider-agnostic representation of a pull request review."""
+
+    id: int
+    html_url: str
+
+
+class ReviewActionResult(TypedDict):
+    review: Review
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class CheckRunOutput(TypedDict, total=False):
+    """Output annotation for a check run."""
+
+    title: Required[str]
+    summary: Required[str]
+    text: str
+
+
+class CheckRun(TypedDict):
+    """Provider-agnostic representation of a check run."""
+
+    id: int
+    name: str
+    status: str  # "queued", "in_progress", "completed"
+    conclusion: str | None  # "success", "failure", "neutral", etc.
+    html_url: str
+
+
+class CheckRunActionResult(TypedDict):
+    check_run: CheckRun
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
 class Provider(Protocol):
     """
     Providers abstract over an integration. They map generic commands to service-provider specific
@@ -402,3 +465,62 @@ class Provider(Protocol):
     def request_review(
         self, repository: Repository, pull_request_id: str, reviewers: list[str]
     ) -> None: ...
+
+    # Review operations
+
+    def create_review_comment(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        body: str,
+        commit_sha: str,
+        path: str,
+        *,
+        line: int | None = None,
+        side: str | None = None,
+        start_line: int | None = None,
+        start_side: str | None = None,
+    ) -> ReviewCommentActionResult: ...
+
+    def create_review(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        commit_sha: str,
+        event: str,
+        comments: list[ReviewCommentInput],
+        *,
+        body: str | None = None,
+    ) -> ReviewActionResult: ...
+
+    # Check run operations
+
+    def create_check_run(
+        self,
+        repository: Repository,
+        name: str,
+        head_sha: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        external_id: str | None = None,
+        started_at: str | None = None,
+        completed_at: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult: ...
+
+    def get_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+    ) -> CheckRunActionResult: ...
+
+    def update_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult: ...

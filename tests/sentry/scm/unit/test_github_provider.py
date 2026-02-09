@@ -10,6 +10,7 @@ from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import Repository
 from tests.sentry.scm.test_fixtures import (
     FakeGitHubApiClient,
+    make_github_check_run,
     make_github_comment,
     make_github_commit,
     make_github_commit_comparison,
@@ -20,6 +21,8 @@ from tests.sentry.scm.test_fixtures import (
     make_github_pull_request_commit,
     make_github_pull_request_file,
     make_github_reaction,
+    make_github_review,
+    make_github_review_comment,
 )
 
 
@@ -79,6 +82,27 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
+    (
+        "create_review_comment",
+        {
+            "pull_request_id": "42",
+            "body": "comment",
+            "commit_sha": "abc",
+            "path": "f.py",
+        },
+    ),
+    (
+        "create_review",
+        {
+            "pull_request_id": "42",
+            "commit_sha": "abc",
+            "event": "COMMENT",
+            "comments": [],
+        },
+    ),
+    ("create_check_run", {"name": "check", "head_sha": "abc"}),
+    ("get_check_run", {"check_run_id": "300"}),
+    ("update_check_run", {"check_run_id": "300"}),
 ]
 
 
@@ -287,6 +311,69 @@ CLIENT_DELEGATION_TESTS: list[
         (
             "create_review_request",
             ("test-org/test-repo", "42", {"reviewers": ["user1"]}),
+            {},
+        ),
+    ),
+    (
+        "create_review_comment",
+        {
+            "pull_request_id": "42",
+            "body": "Nice!",
+            "commit_sha": "abc123",
+            "path": "src/main.py",
+        },
+        (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {"body": "Nice!", "commit_id": "abc123", "path": "src/main.py"},
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_review",
+        {
+            "pull_request_id": "42",
+            "commit_sha": "abc123",
+            "event": "COMMENT",
+            "comments": [{"path": "f.py", "body": "fix"}],
+        },
+        (
+            "create_review",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "commit_id": "abc123",
+                    "event": "COMMENT",
+                    "comments": [{"path": "f.py", "body": "fix"}],
+                },
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_check_run",
+        {"name": "Seer Review", "head_sha": "abc123"},
+        (
+            "create_check_run",
+            ("test-org/test-repo", {"name": "Seer Review", "head_sha": "abc123"}),
+            {},
+        ),
+    ),
+    (
+        "get_check_run",
+        {"check_run_id": "300"},
+        ("get_check_run", ("test-org/test-repo", "300"), {}),
+    ),
+    (
+        "update_check_run",
+        {"check_run_id": "300", "conclusion": "success"},
+        (
+            "update_check_run",
+            ("test-org/test-repo", "300", {"conclusion": "success"}),
             {},
         ),
     ),
@@ -509,6 +596,40 @@ def _check_update_pull_request(result: Any) -> None:
     assert result["provider"] == "github"
 
 
+def _check_review_comment(result: Any) -> None:
+    rc = result["review_comment"]
+    assert rc["id"] == 100
+    assert rc["html_url"] == "https://github.com/test-org/test-repo/pull/1#discussion_r100"
+    assert rc["path"] == "src/main.py"
+    assert rc["body"] == "Looks good"
+    assert result["provider"] == "github"
+
+
+def _check_review(result: Any) -> None:
+    r = result["review"]
+    assert r["id"] == 200
+    assert r["html_url"] == "https://github.com/test-org/test-repo/pull/1#pullrequestreview-200"
+    assert result["provider"] == "github"
+
+
+def _check_check_run(result: Any) -> None:
+    cr = result["check_run"]
+    assert cr["id"] == 300
+    assert cr["name"] == "Seer Review"
+    assert cr["status"] == "completed"
+    assert cr["conclusion"] == "success"
+    assert cr["html_url"] == "https://github.com/test-org/test-repo/runs/300"
+    assert result["provider"] == "github"
+
+
+def _check_updated_check_run(result: Any) -> None:
+    cr = result["check_run"]
+    assert cr["id"] == 300
+    assert cr["status"] == "completed"
+    assert cr["conclusion"] == "failure"
+    assert result["provider"] == "github"
+
+
 TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any], None]]] = [
     (
         "get_issue_comments",
@@ -647,6 +768,46 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"pull_request_id": "42", "title": "Updated"},
         {"updated_pr_data": make_github_pull_request(title="Updated")},
         _check_update_pull_request,
+    ),
+    (
+        "create_review_comment",
+        {
+            "pull_request_id": "42",
+            "body": "Looks good",
+            "commit_sha": "abc123",
+            "path": "src/main.py",
+        },
+        {"review_comment_data": make_github_review_comment()},
+        _check_review_comment,
+    ),
+    (
+        "create_review",
+        {
+            "pull_request_id": "42",
+            "commit_sha": "abc123",
+            "event": "COMMENT",
+            "comments": [],
+        },
+        {"review_data": make_github_review()},
+        _check_review,
+    ),
+    (
+        "create_check_run",
+        {"name": "Seer Review", "head_sha": "abc123"},
+        {"check_run_data": make_github_check_run()},
+        _check_check_run,
+    ),
+    (
+        "get_check_run",
+        {"check_run_id": "300"},
+        {"check_run_data": make_github_check_run()},
+        _check_check_run,
+    ),
+    (
+        "update_check_run",
+        {"check_run_id": "300", "conclusion": "failure"},
+        {"updated_check_run_data": make_github_check_run(conclusion="failure")},
+        _check_updated_check_run,
     ),
 ]
 
@@ -861,3 +1022,157 @@ class TestPullRequestCommitEdgeCases:
 
         assert len(result["commits"]) == 1
         assert result["commits"][0]["author"] is None
+
+
+class TestCreateReviewCommentEdgeCases:
+    def test_only_required_fields(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_review_comment(repository, "42", "comment", "abc123", "src/main.py")
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {"body": "comment", "commit_id": "abc123", "path": "src/main.py"},
+            ),
+            {},
+        ) in client.calls
+
+    def test_with_positioning_fields(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_review_comment(
+            repository,
+            "42",
+            "comment",
+            "abc123",
+            "src/main.py",
+            line=10,
+            side="RIGHT",
+            start_line=5,
+            start_side="RIGHT",
+        )
+
+        assert (
+            "create_review_comment",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "body": "comment",
+                    "commit_id": "abc123",
+                    "path": "src/main.py",
+                    "line": 10,
+                    "side": "RIGHT",
+                    "start_line": 5,
+                    "start_side": "RIGHT",
+                },
+            ),
+            {},
+        ) in client.calls
+
+
+class TestCreateReviewEdgeCases:
+    def test_with_empty_comments(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_review(repository, "42", "abc123", "APPROVE", [])
+
+        assert (
+            "create_review",
+            (
+                "test-org/test-repo",
+                "42",
+                {"commit_id": "abc123", "event": "APPROVE", "comments": []},
+            ),
+            {},
+        ) in client.calls
+
+    def test_with_body(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_review(repository, "42", "abc123", "COMMENT", [], body="Overall looks good")
+
+        assert (
+            "create_review",
+            (
+                "test-org/test-repo",
+                "42",
+                {
+                    "commit_id": "abc123",
+                    "event": "COMMENT",
+                    "comments": [],
+                    "body": "Overall looks good",
+                },
+            ),
+            {},
+        ) in client.calls
+
+
+class TestCreateCheckRunEdgeCases:
+    def test_with_output(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.create_check_run(
+            repository,
+            "Seer Review",
+            "abc123",
+            status="completed",
+            conclusion="success",
+            output={"title": "Review", "summary": "All good"},
+        )
+
+        assert (
+            "create_check_run",
+            (
+                "test-org/test-repo",
+                {
+                    "name": "Seer Review",
+                    "head_sha": "abc123",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "output": {"title": "Review", "summary": "All good"},
+                },
+            ),
+            {},
+        ) in client.calls
+
+
+class TestUpdateCheckRunEdgeCases:
+    def test_only_conclusion(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.update_check_run(repository, "300", conclusion="failure")
+
+        assert (
+            "update_check_run",
+            ("test-org/test-repo", "300", {"conclusion": "failure"}),
+            {},
+        ) in client.calls
+
+    def test_empty_update_sends_empty_data(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.update_check_run(repository, "300")
+
+        assert (
+            "update_check_run",
+            ("test-org/test-repo", "300", {}),
+            {},
+        ) in client.calls

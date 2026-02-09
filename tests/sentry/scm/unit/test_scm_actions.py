@@ -76,6 +76,29 @@ ALL_ACTIONS = (
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "1"}),
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
+    # Review operations
+    (
+        "create_review_comment",
+        {
+            "pull_request_id": "1",
+            "body": "comment",
+            "commit_sha": "abc",
+            "path": "f.py",
+        },
+    ),
+    (
+        "create_review",
+        {
+            "pull_request_id": "1",
+            "commit_sha": "abc",
+            "event": "COMMENT",
+            "comments": [],
+        },
+    ),
+    # Check run operations
+    ("create_check_run", {"name": "check", "head_sha": "abc"}),
+    ("get_check_run", {"check_run_id": "300"}),
+    ("update_check_run", {"check_run_id": "300"}),
 )
 
 
@@ -312,6 +335,39 @@ def _check_none(result: Any) -> None:
     assert result is None
 
 
+def _check_review_comment(result: Any) -> None:
+    rc = result["review_comment"]
+    assert rc["id"] == 100
+    assert rc["path"] == "f.py"
+    assert rc["body"] == "comment"
+    assert result["provider"] == "test"
+
+
+def _check_review(result: Any) -> None:
+    r = result["review"]
+    assert r["id"] == 200
+    assert result["provider"] == "test"
+
+
+def _check_create_check_run(result: Any) -> None:
+    cr = result["check_run"]
+    assert cr["name"] == "check"
+    assert result["provider"] == "test"
+
+
+def _check_get_check_run(result: Any) -> None:
+    cr = result["check_run"]
+    assert cr["id"] == 300
+    assert cr["status"] == "completed"
+    assert result["provider"] == "test"
+
+
+def _check_update_check_run(result: Any) -> None:
+    cr = result["check_run"]
+    assert cr["id"] == 300
+    assert result["provider"] == "test"
+
+
 ACTION_TESTS = (
     (SourceCodeManager.get_issue_comments, {"issue_id": "1"}, _check_issue_comments),
     (SourceCodeManager.create_issue_comment, {"issue_id": "1", "body": "test"}, _check_none),
@@ -409,6 +465,41 @@ ACTION_TESTS = (
         SourceCodeManager.request_review,
         {"pull_request_id": "1", "reviewers": ["user1"]},
         _check_none,
+    ),
+    (
+        SourceCodeManager.create_review_comment,
+        {
+            "pull_request_id": "1",
+            "body": "comment",
+            "commit_sha": "abc",
+            "path": "f.py",
+        },
+        _check_review_comment,
+    ),
+    (
+        SourceCodeManager.create_review,
+        {
+            "pull_request_id": "1",
+            "commit_sha": "abc",
+            "event": "COMMENT",
+            "comments": [],
+        },
+        _check_review,
+    ),
+    (
+        SourceCodeManager.create_check_run,
+        {"name": "check", "head_sha": "abc"},
+        _check_create_check_run,
+    ),
+    (
+        SourceCodeManager.get_check_run,
+        {"check_run_id": "300"},
+        _check_get_check_run,
+    ),
+    (
+        SourceCodeManager.update_check_run,
+        {"check_run_id": "300"},
+        _check_update_check_run,
     ),
 )
 

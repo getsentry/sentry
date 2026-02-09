@@ -12,6 +12,8 @@ from sentry.scm.helpers import (
     map_repository_model_to_repository,
 )
 from sentry.scm.types import (
+    CheckRunActionResult,
+    CheckRunOutput,
     CommentActionResult,
     CommitActionResult,
     CommitComparisonActionResult,
@@ -30,6 +32,9 @@ from sentry.scm.types import (
     Referrer,
     Repository,
     RepositoryId,
+    ReviewActionResult,
+    ReviewCommentActionResult,
+    ReviewCommentInput,
 )
 
 
@@ -281,3 +286,89 @@ class SourceCodeManager:
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         return self._exec(lambda r, p: p.request_review(r, pull_request_id, reviewers))
+
+    # Review operations
+
+    def create_review_comment(
+        self,
+        pull_request_id: str,
+        body: str,
+        commit_sha: str,
+        path: str,
+        *,
+        line: int | None = None,
+        side: str | None = None,
+        start_line: int | None = None,
+        start_side: str | None = None,
+    ) -> ReviewCommentActionResult:
+        return self._exec(
+            lambda r, p: p.create_review_comment(
+                r,
+                pull_request_id,
+                body,
+                commit_sha,
+                path,
+                line=line,
+                side=side,
+                start_line=start_line,
+                start_side=start_side,
+            )
+        )
+
+    def create_review(
+        self,
+        pull_request_id: str,
+        commit_sha: str,
+        event: str,
+        comments: list[ReviewCommentInput],
+        *,
+        body: str | None = None,
+    ) -> ReviewActionResult:
+        return self._exec(
+            lambda r, p: p.create_review(r, pull_request_id, commit_sha, event, comments, body=body)
+        )
+
+    # Check run operations
+
+    def create_check_run(
+        self,
+        name: str,
+        head_sha: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        external_id: str | None = None,
+        started_at: str | None = None,
+        completed_at: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        return self._exec(
+            lambda r, p: p.create_check_run(
+                r,
+                name,
+                head_sha,
+                status=status,
+                conclusion=conclusion,
+                external_id=external_id,
+                started_at=started_at,
+                completed_at=completed_at,
+                output=output,
+            )
+        )
+
+    def get_check_run(self, check_run_id: str) -> CheckRunActionResult:
+        return self._exec(lambda r, p: p.get_check_run(r, check_run_id))
+
+    def update_check_run(
+        self,
+        check_run_id: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        return self._exec(
+            lambda r, p: p.update_check_run(
+                r, check_run_id, status=status, conclusion=conclusion, output=output
+            )
+        )

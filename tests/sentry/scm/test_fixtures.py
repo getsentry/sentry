@@ -4,6 +4,9 @@ from unittest.mock import MagicMock
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
 from sentry.scm.types import (
+    CheckRun,
+    CheckRunActionResult,
+    CheckRunOutput,
     Comment,
     CommentActionResult,
     Commit,
@@ -35,6 +38,11 @@ from sentry.scm.types import (
     ReactionResult,
     Referrer,
     Repository,
+    Review,
+    ReviewActionResult,
+    ReviewComment,
+    ReviewCommentActionResult,
+    ReviewCommentInput,
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -278,6 +286,49 @@ def make_github_pull_request_commit(
     else:
         result["author"] = None
     return result
+
+
+def make_github_review_comment(
+    comment_id: int = 100,
+    html_url: str = "https://github.com/test-org/test-repo/pull/1#discussion_r100",
+    path: str = "src/main.py",
+    body: str = "Looks good",
+) -> dict[str, Any]:
+    """Factory for GitHub review comment API responses."""
+    return {
+        "id": comment_id,
+        "html_url": html_url,
+        "path": path,
+        "body": body,
+    }
+
+
+def make_github_review(
+    review_id: int = 200,
+    html_url: str = "https://github.com/test-org/test-repo/pull/1#pullrequestreview-200",
+) -> dict[str, Any]:
+    """Factory for GitHub review API responses."""
+    return {
+        "id": review_id,
+        "html_url": html_url,
+    }
+
+
+def make_github_check_run(
+    check_run_id: int = 300,
+    name: str = "Seer Review",
+    status: str = "completed",
+    conclusion: str | None = "success",
+    html_url: str = "https://github.com/test-org/test-repo/runs/300",
+) -> dict[str, Any]:
+    """Factory for GitHub check run API responses."""
+    return {
+        "id": check_run_id,
+        "name": name,
+        "status": status,
+        "conclusion": conclusion,
+        "html_url": html_url,
+    }
 
 
 class BaseTestProvider(Provider):
@@ -698,6 +749,121 @@ class BaseTestProvider(Provider):
     ) -> None:
         return None
 
+    # Review operations
+
+    def create_review_comment(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        body: str,
+        commit_sha: str,
+        path: str,
+        *,
+        line: int | None = None,
+        side: str | None = None,
+        start_line: int | None = None,
+        start_side: str | None = None,
+    ) -> ReviewCommentActionResult:
+        raw = make_github_review_comment(body=body, path=path)
+        return ReviewCommentActionResult(
+            review_comment=ReviewComment(
+                id=raw["id"],
+                html_url=raw["html_url"],
+                path=raw["path"],
+                body=raw["body"],
+            ),
+            provider="test",
+            raw=raw,
+        )
+
+    def create_review(
+        self,
+        repository: Repository,
+        pull_request_id: str,
+        commit_sha: str,
+        event: str,
+        comments: list[ReviewCommentInput],
+        *,
+        body: str | None = None,
+    ) -> ReviewActionResult:
+        raw = make_github_review()
+        return ReviewActionResult(
+            review=Review(id=raw["id"], html_url=raw["html_url"]),
+            provider="test",
+            raw=raw,
+        )
+
+    # Check run operations
+
+    def create_check_run(
+        self,
+        repository: Repository,
+        name: str,
+        head_sha: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        external_id: str | None = None,
+        started_at: str | None = None,
+        completed_at: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        raw = make_github_check_run(name=name)
+        return CheckRunActionResult(
+            check_run=CheckRun(
+                id=raw["id"],
+                name=raw["name"],
+                status=raw["status"],
+                conclusion=raw["conclusion"],
+                html_url=raw["html_url"],
+            ),
+            provider="test",
+            raw=raw,
+        )
+
+    def get_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+    ) -> CheckRunActionResult:
+        raw = make_github_check_run()
+        return CheckRunActionResult(
+            check_run=CheckRun(
+                id=raw["id"],
+                name=raw["name"],
+                status=raw["status"],
+                conclusion=raw["conclusion"],
+                html_url=raw["html_url"],
+            ),
+            provider="test",
+            raw=raw,
+        )
+
+    def update_check_run(
+        self,
+        repository: Repository,
+        check_run_id: str,
+        *,
+        status: str | None = None,
+        conclusion: str | None = None,
+        output: CheckRunOutput | None = None,
+    ) -> CheckRunActionResult:
+        raw = make_github_check_run(
+            status=status or "completed",
+            conclusion=conclusion,
+        )
+        return CheckRunActionResult(
+            check_run=CheckRun(
+                id=raw["id"],
+                name=raw["name"],
+                status=raw["status"],
+                conclusion=raw["conclusion"],
+                html_url=raw["html_url"],
+            ),
+            provider="test",
+            raw=raw,
+        )
+
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -728,6 +894,10 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.pull_requests_data: list[dict[str, Any]] | None = None
         self.created_pr_data: dict[str, Any] | None = None
         self.updated_pr_data: dict[str, Any] | None = None
+        self.review_comment_data: dict[str, Any] | None = None
+        self.review_data: dict[str, Any] | None = None
+        self.check_run_data: dict[str, Any] | None = None
+        self.updated_check_run_data: dict[str, Any] | None = None
 
         self.raise_api_error: bool = False
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
@@ -938,3 +1108,45 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._record_call("create_review_request", repo, pull_number, data)
         self._maybe_raise()
         return {}
+
+    def create_review_comment(
+        self, repo: str, pull_number: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        self._record_call("create_review_comment", repo, pull_number, data)
+        self._maybe_raise()
+        if self.review_comment_data is not None:
+            return self.review_comment_data
+        return make_github_review_comment(body=data.get("body", ""))
+
+    def create_review(self, repo: str, pull_number: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_review", repo, pull_number, data)
+        self._maybe_raise()
+        if self.review_data is not None:
+            return self.review_data
+        return make_github_review()
+
+    def create_check_run(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_check_run", repo, data)
+        self._maybe_raise()
+        if self.check_run_data is not None:
+            return self.check_run_data
+        return make_github_check_run(name=data.get("name", ""))
+
+    def get_check_run(self, repo: str, check_run_id: str) -> dict[str, Any]:
+        self._record_call("get_check_run", repo, check_run_id)
+        self._maybe_raise()
+        if self.check_run_data is not None:
+            return self.check_run_data
+        return make_github_check_run()
+
+    def update_check_run(
+        self, repo: str, check_run_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        self._record_call("update_check_run", repo, check_run_id, data)
+        self._maybe_raise()
+        if self.updated_check_run_data is not None:
+            return self.updated_check_run_data
+        return make_github_check_run(
+            status=data.get("status", "completed"),
+            conclusion=data.get("conclusion"),
+        )
