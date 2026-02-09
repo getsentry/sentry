@@ -263,7 +263,7 @@ def create_preprod_status_check_task(
             status = StatusCheckStatus.NEUTRAL
             completed_at = preprod_artifact.date_updated
 
-    if post_policy != StatusCheckPostPolicy.ALWAYS_POST:
+    if post_policy == StatusCheckPostPolicy.TRY_TO_DEDUPLICATE:
         lock = locks.get(
             f"preprod:status-check:size-analysis:{commit_comparison.id}",
             duration=30,
