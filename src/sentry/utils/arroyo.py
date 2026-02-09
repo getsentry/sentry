@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pickle
-import threading
-import time
 from collections.abc import Callable, Mapping
+from contextlib import nullcontext
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +17,7 @@ from arroyo.processing.strategies.run_task_with_multiprocessing import (
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
 from arroyo.types import Message, TStrategyPayload
 from arroyo.utils.metrics import Metrics
+from arroyo.utils.stuck_detector import stuck_detector
 from django.conf import settings
 
 if TYPE_CHECKING:
@@ -218,52 +218,17 @@ def _import_and_run(
     use_stuck_detector: bool,
     *additional_args: Any,
 ) -> None:
-    import logging
-
-    logger = logging.getLogger("sentry.utils.arroyo.subprocess")
-
-    init_done: threading.Event | None = None
-
-    if use_stuck_detector:
-        init_done = threading.Event()
-
-        def stuck_detector() -> None:
-            start = time.time()
-            while not init_done.is_set():
-                elapsed = time.time() - start
-                if elapsed > STUCK_DETECTOR_TIMEOUT_SECONDS:
-                    from arroyo.processing.processor import get_all_thread_stacks
-
-                    stack_traces = get_all_thread_stacks()
-                    logger.warning(
-                        "subprocess initialization stuck for %s seconds, stacks: %s",
-                        STUCK_DETECTOR_TIMEOUT_SECONDS,
-                        stack_traces,
-                    )
-                    return
-                time.sleep(1)
-
-        detector_thread = threading.Thread(
-            target=stuck_detector, daemon=True, name="stuck-detector"
-        )
-        detector_thread.start()
-
-    try:
-        logger.info("_import_and_run: calling initializer")
+    stuck_detector_context = (
+        stuck_detector(timeout_seconds=STUCK_DETECTOR_TIMEOUT_SECONDS)
+        if use_stuck_detector
+        else nullcontext()
+    )
+    with stuck_detector_context:
         initializer()
-
         # explicitly use pickle so that we can be sure arguments get unpickled
         # after sentry gets initialized
-        logger.info("_import_and_run: unpickling main_fn")
         main_fn = pickle.loads(main_fn_pickle)
-
-        logger.info("_import_and_run: unpickling args")
         args = pickle.loads(args_pickle)
-    finally:
-        if init_done:
-            init_done.set()
-
-    logger.info("_import_and_run: calling main_fn")
     main_fn(*args, *additional_args)
 
 

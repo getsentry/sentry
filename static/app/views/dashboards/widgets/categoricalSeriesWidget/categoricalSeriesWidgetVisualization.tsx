@@ -22,6 +22,7 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
@@ -29,6 +30,7 @@ import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetL
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 
+import {formatXAxisValue} from './formatters/formatXAxisValue';
 import type {CategoricalPlottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 
@@ -88,8 +90,11 @@ export function CategoricalSeriesWidgetVisualization(
       ? units[0]
       : FALLBACK_UNIT_FOR_FIELD_TYPE[dataType as AggregationOutputType];
 
-  // Extract all unique categories from all plottables
-  const allCategories = uniq(props.plottables.flatMap(plottable => plottable.categories));
+  // Extract all unique categories from all plottables and convert to display strings
+  // for ECharts compatibility (xAxis.data expects string[])
+  const allCategories = uniq(
+    props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+  );
 
   // Configure the Y axis (value axis)
   const yAxis: YAXisComponentOption = {
@@ -201,9 +206,14 @@ export function CategoricalSeriesWidgetVisualization(
     // Get the category name from the first param
     const categoryName = seriesParams[0]?.name ?? '';
 
-    // Build tooltip content using React components
+    // Filter null values from tooltip
     const filteredParams = seriesParams.filter(param => {
-      const value = extractValue(param.value);
+      // The incoming data is created by categorical plottables like
+      // `Bars`, which use a standard [category, value] format. Anything
+      // else is an error.
+
+      // @ts-expect-error ECharts types param.value as unknown, but we know it's [category, value] from our Bars plottable
+      const value = extractValue(param.value[1]);
       return value !== null;
     });
 
@@ -218,13 +228,20 @@ export function CategoricalSeriesWidgetVisualization(
               false
             );
 
-            const numericValue = extractValue(param.value);
+            let formattedValue: string = ECHARTS_MISSING_DATA_VALUE;
 
-            // Format the value based on the chart's data type
-            const formattedValue =
-              numericValue === null
-                ? ''
-                : formatTooltipValue(numericValue, dataType, dataUnit ?? undefined);
+            // Technically we've already filtered out invalid values in `filteredParams` above, but TypeScript isn't easy to appease.
+            if (Array.isArray(param.value)) {
+              const [_categoryName, value] = param.value;
+
+              if (defined(value) && typeof value === 'number') {
+                formattedValue = formatTooltipValue(
+                  value,
+                  dataType,
+                  dataUnit ?? undefined
+                );
+              }
+            }
 
             // param.marker is an HTML string with a colored circle, sanitize it
             const marker = typeof param.marker === 'string' ? param.marker : '';

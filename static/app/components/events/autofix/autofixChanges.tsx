@@ -440,7 +440,7 @@ const Title = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   text-decoration: underline dashed;
-  text-decoration-color: ${p => p.theme.tokens.border.accent.vibrant};
+  text-decoration-color: ${p => p.theme.tokens.content.accent};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 `;

@@ -1,6 +1,6 @@
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -48,37 +48,48 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
-        <Flex
-          as="span"
-          height="100%"
-          minWidth="0"
-          display="flex"
-          align="center"
-          justify="center"
-          whiteSpace="nowrap"
-        >
+        <ButtonLabel size={size}>
           {props.icon && (
-            <Flex
-              as="span"
-              display="flex"
-              align="center"
-              flexShrink={0}
-              marginRight={
-                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : '0'
-              }
-            >
+            <Icon size={size} hasChildren={hasChildren}>
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
-            </Flex>
+            </Icon>
           )}
           {props.children}
-        </Flex>
+        </ButtonLabel>
       </StyledButton>
     </Tooltip>
   );
 }
 
-export const StyledButton = styled('button')<ButtonProps>`
+const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
+`;
+
+const ButtonLabel = styled('span', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && !['size'].includes(prop),
+})<Pick<ButtonProps, 'size'>>`
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+`;
+
+const Icon = styled('span')<{
+  hasChildren?: boolean;
+  size?: ButtonProps['size'];
+}>`
+  display: flex;
+  align-items: center;
+  margin-right: ${p =>
+    p.hasChildren
+      ? p.size === 'xs' || p.size === 'zero'
+        ? p.theme.space.sm
+        : p.theme.space.md
+      : '0'};
+  flex-shrink: 0;
 `;

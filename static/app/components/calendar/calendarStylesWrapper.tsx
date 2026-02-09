@@ -59,7 +59,7 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayToday .rdrDayNumber {
     border-radius: 2rem;
-    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.border.accent};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 
   .rdrDayNumber span:after {

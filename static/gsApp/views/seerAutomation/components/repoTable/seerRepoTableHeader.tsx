@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
@@ -27,6 +28,21 @@ interface Props {
 const COLUMNS = [
   {title: t('Name'), key: 'name', sortKey: 'name'},
   {title: t('Code Review'), key: 'code_review'},
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Trigger')}
+        <QuestionTooltip
+          title={tct(
+            'Code review can always be triggered manaully by mentioning [code:@sentry review].',
+            {code: <code />}
+          )}
+          size="xs"
+        />
+      </Flex>
+    ),
+    key: 'trigger',
+  },
 ];
 
 export default function SeerRepoTableHeader({

@@ -72,8 +72,7 @@ type MenuItemProps = {
 };
 
 interface Props
-  extends MenuItemProps,
-    Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
+  extends MenuItemProps, Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
 function MenuItem({
   header,
@@ -268,6 +267,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       height: 1px;
       margin: ${space(0.5)} 0;
       overflow: hidden;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p.theme.tokens.border.secondary};
     `}
   ${p =>

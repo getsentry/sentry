@@ -31,6 +31,7 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {
   setApiQueryData,
@@ -86,7 +87,9 @@ function MemberStatus({
 }
 
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/members/${memberId}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+    path: {organizationIdOrSlug: orgSlug, memberId},
+  }),
 ];
 
 function OrganizationMemberDetailContent({member}: {member: Member}) {

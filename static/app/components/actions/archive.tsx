@@ -299,7 +299,7 @@ function ArchiveActions({
 
   return (
     <ButtonBar merged gap="0">
-      <ArchiveButton
+      <Button
         size={size}
         className={className}
         tooltipProps={{
@@ -319,13 +319,13 @@ function ArchiveActions({
         disabled={disabled}
       >
         {t('Archive')}
-      </ArchiveButton>
+      </Button>
       <DropdownMenu
         size="sm"
         className={className}
         minMenuWidth={270}
         trigger={(triggerProps, isOpen) => (
-          <DropdownTrigger
+          <Button
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
@@ -351,17 +351,6 @@ function ArchiveActions({
 }
 
 export default ArchiveActions;
-
-const ArchiveButton = styled(Button)`
-  box-shadow: none;
-  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
-`;
-
-const DropdownTrigger = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  border-left: none;
-`;
 
 const StyledExternalLink = styled(ExternalLink)`
   font-weight: ${p => p.theme.font.weight.sans.regular};

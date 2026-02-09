@@ -430,7 +430,7 @@ export function ExplorerSeerDrawer({
 const DrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: max-content max-content auto;
   position: relative;
   background: ${p => p.theme.tokens.background.secondary};
 `;
@@ -449,6 +449,7 @@ const SeerDrawerNavigator = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   z-index: 1;
   min-height: ${MIN_NAV_HEIGHT}px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.transparent.neutral.muted} 0 1px;
 `;
 
@@ -457,8 +458,11 @@ const SeerDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scroll-margin: 0 ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: column;
   direction: rtl;
-  * {
+
+  > * {
     direction: ltr;
   }
 `;

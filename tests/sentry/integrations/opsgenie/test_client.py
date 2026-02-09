@@ -14,7 +14,6 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -117,7 +116,6 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @override_options({"workflow_engine.issue_alert.group.type_id.ga": [1]})
     def test_send_notification_with_workflow_engine_trigger_actions(
         self, mock_record: MagicMock
     ) -> None:

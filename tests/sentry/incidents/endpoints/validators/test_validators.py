@@ -1443,6 +1443,52 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         ):
             update_validator.save()
 
+    @with_feature("organizations:mep-rollout-flag")
+    def test_transaction_dataset_deprecation_update_to_transactions(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                },
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        update_data = {
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with (
+            self.assertRaisesMessage(
+                ValidationError,
+                expected_message="Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
+            ),
+            with_feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            update_validator.save()
+
     def test_invalid_extrapolation_mode_create(self) -> None:
         data = {
             **self.valid_data,
@@ -1461,12 +1507,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         }
 
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="server_weighted extrapolation mode is not supported for new detectors.",
-        ):
-            validator.save()
+        assert not validator.is_valid()
+        assert validator.errors
+        assert (
+            validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_invalid_extrapolation_mode_update(self) -> None:
         data = {
@@ -1507,12 +1553,12 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
         )
-        assert update_validator.is_valid(), update_validator.errors
-        with self.assertRaisesMessage(
-            ValidationError,
-            expected_message="Invalid extrapolation mode for this detector type.",
-        ):
-            update_validator.save()
+        assert not update_validator.is_valid()
+        assert update_validator.errors
+        assert (
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
+            == "Invalid extrapolation mode for this alert type: server_weighted. Allowed modes are: client_and_server_weighted, unknown."
+        )
 
     def test_nonexistent_extrapolation_mode_create(self) -> None:
         data = {
@@ -1534,7 +1580,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid(), validator.errors
         assert (
-            validator.errors["dataSources"]["extrapolationMode"][0]
+            validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )
 
@@ -1580,6 +1626,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         assert not update_validator.is_valid(), update_validator.errors
         assert (
-            update_validator.errors["dataSources"]["extrapolationMode"][0]
+            update_validator.errors["dataSources"]["nonFieldErrors"][0]
             == "Invalid extrapolation mode: blah"
         )

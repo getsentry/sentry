@@ -183,7 +183,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
-    outline: solid 1px ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.focus.default};
   }
 
   ${OptionBody} {

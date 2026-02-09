@@ -13,10 +13,12 @@ import {
   getInstallStep,
   getManualConfigureStep,
   mastraOnboarding,
+  MIN_REQUIRED_VERSION,
   agentMonitoring as nodeAgentMonitoring,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 // Meta-frameworks currently have a technical limitation: our server-side integrations do not work,
@@ -362,15 +364,21 @@ export function agentMonitoring({
   packageName = '@sentry/browser',
   clientConfigFileName,
   serverConfigFileName,
+  minVersion = MIN_REQUIRED_VERSION,
 }: {
   clientConfigFileName?: string;
+  minVersion?: string;
   packageName?: `@sentry/${string}`;
   serverConfigFileName?: string;
 } = {}): OnboardingConfig {
   return {
+    introduction: params => (
+      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+    ),
     install: params =>
       getInstallStep(params, {
         packageName,
+        minVersion,
       }),
     configure: params => {
       const selected = getAgentIntegration(params);

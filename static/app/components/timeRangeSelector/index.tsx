@@ -60,22 +60,21 @@ export type ChangeData = {
   utc?: boolean | null;
 };
 
-export interface TimeRangeSelectorProps
-  extends Omit<
-    SingleSelectProps<string>,
-    | 'multiple'
-    | 'searchable'
-    | 'disableSearchFilter'
-    | 'options'
-    | 'hideOptions'
-    | 'value'
-    | 'clearable'
-    | 'onChange'
-    | 'onInteractOutside'
-    | 'closeOnSelect'
-    | 'onKeyDown'
-    | 'trigger'
-  > {
+export interface TimeRangeSelectorProps extends Omit<
+  SingleSelectProps<string>,
+  | 'multiple'
+  | 'searchable'
+  | 'disableSearchFilter'
+  | 'options'
+  | 'hideOptions'
+  | 'value'
+  | 'clearable'
+  | 'onChange'
+  | 'onInteractOutside'
+  | 'closeOnSelect'
+  | 'onKeyDown'
+  | 'trigger'
+> {
   /**
    * Set an optional default value to prefill absolute date with
    */

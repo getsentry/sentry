@@ -18,6 +18,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -50,7 +51,9 @@ export default function ProjectKeys() {
     getResponseHeader,
   } = useApiQuery<ProjectKey[]>(
     [
-      `/projects/${organization.slug}/${project.slug}/keys/`,
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
       {
         query: {
           cursor: decodeScalar(location.query.cursor),

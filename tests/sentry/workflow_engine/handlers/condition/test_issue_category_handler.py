@@ -103,3 +103,15 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
         self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
+
+    def test_exclude(self) -> None:
+        assert self.event.group is not None
+        group_event = self.event.for_group(self.group)
+
+        self.dc.update(comparison={"value": GroupCategory.ERROR.value, "include": False})
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
+
+        self.dc.update(comparison={"value": GroupCategory.PERFORMANCE.value, "include": False})
+        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

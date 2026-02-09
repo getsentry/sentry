@@ -19,6 +19,7 @@ import type {
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -86,7 +87,9 @@ function IntegrationExternalMappings(props: Props) {
     refetch,
   } = useApiQuery<CodeOwnersAssociationMappings>(
     [
-      `/organizations/${organization.slug}/codeowners-associations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/codeowners-associations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {provider: integration.provider.key}},
     ],
     {staleTime: 0}

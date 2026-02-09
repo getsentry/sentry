@@ -19,9 +19,6 @@ from sentry.net.http import connection_from_url
 from sentry.seer.sentry_data_models import TraceMetadata
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.llm_issue_detection.trace_data import (
-    get_project_top_transaction_traces_for_llm_detection,
-)
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
@@ -92,10 +89,15 @@ class DetectedIssue(BaseModel):
     transaction_name: str
 
 
+class TraceMetadataWithSpanCount(TraceMetadata):
+    span_count: int
+
+
 class IssueDetectionRequest(BaseModel):
-    traces: list[TraceMetadata]
+    traces: list[TraceMetadataWithSpanCount]
     organization_id: int
     project_id: int
+    org_slug: str
 
 
 def get_base_platform(platform: str | None) -> str | None:
@@ -241,9 +243,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     For each deduped transaction, gets first trace_id from the start of time window, which has small random variation.
     Sends these trace_ids to seer, which uses get_trace_waterfall to construct an EAPTrace to analyze.
     """
+    from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
+        get_project_top_transaction_traces_for_llm_detection,
+    )
+
     project = Project.objects.get_from_cache(id=project_id)
     organization = project.organization
     organization_id = organization.id
+    organization_slug = organization.slug
 
     has_access = features.has("organizations:gen-ai-features", organization) and not bool(
         organization.get_option("sentry:hide_ai_features")
@@ -268,7 +275,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         sentry_sdk.metrics.count("llm_issue_detection.trace.skipped", skipped)
 
     # Take up to NUM_TRANSACTIONS_TO_PROCESS
-    traces_to_send: list[TraceMetadata] = [
+    traces_to_send: list[TraceMetadataWithSpanCount] = [
         t for t in evidence_traces if t.trace_id in unprocessed_ids
     ][:NUM_TRANSACTIONS_TO_PROCESS]
 
@@ -285,6 +292,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
         traces=traces_to_send,
         organization_id=organization_id,
         project_id=project_id,
+        org_slug=organization_slug,
     )
 
     response = make_signed_seer_api_request(

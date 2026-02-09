@@ -1,5 +1,7 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -15,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.data_condition_handler_serializer import (
     DataConditionHandlerResponse,
     DataConditionHandlerSerializer,
@@ -46,13 +49,13 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a list of data conditions for a given org
         """
         group = request.GET.get("group")
         try:
-            DataConditionHandler.Group(group)
+            DataConditionHandler.Group(group or "")
         except ValueError:
             raise serializers.ValidationError(
                 f"Please provide a valid group. Accepted values are: {', '.join([group.value for group in DataConditionHandler.Group])}"

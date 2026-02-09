@@ -15,12 +15,20 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {
+  useMaxPickableDays,
+  type MaxPickableDaysOptions,
+} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {
+  MAX_DAYS_FOR_CROSS_EVENTS,
+  MAX_PERIOD_FOR_CROSS_EVENTS,
+} from 'sentry/views/explore/constants';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
+  useQueryParamsCrossEvents,
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
@@ -38,14 +46,39 @@ import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
+const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+};
+
+function useHasCrossEvents() {
+  const crossEvents = useQueryParamsCrossEvents();
+  return defined(crossEvents) && crossEvents.length > 0;
+}
+
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
+  return (
+    <SpansQueryParamsProvider>
+      <ExploreContentInner />
+    </SpansQueryParamsProvider>
+  );
+}
+
+function ExploreContentInner() {
   const organization = useOrganization();
+  const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
-  const maxPickableDays = useMaxPickableDays({
+  const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const maxPickableDays = hasCrossEvents
+    ? CROSS_EVENTS_DATE_OVERRIDE
+    : dataCategoryMaxPickableDays;
+
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -74,9 +107,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <SpansQueryParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </SpansQueryParamsProvider>
+      <ExploreTagsProvider>{children}</ExploreTagsProvider>
     </SpansTabTourProvider>
   );
 }

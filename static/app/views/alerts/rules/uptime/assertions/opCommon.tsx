@@ -13,8 +13,7 @@ import {t} from 'sentry/locale';
 import type {Comparison, Op} from 'sentry/views/alerts/rules/uptime/types';
 
 interface AnimatedOpProps
-  extends MotionProps,
-    Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
+  extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
   children: React.ReactNode;
   isDragging: boolean;
   op: Op;
@@ -147,4 +146,11 @@ export const COMPARISON_OPTIONS: Array<
     symbol: '\u2205',
     trailingItems: <Text monospace>{'\u2205'}</Text>,
   },
+];
+
+export const STRING_OPERAND_OPTIONS: Array<
+  SelectOption<'literal' | 'glob'> & {symbol: string}
+> = [
+  {value: 'literal', label: t('Literal'), symbol: '""'},
+  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
 ];

@@ -14,11 +14,9 @@ import {
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {DataCategory} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -34,7 +32,11 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
 import {ConversationsTable} from 'sentry/views/insights/pages/conversations/components/conversationsTable';
+import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/insights/pages/conversations/settings';
+import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
@@ -48,7 +50,33 @@ function ConversationsOverviewPage({
   datePageFilterProps,
 }: ConversationsOverviewPageProps) {
   const organization = useOrganization();
+
+  return (
+    <Feature
+      features="performance-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <Feature
+        features="gen-ai-conversations"
+        organization={organization}
+        renderDisabled={NoAccess}
+      >
+        <ConversationsContent datePageFilterProps={datePageFilterProps} />
+      </Feature>
+    </Feature>
+  );
+}
+
+function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
+  const organization = useOrganization();
   useDefaultToAllProjects();
+
+  const [urlState] = useConversationDrawerQueryState();
+  // Start fetching data and open drawer without
+  // waiting for table to finish loading
+  useConversation({conversationId: urlState.conversationId ?? ''});
+  const {openConversationViewDrawer} = useConversationViewDrawer();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -73,6 +101,8 @@ function ConversationsOverviewPage({
     useTraceItemTags('number');
   const {tags: stringTags = [], isLoading: stringTagsLoading} =
     useTraceItemTags('string');
+  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
+    useTraceItemTags('boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -100,70 +130,63 @@ function ConversationsOverviewPage({
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
-      <Feature
-        features="performance-view"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <Feature
-          features="gen-ai-conversations"
-          organization={organization}
-          renderDisabled={NoAccess}
-        >
-          <Layout.Body>
-            <Layout.Main width="full">
-              <ModuleLayout.Layout>
-                <ModuleLayout.Full>
-                  <Stack gap="md">
-                    <ToolRibbon>
-                      <PageFilterBar condensed>
-                        <InsightsProjectSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <InsightsEnvironmentSelector
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                        <DatePageFilter
-                          {...datePageFilterProps}
-                          resetParamsOnChange={[TableUrlParams.CURSOR]}
-                        />
-                      </PageFilterBar>
-                      <AgentSelector
-                        storageKeyPrefix="conversations:agent-filter"
-                        referrer="api.insights.conversations.get-agent-names"
-                      />
-                      <Flex flex={2}>
-                        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                      </Flex>
-                    </ToolRibbon>
-                    <SchemaHintsList
-                      supportedAggregates={DISABLE_AGGREGATES}
-                      numberTags={numberTags as TagCollection}
-                      stringTags={stringTags as TagCollection}
-                      isLoading={numberTagsLoading || stringTagsLoading}
-                      exploreQuery={searchQuery ?? ''}
-                      source={SchemaHintsSources.CONVERSATIONS}
+      <Layout.Body>
+        <Layout.Main width="full">
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <Stack gap="md">
+                <ToolRibbon>
+                  <PageFilterBar condensed>
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
-                  </Stack>
-                </ModuleLayout.Full>
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                  </PageFilterBar>
+                  <AgentSelector
+                    storageKeyPrefix="conversations:agent-filter"
+                    referrer="api.insights.conversations.get-agent-names"
+                  />
+                  <Flex flex={2}>
+                    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                  </Flex>
+                </ToolRibbon>
+                <SchemaHintsList
+                  supportedAggregates={DISABLE_AGGREGATES}
+                  booleanTags={booleanTags as TagCollection}
+                  numberTags={numberTags as TagCollection}
+                  stringTags={stringTags as TagCollection}
+                  isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                  exploreQuery={searchQuery ?? ''}
+                  source={SchemaHintsSources.CONVERSATIONS}
+                />
+              </Stack>
+            </ModuleLayout.Full>
 
-                <ModuleLayout.Full>
-                  <ConversationsTable />
-                </ModuleLayout.Full>
-              </ModuleLayout.Layout>
-            </Layout.Main>
-          </Layout.Body>
-        </Feature>
-      </Feature>
+            <ModuleLayout.Full>
+              <ConversationsTable
+                openConversationViewDrawer={openConversationViewDrawer}
+              />
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
+        </Layout.Main>
+      </Layout.Body>
     </SearchQueryBuilderProvider>
   );
 }
 
 function PageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
+  // EAP only retains/samples data for the last 30 days,
+  // so conversation data and aggregations are not accurate beyond that window.
+  const datePageFilterProps = useDatePageFilterProps({
+    maxPickableDays: MAX_PICKABLE_DAYS,
+    maxUpgradableDays: MAX_PICKABLE_DAYS,
   });
-  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>

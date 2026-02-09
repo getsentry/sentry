@@ -1,6 +1,7 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {Field} from 'sentry/components/forms/types';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -86,8 +87,6 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
-
-type CodeReviewTrigger = 'on_new_commit' | 'on_ready_for_review';
 
 /**
  * Available only when calling API with `expand=settings` query parameter
@@ -644,8 +643,7 @@ export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathCo
   provider: BaseIntegrationProvider | null;
 }
 
-interface RepositoryProjectPathConfigWithIntegration
-  extends BaseRepositoryProjectPathConfig {
+interface RepositoryProjectPathConfigWithIntegration extends BaseRepositoryProjectPathConfig {
   integrationId: string;
   provider: BaseIntegrationProvider;
 }
