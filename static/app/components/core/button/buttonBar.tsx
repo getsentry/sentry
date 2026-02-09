@@ -1,15 +1,18 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+interface ButtonBarProps extends GridProps {
   children: React.ReactNode;
 }
 
-export function ButtonBar({children, ...props}: ButtonBarProps) {
-  return <StyledButtonBar {...props}>{children}</StyledButtonBar>;
-}
-
-const MergedButtonBarStyles = () => css`
+export const ButtonBar = styled(({children, ...props}: ButtonBarProps) => {
+  return (
+    <Grid flow="column" align="center" gap="md" {...props}>
+      {children}
+    </Grid>
+  );
+})`
   /* Raised buttons show borders on both sides. Useful to create pill bars */
   & > .active {
     z-index: 2;
@@ -72,13 +75,4 @@ const MergedButtonBarStyles = () => css`
       }
     }
   }
-`;
-
-const StyledButtonBar = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: 0;
-  align-items: center;
-
-  ${MergedButtonBarStyles}
 `;
