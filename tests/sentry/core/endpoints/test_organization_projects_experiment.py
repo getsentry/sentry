@@ -119,7 +119,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
         project = Project.objects.get(id=response.data["id"])
         assert project.name == unslugified_name
-        assert project.slug == slugify(unslugified_name)
+        # Underscores should be converted to hyphens in slugs
+        assert project.slug == slugify(unslugified_name.replace("_", "-"))
         assert project.teams.first() == team
 
     @with_feature(["organizations:team-roles"])
