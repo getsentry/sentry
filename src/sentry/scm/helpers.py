@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from sentry import ratelimits
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -127,7 +128,7 @@ def exec_provider_fn[T](
     repository = fetch_repository(organization_id, repository_id)
     if not repository:
         raise SCMCodedError(organization_id, repository_id, code="repository_not_found")
-    if repository["status"] != "active":
+    if repository["status"] != ObjectStatus.ACTIVE:
         raise SCMCodedError(repository, code="repository_inactive")
     if repository["organization_id"] != organization_id:
         raise SCMCodedError(repository, code="repository_organization_mismatch")

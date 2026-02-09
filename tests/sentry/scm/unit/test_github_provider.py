@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.client import GitHubReaction
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.private.providers.github import GitHubProvider
@@ -20,7 +21,7 @@ def make_repository() -> Repository:
         "integration_id": 1,
         "name": "test-org/test-repo",
         "organization_id": 1,
-        "status": "active",
+        "status": ObjectStatus.ACTIVE,
     }
 
 
