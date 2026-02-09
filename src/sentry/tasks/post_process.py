@@ -1204,6 +1204,9 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
     event = job["event"]
 
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
     if not features.has("organizations:data-forwarding", event.project.organization):
         return
 
