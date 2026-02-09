@@ -4,7 +4,6 @@ import logging
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.views.generic.base import View
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import (
@@ -16,13 +15,13 @@ from sentry.models.apidevicecode import (
 from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
+from sentry.web.frontend.oauth_base import OAuthBaseView
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
-class OAuthDeviceAuthorizationView(OAuthCORSMixin, View):
+class OAuthDeviceAuthorizationView(OAuthBaseView):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).
 

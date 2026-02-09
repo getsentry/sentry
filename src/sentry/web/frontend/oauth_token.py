@@ -8,7 +8,6 @@ from typing import Literal, NotRequired, TypedDict
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
-from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
@@ -23,7 +22,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.oauth_cors_mixin import OAuthCORSMixin
+from sentry.web.frontend.oauth_base import OAuthBaseView
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.oauth")
@@ -53,7 +52,7 @@ class _TokenInformation(TypedDict):
 
 
 @control_silo_view
-class OAuthTokenView(OAuthCORSMixin, View):
+class OAuthTokenView(OAuthBaseView):
     # CORS configuration for browser-based public clients
     cors_allowed_headers = "Content-Type, Authorization"
     cors_log_tag = "oauth.token-cors-rejected"

@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.apidevicecode import ApiDeviceCode
+from sentry.models.apidevicecode import ApiDeviceCode, DeviceCodeStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
@@ -1962,3 +1962,213 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
+
+
+@control_silo_test
+class OAuthTokenCORSTest(TestCase):
+    """Test CORS support for the OAuth token endpoint.
+
+    Browser-based OAuth clients (SPAs, CLI tools with browser auth) need CORS
+    support to exchange device codes and refresh tokens from JavaScript.
+    """
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            allowed_origins="https://myapp.example.com\nhttps://other.example.com",
+            requires_secret=False,  # Public client
+        )
+        # Create a device code for testing device_code grant type
+        self.device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            user=self.user,
+            status=DeviceCodeStatus.APPROVED,
+            scope_list=["org:read"],
+        )
+
+    def test_options_preflight_with_valid_origin(self) -> None:
+        """OPTIONS with matching origin should return CORS preflight response."""
+        resp = self.client.options(
+            self.path,
+            HTTP_ORIGIN="https://myapp.example.com",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+        )
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"] == "https://myapp.example.com"
+        assert resp["Access-Control-Allow-Methods"] == "POST, OPTIONS"
+
+    def test_options_preflight_with_invalid_origin(self) -> None:
+        """OPTIONS with non-matching origin should return 400."""
+        resp = self.client.options(
+            self.path,
+            HTTP_ORIGIN="https://evil.example.com",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+        )
+        assert resp.status_code == 400
+        assert "Access-Control-Allow-Origin" not in resp
+
+    def test_post_with_valid_origin_returns_cors_headers(self) -> None:
+        """POST with origin matching allowed_origins should include CORS headers."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://myapp.example.com",
+        )
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"] == "https://myapp.example.com"
+        assert resp["Access-Control-Allow-Methods"] == "POST, OPTIONS"
+
+    def test_post_with_invalid_origin_no_cors_headers(self) -> None:
+        """POST with non-matching origin should NOT include CORS headers."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://evil.example.com",
+        )
+        assert resp.status_code == 200  # Request still succeeds
+        assert "Access-Control-Allow-Origin" not in resp
+
+    def test_post_without_origin_no_cors_headers(self) -> None:
+        """POST without Origin (native clients) should work without CORS headers."""
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": self.device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+        )
+        assert resp.status_code == 200
+        assert "Access-Control-Allow-Origin" not in resp
+
+    def test_post_wildcard_origin_allowed(self) -> None:
+        """Wildcard '*' in allowed_origins should allow any origin."""
+        self.application.allowed_origins = "*"
+        self.application.save()
+
+        # Create a new device code since the old one was consumed
+        device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            user=self.user,
+            status=DeviceCodeStatus.APPROVED,
+            scope_list=["org:read"],
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://any-domain.example.com",
+        )
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"] == "https://any-domain.example.com"
+
+    def test_post_subdomain_wildcard_allowed(self) -> None:
+        """Subdomain wildcard '*.example.com' should allow subdomains."""
+        self.application.allowed_origins = "*.example.com"
+        self.application.save()
+
+        # Create a new device code
+        device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            user=self.user,
+            status=DeviceCodeStatus.APPROVED,
+            scope_list=["org:read"],
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://sub.example.com",
+        )
+        assert resp.status_code == 200
+        assert resp["Access-Control-Allow-Origin"] == "https://sub.example.com"
+
+    def test_error_response_no_cors_headers(self) -> None:
+        """Error responses (before app validation) should NOT include CORS headers.
+
+        This prevents cross-origin scripts from reading error details.
+        """
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": "invalid-device-code",
+                "client_id": "invalid-client-id",
+            },
+            HTTP_ORIGIN="https://evil.example.com",
+        )
+        assert resp.status_code == 401
+        assert "Access-Control-Allow-Origin" not in resp
+
+    def test_empty_allowed_origins_no_cors(self) -> None:
+        """Empty allowed_origins should NOT allow any CORS requests."""
+        self.application.allowed_origins = ""
+        self.application.save()
+
+        # Create a new device code
+        device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            user=self.user,
+            status=DeviceCodeStatus.APPROVED,
+            scope_list=["org:read"],
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://myapp.example.com",
+        )
+        assert resp.status_code == 200
+        assert "Access-Control-Allow-Origin" not in resp
+
+    def test_cors_headers_not_include_credentials(self) -> None:
+        """CORS responses should NOT include Access-Control-Allow-Credentials.
+
+        Public OAuth clients use bearer tokens, not cookies. Setting
+        Access-Control-Allow-Credentials would be a security risk.
+        """
+        # Create a new device code
+        device_code = ApiDeviceCode.objects.create(
+            application=self.application,
+            user=self.user,
+            status=DeviceCodeStatus.APPROVED,
+            scope_list=["org:read"],
+        )
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": device_code.device_code,
+                "client_id": self.application.client_id,
+            },
+            HTTP_ORIGIN="https://myapp.example.com",
+        )
+        assert resp.status_code == 200
+        assert "Access-Control-Allow-Credentials" not in resp
