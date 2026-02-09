@@ -15,6 +15,7 @@ resources:
 import {useState} from 'react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import * as Storybook from 'sentry/stories';
 
@@ -114,7 +115,7 @@ export function SectionsDemo() {
       value={values}
       onChange={selected => setValues(selected.map(opt => opt.value))}
       options={options}
-      triggerProps={{prefix: 'Character'}}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Character" />}
     />
   );
 }
@@ -156,7 +157,7 @@ export function SectionsDemo() {
   <Storybook.Grid>
     <CompactSelect
       size="md"
-      triggerProps={{prefix: 'Size'}}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Medium (default)'},
         {value: '2', label: 'Option 2'},
@@ -164,7 +165,7 @@ export function SectionsDemo() {
     />
     <CompactSelect
       size="sm"
-      triggerProps={{prefix: 'Size'}}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Small'},
         {value: '2', label: 'Option 2'},
@@ -172,7 +173,7 @@ export function SectionsDemo() {
     />
     <CompactSelect
       size="xs"
-      triggerProps={{prefix: 'Size'}}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
       options={[
         {value: '1', label: 'Extra Small'},
         {value: '2', label: 'Option 2'},
@@ -206,7 +207,7 @@ export function MultiSelectDemo() {
       value={values}
       onChange={selected => setValues(selected.map(opt => opt.value))}
       options={options}
-      triggerProps={{prefix: 'Status'}}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Status" />}
     />
   );
 }
@@ -233,7 +234,7 @@ Enable `searchable` to allow users to filter options by typing. Essential for li
 <Storybook.Demo>
   <CompactSelect
     searchable
-    triggerProps={{prefix: 'Country'}}
+    trigger={props => <OverlayTrigger.Button {...props} prefix="Country" />}
     options={[
       {value: 'US', label: 'United States'},
       {value: 'CA', label: 'Canada'},
@@ -283,38 +284,23 @@ export function ClearableDemo() {
 />
 ```
 
-## Trigger Props
-
-Use `triggerProps` to customize the button that opens the dropdown. Common properties include:
-
-- **prefix**: Label text shown before the value
-- **icon**: Leading icon
-
-```jsx
-<CompactSelect
-  triggerProps={{
-    prefix: 'Environment',
-    icon: <IconEnvironment />,
-  }}
-  options={environments}
-/>
-```
-
 ## Custom Trigger
 
-For advanced cases, provide a custom trigger component using the `trigger` render prop. Always use `<OverlayTrigger>` as the base component.
+`<CompactSelect>` should always be triggered by an `<OverlayTrigger>`. By default, it will render an `<OverlayTrigger.Button>` for you. You can pass a custom trigger with the `trigger` prop.
+
+Note that `props` passed to the trigger need to be spread onto the underlying `<OverlayTrigger>`. Always use an `<OverlayTrigger>`, there will be type errors when you're trying to use other components.
+
+`<OverlayTrigger>` will inherit props like `size`, `isOpen` and `disabled` from the `<CompactSelect>`, so you don't need to pass them manually.
 
 ```jsx
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
 <CompactSelect
   options={options}
   trigger={props => (
-    <OverlayTrigger.Button {...props}>
+    <OverlayTrigger.Button {...props} prefix="Status Code" icon={<IconSiren />}>
       {value ? `Status: ${value}` : 'Choose status'}
     </OverlayTrigger.Button>
   )}
-/>;
+/>
 ```
 
 > [!IMPORTANT]
@@ -359,7 +345,7 @@ export function CombinedDemo() {
         multiple
         searchable
         clearable
-        triggerProps={{prefix: 'Environment'}}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
         onChange={selected => setValues(selected.map(opt => opt.value))}
         options={options}
@@ -369,7 +355,7 @@ export function CombinedDemo() {
         multiple
         searchable
         clearable
-        triggerProps={{prefix: 'Environment'}}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
         onChange={selected => setValues(selected.map(opt => opt.value))}
         options={options}
@@ -379,7 +365,7 @@ export function CombinedDemo() {
         multiple
         searchable
         clearable
-        triggerProps={{prefix: 'Environment'}}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
         onChange={selected => setValues(selected.map(opt => opt.value))}
         options={options}
@@ -397,7 +383,7 @@ export function CombinedDemo() {
   multiple
   searchable
   clearable
-  triggerProps={{prefix: 'Environment'}}
+  trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
   value={values}
   onChange={handleChange}
   options={sectionsWithOptions}
@@ -420,12 +406,12 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 function MyComponent() {
   const projects = useProjects(); // Expensive fetch
 
-  const projectOptions = useCompactSelectOptionsCache({
-    options: projects.map(p => ({
+  const {options: projectOptions} = useCompactSelectOptionsCache(
+    projects.map(p => ({
       value: p.id,
       label: p.name,
-    })),
-  });
+    }))
+  );
 
   return (
     <CompactSelect
@@ -449,7 +435,7 @@ This hook prevents unnecessary re-renders and option recomputations when the par
   searchable
   multiple
   clearable
-  triggerProps={{prefix: 'Projects'}}
+  trigger={props => <OverlayTrigger.Button {...props} prefix="Projects" />}
   value={selectedProjects}
   onChange={handleProjectChange}
   options={projectOptions}
@@ -460,7 +446,9 @@ This hook prevents unnecessary re-renders and option recomputations when the par
 
 ```jsx
 <CompactSelect
-  triggerProps={{prefix: 'Env', icon: <IconEnvironment />}}
+  trigger={props => (
+    <OverlayTrigger.Button {...props} prefix="Env" icon={<IconEnvironment />} />
+  )}
   value={environment}
   onChange={option => setEnvironment(option.value)}
   options={environmentOptions}
@@ -473,7 +461,7 @@ This hook prevents unnecessary re-renders and option recomputations when the par
 <CompactSelect
   searchable
   clearable
-  triggerProps={{prefix: 'Filter'}}
+  trigger={props => <OverlayTrigger.Button {...props} prefix="Filter" />}
   options={[
     {
       key: 'status',
@@ -507,7 +495,7 @@ The component includes:
 
 **Labels**
 
-- Provide context through `triggerProps.prefix` or external labels
+- Provide context through the `prefix` prop on `<OverlayTrigger.Button>` or external labels
 - Use `aria-label` when the trigger doesn't have visible text
 
 **Keyboard Shortcuts**
@@ -520,6 +508,6 @@ The component includes:
 **Multiple Selection**
 
 - Clearly communicate how many items are selected
-- Consider using `triggerProps.prefix` to show selection count
+- Consider using the `prefix` prop on `<OverlayTrigger.Button>` to show selection count
 
 For more information, see the [WAI-ARIA Combobox practices](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).
