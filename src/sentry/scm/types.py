@@ -93,6 +93,98 @@ class GitRefActionResult(TypedDict):
     raw: dict[str, Any]
 
 
+class FileContent(TypedDict):
+    path: str
+    sha: str
+    content: str  # base64-encoded
+    encoding: str
+    size: int
+
+
+class FileContentActionResult(TypedDict):
+    file_content: FileContent
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class CommitAuthor(TypedDict):
+    name: str
+    email: str
+    date: str
+
+
+class CommitFile(TypedDict):
+    filename: str
+    status: str
+    patch: str | None
+
+
+class Commit(TypedDict):
+    sha: str
+    message: str
+    author: CommitAuthor | None
+    files: list[CommitFile]
+
+
+class CommitActionResult(TypedDict):
+    commit: Commit
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class CommitComparison(TypedDict):
+    ahead_by: int
+    behind_by: int
+
+
+class CommitComparisonActionResult(TypedDict):
+    comparison: CommitComparison
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class TreeEntry(TypedDict):
+    path: str
+    mode: str
+    type: str
+    sha: str
+    size: int | None
+
+
+class InputTreeEntry(TypedDict):
+    path: str
+    mode: str
+    type: str
+    sha: str | None  # None for deletions
+
+
+class GitTree(TypedDict):
+    tree: list[TreeEntry]
+    truncated: bool
+
+
+class GitTreeActionResult(TypedDict):
+    git_tree: GitTree
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
+class GitCommitTree(TypedDict):
+    sha: str
+
+
+class GitCommitObject(TypedDict):
+    sha: str
+    tree: GitCommitTree
+    message: str
+
+
+class GitCommitObjectActionResult(TypedDict):
+    git_commit: GitCommitObject
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
 class Provider(Protocol):
     """
     Providers abstract over an integration. They map generic commands to service-provider specific
@@ -187,3 +279,41 @@ class Provider(Protocol):
     def update_branch(
         self, repository: Repository, branch: str, sha: str, force: bool = False
     ) -> None: ...
+
+    # File content operations
+
+    def get_file_content(
+        self, repository: Repository, path: str, ref: str | None = None
+    ) -> FileContentActionResult: ...
+
+    # Commit operations
+
+    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult: ...
+
+    def get_commits(self, repository: Repository) -> list[CommitActionResult]: ...
+
+    def compare_commits(
+        self, repository: Repository, start_sha: str, end_sha: str
+    ) -> CommitComparisonActionResult: ...
+
+    # Git data operations
+
+    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult: ...
+
+    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult: ...
+
+    def create_git_tree(
+        self,
+        repository: Repository,
+        tree: list[InputTreeEntry],
+        *,
+        base_tree: str | None = None,
+    ) -> GitTreeActionResult: ...
+
+    def create_git_commit(
+        self,
+        repository: Repository,
+        message: str,
+        tree_sha: str,
+        parent_shas: list[str],
+    ) -> GitCommitObjectActionResult: ...

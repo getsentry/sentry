@@ -13,7 +13,13 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     CommentActionResult,
+    CommitActionResult,
+    CommitComparisonActionResult,
+    FileContentActionResult,
+    GitCommitObjectActionResult,
     GitRefActionResult,
+    GitTreeActionResult,
+    InputTreeEntry,
     Provider,
     PullRequestActionResult,
     Reaction,
@@ -198,3 +204,37 @@ class SourceCodeManager:
     def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
         """Update a branch to point at a new SHA."""
         return self._exec(lambda r, p: p.update_branch(r, branch, sha, force))
+
+    # File content operations
+
+    def get_file_content(self, path: str, ref: str | None = None) -> FileContentActionResult:
+        return self._exec(lambda r, p: p.get_file_content(r, path, ref))
+
+    # Commit operations
+
+    def get_commit(self, sha: str) -> CommitActionResult:
+        return self._exec(lambda r, p: p.get_commit(r, sha))
+
+    def get_commits(self) -> list[CommitActionResult]:
+        return self._exec(lambda r, p: p.get_commits(r))
+
+    def compare_commits(self, start_sha: str, end_sha: str) -> CommitComparisonActionResult:
+        return self._exec(lambda r, p: p.compare_commits(r, start_sha, end_sha))
+
+    # Git data operations
+
+    def get_tree(self, tree_sha: str) -> GitTreeActionResult:
+        return self._exec(lambda r, p: p.get_tree(r, tree_sha))
+
+    def get_git_commit(self, sha: str) -> GitCommitObjectActionResult:
+        return self._exec(lambda r, p: p.get_git_commit(r, sha))
+
+    def create_git_tree(
+        self, tree: list[InputTreeEntry], *, base_tree: str | None = None
+    ) -> GitTreeActionResult:
+        return self._exec(lambda r, p: p.create_git_tree(r, tree, base_tree=base_tree))
+
+    def create_git_commit(
+        self, message: str, tree_sha: str, parent_shas: list[str]
+    ) -> GitCommitObjectActionResult:
+        return self._exec(lambda r, p: p.create_git_commit(r, message, tree_sha, parent_shas))

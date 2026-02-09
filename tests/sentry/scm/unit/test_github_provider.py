@@ -11,6 +11,11 @@ from sentry.scm.types import Repository
 from tests.sentry.scm.test_fixtures import (
     FakeGitHubApiClient,
     make_github_comment,
+    make_github_commit,
+    make_github_commit_comparison,
+    make_github_commit_file,
+    make_github_file_content,
+    make_github_git_commit_object,
     make_github_pull_request,
     make_github_reaction,
 )
@@ -57,6 +62,14 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_branch", {"branch": "main"}),
     ("create_branch", {"branch": "feature", "sha": "abc123"}),
     ("update_branch", {"branch": "feature", "sha": "def456"}),
+    ("get_file_content", {"path": "README.md"}),
+    ("get_commit", {"sha": "abc123"}),
+    ("get_commits", {}),
+    ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
+    ("get_tree", {"tree_sha": "tree123"}),
+    ("get_git_commit", {"sha": "abc123"}),
+    ("create_git_tree", {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
+    ("create_git_commit", {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
 ]
 
 
@@ -161,6 +174,62 @@ CLIENT_DELEGATION_TESTS: list[
             {},
         ),
     ),
+    (
+        "get_file_content",
+        {"path": "README.md"},
+        ("get_file_content", ("test-org/test-repo", "README.md", None), {}),
+    ),
+    (
+        "get_file_content",
+        {"path": "README.md", "ref": "main"},
+        ("get_file_content", ("test-org/test-repo", "README.md", "main"), {}),
+    ),
+    (
+        "get_commit",
+        {"sha": "abc123"},
+        ("get_commit", ("test-org/test-repo", "abc123"), {}),
+    ),
+    (
+        "get_commits",
+        {},
+        ("get_commits", ("test-org/test-repo",), {}),
+    ),
+    (
+        "compare_commits",
+        {"start_sha": "aaa", "end_sha": "bbb"},
+        ("compare_commits", ("test-org/test-repo", "aaa", "bbb"), {}),
+    ),
+    (
+        "get_tree",
+        {"tree_sha": "tree123"},
+        ("get_tree", ("test-org/test-repo", "tree123"), {}),
+    ),
+    (
+        "get_git_commit",
+        {"sha": "abc123"},
+        ("get_git_commit", ("test-org/test-repo", "abc123"), {}),
+    ),
+    (
+        "create_git_tree",
+        {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]},
+        (
+            "create_git_tree",
+            (
+                "test-org/test-repo",
+                {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]},
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_git_commit",
+        {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
+        (
+            "create_git_commit",
+            ("test-org/test-repo", {"message": "msg", "tree": "t", "parents": ["p"]}),
+            {},
+        ),
+    ),
 ]
 
 
@@ -253,6 +322,72 @@ def _check_issue_reactions(result: Any) -> None:
     assert result[1]["content"] == "+1"
 
 
+def _check_file_content(result: Any) -> None:
+    fc = result["file_content"]
+    assert fc["path"] == "README.md"
+    assert fc["sha"] == "abc123"
+    assert fc["content"] == "SGVsbG8gV29ybGQ="
+    assert fc["encoding"] == "base64"
+    assert fc["size"] == 11
+    assert result["provider"] == "github"
+
+
+def _check_get_commit(result: Any) -> None:
+    c = result["commit"]
+    assert c["sha"] == "abc123"
+    assert c["message"] == "Fix bug"
+    assert c["author"] is not None
+    assert c["author"]["name"] == "Test User"
+    assert c["author"]["email"] == "test@example.com"
+    assert len(c["files"]) == 1
+    assert c["files"][0]["filename"] == "src/main.py"
+    assert result["provider"] == "github"
+
+
+def _check_get_commits(result: Any) -> None:
+    assert len(result) == 1
+    assert result[0]["commit"]["sha"] == "abc123"
+    assert result[0]["provider"] == "github"
+
+
+def _check_compare_commits(result: Any) -> None:
+    assert result["comparison"]["ahead_by"] == 3
+    assert result["comparison"]["behind_by"] == 1
+    assert result["provider"] == "github"
+
+
+def _check_get_tree(result: Any) -> None:
+    gt = result["git_tree"]
+    assert len(gt["tree"]) == 1
+    assert gt["tree"][0]["path"] == "src/main.py"
+    assert gt["tree"][0]["type"] == "blob"
+    assert gt["tree"][0]["sha"] == "abc123"
+    assert gt["truncated"] is False
+    assert result["provider"] == "github"
+
+
+def _check_get_git_commit(result: Any) -> None:
+    gc = result["git_commit"]
+    assert gc["sha"] == "abc123"
+    assert gc["tree"]["sha"] == "tree456"
+    assert gc["message"] == "Initial commit"
+    assert result["provider"] == "github"
+
+
+def _check_create_git_tree(result: Any) -> None:
+    gt = result["git_tree"]
+    assert len(gt["tree"]) == 1
+    assert gt["tree"][0]["path"] == "src/main.py"
+    assert result["provider"] == "github"
+
+
+def _check_create_git_commit(result: Any) -> None:
+    gc = result["git_commit"]
+    assert gc["sha"] == "newcommit123"
+    assert gc["message"] == "msg"
+    assert result["provider"] == "github"
+
+
 TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any], None]]] = [
     (
         "get_issue_comments",
@@ -307,6 +442,54 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"branch": "feature", "sha": "abc123"},
         {},
         _check_create_branch,
+    ),
+    (
+        "get_file_content",
+        {"path": "README.md"},
+        {"file_content_data": make_github_file_content()},
+        _check_file_content,
+    ),
+    (
+        "get_commit",
+        {"sha": "abc123"},
+        {"commit_data": make_github_commit(sha="abc123")},
+        _check_get_commit,
+    ),
+    (
+        "get_commits",
+        {},
+        {"commits_data": [make_github_commit()]},
+        _check_get_commits,
+    ),
+    (
+        "compare_commits",
+        {"start_sha": "aaa", "end_sha": "bbb"},
+        {"comparison_data": make_github_commit_comparison()},
+        _check_compare_commits,
+    ),
+    (
+        "get_tree",
+        {"tree_sha": "tree123"},
+        {},
+        _check_get_tree,
+    ),
+    (
+        "get_git_commit",
+        {"sha": "abc123"},
+        {"git_commit_data": make_github_git_commit_object(sha="abc123")},
+        _check_get_git_commit,
+    ),
+    (
+        "create_git_tree",
+        {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]},
+        {},
+        _check_create_git_tree,
+    ),
+    (
+        "create_git_commit",
+        {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
+        {"created_commit_data": make_github_git_commit_object(sha="newcommit123", message="msg")},
+        _check_create_git_commit,
     ),
 ]
 
@@ -389,3 +572,64 @@ class TestGetIssueReactionsEdgeCases:
 
         with pytest.raises(KeyError):
             provider.get_issue_reactions(repository, "42")
+
+
+class TestGetCommitEdgeCases:
+    def test_handles_missing_author(self):
+        raw = {"sha": "abc", "commit": {"message": "msg", "author": None}, "files": []}
+        client = _make_client(commit_data=raw)
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_commit(repository, "abc")
+
+        assert result["commit"]["author"] is None
+        assert result["commit"]["message"] == "msg"
+
+    def test_handles_missing_files(self):
+        raw = {"sha": "abc", "commit": {"message": "msg"}}
+        client = _make_client(commit_data=raw)
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_commit(repository, "abc")
+
+        assert result["commit"]["files"] == []
+
+    def test_handles_binary_file_without_patch(self):
+        raw = make_github_commit(
+            files=[make_github_commit_file(filename="image.png", status="added", patch=None)]
+        )
+        client = _make_client(commit_data=raw)
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_commit(repository, "abc123")
+
+        assert result["commit"]["files"][0]["patch"] is None
+
+
+class TestGetFileContentEdgeCases:
+    def test_passes_ref_to_client(self):
+        client = _make_client()
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        provider.get_file_content(repository, "README.md", ref="feature-branch")
+
+        assert (
+            "get_file_content",
+            ("test-org/test-repo", "README.md", "feature-branch"),
+            {},
+        ) in client.calls
+
+    def test_handles_empty_content(self):
+        raw = make_github_file_content(content="", encoding="", size=0)
+        client = _make_client(file_content_data=raw)
+        provider = GitHubProvider(client)
+        repository = make_repository()
+
+        result = provider.get_file_content(repository, "empty.txt")
+
+        assert result["file_content"]["content"] == ""
+        assert result["file_content"]["size"] == 0

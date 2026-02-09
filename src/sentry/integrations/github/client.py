@@ -454,6 +454,25 @@ class GitHubBaseClient(
         """https://docs.github.com/en/rest/git/refs#update-a-reference"""
         return self.patch(f"/repos/{repo}/git/refs/heads/{ref}", data=data)
 
+    def get_file_content(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/repos/contents#get-repository-content"""
+        params = {}
+        if ref:
+            params["ref"] = ref
+        return self.get(f"/repos/{repo}/contents/{path}", params=params)
+
+    def get_git_commit(self, repo: str, sha: str) -> Any:
+        """https://docs.github.com/en/rest/git/commits#get-a-commit-object"""
+        return self.get(f"/repos/{repo}/git/commits/{sha}")
+
+    def create_git_tree(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/trees#create-a-tree"""
+        return self.post(f"/repos/{repo}/git/trees", data=data)
+
+    def create_git_commit(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/commits#create-a-commit"""
+        return self.post(f"/repos/{repo}/git/commits", data=data)
+
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """

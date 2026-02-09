@@ -6,8 +6,22 @@ from sentry.integrations.models import Integration
 from sentry.scm.types import (
     Comment,
     CommentActionResult,
+    Commit,
+    CommitActionResult,
+    CommitAuthor,
+    CommitComparison,
+    CommitComparisonActionResult,
+    CommitFile,
+    FileContent,
+    FileContentActionResult,
+    GitCommitObject,
+    GitCommitObjectActionResult,
+    GitCommitTree,
     GitRef,
     GitRefActionResult,
+    GitTree,
+    GitTreeActionResult,
+    InputTreeEntry,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -15,6 +29,7 @@ from sentry.scm.types import (
     ReactionResult,
     Referrer,
     Repository,
+    TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -90,6 +105,113 @@ def make_github_git_ref(
     return {
         "ref": ref,
         "object": {"sha": sha, "type": "commit"},
+    }
+
+
+def make_github_file_content(
+    path: str = "README.md",
+    sha: str = "abc123",
+    content: str = "SGVsbG8gV29ybGQ=",
+    encoding: str = "base64",
+    size: int = 11,
+) -> dict[str, Any]:
+    """Factory for GitHub file content API responses."""
+    return {
+        "path": path,
+        "sha": sha,
+        "content": content,
+        "encoding": encoding,
+        "size": size,
+        "type": "file",
+    }
+
+
+def make_github_commit_file(
+    filename: str = "src/main.py",
+    status: str = "modified",
+    patch: str | None = "@@ -1,3 +1,4 @@\n+new line",
+) -> dict[str, Any]:
+    """Factory for GitHub commit file entries."""
+    result: dict[str, Any] = {"filename": filename, "status": status}
+    if patch is not None:
+        result["patch"] = patch
+    return result
+
+
+def make_github_commit(
+    sha: str = "abc123",
+    message: str = "Fix bug",
+    author_name: str = "Test User",
+    author_email: str = "test@example.com",
+    author_date: str = "2026-02-04T10:00:00Z",
+    files: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Factory for GitHub commit API responses."""
+    return {
+        "sha": sha,
+        "commit": {
+            "message": message,
+            "author": {
+                "name": author_name,
+                "email": author_email,
+                "date": author_date,
+            },
+        },
+        "files": files if files is not None else [make_github_commit_file()],
+    }
+
+
+def make_github_commit_comparison(
+    ahead_by: int = 3,
+    behind_by: int = 1,
+) -> dict[str, Any]:
+    """Factory for GitHub commit comparison API responses."""
+    return {
+        "ahead_by": ahead_by,
+        "behind_by": behind_by,
+    }
+
+
+def make_github_tree_entry(
+    path: str = "src/main.py",
+    mode: str = "100644",
+    entry_type: str = "blob",
+    sha: str = "abc123",
+    size: int | None = 1234,
+) -> dict[str, Any]:
+    """Factory for GitHub tree entry objects."""
+    result: dict[str, Any] = {
+        "path": path,
+        "mode": mode,
+        "type": entry_type,
+        "sha": sha,
+    }
+    if size is not None:
+        result["size"] = size
+    return result
+
+
+def make_github_git_tree(
+    entries: list[dict[str, Any]] | None = None,
+    truncated: bool = False,
+) -> dict[str, Any]:
+    """Factory for GitHub git tree API responses."""
+    return {
+        "tree": entries if entries is not None else [make_github_tree_entry()],
+        "truncated": truncated,
+    }
+
+
+def make_github_git_commit_object(
+    sha: str = "abc123",
+    tree_sha: str = "tree456",
+    message: str = "Initial commit",
+) -> dict[str, Any]:
+    """Factory for GitHub git commit object API responses."""
+    return {
+        "sha": sha,
+        "tree": {"sha": tree_sha},
+        "message": message,
     }
 
 
@@ -261,6 +383,115 @@ class BaseTestProvider(Provider):
     ) -> None:
         return None
 
+    # File content operations
+
+    def get_file_content(
+        self, repository: Repository, path: str, ref: str | None = None
+    ) -> FileContentActionResult:
+        return FileContentActionResult(
+            file_content=FileContent(
+                path=path,
+                sha="abc123",
+                content="SGVsbG8gV29ybGQ=",
+                encoding="base64",
+                size=11,
+            ),
+            provider="test",
+            raw={},
+        )
+
+    # Commit operations
+
+    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult:
+        return CommitActionResult(
+            commit=Commit(
+                sha=sha,
+                message="Fix bug",
+                author=CommitAuthor(
+                    name="Test User", email="test@example.com", date="2026-02-04T10:00:00Z"
+                ),
+                files=[CommitFile(filename="src/main.py", status="modified", patch="@@ -1 +1 @@")],
+            ),
+            provider="test",
+            raw={},
+        )
+
+    def get_commits(self, repository: Repository) -> list[CommitActionResult]:
+        return [self.get_commit(repository, "abc123")]
+
+    def compare_commits(
+        self, repository: Repository, start_sha: str, end_sha: str
+    ) -> CommitComparisonActionResult:
+        return CommitComparisonActionResult(
+            comparison=CommitComparison(ahead_by=3, behind_by=1),
+            provider="test",
+            raw={},
+        )
+
+    # Git data operations
+
+    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult:
+        return GitTreeActionResult(
+            git_tree=GitTree(
+                tree=[
+                    TreeEntry(
+                        path="src/main.py", mode="100644", type="blob", sha="abc123", size=1234
+                    )
+                ],
+                truncated=False,
+            ),
+            provider="test",
+            raw={},
+        )
+
+    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult:
+        return GitCommitObjectActionResult(
+            git_commit=GitCommitObject(
+                sha=sha,
+                tree=GitCommitTree(sha="tree456"),
+                message="Initial commit",
+            ),
+            provider="test",
+            raw={},
+        )
+
+    def create_git_tree(
+        self,
+        repository: Repository,
+        tree: list[InputTreeEntry],
+        *,
+        base_tree: str | None = None,
+    ) -> GitTreeActionResult:
+        return GitTreeActionResult(
+            git_tree=GitTree(
+                tree=[
+                    TreeEntry(
+                        path="src/main.py", mode="100644", type="blob", sha="new123", size=100
+                    )
+                ],
+                truncated=False,
+            ),
+            provider="test",
+            raw={},
+        )
+
+    def create_git_commit(
+        self,
+        repository: Repository,
+        message: str,
+        tree_sha: str,
+        parent_shas: list[str],
+    ) -> GitCommitObjectActionResult:
+        return GitCommitObjectActionResult(
+            git_commit=GitCommitObject(
+                sha="newcommit123",
+                tree=GitCommitTree(sha=tree_sha),
+                message=message,
+            ),
+            provider="test",
+            raw={},
+        )
+
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -277,6 +508,14 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.pull_request_data: dict[str, Any] | None = None
         self.comment_reactions: list[dict[str, Any]] = []
         self.issue_reactions: list[dict[str, Any]] = []
+        self.file_content_data: dict[str, Any] | None = None
+        self.commit_data: dict[str, Any] | None = None
+        self.commits_data: list[dict[str, Any]] | None = None
+        self.comparison_data: dict[str, Any] | None = None
+        self.tree_data: list[dict[str, Any]] | None = None
+        self.git_commit_data: dict[str, Any] | None = None
+        self.created_tree_data: dict[str, Any] | None = None
+        self.created_commit_data: dict[str, Any] | None = None
 
         self.raise_api_error: bool = False
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
@@ -369,3 +608,63 @@ class FakeGitHubApiClient(GitHubApiClient):
         self._record_call("update_git_ref", repo, ref, data)
         self._maybe_raise()
         return make_github_git_ref(ref=f"refs/heads/{ref}", sha=data.get("sha", ""))
+
+    def get_file_content(self, repo: str, path: str, ref: str | None = None) -> dict[str, Any]:
+        self._record_call("get_file_content", repo, path, ref)
+        self._maybe_raise()
+        if self.file_content_data is not None:
+            return self.file_content_data
+        return make_github_file_content(path=path)
+
+    def get_commit(self, repo: str, sha: str) -> dict[str, Any]:
+        self._record_call("get_commit", repo, sha)
+        self._maybe_raise()
+        if self.commit_data is not None:
+            return self.commit_data
+        return make_github_commit(sha=sha)
+
+    def get_commits(self, repo: str) -> list[dict[str, Any]]:
+        self._record_call("get_commits", repo)
+        self._maybe_raise()
+        if self.commits_data is not None:
+            return self.commits_data
+        return [make_github_commit()]
+
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> dict[str, Any]:
+        self._record_call("compare_commits", repo, start_sha, end_sha)
+        self._maybe_raise()
+        if self.comparison_data is not None:
+            return self.comparison_data
+        return make_github_commit_comparison()
+
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+        self._record_call("get_tree", repo_full_name, tree_sha)
+        self._maybe_raise()
+        if self.tree_data is not None:
+            return self.tree_data
+        return [make_github_tree_entry()]
+
+    def get_git_commit(self, repo: str, sha: str) -> dict[str, Any]:
+        self._record_call("get_git_commit", repo, sha)
+        self._maybe_raise()
+        if self.git_commit_data is not None:
+            return self.git_commit_data
+        return make_github_git_commit_object(sha=sha)
+
+    def create_git_tree(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_git_tree", repo, data)
+        self._maybe_raise()
+        if self.created_tree_data is not None:
+            return self.created_tree_data
+        return make_github_git_tree()
+
+    def create_git_commit(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_git_commit", repo, data)
+        self._maybe_raise()
+        if self.created_commit_data is not None:
+            return self.created_commit_data
+        return make_github_git_commit_object(
+            sha="newcommit123",
+            tree_sha=data.get("tree", ""),
+            message=data.get("message", ""),
+        )

@@ -6,8 +6,22 @@ from sentry.scm.types import (
     Author,
     Comment,
     CommentActionResult,
+    Commit,
+    CommitActionResult,
+    CommitAuthor,
+    CommitComparison,
+    CommitComparisonActionResult,
+    CommitFile,
+    FileContent,
+    FileContentActionResult,
+    GitCommitObject,
+    GitCommitObjectActionResult,
+    GitCommitTree,
     GitRef,
     GitRefActionResult,
+    GitTree,
+    GitTreeActionResult,
+    InputTreeEntry,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -15,6 +29,7 @@ from sentry.scm.types import (
     ReactionResult,
     Referrer,
     Repository,
+    TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -69,6 +84,109 @@ def _transform_git_ref(raw: dict[str, Any]) -> GitRefActionResult:
         git_ref=GitRef(
             ref=ref_str,
             sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_file_content(raw: dict[str, Any]) -> FileContentActionResult:
+    return FileContentActionResult(
+        file_content=FileContent(
+            path=raw["path"],
+            sha=raw["sha"],
+            content=raw.get("content", ""),
+            encoding=raw.get("encoding", ""),
+            size=raw["size"],
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_commit_author(raw_author: dict[str, Any] | None) -> CommitAuthor | None:
+    if raw_author is None:
+        return None
+    return CommitAuthor(
+        name=raw_author.get("name", ""),
+        email=raw_author.get("email", ""),
+        date=raw_author.get("date", ""),
+    )
+
+
+def _transform_commit_file(raw_file: dict[str, Any]) -> CommitFile:
+    return CommitFile(
+        filename=raw_file["filename"],
+        status=raw_file.get("status", ""),
+        patch=raw_file.get("patch"),
+    )
+
+
+def _transform_commit(raw: dict[str, Any]) -> CommitActionResult:
+    commit_data = raw.get("commit", {})
+    return CommitActionResult(
+        commit=Commit(
+            sha=raw["sha"],
+            message=commit_data.get("message", ""),
+            author=_transform_commit_author(commit_data.get("author")),
+            files=[_transform_commit_file(f) for f in raw.get("files", [])],
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_commit_comparison(raw: dict[str, Any]) -> CommitComparisonActionResult:
+    return CommitComparisonActionResult(
+        comparison=CommitComparison(
+            ahead_by=raw.get("ahead_by", 0),
+            behind_by=raw.get("behind_by", 0),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_tree_entry(raw_entry: dict[str, Any]) -> TreeEntry:
+    return TreeEntry(
+        path=raw_entry["path"],
+        mode=raw_entry.get("mode", ""),
+        type=raw_entry["type"],
+        sha=raw_entry["sha"],
+        size=raw_entry.get("size"),
+    )
+
+
+def _transform_git_tree_from_list(raw_entries: list[dict[str, Any]]) -> GitTreeActionResult:
+    """Transform the list returned by client.get_tree() (truncated flag unavailable)."""
+    return GitTreeActionResult(
+        git_tree=GitTree(
+            tree=[_transform_tree_entry(e) for e in raw_entries],
+            truncated=False,
+        ),
+        provider="github",
+        raw={"tree": raw_entries},
+    )
+
+
+def _transform_git_tree(raw: dict[str, Any]) -> GitTreeActionResult:
+    """Transform a full git tree API response (from create_git_tree)."""
+    return GitTreeActionResult(
+        git_tree=GitTree(
+            tree=[_transform_tree_entry(e) for e in raw.get("tree", [])],
+            truncated=raw.get("truncated", False),
+        ),
+        provider="github",
+        raw=raw,
+    )
+
+
+def _transform_git_commit_object(raw: dict[str, Any]) -> GitCommitObjectActionResult:
+    return GitCommitObjectActionResult(
+        git_commit=GitCommitObject(
+            sha=raw["sha"],
+            tree=GitCommitTree(sha=raw["tree"]["sha"]),
+            message=raw.get("message", ""),
         ),
         provider="github",
         raw=raw,
@@ -261,3 +379,89 @@ class GitHubProvider(Provider):
             self.client.update_git_ref(repository["name"], branch, {"sha": sha, "force": force})
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
+
+    # File content operations
+
+    def get_file_content(
+        self, repository: Repository, path: str, ref: str | None = None
+    ) -> FileContentActionResult:
+        try:
+            raw = self.client.get_file_content(repository["name"], path, ref)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_file_content(raw)
+
+    # Commit operations
+
+    def get_commit(self, repository: Repository, sha: str) -> CommitActionResult:
+        try:
+            raw = self.client.get_commit(repository["name"], sha)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_commit(raw)
+
+    def get_commits(self, repository: Repository) -> list[CommitActionResult]:
+        try:
+            raw_commits = self.client.get_commits(repository["name"])
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return [_transform_commit(c) for c in raw_commits]
+
+    def compare_commits(
+        self, repository: Repository, start_sha: str, end_sha: str
+    ) -> CommitComparisonActionResult:
+        try:
+            raw = self.client.compare_commits(repository["name"], start_sha, end_sha)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_commit_comparison(raw)
+
+    # Git data operations
+
+    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult:
+        try:
+            raw_entries = self.client.get_tree(repository["name"], tree_sha)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_tree_from_list(raw_entries)
+
+    def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult:
+        try:
+            raw = self.client.get_git_commit(repository["name"], sha)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_commit_object(raw)
+
+    def create_git_tree(
+        self,
+        repository: Repository,
+        tree: list[InputTreeEntry],
+        *,
+        base_tree: str | None = None,
+    ) -> GitTreeActionResult:
+        data: dict[str, Any] = {"tree": tree}
+        if base_tree is not None:
+            data["base_tree"] = base_tree
+        try:
+            raw = self.client.create_git_tree(repository["name"], data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_tree(raw)
+
+    def create_git_commit(
+        self,
+        repository: Repository,
+        message: str,
+        tree_sha: str,
+        parent_shas: list[str],
+    ) -> GitCommitObjectActionResult:
+        data: dict[str, Any] = {
+            "message": message,
+            "tree": tree_sha,
+            "parents": parent_shas,
+        }
+        try:
+            raw = self.client.create_git_commit(repository["name"], data)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_commit_object(raw)

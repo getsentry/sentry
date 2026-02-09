@@ -57,6 +57,17 @@ ALL_ACTIONS = (
     ("get_branch", {"branch": "main"}),
     ("create_branch", {"branch": "feature", "sha": "abc123"}),
     ("update_branch", {"branch": "feature", "sha": "def456"}),
+    # File content operations
+    ("get_file_content", {"path": "README.md"}),
+    # Commit operations
+    ("get_commit", {"sha": "abc123"}),
+    ("get_commits", {}),
+    ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
+    # Git data operations
+    ("get_tree", {"tree_sha": "tree123"}),
+    ("get_git_commit", {"sha": "abc123"}),
+    ("create_git_tree", {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]}),
+    ("create_git_commit", {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]}),
 )
 
 
@@ -190,6 +201,62 @@ def _check_create_branch(result: Any) -> None:
     assert result["provider"] == "test"
 
 
+def _check_file_content(result: Any) -> None:
+    fc = result["file_content"]
+    assert fc["path"] == "README.md"
+    assert fc["content"] == "SGVsbG8gV29ybGQ="
+    assert fc["encoding"] == "base64"
+    assert result["provider"] == "test"
+
+
+def _check_get_commit(result: Any) -> None:
+    c = result["commit"]
+    assert c["sha"] == "abc123"
+    assert c["message"] == "Fix bug"
+    assert c["author"]["name"] == "Test User"
+    assert result["provider"] == "test"
+
+
+def _check_get_commits(result: Any) -> None:
+    assert len(result) == 1
+    assert result[0]["commit"]["sha"] == "abc123"
+    assert result[0]["provider"] == "test"
+
+
+def _check_compare_commits(result: Any) -> None:
+    assert result["comparison"]["ahead_by"] == 3
+    assert result["comparison"]["behind_by"] == 1
+    assert result["provider"] == "test"
+
+
+def _check_get_tree(result: Any) -> None:
+    gt = result["git_tree"]
+    assert len(gt["tree"]) == 1
+    assert gt["tree"][0]["path"] == "src/main.py"
+    assert gt["truncated"] is False
+    assert result["provider"] == "test"
+
+
+def _check_get_git_commit(result: Any) -> None:
+    gc = result["git_commit"]
+    assert gc["sha"] == "abc123"
+    assert gc["tree"]["sha"] == "tree456"
+    assert result["provider"] == "test"
+
+
+def _check_create_git_tree(result: Any) -> None:
+    gt = result["git_tree"]
+    assert len(gt["tree"]) == 1
+    assert result["provider"] == "test"
+
+
+def _check_create_git_commit(result: Any) -> None:
+    gc = result["git_commit"]
+    assert gc["sha"] == "newcommit123"
+    assert gc["message"] == "msg"
+    assert result["provider"] == "test"
+
+
 def _check_none(result: Any) -> None:
     assert result is None
 
@@ -257,6 +324,26 @@ ACTION_TESTS = (
     (SourceCodeManager.get_branch, {"branch": "main"}, _check_get_branch),
     (SourceCodeManager.create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
     (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_none),
+    (SourceCodeManager.get_file_content, {"path": "README.md"}, _check_file_content),
+    (SourceCodeManager.get_commit, {"sha": "abc123"}, _check_get_commit),
+    (SourceCodeManager.get_commits, {}, _check_get_commits),
+    (
+        SourceCodeManager.compare_commits,
+        {"start_sha": "aaa", "end_sha": "bbb"},
+        _check_compare_commits,
+    ),
+    (SourceCodeManager.get_tree, {"tree_sha": "tree123"}, _check_get_tree),
+    (SourceCodeManager.get_git_commit, {"sha": "abc123"}, _check_get_git_commit),
+    (
+        SourceCodeManager.create_git_tree,
+        {"tree": [{"path": "f.py", "mode": "100644", "type": "blob", "sha": "x"}]},
+        _check_create_git_tree,
+    ),
+    (
+        SourceCodeManager.create_git_commit,
+        {"message": "msg", "tree_sha": "t", "parent_shas": ["p"]},
+        _check_create_git_commit,
+    ),
 )
 
 
