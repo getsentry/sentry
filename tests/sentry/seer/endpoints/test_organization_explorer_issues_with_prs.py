@@ -4,12 +4,12 @@ import requests
 from django.urls import reverse
 
 from sentry.seer.models import SeerPermissionError
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
-class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
+class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-explorer-issues-with-prs"
 
     def setUp(self) -> None:
@@ -128,11 +128,17 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.json() == []
 
-    def test_get_missing_project_param(self) -> None:
+    def test_get_missing_project_param_returns_all_projects(self) -> None:
+        """Without ?project=, get_projects() returns all accessible org projects."""
+        group = self.create_group(project=self.project)
+        self.mock_client.get_issues_with_prs.return_value = [
+            self._make_seer_item(group_id=group.id)
+        ]
+        self.mock_serialize.return_value = [{"id": str(group.id), "title": "Test"}]
+
         response = self.client.get(self.url)
 
-        assert response.status_code == 400
-        assert "project query parameter is required" in response.json()["detail"]
+        assert response.status_code == 200
 
     def test_get_non_integer_project_param(self) -> None:
         response = self.client.get(self.url + "?project=abc")
@@ -347,7 +353,9 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
         assert pr_states["getsentry/sentry"]["prNumber"] == 100
         assert pr_states["getsentry/relay"]["prNumber"] == 200
 
-    def test_get_serializer_receives_correct_project_ids(self) -> None:
+    def test_get_uses_group_serializer_snuba(self) -> None:
+        from sentry.api.serializers.models.group import GroupSerializerSnuba
+
         group = self.create_group(project=self.project)
         self.mock_client.get_issues_with_prs.return_value = [
             self._make_seer_item(group_id=group.id)
@@ -356,10 +364,9 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
 
         self.client.get(self.url + f"?project={self.project.id}")
 
-        call_args = self.mock_serialize.call_args
-        serializer = call_args[0][2]
+        serializer = self.mock_serialize.call_args[0][2]
+        assert isinstance(serializer, GroupSerializerSnuba)
         assert serializer.organization_id == self.organization.id
-        assert serializer.project_ids == [self.project.id]
 
     def test_get_cross_org_project_returns_403(self) -> None:
         """A project_id from a different org is rejected by get_projects()"""

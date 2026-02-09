@@ -13,7 +13,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.group import GroupSerializerSnuba
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -46,6 +47,8 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
             raise NoProjects("No projects available")
         project_ids = [p.id for p in projects]
 
+        start, end = get_date_range_from_stats_period(request.GET, optional=True)
+
         try:
             client = SeerExplorerClient(organization, request.user)
             seer_data = client.get_issues_with_prs()
@@ -66,7 +69,12 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
                 return []
 
             group_ids = [item["group_id"] for item in seer_data]
-            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            qs = Group.objects.filter(id__in=group_ids, project_id__in=project_ids)
+            if start is not None:
+                qs = qs.filter(last_seen__gte=start)
+            if end is not None:
+                qs = qs.filter(last_seen__lte=end)
+            groups = list(qs)
 
             if not groups:
                 return []
@@ -75,7 +83,7 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
                 serialized_groups = serialize(
                     groups,
                     request.user,
-                    StreamGroupSerializerSnuba(
+                    GroupSerializerSnuba(
                         organization_id=organization.id,
                         project_ids=project_ids,
                     ),
