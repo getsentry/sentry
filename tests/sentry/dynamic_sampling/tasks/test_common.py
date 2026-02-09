@@ -358,7 +358,9 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+        for volumes in GetActiveOrgsVolumes(
+            max_orgs=10, measure=SamplingMeasure.TRANSACTIONS, orgs=[org.id]
+        ):
             found_volumes.extend(volumes)
 
         # Should only find the transaction metrics
@@ -403,7 +405,9 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for volumes in GetActiveOrgsVolumes(
+            max_orgs=10, measure=SamplingMeasure.SEGMENTS, orgs=[org.id]
+        ):
             found_volumes.extend(volumes)
 
         # Should only find the is_segment=true span metrics
@@ -430,7 +434,9 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for volumes in GetActiveOrgsVolumes(
+            max_orgs=10, measure=SamplingMeasure.SEGMENTS, orgs=[org.id]
+        ):
             found_volumes.extend(volumes)
 
         # Should find no volumes since there are no is_segment=true spans
@@ -454,7 +460,9 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.TRANSACTIONS):
+        for volumes in GetActiveOrgsVolumes(
+            max_orgs=10, measure=SamplingMeasure.TRANSACTIONS, orgs=[org.id]
+        ):
             found_volumes.extend(volumes)
 
         # Should find no volumes since there are no transaction metrics
