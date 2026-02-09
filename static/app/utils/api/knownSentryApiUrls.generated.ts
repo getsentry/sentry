@@ -633,6 +633,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/source-maps/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/add-release/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/grouping-configs/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/stats/'
