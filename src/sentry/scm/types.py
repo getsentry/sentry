@@ -425,7 +425,9 @@ class Provider(Protocol):
 
     # Git data operations
 
-    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult: ...
+    def get_tree(
+        self, repository: Repository, tree_sha: str, *, recursive: bool = True
+    ) -> GitTreeActionResult: ...
 
     def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult: ...
 

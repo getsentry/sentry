@@ -18,6 +18,7 @@ from tests.sentry.scm.test_fixtures import (
     make_github_file_content,
     make_github_git_blob,
     make_github_git_commit_object,
+    make_github_git_tree,
     make_github_graphql_issue_comment,
     make_github_graphql_pr_comments_response,
     make_github_graphql_review_thread,
@@ -258,7 +259,7 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_tree",
         {"tree_sha": "tree123"},
-        ("get_tree", ("test-org/test-repo", "tree123"), {}),
+        ("get_tree_full", ("test-org/test-repo", "tree123"), {"recursive": True}),
     ),
     (
         "get_git_commit",
@@ -782,7 +783,7 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "get_tree",
         {"tree_sha": "tree123"},
-        {},
+        {"tree_full_data": make_github_git_tree()},
         _check_get_tree,
     ),
     (

@@ -696,7 +696,9 @@ class BaseTestProvider(Provider):
 
     # Git data operations
 
-    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult:
+    def get_tree(
+        self, repository: Repository, tree_sha: str, *, recursive: bool = True
+    ) -> GitTreeActionResult:
         return GitTreeActionResult(
             git_tree=GitTree(
                 tree=[
@@ -1043,6 +1045,7 @@ class FakeGitHubApiClient(GitHubApiClient):
         self.commits_data: list[dict[str, Any]] | None = None
         self.comparison_data: dict[str, Any] | None = None
         self.tree_data: list[dict[str, Any]] | None = None
+        self.tree_full_data: dict[str, Any] | None = None
         self.git_commit_data: dict[str, Any] | None = None
         self.created_tree_data: dict[str, Any] | None = None
         self.created_commit_data: dict[str, Any] | None = None
@@ -1234,6 +1237,15 @@ class FakeGitHubApiClient(GitHubApiClient):
         if self.tree_data is not None:
             return self.tree_data
         return [make_github_tree_entry()]
+
+    def get_tree_full(
+        self, repo_full_name: str, tree_sha: str, recursive: bool = True
+    ) -> dict[str, Any]:
+        self._record_call("get_tree_full", repo_full_name, tree_sha, recursive=recursive)
+        self._maybe_raise()
+        if self.tree_full_data is not None:
+            return self.tree_full_data
+        return make_github_git_tree()
 
     def get_git_commit(self, repo: str, sha: str) -> dict[str, Any]:
         self._record_call("get_git_commit", repo, sha)

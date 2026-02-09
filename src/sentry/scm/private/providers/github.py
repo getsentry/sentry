@@ -560,12 +560,14 @@ class GitHubProvider(Provider):
 
     # Git data operations
 
-    def get_tree(self, repository: Repository, tree_sha: str) -> GitTreeActionResult:
+    def get_tree(
+        self, repository: Repository, tree_sha: str, *, recursive: bool = True
+    ) -> GitTreeActionResult:
         try:
-            raw_entries = self.client.get_tree(repository["name"], tree_sha)
+            raw = self.client.get_tree_full(repository["name"], tree_sha, recursive=recursive)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
-        return _transform_git_tree_from_list(raw_entries)
+        return _transform_git_tree(raw)
 
     def get_git_commit(self, repository: Repository, sha: str) -> GitCommitObjectActionResult:
         try:

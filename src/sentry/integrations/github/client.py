@@ -524,6 +524,22 @@ class GitHubBaseClient(
             )
         return contents["tree"]
 
+    def get_tree_full(
+        self, repo_full_name: str, tree_sha: str, recursive: bool = True
+    ) -> dict[str, Any]:
+        """https://docs.github.com/en/rest/git/trees#get-a-tree
+
+        Returns the full API response including the ``truncated`` flag.
+        """
+        params: dict[str, int] = {}
+        if recursive:
+            params["recursive"] = 1
+        contents: dict[str, Any] = self.get(
+            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+            params=params,
+        )
+        return contents
+
     def get_branch(self, repo: str, branch: str) -> Any:
         """https://docs.github.com/en/rest/branches/branches#get-a-branch"""
         return self.get(f"/repos/{repo}/branches/{branch}")

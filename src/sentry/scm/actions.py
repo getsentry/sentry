@@ -240,8 +240,8 @@ class SourceCodeManager:
 
     # Git data operations
 
-    def get_tree(self, tree_sha: str) -> GitTreeActionResult:
-        return self._exec(lambda r, p: p.get_tree(r, tree_sha))
+    def get_tree(self, tree_sha: str, *, recursive: bool = True) -> GitTreeActionResult:
+        return self._exec(lambda r, p: p.get_tree(r, tree_sha, recursive=recursive))
 
     def get_git_commit(self, sha: str) -> GitCommitObjectActionResult:
         return self._exec(lambda r, p: p.get_git_commit(r, sha))
