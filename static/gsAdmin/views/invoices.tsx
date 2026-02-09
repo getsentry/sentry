@@ -117,7 +117,7 @@ export default function Invoices() {
       </Panel>
       <ResultGrid
         inPanel
-        isRegional
+        isCellScoped
         path="/_admin/invoices/"
         endpoint="/invoices/"
         method="GET"

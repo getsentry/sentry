@@ -22,6 +22,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 
 SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
@@ -65,9 +66,12 @@ class SeerOperator[CachePayloadT]:
 
         if entrypoint_key:
             if entrypoint_key not in entrypoint_registry.registrations:
-                logger.warning(
-                    "operator.invalid_entrypoint_key",
-                    extra={"entrypoint_key": entrypoint_key, "organization_id": organization.id},
+                logger.error(
+                    "seer.operator.invalid_entrypoint_key",
+                    extra={
+                        "entrypoint_key": str(entrypoint_key),
+                        "organization_id": organization.id,
+                    },
                 )
                 return False
             entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
@@ -89,6 +93,13 @@ class SeerOperator[CachePayloadT]:
     ) -> None:
         self.logging_ctx["group_id"] = str(group.id)
         self.logging_ctx["user_id"] = str(user.id)
+        self.logging_ctx["stopping_point"] = str(stopping_point)
+        metric_tags = {
+            "stopping_point": str(stopping_point),
+            "entrypoint_key": str(self.entrypoint.key),
+            "is_continuation": str(run_id is not None),
+        }
+
         raw_response: Response | None = None
 
         if not run_id:
@@ -119,7 +130,9 @@ class SeerOperator[CachePayloadT]:
             elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                 payload = AutofixCreatePRPayload(type="create_pr")
             else:
-                logger.warning("operator.invalid_stopping_point", extra=self.logging_ctx)
+                logger.error(
+                    "seer.operator.trigger_autofix.invalid_stopping_point", extra=self.logging_ctx
+                )
                 self.entrypoint.on_trigger_autofix_error(error="Invalid stopping point provided")
                 return
 
@@ -135,16 +148,18 @@ class SeerOperator[CachePayloadT]:
         # Let the entrypoint signal to the external service that no run was started :/
         if error_message:
             self.logging_ctx["error_message"] = error_message
-            logger.warning("operator.trigger_autofix_error", extra=self.logging_ctx)
+            logger.error("seer.operator.trigger_autofix.error", extra=self.logging_ctx)
+            metrics.incr("seer.operator.trigger_autofix.error", tags=metric_tags)
             self.entrypoint.on_trigger_autofix_error(error=error_message)
             return
 
         run_id = raw_response.data.get("run_id") if not run_id else run_id
         # Shouldn't ever happen, but if it we have no run_id, we can't listen for updates
         if not run_id:
-            logger.warning("operator.trigger_autofix_no_run_id", extra=self.logging_ctx)
+            logger.error("seer.operator.trigger_autofix.no_run_id", extra=self.logging_ctx)
             self.entrypoint.on_trigger_autofix_error(error="An unknown error has occurred")
             return
+        self.logging_ctx["run_id"] = str(run_id)
 
         # Let the entrypoint signal to the external service that the run started
         self.entrypoint.on_trigger_autofix_success(run_id=run_id)
@@ -159,7 +174,8 @@ class SeerOperator[CachePayloadT]:
                 run_id=run_id,
             )
             self.logging_ctx["cache_key"] = cache_result["key"]
-        logger.info("operator.trigger_autofix_success", extra=self.logging_ctx)
+        logger.info("seer.operator.trigger_autofix.success", extra=self.logging_ctx)
+        metrics.incr("seer.operator.trigger_autofix.success", tags=metric_tags)
 
 
 @instrumented_task(
@@ -178,31 +194,38 @@ def process_autofix_updates(
 
     run_id = event_payload.get("run_id")
     group_id = event_payload.get("group_id")
-    logging_ctx = {"event_type": event_type, "run_id": run_id, "group_id": group_id}
+    logging_ctx = {
+        "event_type": str(event_type),
+        "run_id": run_id,
+        "group_id": group_id,
+        "organization_id": organization_id,
+    }
 
     if not run_id or not group_id:
-        logger.warning("operator.missing_identifiers", extra=logging_ctx)
+        logger.error("seer.operator.process_updates.missing_identifiers", extra=logging_ctx)
         return
 
     if event_type not in SEER_OPERATOR_AUTOFIX_UPDATE_EVENTS:
-        logger.info("operator.skipping_update", extra=logging_ctx)
+        logger.info("seer.operator.process_updates.skipped", extra=logging_ctx)
         return
 
     try:
         Group.objects.get(id=group_id, project__organization_id=organization_id)
     except Group.DoesNotExist:
-        logger.warning("operator.group_not_found", extra=logging_ctx)
+        logger.exception("seer.operator.process_updates.group_not_found", extra=logging_ctx)
         return
 
     for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        entrypoint_logging_ctx = {**logging_ctx, "entrypoint_key": str(entrypoint_key)}
         cache_result = SeerOperatorAutofixCache.get(
             entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
         )
         if not cache_result:
-            logger.info("operator.no_cache_payload", extra=logging_ctx)
+            logger.info("seer.operator.process_updates.cache_miss", extra=entrypoint_logging_ctx)
             continue
-        logging_ctx["cache_source"] = cache_result["source"]
-        logging_ctx["cache_key"] = cache_result["key"]
+        entrypoint_logging_ctx["cache_source"] = cache_result["source"]
+        entrypoint_logging_ctx["cache_key"] = cache_result["key"]
+        metric_tags = {"entrypoint_key": str(entrypoint_key), "event_type": str(event_type)}
         try:
             entrypoint_cls.on_autofix_update(
                 event_type=event_type,
@@ -210,6 +233,12 @@ def process_autofix_updates(
                 cache_payload=cache_result["payload"],
             )
         except Exception:
-            logger.exception("operator.on_autofix_update_error", extra=logging_ctx)
+            logger.exception(
+                "seer.operator.process_updates.entrypoint_error", extra=entrypoint_logging_ctx
+            )
+            metrics.incr("seer.operator.process_updates.entrypoint_error", tags=metric_tags)
         else:
-            logger.info("operator.on_autofix_update_success", extra=logging_ctx)
+            logger.info(
+                "seer.operator.process_updates.entrypoint_success", extra=entrypoint_logging_ctx
+            )
+            metrics.incr("seer.operator.process_updates.entrypoint_success", tags=metric_tags)
