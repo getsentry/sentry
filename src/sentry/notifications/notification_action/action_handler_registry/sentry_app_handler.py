@@ -25,7 +25,7 @@ class SentryAppActionHandler(ActionHandler):
             },
         },
         "required": ["target_type", "target_identifier"],
-        "additionalProperties": False,
+        "additionalProperties": True,  # XXX: this is temporary until we can fully remove SentryAppIdentifier, then it will be set back to False
     }
 
     data_schema = {
