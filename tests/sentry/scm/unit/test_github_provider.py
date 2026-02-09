@@ -243,7 +243,12 @@ CLIENT_DELEGATION_TESTS: list[
     (
         "get_commits",
         {},
-        ("get_commits", ("test-org/test-repo",), {}),
+        ("get_commits", ("test-org/test-repo",), {"sha": None, "path": None}),
+    ),
+    (
+        "get_commits",
+        {"sha": "main", "path": "src/main.py"},
+        ("get_commits", ("test-org/test-repo",), {"sha": "main", "path": "src/main.py"}),
     ),
     (
         "compare_commits",

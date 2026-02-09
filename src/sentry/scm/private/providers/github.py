@@ -536,9 +536,15 @@ class GitHubProvider(Provider):
             raise SCMProviderException(str(e)) from e
         return _transform_commit(raw)
 
-    def get_commits(self, repository: Repository) -> list[CommitActionResult]:
+    def get_commits(
+        self,
+        repository: Repository,
+        *,
+        sha: str | None = None,
+        path: str | None = None,
+    ) -> list[CommitActionResult]:
         try:
-            raw_commits = self.client.get_commits(repository["name"])
+            raw_commits = self.client.get_commits(repository["name"], sha=sha, path=path)
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
         return [_transform_commit(c) for c in raw_commits]

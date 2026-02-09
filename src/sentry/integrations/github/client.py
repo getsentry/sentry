@@ -417,11 +417,18 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/hooks")
 
-    def get_commits(self, repo: str) -> Sequence[Any]:
+    def get_commits(
+        self, repo: str, sha: str | None = None, path: str | None = None
+    ) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits")
+        params: dict[str, str] = {}
+        if sha:
+            params["sha"] = sha
+        if path:
+            params["path"] = path
+        return self.get(f"/repos/{repo}/commits", params=params)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """

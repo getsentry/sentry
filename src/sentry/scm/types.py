@@ -411,7 +411,13 @@ class Provider(Protocol):
 
     def get_commit(self, repository: Repository, sha: str) -> CommitActionResult: ...
 
-    def get_commits(self, repository: Repository) -> list[CommitActionResult]: ...
+    def get_commits(
+        self,
+        repository: Repository,
+        *,
+        sha: str | None = None,
+        path: str | None = None,
+    ) -> list[CommitActionResult]: ...
 
     def compare_commits(
         self, repository: Repository, start_sha: str, end_sha: str

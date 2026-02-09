@@ -676,7 +676,13 @@ class BaseTestProvider(Provider):
             raw={},
         )
 
-    def get_commits(self, repository: Repository) -> list[CommitActionResult]:
+    def get_commits(
+        self,
+        repository: Repository,
+        *,
+        sha: str | None = None,
+        path: str | None = None,
+    ) -> list[CommitActionResult]:
         return [self.get_commit(repository, "abc123")]
 
     def compare_commits(
@@ -1206,8 +1212,10 @@ class FakeGitHubApiClient(GitHubApiClient):
             return self.commit_data
         return make_github_commit(sha=sha)
 
-    def get_commits(self, repo: str) -> list[dict[str, Any]]:
-        self._record_call("get_commits", repo)
+    def get_commits(
+        self, repo: str, sha: str | None = None, path: str | None = None
+    ) -> list[dict[str, Any]]:
+        self._record_call("get_commits", repo, sha=sha, path=path)
         self._maybe_raise()
         if self.commits_data is not None:
             return self.commits_data

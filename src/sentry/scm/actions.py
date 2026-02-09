@@ -230,8 +230,10 @@ class SourceCodeManager:
     def get_commit(self, sha: str) -> CommitActionResult:
         return self._exec(lambda r, p: p.get_commit(r, sha))
 
-    def get_commits(self) -> list[CommitActionResult]:
-        return self._exec(lambda r, p: p.get_commits(r))
+    def get_commits(
+        self, *, sha: str | None = None, path: str | None = None
+    ) -> list[CommitActionResult]:
+        return self._exec(lambda r, p: p.get_commits(r, sha=sha, path=path))
 
     def compare_commits(self, start_sha: str, end_sha: str) -> CommitComparisonActionResult:
         return self._exec(lambda r, p: p.compare_commits(r, start_sha, end_sha))
