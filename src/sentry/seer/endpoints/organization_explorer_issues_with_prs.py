@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import logging
 
-import requests as requests_lib
 import sentry_sdk
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
@@ -39,34 +38,19 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationExplorerIssuesWithPRsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        project_param = request.GET.get("project")
-        if not project_param:
-            raise ParseError(detail="project query parameter is required")
-
-        try:
-            project_id = int(project_param)
-        except (TypeError, ValueError):
-            raise ParseError(detail="project must be an integer")
-
-        # Validate the project belongs to this org and the user has access.
-        # get_projects() raises PermissionDenied if the project doesn't belong
-        # to the org or the user lacks access (prevents IDOR).
-        projects = self.get_projects(request, organization, project_ids={project_id})
+        # get_projects() parses ?project= from the query string, validates that
+        # each project belongs to this org, and checks user access (prevents IDOR).
+        # Raises PermissionDenied if any project is inaccessible.
+        projects = self.get_projects(request, organization)
         if not projects:
-            raise ParseError(detail="project not found")
-        project = projects[0]
+            raise NoProjects("No projects available")
+        project_ids = [p.id for p in projects]
 
         try:
             client = SeerExplorerClient(organization, request.user)
             seer_data = client.get_issues_with_prs()
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
-        except (requests_lib.ConnectionError, requests_lib.Timeout) as e:
-            sentry_sdk.capture_exception(e)
-            return Response({"detail": "Failed to reach Seer service"}, status=503)
-        except (requests_lib.HTTPError, requests_lib.RequestException) as e:
-            sentry_sdk.capture_exception(e)
-            return Response({"detail": "Seer service error"}, status=502)
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return Response({"detail": "Unexpected error calling Seer"}, status=502)
@@ -82,7 +66,7 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
                 return []
 
             group_ids = [item["group_id"] for item in seer_data]
-            groups = list(Group.objects.filter(id__in=group_ids, project_id=project.id))
+            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
 
             if not groups:
                 return []
@@ -93,7 +77,7 @@ class OrganizationExplorerIssuesWithPRsEndpoint(OrganizationEndpoint):
                     request.user,
                     StreamGroupSerializerSnuba(
                         organization_id=organization.id,
-                        project_ids=[project.id],
+                        project_ids=project_ids,
                     ),
                     request=request,
                 )

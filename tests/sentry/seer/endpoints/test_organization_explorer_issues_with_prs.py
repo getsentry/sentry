@@ -138,7 +138,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(self.url + "?project=abc")
 
         assert response.status_code == 400
-        assert "project must be an integer" in response.json()["detail"]
+        assert "Invalid project parameter" in response.json()["detail"]
 
     def test_get_filters_by_project_id(self) -> None:
         """Groups not matching the requested project_id are excluded from the DB query."""
@@ -158,6 +158,29 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == str(group_in_project.id)
+
+    def test_get_multiple_projects(self) -> None:
+        """Passing multiple ?project= params returns groups from all requested projects."""
+        project2 = self.create_project(organization=self.organization)
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=project2)
+
+        self.mock_client.get_issues_with_prs.return_value = [
+            self._make_seer_item(group_id=group1.id, run_id=1),
+            self._make_seer_item(group_id=group2.id, run_id=2),
+        ]
+        self.mock_serialize.return_value = [
+            {"id": str(group1.id), "title": "Issue 1"},
+            {"id": str(group2.id), "title": "Issue 2"},
+        ]
+
+        response = self.client.get(self.url + f"?project={self.project.id}&project={project2.id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        returned_ids = {d["id"] for d in data}
+        assert returned_ids == {str(group1.id), str(group2.id)}
 
     def test_get_no_matching_groups_returns_empty(self) -> None:
         """When Seer returns group IDs that don't exist in the requested project, return empty."""
@@ -214,7 +237,7 @@ class TestOrganizationExplorerIssuesWithPRsEndpoint(APITestCase, SnubaTestCase):
         response = self.client.get(self.url + f"?project={self.project.id}")
 
         assert response.status_code == 502
-        assert response.json() == {"detail": "Seer service error"}
+        assert response.json() == {"detail": "Unexpected error calling Seer"}
 
     def test_get_multiple_groups_with_pr_data(self) -> None:
         group1 = self.create_group(project=self.project)
