@@ -67,9 +67,10 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 
     def _validate_team_ownership(self, rules):
         """
-        Validate that the user has permission to assign ownership to the teams
-        referenced in the rules. Users must either have team:admin scope or be
-        a member of each team they're assigning ownership to.
+        Validate that the user has permission to assign ownership to the teams referenced in the
+        rules. If the organization has open team membership enabled, any user can assign ownership.
+        Otherwise, users must either have `team:admin` scope or be a member of each team to which
+        they're assigning ownership.
         """
         team_slugs = {
             owner.get("identifier")
