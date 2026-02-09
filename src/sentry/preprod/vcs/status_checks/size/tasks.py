@@ -271,12 +271,14 @@ def create_preprod_status_check_task(
         )
         try:
             with lock.blocking_acquire(initial_delay=0.1, timeout=5):
-                fresh_extras = dict(
+                extras_by_artifact_id = dict(
                     PreprodArtifact.objects.filter(
                         id__in=[a.id for a in all_artifacts]
                     ).values_list("id", "extras")
                 )
-                if _should_skip_status_check(all_artifacts, fresh_extras, size_metrics_map, status):
+                if _should_skip_status_check(
+                    all_artifacts, extras_by_artifact_id, size_metrics_map, status
+                ):
                     logger.info(
                         "preprod.status_checks.create.skipped",
                         extra={
@@ -525,7 +527,7 @@ def _has_no_quota_artifact(
 
 def _should_skip_status_check(
     all_artifacts: list[PreprodArtifact],
-    fresh_extras: dict[int, dict[str, Any] | None],
+    extras_by_artifact_id: dict[int, dict[str, Any] | None],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     status: StatusCheckStatus,
 ) -> bool:
@@ -536,7 +538,7 @@ def _should_skip_status_check(
     try:
         any_posted = False
         posted_statuses: set[str] = set()
-        for artifact_id, extras in fresh_extras.items():
+        for artifact_id, extras in extras_by_artifact_id.items():
             if not extras:
                 continue
             posted_checks = extras.get("posted_status_checks", {})
