@@ -147,7 +147,7 @@ describe('reactNodeToText', () => {
   it('falls back to extracting text from React tree when renderToStaticMarkup fails', () => {
     // Simulate a component that requires context (like react-router's <Link>)
     // by using a component that calls a hook, which will throw in renderToStaticMarkup
-    function ContextDependentLink({to, children}: {children: string; to: string}) {
+    function ContextDependentLink({to, children}: React.PropsWithChildren<{to: string}>) {
       // This will throw during renderToStaticMarkup because hooks need React runtime
       const [_state] = React.useState(0);
       return React.createElement('a', {href: to}, children);
@@ -174,7 +174,7 @@ describe('reactNodeToText', () => {
 
   it('falls back to extracting text with href links from React tree', () => {
     // Simulate ExternalLink-like component that fails renderToStaticMarkup
-    function ExternalLink({href, children}: {children: string; href: string}) {
+    function ExternalLink({href, children}: React.PropsWithChildren<{href: string}>) {
       const [_s] = React.useState(0);
       return React.createElement('a', {href}, children);
     }
