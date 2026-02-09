@@ -174,6 +174,7 @@ const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
   'failure_rate()',
   `avg(${SpanFields.SPAN_DURATION})`,
   `p95(${SpanFields.SPAN_DURATION})`,
+  `performance_score(${SpanFields.TOTAL_SCORE})`,
 ];
 
 const CLIENT_TRANSACTIONS_TABLE: Widget = {
