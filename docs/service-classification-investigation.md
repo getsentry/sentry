@@ -690,26 +690,141 @@ The ~185 `requires_snuba`-only tests need Snuba _running_ (for eventstream write
 - Phase 3: ~200 files, serial ≈ 3-5 min
 - Total: ~6-9 min (vs 17 min baseline = 47-65% speedup)
 
-### Future: Approach 2 — skip TRUNCATE entirely
+### Iteration 5: Approach 2 — skip TRUNCATE entirely (REJECTED)
 
-If all ClickHouse queries were properly project-scoped, `reset_snuba` would be unnecessary
-(each test creates unique snowflake IDs, queries filter by `project_id`).
+**Hypothesis:** If all ClickHouse queries were properly project-scoped, `reset_snuba` would be
+unnecessary (each test creates unique snowflake IDs, queries filter by `project_id`). Skip
+`TRUNCATE TABLE` via env var `XDIST_SKIP_SNUBA_RESET=1` and fix individual tests with broad
+aggregations.
 
-Early data from a test run skipping TRUNCATE showed only **14 unique failures across 6 files**:
+**Implementation:**
 
-- Dynamic sampling metrics (4 tests) — aggregate across projects
-- Release health sessions (3 tests) — session counts not project-scoped
-- Metrics API (3 tests) — metrics queries with broad group-by
-- Metrics layer (1 test) — ANR rate aggregation
-- Event frequency rules (3 tests) — percent conditions counting broadly
+1. Added conditional skip in `reset_snuba` fixture: `if os.environ.get("XDIST_SKIP_SNUBA_RESET"): return`
+2. Fixed `test_common.py` to scope `GetActiveOrgsVolumes` calls with `orgs=[org.id]`
+3. Ran all tests in a single xdist phase with `-n 2 --dist=loadfile`
 
-Fixing these ~14 tests would allow ALL tests to run in parallel with zero special-casing.
-This is the "holy grail" approach — kept in pocket for a follow-up iteration.
+**Result: 50+ failures across all 22 shards.** Every shard failed.
 
-## Expected Impact
+Earlier estimates (~14 failures) were from a two-phase run where most non-snuba tests didn't
+write to ClickHouse. Running ALL tests in parallel without TRUNCATE dramatically amplified
+cross-contamination because the full test suite produces far more ClickHouse writes.
 
-**Tiered CI (working today):** ~68% of backend tests run with lighter services (setup ~15-20s vs ~2.5-3 min). Same 22 shards, same runner resources.
+**Failure categories:**
 
-**xdist three-phase (implementing):** ~91% of tests parallelized with `-n 4`. Projected 47-65% speedup (6-9 min vs 17 min baseline). No Snuba changes required.
+| Category | Failures | Root Cause |
+| --- | --- | --- |
+| ClickHouse data accumulation | ~35 | Metrics/event data from other workers inflates counts. Values are multiples of expected (e.g., 21000 == 3000, 84M == 12M). Queries across ~15 test files lack tight project/org scoping. |
+| Relay container conflicts | ~6 | Docker container `sentry_test_relay_server` has a fixed name. Two xdist workers creating it simultaneously → 409 Conflict. All show `assert None is not None`. |
+| Event frequency percent conditions | ~5 | ClickHouse event counts inflated by other workers' events within time windows. |
+| Rule preview KeyErrors | 3 | Group IDs from other workers appear in ClickHouse query results, causing KeyError lookups against Postgres (which rolled back those groups). |
+| Foreign key integrity errors | 1 | Org created by one worker rolled back in Postgres while ClickHouse still references it. |
+| Report test failures | 2 | Stale ClickHouse data causes wrong event counts/group IDs in report generation. |
 
-**xdist + query fixes (future):** Fix ~14 improperly-scoped queries → skip TRUNCATE → 100% of tests parallelized. Projected 70%+ speedup.
+**Affected test files (ClickHouse accumulation):**
+
+- `test_organization_release_health_data.py` (~12 failures)
+- `test_api.py` (sentry_metrics querying, ~10 failures)
+- `test_metrics_enhanced_performance.py` (~7 failures)
+- `test_boost_low_volume_transactions.py` (2)
+- `test_tasks.py` (dynamic sampling, 4)
+- `test_common.py` (2, despite our fix — other queries still broad)
+- `test_release_health.py` (metrics layer, 2)
+- `test_boost_low_volume_projects.py`, `test_metrics.py`, `test_organization_events_histogram.py`,
+  `test_organization_events_trends.py`, `test_organization_root_cause_analysis.py`,
+  `test_organization_replay_index.py`, `test_preview.py`, `test_daily_summary.py`,
+  `test_weekly_reports.py` (1-3 each)
+
+**Conclusion:** Approach 2 is **not viable at this scale.** The number of ClickHouse queries that
+aren't perfectly project-scoped is far larger than initial estimates suggested. Fixing 50+ tests
+across 15+ files would be a major refactoring effort with ongoing maintenance burden (any new test
+that queries ClickHouse broadly would break). The two-phase approach (Iteration 3) remains the
+correct xdist strategy.
+
+**The Relay container naming conflict is a separate blocker** that would need to be solved
+independently (e.g., per-worker container names, or a shared Relay instance with proper isolation).
+
+### Iteration 3 (restored): Two-phase approach (current working solution)
+
+Reverted to the proven two-phase strategy:
+
+- Phase 1: non-snuba tests with xdist `-n 3 --dist=loadfile`
+- Phase 2: snuba tests single-threaded (identical to normal CI)
+- Result: 22/22 green (validated in earlier runs)
+
+## Combining Tiered CI + xdist: The Complete Strategy
+
+### How the two strategies complement each other
+
+**Tiered CI** and **xdist** solve different problems and can be combined for maximum benefit:
+
+| Strategy | What it optimizes | Mechanism |
+| --- | --- | --- |
+| **Tiered CI** | Eliminates unnecessary service startup | 71% of tests skip Snuba stack (~4-5 min saved per shard) |
+| **xdist** | Parallelizes test execution within a shard | Multiple tests run concurrently on the same runner |
+
+These are orthogonal — tiered CI decides **which services to start**, xdist decides **how to run tests within a shard**.
+
+### Combined architecture
+
+```
+Tier 1 (Postgres + Redis + Kafka, ~71% of tests):
+  - devservices mode: migrations (~15-20s setup)
+  - xdist: -n 3 --dist=loadfile (all tests are non-snuba, safe for parallel)
+  - Shards: 6
+  - Expected time: ~4-6 min per shard (vs ~12 min without xdist)
+
+Tier 2 (Full Snuba stack, ~29% of tests):
+  - devservices mode: backend-ci (~4-5 min setup)
+  - Two-phase execution within each shard:
+    - Phase 1: non-snuba tests in this shard with xdist -n 3
+    - Phase 2: snuba tests single-threaded
+  - Shards: 16
+  - Expected time: ~10-14 min per shard (setup + two phases)
+```
+
+### Why this is optimal
+
+1. **Tier 1 benefits fully from xdist.** Since no tests need Snuba, there's no TRUNCATE conflict —
+   all tests can run in parallel. The 4-5 min Snuba startup is completely eliminated. Combined with
+   3x parallelism, Tier 1 shards should complete in ~4-6 min total.
+
+2. **Tier 2 benefits partially from xdist.** Within each Tier 2 shard, the ~71% of tests that don't
+   need Snuba (but were placed in Tier 2 shards due to the per-shard test distribution) can still
+   run in parallel in Phase 1. Only the Snuba-dependent tests must run single-threaded in Phase 2.
+
+3. **No additional runner cost.** The total shard count stays at 22 (6 + 16). Tier 1 shards finish
+   faster and free up runners sooner.
+
+### Projected combined impact
+
+| Configuration | Tier 1 wall-clock | Tier 2 wall-clock | Overall wall-clock |
+| --- | --- | --- | --- |
+| Baseline (current CI) | N/A (single tier) | N/A | ~17 min |
+| Tiered only | ~12 min | ~18 min | ~18 min (Tier 2 bottleneck) |
+| xdist only (two-phase) | N/A | N/A | ~14 min |
+| **Tiered + xdist** | **~5 min** | **~12 min** | **~12 min** |
+
+The combined approach targets a ~30% reduction in wall-clock time while using the same number of
+runners. Tier 1 finishes much faster, freeing 6 runners for other CI jobs.
+
+### Implementation path
+
+1. **Tiered CI (ready):** Workflow at `backend-tiered-poc.yml` with classification-based splitting.
+   Validated with all shards green. Needs final production integration.
+
+2. **xdist for Tier 1 (straightforward):** Add `-n 3 --dist=loadfile` + `PYTHONHASHSEED=0` to
+   Tier 1 shards. No phase splitting needed since all tests are non-snuba.
+
+3. **xdist for Tier 2 (current POC):** Two-phase approach within each shard. Already validated
+   at `backend-xdist-poc.yml`. Integrate `--xdist-snuba-phase` into the tiered workflow.
+
+### What was tried and ruled out
+
+| Approach | Why rejected |
+| --- | --- |
+| Skip TRUNCATE entirely (Approach 2) | 50+ failures from unscoped ClickHouse queries. Not viable without major test refactoring. |
+| Three-phase split (writes vs reads) | Marginal gain over two-phase. Classification complexity not worth the 1-2 min savings. |
+| Mock SnubaEventStream._send | Broke tests with implicit Snuba dependencies. Fragile. |
+| loadgroup (all snuba on one worker) | Cross-worker contamination from non-snuba tests that write to CH via store_event(). |
+| Per-worker ClickHouse instances | Infeasible — Snuba manages CH lifecycle, can't easily spin up N instances. |
+| Project-scoped Snuba delete API | Requires Snuba-side changes. Clean but blocked on cross-team work. Best long-term solution. |

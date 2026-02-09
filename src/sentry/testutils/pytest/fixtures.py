@@ -335,13 +335,6 @@ def call_snuba(settings):
 
 @pytest.fixture
 def reset_snuba(call_snuba):
-    # Under xdist, TRUNCATE TABLE is dangerous because it's global — it wipes
-    # all workers' data. Skip it when XDIST_SKIP_SNUBA_RESET is set; tests
-    # are isolated by unique project IDs (Postgres sequences aren't rolled back,
-    # so each test method gets unique IDs even with Django TestCase rollback).
-    if os.environ.get("XDIST_SKIP_SNUBA_RESET"):
-        return
-
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
