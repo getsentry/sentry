@@ -525,7 +525,7 @@ def _has_no_quota_artifact(
 
 def _should_skip_status_check(
     all_artifacts: list[PreprodArtifact],
-    fresh_extras: dict[int, dict | None],
+    fresh_extras: dict[int, dict[str, Any] | None],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     status: StatusCheckStatus,
 ) -> bool:
