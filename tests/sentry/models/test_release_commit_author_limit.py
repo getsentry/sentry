@@ -57,6 +57,7 @@ class ReleaseCommitAuthorLimitTest(TestCase):
         assert release.commit_count == num_commits
 
         # Verify all distinct authors were captured
+        assert release.authors is not None
         assert len(release.authors) == num_commits, (
             f"Expected {num_commits} authors in release.authors, "
             f"but got {len(release.authors)}. This may indicate a hidden limit."
@@ -70,6 +71,7 @@ class ReleaseCommitAuthorLimitTest(TestCase):
 
         # Verify authors at key positions are correctly associated
         # Particularly checking around the suspected 250 limit
+        assert release.authors is not None
         for i in [0, 100, 200, 249, 250, 251, 299]:
             author = CommitAuthor.objects.get(
                 organization_id=org.id, email=f"author{i}@example.com"
@@ -109,6 +111,7 @@ class ReleaseCommitAuthorLimitTest(TestCase):
         # Verify all commits and authors were created
         release.refresh_from_db()
         assert release.commit_count == num_commits
+        assert release.authors is not None
         assert len(release.authors) == num_commits
 
         # Verify the last author (index 249) is included
@@ -149,6 +152,7 @@ class ReleaseCommitAuthorLimitTest(TestCase):
         release.refresh_from_db()
 
         # Verify all authors are present
+        assert release.authors is not None
         assert len(release.authors) == num_commits
 
         # Verify the query that populates authors doesn't skip any
