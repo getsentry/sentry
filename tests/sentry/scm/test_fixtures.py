@@ -6,6 +6,8 @@ from sentry.integrations.models import Integration
 from sentry.scm.types import (
     Comment,
     CommentActionResult,
+    GitRef,
+    GitRefActionResult,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -66,6 +68,28 @@ def make_github_reaction(
         "id": reaction_id,
         "content": content,
         "user": {"id": user_id, "login": username},
+    }
+
+
+def make_github_branch(
+    branch: str = "main",
+    sha: str = "abc123def456",
+) -> dict[str, Any]:
+    """Factory for GitHub branch API responses."""
+    return {
+        "name": branch,
+        "commit": {"sha": sha},
+    }
+
+
+def make_github_git_ref(
+    ref: str = "refs/heads/main",
+    sha: str = "abc123def456",
+) -> dict[str, Any]:
+    """Factory for GitHub git ref API responses."""
+    return {
+        "ref": ref,
+        "object": {"sha": sha, "type": "commit"},
     }
 
 
@@ -216,6 +240,27 @@ class BaseTestProvider(Provider):
     ) -> None:
         return None
 
+    # Branch operations
+
+    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult:
+        return GitRefActionResult(
+            git_ref=GitRef(ref=f"refs/heads/{branch}", sha="abc123def456"),
+            provider="test",
+            raw={},
+        )
+
+    def create_branch(self, repository: Repository, branch: str, sha: str) -> GitRefActionResult:
+        return GitRefActionResult(
+            git_ref=GitRef(ref=f"refs/heads/{branch}", sha=sha),
+            provider="test",
+            raw={},
+        )
+
+    def update_branch(
+        self, repository: Repository, branch: str, sha: str, force: bool = False
+    ) -> None:
+        return None
+
 
 class FakeGitHubApiClient(GitHubApiClient):
     """
@@ -304,3 +349,23 @@ class FakeGitHubApiClient(GitHubApiClient):
     def delete_issue_reaction(self, repo: str, issue_number: str, reaction_id: str) -> None:
         self._record_call("delete_issue_reaction", repo, issue_number, reaction_id)
         self._maybe_raise()
+
+    def get_branch(self, repo: str, branch: str) -> dict[str, Any]:
+        self._record_call("get_branch", repo, branch)
+        self._maybe_raise()
+        return make_github_branch(branch=branch)
+
+    def get_git_ref(self, repo: str, ref: str) -> dict[str, Any]:
+        self._record_call("get_git_ref", repo, ref)
+        self._maybe_raise()
+        return make_github_git_ref(ref=f"refs/heads/{ref}")
+
+    def create_git_ref(self, repo: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("create_git_ref", repo, data)
+        self._maybe_raise()
+        return make_github_git_ref(ref=data.get("ref", ""), sha=data.get("sha", ""))
+
+    def update_git_ref(self, repo: str, ref: str, data: dict[str, Any]) -> dict[str, Any]:
+        self._record_call("update_git_ref", repo, ref, data)
+        self._maybe_raise()
+        return make_github_git_ref(ref=f"refs/heads/{ref}", sha=data.get("sha", ""))

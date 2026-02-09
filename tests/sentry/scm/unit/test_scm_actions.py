@@ -53,6 +53,10 @@ ALL_ACTIONS = (
     ("get_pull_request_reactions", {"pull_request_id": "1"}),
     ("create_pull_request_reaction", {"pull_request_id": "1", "reaction": "eyes"}),
     ("delete_pull_request_reaction", {"pull_request_id": "1", "reaction_id": "456"}),
+    # Branch operations
+    ("get_branch", {"branch": "main"}),
+    ("create_branch", {"branch": "feature", "sha": "abc123"}),
+    ("update_branch", {"branch": "feature", "sha": "def456"}),
 )
 
 
@@ -174,6 +178,18 @@ def _check_pr_reactions(result: Any) -> None:
     assert result[1]["author"]["username"] == "otheruser"
 
 
+def _check_get_branch(result: Any) -> None:
+    assert result["git_ref"]["ref"] == "refs/heads/main"
+    assert result["git_ref"]["sha"] == "abc123def456"
+    assert result["provider"] == "test"
+
+
+def _check_create_branch(result: Any) -> None:
+    assert result["git_ref"]["ref"] == "refs/heads/feature"
+    assert result["git_ref"]["sha"] == "abc123"
+    assert result["provider"] == "test"
+
+
 def _check_none(result: Any) -> None:
     assert result is None
 
@@ -238,6 +254,9 @@ ACTION_TESTS = (
         {"pull_request_id": "1", "reaction_id": "456"},
         _check_none,
     ),
+    (SourceCodeManager.get_branch, {"branch": "main"}, _check_get_branch),
+    (SourceCodeManager.create_branch, {"branch": "feature", "sha": "abc123"}, _check_create_branch),
+    (SourceCodeManager.update_branch, {"branch": "feature", "sha": "def456"}, _check_none),
 )
 
 

@@ -438,6 +438,22 @@ class GitHubBaseClient(
             )
         return contents["tree"]
 
+    def get_branch(self, repo: str, branch: str) -> Any:
+        """https://docs.github.com/en/rest/branches/branches#get-a-branch"""
+        return self.get(f"/repos/{repo}/branches/{branch}")
+
+    def get_git_ref(self, repo: str, ref: str) -> Any:
+        """https://docs.github.com/en/rest/git/refs#get-a-reference"""
+        return self.get(f"/repos/{repo}/git/ref/heads/{ref}")
+
+    def create_git_ref(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#create-a-reference"""
+        return self.post(f"/repos/{repo}/git/refs", data=data)
+
+    def update_git_ref(self, repo: str, ref: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#update-a-reference"""
+        return self.patch(f"/repos/{repo}/git/refs/heads/{ref}", data=data)
+
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
@@ -699,6 +715,46 @@ class GitHubBaseClient(
             else b64decode(contents["content"]).decode("utf-8")
         )
         return result
+
+    def _graphql(
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Execute a GraphQL query/mutation against GitHub's API.
+
+        Checks the graphql-specific rate limit, posts to /graphql,
+        and raises ApiRateLimitedError or ApiError on failure.
+        Returns the 'data' dict from the response.
+        """
+        try:
+            rate_limit = self.get_rate_limit(specific_resource="graphql")
+        except ApiError:
+            pass  # Some GHE instances don't enforce rate limiting (404)
+        else:
+            if rate_limit.remaining < MINIMUM_REQUESTS:
+                raise ApiRateLimitedError("Not enough requests remaining for GitHub")
+
+        payload: dict[str, Any] = {"query": query}
+        if variables:
+            payload["variables"] = variables
+
+        response = self.post(path="/graphql", data=payload, allow_text=False)
+
+        if not isinstance(response, Mapping) or (
+            "data" not in response and "errors" not in response
+        ):
+            raise ApiError("GraphQL response is not in expected format")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                err_message = "\n".join(e.get("message", "") for e in errors)
+                raise ApiError(err_message)
+
+        return response.get("data", {})
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

@@ -54,6 +54,9 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_reactions", {"pull_request_id": "42"}),
     ("create_pull_request_reaction", {"pull_request_id": "42", "reaction": "rocket"}),
     ("delete_pull_request_reaction", {"pull_request_id": "42", "reaction_id": "999"}),
+    ("get_branch", {"branch": "main"}),
+    ("create_branch", {"branch": "feature", "sha": "abc123"}),
+    ("update_branch", {"branch": "feature", "sha": "def456"}),
 ]
 
 
@@ -135,6 +138,29 @@ CLIENT_DELEGATION_TESTS: list[
         {"pull_request_id": "42", "reaction_id": "999"},
         ("delete_issue_reaction", ("test-org/test-repo", "42", "999"), {}),
     ),
+    (
+        "get_branch",
+        {"branch": "main"},
+        ("get_branch", ("test-org/test-repo", "main"), {}),
+    ),
+    (
+        "create_branch",
+        {"branch": "feature", "sha": "abc123"},
+        (
+            "create_git_ref",
+            ("test-org/test-repo", {"ref": "refs/heads/feature", "sha": "abc123"}),
+            {},
+        ),
+    ),
+    (
+        "update_branch",
+        {"branch": "feature", "sha": "def456"},
+        (
+            "update_git_ref",
+            ("test-org/test-repo", "feature", {"sha": "def456", "force": False}),
+            {},
+        ),
+    ),
 ]
 
 
@@ -204,6 +230,18 @@ def _check_comment_reactions(result: Any) -> None:
     assert result[1]["content"] == "eyes"
 
 
+def _check_get_branch(result: Any) -> None:
+    assert result["git_ref"]["sha"] == "abc123def456"
+    assert result["git_ref"]["ref"] is not None
+    assert result["provider"] == "github"
+
+
+def _check_create_branch(result: Any) -> None:
+    assert result["git_ref"]["sha"] == "abc123"
+    assert result["git_ref"]["ref"] == "refs/heads/feature"
+    assert result["provider"] == "github"
+
+
 def _check_issue_reactions(result: Any) -> None:
     assert len(result) == 2
     assert result[0]["id"] == "1"
@@ -257,6 +295,18 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         {"pull_request_id": "42"},
         {"issue_reactions": _ISSUE_REACTIONS_DATA},
         _check_issue_reactions,
+    ),
+    (
+        "get_branch",
+        {"branch": "main"},
+        {},
+        _check_get_branch,
+    ),
+    (
+        "create_branch",
+        {"branch": "feature", "sha": "abc123"},
+        {},
+        _check_create_branch,
     ),
 ]
 

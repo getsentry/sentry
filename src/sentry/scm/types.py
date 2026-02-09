@@ -80,6 +80,19 @@ class Repository(TypedDict):
     status: int
 
 
+class GitRef(TypedDict):
+    """A git reference (branch pointer)."""
+
+    ref: str
+    sha: str
+
+
+class GitRefActionResult(TypedDict):
+    git_ref: GitRef
+    provider: ProviderName
+    raw: dict[str, Any]
+
+
 class Provider(Protocol):
     """
     Providers abstract over an integration. They map generic commands to service-provider specific
@@ -161,4 +174,16 @@ class Provider(Protocol):
 
     def delete_pull_request_reaction(
         self, repository: Repository, pull_request_id: str, reaction_id: str
+    ) -> None: ...
+
+    # Branch operations
+
+    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult: ...
+
+    def create_branch(
+        self, repository: Repository, branch: str, sha: str
+    ) -> GitRefActionResult: ...
+
+    def update_branch(
+        self, repository: Repository, branch: str, sha: str, force: bool = False
     ) -> None: ...

@@ -6,6 +6,8 @@ from sentry.scm.types import (
     Author,
     Comment,
     CommentActionResult,
+    GitRef,
+    GitRefActionResult,
     Provider,
     PullRequest,
     PullRequestActionResult,
@@ -57,6 +59,19 @@ def _transform_reaction(raw: dict[str, Any]) -> ReactionResult:
         id=str(raw["id"]),
         content=raw["content"],
         author=_transform_author(raw.get("user")),
+    )
+
+
+def _transform_git_ref(raw: dict[str, Any]) -> GitRefActionResult:
+    obj = raw.get("object", raw)
+    ref_str = raw.get("ref", "")
+    return GitRefActionResult(
+        git_ref=GitRef(
+            ref=ref_str,
+            sha=obj.get("sha", raw.get("commit", {}).get("sha", "")),
+        ),
+        provider="github",
+        raw=raw,
     )
 
 
@@ -220,3 +235,29 @@ class GitHubProvider(Provider):
         self, repository: Repository, pull_request_id: str, reaction_id: str
     ) -> None:
         return self.delete_issue_reaction(repository, pull_request_id, reaction_id)
+
+    # Branch operations
+
+    def get_branch(self, repository: Repository, branch: str) -> GitRefActionResult:
+        try:
+            raw = self.client.get_branch(repository["name"], branch)
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_ref(raw)
+
+    def create_branch(self, repository: Repository, branch: str, sha: str) -> GitRefActionResult:
+        try:
+            raw = self.client.create_git_ref(
+                repository["name"], {"ref": f"refs/heads/{branch}", "sha": sha}
+            )
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
+        return _transform_git_ref(raw)
+
+    def update_branch(
+        self, repository: Repository, branch: str, sha: str, force: bool = False
+    ) -> None:
+        try:
+            self.client.update_git_ref(repository["name"], branch, {"sha": sha, "force": force})
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e

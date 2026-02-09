@@ -13,6 +13,7 @@ from sentry.scm.helpers import (
 )
 from sentry.scm.types import (
     CommentActionResult,
+    GitRefActionResult,
     Provider,
     PullRequestActionResult,
     Reaction,
@@ -183,3 +184,17 @@ class SourceCodeManager:
         return self._exec(
             lambda r, p: p.delete_pull_request_reaction(r, pull_request_id, reaction_id)
         )
+
+    # Branch operations
+
+    def get_branch(self, branch: str) -> GitRefActionResult:
+        """Get a branch reference."""
+        return self._exec(lambda r, p: p.get_branch(r, branch))
+
+    def create_branch(self, branch: str, sha: str) -> GitRefActionResult:
+        """Create a new branch pointing at the given SHA."""
+        return self._exec(lambda r, p: p.create_branch(r, branch, sha))
+
+    def update_branch(self, branch: str, sha: str, force: bool = False) -> None:
+        """Update a branch to point at a new SHA."""
+        return self._exec(lambda r, p: p.update_branch(r, branch, sha, force))
