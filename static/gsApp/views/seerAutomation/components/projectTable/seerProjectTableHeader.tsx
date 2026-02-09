@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -11,10 +12,12 @@ import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/eve
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {parseQueryKey} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
@@ -30,7 +33,27 @@ interface Props {
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
   {title: t('Root Cause Analysis'), key: 'fixes'},
-  {title: t('PR Creation'), key: 'pr_creation'},
+  {
+    title: (organization: Organization) => (
+      <Flex gap="sm" align="center">
+        {t('PR Creation')}
+        {organization.enableSeerCoding === false && (
+          <QuestionTooltip
+            title={tct(
+              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
+              {
+                settings: (
+                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+                ),
+              }
+            )}
+            size="xs"
+          />
+        )}
+      </Flex>
+    ),
+    key: 'pr_creation',
+  },
   {
     title: (
       <Flex gap="sm" align="center">
@@ -71,6 +94,7 @@ export default function ProjectTableHeader({
   sort,
   updateBulkAutofixAutomationSettings,
 }: Props) {
+  const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
@@ -111,7 +135,7 @@ export default function ProjectTableHeader({
             }
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
-            {title}
+            {typeof title === 'function' ? title(organization) : title}
           </SimpleTable.HeaderCell>
         ))}
       </TableHeader>
@@ -151,7 +175,7 @@ export default function ProjectTableHeader({
               triggerLabel={t('Auto Fix')}
             />
             <DropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
               items={[
                 {
