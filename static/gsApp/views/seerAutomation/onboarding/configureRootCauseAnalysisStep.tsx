@@ -123,7 +123,7 @@ export function ConfigureRootCauseAnalysisStep() {
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
           owner,
-          provider: repo.provider?.name,
+          provider: repo.provider?.id,
           name,
         });
       }
@@ -157,6 +157,7 @@ export function ConfigureRootCauseAnalysisStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(new Error('Seer Onboarding: Unable to update autofix'));
           addErrorMessage(t('Failed to save settings'));
         },
       }

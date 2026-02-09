@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {rc, type Responsive} from '@sentry/scraps/layout';
 
-import type {ContentVariant, FontSize} from 'sentry/utils/theme';
+import type {ContentVariant, TextSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -43,12 +43,6 @@ export interface BaseTextProps {
    * If true, the text will be displayed in a monospace font.
    */
   monospace?: boolean;
-
-  /**
-   * The size of the text.
-   * @default md
-   */
-  size?: Responsive<FontSize>;
 
   /**
    * Strikethrough the text.
@@ -133,6 +127,11 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    *
    */
   htmlFor?: T extends 'label' ? string : never;
+  /**
+   * The size of the text.
+   * @default md
+   */
+  size?: Responsive<TextSize>;
 
   /**
    * Deprecated in favor of the Text component API.

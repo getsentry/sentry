@@ -4,37 +4,19 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 {
   "grouping_config": "newstyle:2023-01-11",
   "variants": {
-    "app_exception_stacktrace": {
+    "app_thread_stacktrace": {
       "component": {
         "contributes": false,
-        "hint": "ignored because system exception takes precedence",
+        "hint": "ignored because system threads take precedence",
         "id": "app",
         "name": "in-app",
         "values": [
           {
             "contributes": false,
             "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
-            "id": "exception",
-            "name": "exception",
+            "id": "threads",
+            "name": "thread",
             "values": [
-              {
-                "contributes": true,
-                "hint": null,
-                "id": "type",
-                "name": null,
-                "values": [
-                  "TimeoutError"
-                ]
-              },
-              {
-                "contributes": true,
-                "hint": null,
-                "id": "value",
-                "name": null,
-                "values": [
-                  "timed out"
-                ]
-              },
               {
                 "contributes": false,
                 "hint": "ignored because it contains no in-app frames",
@@ -263,7 +245,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -273,7 +255,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "uvicorn._subprocess"
                         ]
                       },
                       {
@@ -282,7 +264,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "_subprocess.py"
                         ]
                       },
                       {
@@ -291,7 +273,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "child_process"
+                          "subprocess_started"
                         ]
                       },
                       {
@@ -300,7 +282,51 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "run_worker("
+                          "target(sockets=sockets)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "uvicorn.server"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "server.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
                         ]
                       }
                     ]
@@ -317,7 +343,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "asyncio.runners"
                         ]
                       },
                       {
@@ -326,7 +352,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "runners.py"
                         ]
                       },
                       {
@@ -335,7 +361,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "run_worker"
+                          "run"
                         ]
                       },
                       {
@@ -344,7 +370,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "_execute_activation(task_func, inflight.activation)"
+                          "return runner.run(main)"
                         ]
                       }
                     ]
@@ -361,7 +387,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "asyncio.runners"
                         ]
                       },
                       {
@@ -370,7 +396,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "runners.py"
                         ]
                       },
                       {
@@ -379,7 +405,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "_execute_activation"
+                          "run"
                         ]
                       },
                       {
@@ -388,7 +414,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "task_func(*args, **kwargs)"
+                          "return self._loop.run_until_complete(task)"
                         ]
                       }
                     ]
@@ -405,7 +431,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.task"
+                          "asyncio.base_events"
                         ]
                       },
                       {
@@ -414,7 +440,227 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "task.py"
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_until_complete"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.run_forever()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.base_events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_forever"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._run_once()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.base_events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_run_once"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "handle._run()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._context.run(self._callback, *self._args)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "uvicorn.lifespan.on"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "on.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await app(scope, self.receive, self.send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "uvicorn.middleware.proxy_headers"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "proxy_headers.py"
                         ]
                       },
                       {
@@ -432,7 +678,799 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "return self._func(*args, **kwargs)"
+                          "return await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.applications"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "applications.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await super().__call__(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.applications"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "applications.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.middleware_stack(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.errors"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "errors.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.cors"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "cors.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.exceptions"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "exceptions.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.middleware.asyncexitstack"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "asyncexitstack.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.middleware_stack(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "app"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.lifespan(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with self.lifespan_context(app) as maybe_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
                         ]
                       }
                     ]
@@ -449,7 +1487,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.tasks.post_process"
+                          "app.main"
                         ]
                       },
                       {
@@ -458,7 +1496,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "post_process.py"
+                          "main.py"
                         ]
                       },
                       {
@@ -467,7 +1505,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "post_process_group"
+                          "run_app"
                         ]
                       },
                       {
@@ -476,7 +1514,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "run_post_process_job("
+                          "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
                         ]
                       }
                     ]
@@ -493,7 +1531,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.tasks.post_process"
+                          "app.main"
                         ]
                       },
                       {
@@ -502,7 +1540,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "post_process.py"
+                          "main.py"
                         ]
                       },
                       {
@@ -511,7 +1549,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "run_post_process_job"
+                          "do_log"
                         ]
                       },
                       {
@@ -520,51 +1558,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "logger.exception("
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": "non app frame",
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "logging"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "__init__.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "exception"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+                          "getattr(logger, level)(msg, *args, **kwargs)"
                         ]
                       }
                     ]
@@ -788,138 +1782,6 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         ]
                       }
                     ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "sock = self._connect()"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "_connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "raise err"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": "marked out of app by built-in stack trace rule (path:**/site-packages/** -app)",
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "_connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "sock.connect(socket_address)"
-                        ]
-                      }
-                    ]
                   }
                 ]
               }
@@ -928,26 +1790,26 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
         ]
       },
       "contributes": false,
-      "description": "exception stacktrace — in-app frames",
+      "description": "thread stacktrace — in-app frames",
       "hash": null,
-      "hint": "ignored because system exception takes precedence",
-      "key": "app_exception_stacktrace",
+      "hint": "ignored because system threads take precedence",
+      "key": "app_thread_stacktrace",
       "type": "component"
     },
     "message": {
       "component": {
         "contributes": false,
-        "hint": "ignored because system exception takes precedence",
+        "hint": "ignored because system threads take precedence",
         "id": "default",
         "name": null,
         "values": [
           {
             "contributes": false,
-            "hint": "ignored because system exception takes precedence",
+            "hint": "ignored because system threads take precedence",
             "id": "message",
             "name": "message",
             "values": [
-              "Failed to process pipeline step %s"
+              "Error creating HTTP client: cannot import name 'create_http_client' from 'app.utils.http' (D:\\engine\\app\\utils\\http.py)"
             ]
           }
         ]
@@ -955,11 +1817,11 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "contributes": false,
       "description": "message",
       "hash": null,
-      "hint": "ignored because system exception takes precedence",
+      "hint": "ignored because system threads take precedence",
       "key": "message",
       "type": "component"
     },
-    "system_exception_stacktrace": {
+    "system_thread_stacktrace": {
       "component": {
         "contributes": true,
         "hint": null,
@@ -969,27 +1831,9 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           {
             "contributes": true,
             "hint": null,
-            "id": "exception",
-            "name": "exception",
+            "id": "threads",
+            "name": "thread",
             "values": [
-              {
-                "contributes": true,
-                "hint": null,
-                "id": "type",
-                "name": null,
-                "values": [
-                  "TimeoutError"
-                ]
-              },
-              {
-                "contributes": false,
-                "hint": "ignored because stacktrace takes precedence",
-                "id": "value",
-                "name": null,
-                "values": [
-                  "timed out"
-                ]
-              },
               {
                 "contributes": true,
                 "hint": null,
@@ -1228,7 +2072,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "uvicorn._subprocess"
                         ]
                       },
                       {
@@ -1237,7 +2081,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "_subprocess.py"
                         ]
                       },
                       {
@@ -1246,7 +2090,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "child_process"
+                          "subprocess_started"
                         ]
                       },
                       {
@@ -1255,7 +2099,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "run_worker("
+                          "target(sockets=sockets)"
                         ]
                       }
                     ]
@@ -1272,7 +2116,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "uvicorn.server"
                         ]
                       },
                       {
@@ -1281,7 +2125,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "server.py"
                         ]
                       },
                       {
@@ -1290,7 +2134,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "run_worker"
+                          "run"
                         ]
                       },
                       {
@@ -1299,7 +2143,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "_execute_activation(task_func, inflight.activation)"
+                          "return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())"
                         ]
                       }
                     ]
@@ -1316,7 +2160,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.workerchild"
+                          "asyncio.runners"
                         ]
                       },
                       {
@@ -1325,7 +2169,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "workerchild.py"
+                          "runners.py"
                         ]
                       },
                       {
@@ -1334,7 +2178,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "_execute_activation"
+                          "run"
                         ]
                       },
                       {
@@ -1343,7 +2187,51 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "task_func(*args, **kwargs)"
+                          "return runner.run(main)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.runners"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "runners.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "return self._loop.run_until_complete(task)"
                         ]
                       }
                     ]
@@ -1360,7 +2248,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.taskworker.task"
+                          "asyncio.base_events"
                         ]
                       },
                       {
@@ -1369,7 +2257,227 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "task.py"
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_until_complete"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self.run_forever()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.base_events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_forever"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._run_once()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.base_events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base_events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_run_once"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "handle._run()"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "asyncio.events"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "events.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "_run"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "self._context.run(self._callback, *self._args)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "uvicorn.lifespan.on"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "on.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await app(scope, self.receive, self.send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "uvicorn.middleware.proxy_headers"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "proxy_headers.py"
                         ]
                       },
                       {
@@ -1387,7 +2495,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "return self._func(*args, **kwargs)"
+                          "return await self.app(scope, receive, send)"
                         ]
                       }
                     ]
@@ -1404,7 +2512,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.tasks.post_process"
+                          "fastapi.applications"
                         ]
                       },
                       {
@@ -1413,7 +2521,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "post_process.py"
+                          "applications.py"
                         ]
                       },
                       {
@@ -1422,7 +2530,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "post_process_group"
+                          "__call__"
                         ]
                       },
                       {
@@ -1431,7 +2539,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "run_post_process_job("
+                          "await super().__call__(scope, receive, send)"
                         ]
                       }
                     ]
@@ -1448,7 +2556,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "sentry.tasks.post_process"
+                          "starlette.applications"
                         ]
                       },
                       {
@@ -1457,7 +2565,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "post_process.py"
+                          "applications.py"
                         ]
                       },
                       {
@@ -1466,7 +2574,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "run_post_process_job"
+                          "__call__"
                         ]
                       },
                       {
@@ -1475,7 +2583,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "logger.exception("
+                          "await self.middleware_stack(scope, receive, send)"
                         ]
                       }
                     ]
@@ -1492,7 +2600,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "module",
                         "name": null,
                         "values": [
-                          "logging"
+                          "starlette.middleware.errors"
                         ]
                       },
                       {
@@ -1501,7 +2609,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "filename",
                         "name": null,
                         "values": [
-                          "__init__.py"
+                          "errors.py"
                         ]
                       },
                       {
@@ -1510,7 +2618,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "exception"
+                          "__call__"
                         ]
                       },
                       {
@@ -1519,7 +2627,755 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "context_line",
                         "name": null,
                         "values": [
-                          "self.error(msg, *args, exc_info=exc_info, **kwargs)"
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.base"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "base.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.cors"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "cors.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.middleware.exceptions"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "exceptions.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.middleware.asyncexitstack"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "asyncexitstack.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.app(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__call__"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.middleware_stack(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "app"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "await self.lifespan(scope, receive, send)"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "starlette.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with self.lifespan_context(app) as maybe_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored due to recursion",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "fastapi.routing"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "routing.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "merged_lifespan"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "async with original_context(app) as maybe_original_state:"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "app.main"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "run_app"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "do_log(\"error\", f\"Error creating HTTP client: {e}\")"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": [
+                          "app.main"
+                        ]
+                      },
+                      {
+                        "contributes": false,
+                        "hint": "ignored because module takes precedence",
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.py"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "do_log"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "context_line",
+                        "name": null,
+                        "values": [
+                          "getattr(logger, level)(msg, *args, **kwargs)"
                         ]
                       }
                     ]
@@ -1743,138 +3599,6 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         ]
                       }
                     ]
-                  },
-                  {
-                    "contributes": true,
-                    "hint": null,
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "sock = self._connect()"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "contributes": true,
-                    "hint": null,
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "_connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "raise err"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "contributes": false,
-                    "hint": "ignored due to recursion",
-                    "id": "frame",
-                    "name": null,
-                    "values": [
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "module",
-                        "name": null,
-                        "values": [
-                          "redis.connection"
-                        ]
-                      },
-                      {
-                        "contributes": false,
-                        "hint": "ignored because module takes precedence",
-                        "id": "filename",
-                        "name": null,
-                        "values": [
-                          "connection.py"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "function",
-                        "name": null,
-                        "values": [
-                          "_connect"
-                        ]
-                      },
-                      {
-                        "contributes": true,
-                        "hint": null,
-                        "id": "context_line",
-                        "name": null,
-                        "values": [
-                          "sock.connect(socket_address)"
-                        ]
-                      }
-                    ]
                   }
                 ]
               }
@@ -1883,10 +3607,10 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
         ]
       },
       "contributes": true,
-      "description": "exception stacktrace — all frames",
-      "hash": "7c1fcfc8523ad78a4d0424bfd03bdb13",
+      "description": "thread stacktrace — all frames",
+      "hash": "06218188159a10d97cca346ebca30dda",
       "hint": null,
-      "key": "system_exception_stacktrace",
+      "key": "system_thread_stacktrace",
       "type": "component"
     }
   }
