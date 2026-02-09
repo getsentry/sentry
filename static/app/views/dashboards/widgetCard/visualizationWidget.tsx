@@ -309,6 +309,14 @@ function VisualizationWidgetContent({
     return errorDisplay;
   }
 
+  const timeseriesContainerPadding: ContainerProps = {
+    paddingLeft: 'xl',
+    paddingRight: 'xl',
+    paddingBottom: 'lg',
+  };
+
+  const plottables = timeSeriesWithPlottable.map(([, plottable]) => plottable);
+
   // Check for empty plottables before rendering the visualization
   // This prevents TimeSeriesWidgetVisualization from throwing an error
   // that would get caught by ErrorBoundary and persist across filter changes
@@ -321,14 +329,6 @@ function VisualizationWidgetContent({
       </Flex>
     );
   }
-
-  const timeseriesContainerPadding: ContainerProps = {
-    paddingLeft: 'xl',
-    paddingRight: 'xl',
-    paddingBottom: 'lg',
-  };
-
-  const plottables = timeSeriesWithPlottable.map(([, plottable]) => plottable);
 
   if (showBreakdownData) {
     return (
