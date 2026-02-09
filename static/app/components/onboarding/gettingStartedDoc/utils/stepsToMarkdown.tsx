@@ -105,8 +105,12 @@ export function simpleHtmlToMarkdown(html: string): string {
     (_match, text: string) => `${text.trim()}\n`
   );
 
-  // Strip all remaining HTML tags
-  result = result.replace(/<[^>]+>/g, '');
+  // Strip all remaining HTML tags (loop to handle nested/malformed tags like <scr<script>ipt>)
+  let previous = '';
+  while (previous !== result) {
+    previous = result;
+    result = result.replace(/<[^>]+>/g, '');
+  }
 
   // Decode HTML entities
   result = decodeHtmlEntities(result);

@@ -212,7 +212,7 @@ sentry-cli releases finalize "$VERSION"`;
                     format: 'markdown',
                     source: 'releases_onboarding',
                   });
-                  return `## Set up Releases\n\nFind which release caused an issue, apply source maps, and get notified about your deploys.\n\nSelect an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.\n\n\`\`\`bash\n${setupExample}\n\`\`\``;
+                  return `\`\`\`bash\n${setupExample}\n\`\`\``;
                 },
                 text: () => {
                   trackAnalytics('onboarding.copy_instructions', {
@@ -220,7 +220,7 @@ sentry-cli releases finalize "$VERSION"`;
                     format: 'text',
                     source: 'releases_onboarding',
                   });
-                  return `Set up Releases\n\nFind which release caused an issue, apply source maps, and get notified about your deploys.\n\nSelect an Integration to provide your Auth Token, then add the following script to your CI config when you deploy your application.\n\n\`\`\`bash\n${setupExample}\n\`\`\``;
+                  return `${setupExample}`;
                 },
                 json: undefined,
               })}
