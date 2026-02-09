@@ -546,6 +546,10 @@ FORCE_SERIAL_FILES: set[str] = {
     "tests/snuba/rules/conditions/test_event_frequency.py",
     # Category F: Relay integration — event pipeline timing issues under load
     "tests/relay_integration/test_integration.py",
+    "tests/relay_integration/test_message_filters.py",
+    "tests/relay_integration/lang/javascript/test_plugin.py",
+    # Category G: Span counts — broad aggregation
+    "tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py",
 }
 
 

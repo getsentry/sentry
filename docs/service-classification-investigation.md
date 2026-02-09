@@ -1213,3 +1213,32 @@ A green test in this run **does not prove correctness**. Tests can pass accident
 This means the FORCE_SERIAL_FILES list will likely need multiple iterations to stabilize. Strategy:
 run the suite repeatedly, collect new failures each time, add files to the list, repeat until
 stable. Tests that fail intermittently across runs are the most important to catch.
+
+### Run 2 Results (20 parallel shards @ -n 2, 2 serial shards)
+
+Changes from Run 1: Added 5 failing files to `FORCE_SERIAL_FILES`, dropped `-n 3` to `-n 2`.
+
+**Serial shards: 2/2 passed.**
+
+**Parallel shards: 15/20 passed, 4 failed, 1 still running. Zero worker crashes.**
+
+Dropping to `-n 2` completely eliminated the OOM/worker crash problem from Run 1.
+
+#### New Failures (3 new files)
+
+| Failing Test | Shards | Root Cause |
+| --- | --- | --- |
+| `tests/relay_integration/test_message_filters.py` | 2 | `assert None is not None` — relay store returns None. Same RelayStoreHelper pattern as `test_integration.py`. |
+| `tests/relay_integration/lang/javascript/test_plugin.py` | 2 | `assert None is not None` — same relay pipeline issue. |
+| `tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py` | 1 | `assert 147.0 == 21.0` — span counts 7x expected. Classic stale data from other workers. |
+
+#### Convergence Tracking
+
+| Iteration | Failed Shards | New Files Added | Total FORCE_SERIAL_FILES |
+| --- | --- | --- | --- |
+| Run 1 (-n 3) | 5/20 (+ OOM crashes) | 5 | 21 |
+| Run 2 (-n 2) | 4/20 (no crashes) | 3 | 24 |
+
+The `relay_integration` pattern is clear: any test using `RelayStoreHelper` to store events through
+the full Relay→Snuba pipeline and then read them back from ClickHouse is vulnerable. There may be
+more `relay_integration/` files that fail intermittently — consider adding the entire directory.
