@@ -250,8 +250,6 @@ def create_preprod_status_check_task(
             status = StatusCheckStatus.NEUTRAL
             completed_at = preprod_artifact.date_updated
 
-    # Phase 1: Decision + Claim (under Redis lock)
-    # Reduces status check API calls from ~12+ to ~2 per commit for multi-app customers.
     if caller != "rerun_endpoint":
         lock = locks.get(
             f"preprod:status-check:{commit_comparison.id}",
@@ -280,7 +278,6 @@ def create_preprod_status_check_task(
 
                 _write_posted_status_claim(preprod_artifact, status.value)
         except UnableToAcquireLock:
-            # Lock timeout — post anyway to avoid a stuck check
             logger.warning(
                 "preprod.status_checks.create.lock_timeout",
                 extra={
@@ -289,7 +286,6 @@ def create_preprod_status_check_task(
                 },
             )
 
-    # Phase 2: Execute (no lock held)
     try:
         check_id = provider.create_status_check(
             repo=commit_comparison.head_repo_name,
@@ -528,11 +524,9 @@ def _should_skip_status_check(
     Returns True to skip, False to post. On any error, returns False (post).
     """
     try:
-        # Rerun always posts
         if caller == "rerun_endpoint":
             return False
 
-        # Check if any sibling has already posted a status
         any_posted = False
         posted_statuses: set[str] = set()
         for artifact_id, extras in fresh_extras.items():
@@ -545,11 +539,9 @@ def _should_skip_status_check(
                 any_posted = True
                 posted_statuses.add(posted)
 
-        # First post always goes through
         if not any_posted:
             return False
 
-        # If any artifact is still processing, skip (already posted IN_PROGRESS)
         for artifact in all_artifacts:
             if artifact.state in (
                 PreprodArtifact.ArtifactState.UPLOADING,
@@ -564,11 +556,9 @@ def _should_skip_status_check(
                 ):
                     return True
 
-        # All artifacts terminal - check if same status already posted
         if status.value in posted_statuses:
             return True
 
-        # Status changed (e.g. failure -> success after approval), don't skip
         return False
     except Exception:
         logger.exception("preprod.status_checks.should_skip.error")
