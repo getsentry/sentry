@@ -619,11 +619,18 @@ class StatefulDetectorHandler(
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
-        evidence_data = self._build_workflow_engine_evidence_data(
-            evaluation_result,
-            data_packet,
-            data_value,
-        )
+        evidence_data = {
+            **self._build_workflow_engine_evidence_data(
+                evaluation_result,
+                data_packet,
+                data_value,
+            ),
+            **self.build_detector_evidence_data(
+                evaluation_result,
+                data_packet,
+                new_priority,
+            ),
+        }
 
         fingerprint = [
             *self.build_issue_fingerprint(group_key),

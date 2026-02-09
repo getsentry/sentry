@@ -4,6 +4,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AnomalyDetectionUpdate,
     ProcessedSubscriptionUpdate,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -86,6 +87,25 @@ class BaseMetricIssueTest(TestCase):
             timestamp=datetime.now(UTC) + timedelta(minutes=time_jump),
         )
         return DataPacket[ProcessedSubscriptionUpdate](
+            source_id=str(self.query_subscription.id), packet=packet
+        )
+
+    def create_anomaly_detection_packet(
+        self, value: int, time_jump: int = 0
+    ) -> DataPacket[AnomalyDetectionUpdate]:
+        timestamp = datetime.now(UTC) + timedelta(minutes=time_jump)
+        packet = AnomalyDetectionUpdate(
+            entity="entity",
+            subscription_id=str(self.query_subscription.id),
+            values={
+                "value": value,
+                "source_id": str(self.query_subscription.id),
+                "subscription_id": str(self.query_subscription.id),
+                "timestamp": timestamp,
+            },
+            timestamp=timestamp,
+        )
+        return DataPacket[AnomalyDetectionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
 

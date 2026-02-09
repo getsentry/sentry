@@ -1,14 +1,28 @@
+from unittest import mock
+
+import orjson
+from urllib3.response import HTTPResponse
+
 from sentry.incidents.grouptype import (
+    MetricIssue,
     MetricIssueDetectorHandler,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+    AnomalyType,
+    DetectAnomaliesResponse,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 
 
@@ -141,6 +155,64 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert isinstance(occurrence, IssueOccurrence)
 
         self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    def test_anomaly_detection_evidence_extracts_value(
+        self, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        When the data packet is an AnomalyDetectionUpdate, the evidence data
+        should contain the numeric value extracted from the anomaly dict,
+        not the entire dict.
+        """
+        self.detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=MetricIssue.slug,
+            created_by_id=self.user.id,
+            owner_user_id=self.user.id,
+            config={"threshold_period": 1, "detection_type": "dynamic"},
+        )
+        anomaly_condition = self.create_data_condition(
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": AnomalyDetectionSensitivity.MEDIUM.value,
+                "seasonality": AnomalyDetectionSeasonality.AUTO.value,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW.value,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.detector.workflow_condition_group,
+        )
+        self.create_data_source_detector(self.data_source, self.detector)
+        self.alert_rule = self.create_alert_rule()
+        self.create_alert_rule_detector(alert_rule_id=self.alert_rule.id, detector=self.detector)
+        self.handler = MetricIssueDetectorHandler(self.detector)
+
+        value = 8938
+        data_packet = self.create_anomaly_detection_packet(value)
+
+        seer_response: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE,
+                    },
+                    "timestamp": 1,
+                    "value": value,
+                }
+            ],
+        }
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_response), status=200)
+
+        evidence_data = self.generate_evidence_data(value, anomaly_condition)
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        self.verify_issue_occurrence(occurrence, evidence_data, anomaly_condition)
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
