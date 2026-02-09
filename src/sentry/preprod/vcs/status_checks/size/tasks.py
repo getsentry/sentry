@@ -57,6 +57,12 @@ logger = logging.getLogger(__name__)
 ENABLED_OPTION_KEY = "sentry:preprod_size_status_checks_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
+
+class StatusCheckPostPolicy(StrEnum):
+    TRY_TO_DEDUPLICATE = "try_to_deduplicate"
+    ALWAYS_POST = "always_post"
+
+
 # Action identifier for the "Approve" button on GitHub check runs.
 # This is sent back in the webhook payload when the button is clicked.
 APPROVE_SIZE_ACTION_IDENTIFIER = "approve_size"
@@ -91,7 +97,10 @@ preprod_artifact_search_config = SearchConfig.create_from(
     silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(
-    preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
+    preprod_artifact_id: int,
+    caller: str | None = None,
+    post_policy: str = StatusCheckPostPolicy.TRY_TO_DEDUPLICATE,
+    **kwargs: Any,
 ) -> None:
     try:
         preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.select_related(
@@ -250,7 +259,7 @@ def create_preprod_status_check_task(
             status = StatusCheckStatus.NEUTRAL
             completed_at = preprod_artifact.date_updated
 
-    if caller != "rerun_endpoint":
+    if post_policy != StatusCheckPostPolicy.ALWAYS_POST:
         lock = locks.get(
             f"preprod:status-check:{commit_comparison.id}",
             duration=30,
@@ -263,9 +272,7 @@ def create_preprod_status_check_task(
                         id__in=[a.id for a in all_artifacts]
                     ).values_list("id", "extras")
                 )
-                if _should_skip_status_check(
-                    all_artifacts, fresh_extras, size_metrics_map, status, caller
-                ):
+                if _should_skip_status_check(all_artifacts, fresh_extras, size_metrics_map, status):
                     logger.info(
                         "preprod.status_checks.create.skipped",
                         extra={
@@ -517,16 +524,12 @@ def _should_skip_status_check(
     fresh_extras: dict[int, dict | None],
     size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]],
     status: StatusCheckStatus,
-    caller: str | None,
 ) -> bool:
     """Decide whether to skip posting a status check to reduce API calls.
 
     Returns True to skip, False to post. On any error, returns False (post).
     """
     try:
-        if caller == "rerun_endpoint":
-            return False
-
         any_posted = False
         posted_statuses: set[str] = set()
         for artifact_id, extras in fresh_extras.items():

@@ -17,6 +17,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.vcs.status_checks.size.tasks import (
     StatusCheckErrorType,
+    StatusCheckPostPolicy,
     create_preprod_status_check_task,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
@@ -1687,7 +1688,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         with client_patch, provider_patch:
             with self.tasks():
-                create_preprod_status_check_task(artifacts[0].id, caller="rerun_endpoint")
+                create_preprod_status_check_task(
+                    artifacts[0].id,
+                    post_policy=StatusCheckPostPolicy.ALWAYS_POST,
+                )
 
         assert mock_provider.create_status_check.call_count == 1
 

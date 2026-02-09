@@ -13,7 +13,10 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunStatusChecksEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    StatusCheckPostPolicy,
+    create_preprod_status_check_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +92,9 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                 match check_type:
                     case "size":
                         create_preprod_status_check_task.delay(
-                            preprod_artifact_id=head_artifact.id, caller="rerun_endpoint"
+                            preprod_artifact_id=head_artifact.id,
+                            caller="rerun_endpoint",
+                            post_policy=StatusCheckPostPolicy.ALWAYS_POST,
                         )
                     case _:
                         continue
