@@ -1,9 +1,13 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 
+import FormContext from 'sentry/components/forms/formContext';
+import FormModel from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
@@ -15,6 +19,7 @@ import {
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
@@ -46,6 +51,8 @@ export function EditDetectorLayout<
 }: EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload>) {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const [formModel] = useState(() => new FormModel());
+  const {onFieldChange} = useFormEagerValidation(formModel);
 
   const handleFormSubmit = useEditDetectorFormSubmit({
     detector,
@@ -57,8 +64,10 @@ export function EditDetectorLayout<
   }, [detector, savedDetectorToFormData]);
 
   const formProps = {
+    model: formModel,
     initialData,
     onSubmit: handleFormSubmit,
+    onFieldChange,
     mapFormErrors,
   };
 
@@ -83,14 +92,28 @@ export function EditDetectorLayout<
 
       <EditLayout.Body maxWidth={maxWidth}>{children}</EditLayout.Body>
 
-      <EditLayout.Footer maxWidth={maxWidth}>
-        <DisableDetectorAction detector={detector} />
-        <DeleteDetectorAction detector={detector} />
-        {extraFooterButton}
-        <Button type="submit" priority="primary" size="sm">
-          {t('Save')}
-        </Button>
-      </EditLayout.Footer>
+      <FormContext.Consumer>
+        {({form}) => (
+          <EditLayout.Footer maxWidth={maxWidth}>
+            <DisableDetectorAction detector={detector} />
+            <DeleteDetectorAction detector={detector} />
+            {extraFooterButton}
+            <Observer>
+              {() => (
+                <Button
+                  type="submit"
+                  priority="primary"
+                  size="sm"
+                  disabled={form?.isFormIncomplete || form?.isError || form?.isSaving}
+                  title={form ? getSubmitButtonTitle(form) : undefined}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </Observer>
+          </EditLayout.Footer>
+        )}
+      </FormContext.Consumer>
     </EditLayout>
   );
 }
