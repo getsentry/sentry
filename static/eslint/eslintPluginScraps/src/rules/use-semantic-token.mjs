@@ -68,6 +68,9 @@ export const useSemanticToken = {
      */
     function validateDeclaration(decl) {
       const normalizedProperty = decl.property.name;
+      if (normalizedProperty.startsWith('--')) {
+        return;
+      }
 
       for (const value of decl.values) {
         if (!value.tokenInfo) {

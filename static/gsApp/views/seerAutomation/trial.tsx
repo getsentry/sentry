@@ -59,13 +59,13 @@ export default function SeerAutomationTrial() {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
     if (!showNewSeer(organization)) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
     // If you've already got Seer, then go to settings and you should see the new ones.
     if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 

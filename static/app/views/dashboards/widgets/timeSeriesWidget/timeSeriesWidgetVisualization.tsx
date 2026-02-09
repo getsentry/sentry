@@ -54,8 +54,7 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn} = Sentry.logger;
 
-export interface TimeSeriesWidgetVisualizationProps
-  extends Partial<LoadableChartWidgetProps> {
+export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */

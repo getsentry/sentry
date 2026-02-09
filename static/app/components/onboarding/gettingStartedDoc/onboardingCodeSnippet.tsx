@@ -7,8 +7,10 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-interface OnboardingCodeSnippetProps
-  extends Omit<React.ComponentProps<typeof CodeBlock>, 'onAfterHighlight'> {}
+interface OnboardingCodeSnippetProps extends Omit<
+  React.ComponentProps<typeof CodeBlock>,
+  'onAfterHighlight'
+> {}
 
 /**
  * Replaces tokens in a DOM element with a span element.

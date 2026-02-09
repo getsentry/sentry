@@ -2861,6 +2861,16 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>42" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('42');
+      });
+
       it('keeps previous value when confirming empty value', async () => {
         const mockOnChange = jest.fn();
         render(
@@ -2891,12 +2901,15 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
         );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'timesSeen:>100'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7k{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7k{Enter}');
 
         // Should accept "7k" as a valid value
         expect(
@@ -2948,6 +2961,16 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>50ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('50ms');
+      });
+
       it('duration filters have the correct operator options', async () => {
         render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
         await userEvent.click(
@@ -2968,13 +2991,12 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
-        // Default suggestions
+        // When input is pre-filled with value, it shows as a suggestion
         expect(await screen.findByRole('option', {name: '100ms'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100s'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100m'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100h'})).toBeInTheDocument();
 
         // Entering a number will show unit suggestions for that value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7');
         expect(await screen.findByRole('option', {name: '7ms'})).toBeInTheDocument();
         expect(screen.getByRole('option', {name: '7s'})).toBeInTheDocument();
@@ -3001,12 +3023,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'duration:>100ms'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7m{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7m{Enter}');
 
         // Should accept "7m" as a valid value
         expect(
@@ -3020,6 +3045,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7{Enter}');
 
         // Should accept "7" and add "ms" as the default unit
@@ -3079,10 +3106,20 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
-        // Should start with the > operator and a value of 10ms
+        // Should start with the > operator and a value of 10bytes
         expect(
           await screen.findByRole('row', {name: 'size:>10bytes'})
         ).toBeInTheDocument();
+      });
+
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>50kib" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('50kib');
       });
 
       it('size filters have the correct operator options', async () => {
@@ -3105,13 +3142,12 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
-        // Default suggestions
-        expect(await screen.findByRole('option', {name: '10bytes'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10kib'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10mib'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10gib'})).toBeInTheDocument();
+        // Default suggestions - based on numeric portion of current value (100)
+        expect(await screen.findByRole('option', {name: '100bytes'})).toBeInTheDocument();
 
         // Entering a number will show unit suggestions for that value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7');
         expect(await screen.findByRole('option', {name: '7bytes'})).toBeInTheDocument();
         expect(screen.getByRole('option', {name: '7kib'})).toBeInTheDocument();
@@ -3138,12 +3174,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'size:>10bytes'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7kib{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7kib{Enter}');
 
         // Should accept "7kib" as a valid value
         expect(await screen.findByRole('row', {name: 'size:>7kib'})).toBeInTheDocument();
@@ -3155,6 +3194,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7{Enter}');
 
         // Should accept "7" and add "bytes" as the default unit
@@ -3218,6 +3259,16 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.25" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: rate'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('0.25');
+      });
+
       it('percentage filters have the correct operator options', async () => {
         render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
         await userEvent.click(
@@ -3249,12 +3300,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: rate'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}0.2{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('0.2{Enter}');
 
         // Should accept "0.2" as a valid value
         expect(await screen.findByRole('row', {name: 'rate:>0.2'})).toBeInTheDocument();
@@ -3266,6 +3320,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: rate'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('70%{Enter}');
 
         // 70% should be accepted and converted to 0.7

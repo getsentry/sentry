@@ -53,6 +53,7 @@ from sentry.snuba.models import SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.tasks import create_subscription_in_snuba
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
@@ -552,6 +553,42 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
         assert mock_ourlogs_run_timeseries_query.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:tracemetrics-alerts")
+    @with_feature("organizations:tracemetrics-enabled")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch(
+        "sentry.seer.anomaly_detection.utils.TraceMetrics.run_timeseries_query",
+        wraps=TraceMetrics.run_timeseries_query,
+    )
+    def test_anomaly_detection_alert_trace_metrics(
+        self, mock_trace_metrics_run_timeseries_query, mock_seer_request
+    ):
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        data["aggregate"] = "p50(value,llm.token_usage,distribution,-)"
+        data["eventTypes"] = ["trace_item_metric"]
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
+        assert mock_trace_metrics_run_timeseries_query.call_count == 1
 
     @patch(
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",

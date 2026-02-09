@@ -20,19 +20,18 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-export interface FormProps
-  extends Pick<
-    FormOptions,
-    | 'allowUndo'
-    | 'resetOnError'
-    | 'saveOnBlur'
-    | 'apiEndpoint'
-    | 'apiMethod'
-    | 'onFieldChange'
-    | 'onSubmitError'
-    | 'onSubmitSuccess'
-    | 'mapFormErrors'
-  > {
+export interface FormProps extends Pick<
+  FormOptions,
+  | 'allowUndo'
+  | 'resetOnError'
+  | 'saveOnBlur'
+  | 'apiEndpoint'
+  | 'apiMethod'
+  | 'onFieldChange'
+  | 'onSubmitError'
+  | 'onSubmitSuccess'
+  | 'mapFormErrors'
+> {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;

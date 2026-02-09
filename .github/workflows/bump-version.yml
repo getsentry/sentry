@@ -40,7 +40,7 @@ jobs:
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.8.2'
+          version: '0.9.28'
       - run: |
           set -euxo pipefail
 

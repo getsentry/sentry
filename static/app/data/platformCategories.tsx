@@ -315,7 +315,6 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'dotnet-maui',
   'dotnet-winforms',
   'dotnet-wpf',
-  'dotnet-xamarin',
   'flutter',
   'go',
   'go-echo',
@@ -386,6 +385,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'react-native',
   'ruby',
   'ruby-rack',
   'ruby-rails',
@@ -395,14 +395,19 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
-export const withoutLoggingSupport: Set<PlatformKey> = new Set(['elixir']);
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'elixir',
+  'dotnet-xamarin',
+]);
 
 // List of platforms that have metrics onboarding checklist content
 export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'android',
+  'flutter',
   'apple',
   'apple-ios',
   'apple-macos',
+  'react-native',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -481,6 +486,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'android',
   'apple',
   'bun',
+  'dart',
   'electron',
   'go',
   'java',
@@ -490,6 +496,7 @@ export const limitedMetricsSupportPrefixes: Set<string> = new Set([
   'php',
   'react-native',
   'ruby',
+  'flutter',
 ]);
 
 export const profiling: PlatformKey[] = [

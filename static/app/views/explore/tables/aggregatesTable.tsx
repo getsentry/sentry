@@ -104,6 +104,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: booleanTags} = useTraceItemTags('boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
@@ -150,7 +151,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
-              const label = prettifyField(field, stringTags, numberTags);
+              const label = prettifyField(field, stringTags, numberTags, booleanTags);
 
               const direction = sorts.find(s => s.field === field)?.kind;
 
@@ -268,9 +269,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 function prettifyField(
   field: string,
   stringTags: TagCollection,
-  numberTags: TagCollection
+  numberTags: TagCollection,
+  booleanTags: TagCollection
 ): string {
-  const tag = stringTags[field] ?? numberTags[field] ?? null;
+  const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }

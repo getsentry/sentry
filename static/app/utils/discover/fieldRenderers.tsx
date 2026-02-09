@@ -3,8 +3,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
-import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -23,7 +21,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -51,7 +48,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {FieldKind} from 'sentry/utils/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
@@ -61,12 +57,11 @@ import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardFilterKeys,
-  type DashboardFilters,
-  type GlobalFilter,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+  findLinkedDashboardForField,
+  getLinkedDashboardUrl,
+} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -1423,61 +1418,32 @@ function getDashboardUrl(
   dashboardFilters: DashboardFilters | undefined = undefined
 ) {
   const {organization, location, projects} = baggage;
-  if (widget?.widgetType && dashboardFilters) {
-    // Table widget only has one query
-    const dashboardLink = widget.queries[0]?.linkedDashboards?.find(
-      linkedDashboard => linkedDashboard.field === field
-    );
-    if (dashboardLink && dashboardLink.dashboardId !== '-1') {
-      const newTemporaryFilters: GlobalFilter[] = [
-        ...(dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER] ?? []),
-      ].filter(
-        filter =>
-          Boolean(filter.value) &&
-          !(filter.tag.key === field && filter.dataset === widget.widgetType)
-      );
+  if (!widget?.widgetType || !dashboardFilters) {
+    return undefined;
+  }
 
-      // Format the value as a proper filter condition string
-      const mutableSearch = new MutableSearch('');
-      const formattedValue = mutableSearch
-        .addFilterValueList(field, [data[field]])
-        .toString();
+  const linkedDashboard = findLinkedDashboardForField(widget.queries[0], field);
+  if (!linkedDashboard) {
+    return undefined;
+  }
 
-      newTemporaryFilters.push({
-        dataset: widget.widgetType,
-        tag: {key: field, name: field, kind: FieldKind.TAG},
-        value: formattedValue,
-        isTemporary: true,
-      });
-
-      // Preserve project, environment, and time range query params
-      const filterParams = pick(location.query, [
-        'release',
-        'environment',
-        'project',
-        'statsPeriod',
-        'start',
-        'end',
-      ]);
-
-      if ('project' in data) {
-        const projectId = projects?.find(project => project.slug === data.project)?.id;
-        if (projectId) {
-          filterParams.project = projectId;
-        }
-      }
-
-      const url = `/organizations/${organization.slug}/dashboard/${dashboardLink.dashboardId}/?${qs.stringify(
-        {
-          [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
-            JSON.stringify(filter)
-          ),
-          ...filterParams,
-        }
-      )}`;
-
-      return url;
+  // Get project ID override from data if available
+  let projectIdOverride: string | number | undefined;
+  if ('project' in data) {
+    const projectId = projects?.find(project => project.slug === data.project)?.id;
+    if (projectId) {
+      projectIdOverride = projectId;
     }
   }
-  return undefined;
+
+  return getLinkedDashboardUrl({
+    linkedDashboard,
+    organizationSlug: organization.slug,
+    field,
+    value: data[field],
+    widgetType: widget.widgetType,
+    dashboardFilters,
+    locationQuery: location.query,
+    projectIdOverride,
+  });
 }

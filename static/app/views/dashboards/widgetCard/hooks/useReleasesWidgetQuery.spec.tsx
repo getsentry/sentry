@@ -453,4 +453,48 @@ describe('useReleasesTableQuery', () => {
       );
     });
   });
+
+  it('passes per_page to sessions endpoint when using session.status grouping', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      limit: 6,
+      queries: [
+        {
+          name: 'test',
+          fields: [SessionField.STATUS, `sum(${SessionField.SESSION})`],
+          aggregates: [`sum(${SessionField.SESSION})`],
+          columns: [SessionField.STATUS],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sessions/',
+      body: SessionsFieldFixture(`sum(${SessionField.SESSION})`),
+    });
+
+    renderHook(
+      () =>
+        useReleasesTableQuery({
+          widget,
+          organization,
+          pageFilters,
+          enabled: true,
+        }),
+      {wrapper: createWrapper()}
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/sessions/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            per_page: 6,
+          }),
+        })
+      );
+    });
+  });
 });

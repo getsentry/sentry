@@ -59,7 +59,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       <Stack gap="lg" padding="0 0 lg 0">
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">

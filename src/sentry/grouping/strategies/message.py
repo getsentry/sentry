@@ -26,7 +26,9 @@ def message_v1(
     # This is true for all but our test config
     if context["normalize_message"]:
         raw_message = interface.message or interface.formatted or ""
-        normalized = normalize_message_for_grouping(raw_message, event)
+        normalized = normalize_message_for_grouping(
+            raw_message, event, source="message_component", trim_message=True
+        )
         hint = "stripped event-specific values" if raw_message != normalized else None
         return {variant_name: MessageGroupingComponent(values=[normalized], hint=hint)}
     else:

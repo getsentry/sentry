@@ -481,7 +481,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
                                 {
                                   integrationLink: (
-                                    <Link to="/settings/integrations/cursor/" />
+                                    <Link
+                                      to={`/settings/${organization.slug}/integrations/cursor/`}
+                                    />
                                   ),
                                   docsLink: (
                                     <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -516,7 +518,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        href="/settings/integrations/cursor/"
+                        href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
                         priority="primary"
                       >

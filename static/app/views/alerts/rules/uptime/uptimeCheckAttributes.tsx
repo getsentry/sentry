@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Text} from 'sentry/components/core/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';

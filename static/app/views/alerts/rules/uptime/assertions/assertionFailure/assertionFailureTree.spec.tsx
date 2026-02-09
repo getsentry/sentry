@@ -1,4 +1,4 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeAndOp,
@@ -24,13 +24,12 @@ describe('AssertionFailureTree', () => {
     const rows = screen.getAllByTestId('assertion-failure-tree-row');
     expect(rows).toHaveLength(2);
 
-    expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();
+    expect(rows[0]!).toHaveTextContent(/Assert All/);
 
-    expect(within(rows[1]!).getByText('[Failed]')).toBeInTheDocument();
-    expect(within(rows[1]!).getByText(/Status Code \| Rule:/)).toBeInTheDocument();
-    expect(within(rows[1]!).getByText(/status_code/)).toBeInTheDocument();
-    expect(within(rows[1]!).getByText(/=/)).toBeInTheDocument();
-    expect(within(rows[1]!).getByText(/500/)).toBeInTheDocument();
+    const statusText = rows[1]!.textContent ?? '';
+    expect(statusText).toMatch(
+      /\[Failed\]\s*Status Code \| Rule:[\s\S]*status_code[\s\S]*=[\s\S]*500/
+    );
   });
 
   it('renders rows in order for nested assertions', () => {
@@ -39,7 +38,11 @@ describe('AssertionFailureTree', () => {
         children: [
           makeOrOp({
             children: [
-              makeJsonPathOp({value: '$.status'}),
+              makeJsonPathOp({
+                value: '$.status',
+                operator: {cmp: 'equals'},
+                operand: {jsonpath_op: 'literal', value: 'ok'},
+              }),
               makeHeaderCheckOp({
                 key_operand: {header_op: 'literal', value: 'content-type'},
                 value_operand: {header_op: 'literal', value: 'application/json'},
@@ -55,22 +58,16 @@ describe('AssertionFailureTree', () => {
     const rows = screen.getAllByTestId('assertion-failure-tree-row');
     expect(rows).toHaveLength(4);
 
-    expect(within(rows[0]!).getByText('Assert All')).toBeInTheDocument();
-    expect(within(rows[1]!).getByText('Assert Any')).toBeInTheDocument();
+    expect(rows[0]!).toHaveTextContent(/Assert All/);
+    expect(rows[1]!).toHaveTextContent(/Assert Any/);
 
-    expect(within(rows[2]!).getByText('[Failed]')).toBeInTheDocument();
-    expect(within(rows[2]!).getByText(/JSON Path \| Rule:/)).toBeInTheDocument();
-    expect(within(rows[2]!).getByText('$.status')).toBeInTheDocument();
+    expect(rows[2]!).toHaveTextContent(
+      /\[Failed\]\s*JSON Path \| Rule:\s*\$\.status\s*=\s*""\s*ok/
+    );
 
-    // Two ="" labels, for the key and value comparisons
-    const headerOps = rows[3]!.textContent?.match(/=\s*""/g) ?? [];
-    expect(headerOps).toHaveLength(2);
-
-    expect(within(rows[3]!).getByText('[Failed]')).toBeInTheDocument();
-    expect(within(rows[3]!).getByText(/Header Check \| Rule:/)).toBeInTheDocument();
-    expect(within(rows[3]!).getByText(/key/)).toBeInTheDocument();
-    expect(within(rows[3]!).getByText(/content-type/)).toBeInTheDocument();
-    expect(within(rows[3]!).getByText(/value/)).toBeInTheDocument();
-    expect(within(rows[3]!).getByText(/application\/json/)).toBeInTheDocument();
+    const headerText = rows[3]!.textContent ?? '';
+    expect(headerText).toMatch(
+      /\[Failed\]\s*Header Check \| Rule:\s*key\s*=\s*""\s*content-type,\s*value\s*=\s*""\s*application\/json/
+    );
   });
 });

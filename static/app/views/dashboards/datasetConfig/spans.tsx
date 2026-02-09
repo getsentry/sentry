@@ -146,12 +146,16 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -202,7 +206,10 @@ function extractSeriesMetadata<T>({
     if (isSingleAggregateMultiGroup) {
       // Use hardcoded config for all series
       Object.keys(data).forEach(seriesName => {
-        result[seriesName] = getFieldMetaValue(firstMeta);
+        // Don't overwrite fieldMeta values
+        if (!(seriesName in result)) {
+          result[seriesName] = getFieldMetaValue(firstMeta);
+        }
       });
     } else {
       Object.keys(data).forEach(seriesName => {
@@ -213,7 +220,8 @@ function extractSeriesMetadata<T>({
         widgetQuery.aggregates?.forEach(aggregate => {
           // Multi-series can be keyed by aggregate or series name depending on aggregate count
           const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
-          if (seriesData.meta) {
+          // Don't overwrite fieldMeta values
+          if (seriesData.meta && !(key in result)) {
             result[key] = getMetaField(seriesData.meta, aggregate);
           }
         });
@@ -223,7 +231,8 @@ function extractSeriesMetadata<T>({
     Object.keys(data).forEach(groupName => {
       widgetQuery.aggregates?.forEach(aggregate => {
         const seriesData = data[groupName]?.[aggregate] as EventsStats;
-        if (seriesData?.meta && aggregate) {
+        // Don't overwrite fieldMeta values
+        if (seriesData?.meta && aggregate && !(aggregate in result)) {
           result[aggregate] = getMetaField(seriesData.meta, aggregate);
         }
       });

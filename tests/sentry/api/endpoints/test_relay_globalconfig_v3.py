@@ -128,39 +128,3 @@ def test_global_config_valid_with_generic_filters() -> None:
 def test_global_config_histogram_outliers(insta_snapshot) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])
-
-
-@django_db_all
-def test_global_config_ai_operation_type_map() -> None:
-    config = get_global_config()
-
-    assert "aiOperationTypeMap" in config
-    ai_operation_type_map = config["aiOperationTypeMap"]
-
-    assert ai_operation_type_map["version"] == 1
-
-    expected_mappings = {
-        "ai.run.generateText": "agent",
-        "ai.run.generateObject": "agent",
-        "gen_ai.invoke_agent": "agent",
-        "ai.pipeline.generate_text": "agent",
-        "ai.pipeline.generate_object": "agent",
-        "ai.pipeline.stream_text": "agent",
-        "ai.pipeline.stream_object": "agent",
-        "gen_ai.create_agent": "agent",
-        "gen_ai.execute_tool": "tool",
-        "gen_ai.handoff": "handoff",
-        "invoke_agent": "agent",
-        "create_agent": "agent",
-        "execute_tool": "tool",
-        "handoff": "handoff",
-    }
-
-    operation_types = ai_operation_type_map["operationTypes"]
-    for operation, expected_type in expected_mappings.items():
-        assert operation in operation_types
-        assert operation_types[operation] == expected_type
-
-    # verify the wildcard mapping for ai_client
-    assert "*" in operation_types
-    assert operation_types["*"] == "ai_client"

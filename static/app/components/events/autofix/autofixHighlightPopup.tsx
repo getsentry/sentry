@@ -713,7 +713,7 @@ const Container = styled(motion.div, {
       transparent,
       color-mix(
         in srgb,
-        ${p => p.theme.tokens.interactive.link.accent.active} 12.5%,
+        ${p => p.theme.tokens.background.accent.vibrant} 12.5%,
         transparent
       ),
       transparent

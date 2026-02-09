@@ -175,7 +175,13 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
+        {tourProps => (
+          <div {...tourProps}>
+            {controlSectionExpanded && (
+              <ExploreToolbar width={300} extras={toolbarExtras} />
+            )}
+          </div>
+        )}
       </TourElement>
     </ExploreControlSection>
   );
@@ -337,30 +343,34 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-          setTab={setTab}
-          rawSpanCounts={rawSpanCounts}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        {props => (
+          <div {...props}>
+            <ExploreCharts
+              confidences={confidences}
+              query={query}
+              extrapolate={extrapolate}
+              timeseriesResult={timeseriesResult}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
+              samplingMode={timeseriesSamplingMode}
+              setTab={setTab}
+              rawSpanCounts={rawSpanCounts}
+            />
+            <ExploreTables
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+              tracesTableResult={tracesTableResult}
+              confidences={confidences}
+              tab={tab}
+              setTab={(newTab: Mode | Tab) => {
+                if (newTab === Mode.AGGREGATE) {
+                  setControlSectionExpanded(true);
+                }
+                setTab(newTab);
+              }}
+            />
+          </div>
+        )}
       </TourElement>
     </ExploreContentSection>
   );
@@ -383,7 +393,7 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
       margin-left: -13px;
 
       &::after {
-        border-left-color: ${p.theme.tokens.background.primary};
+        border-left-color: ${p.theme.tokens.border.primary};
         border-top-left-radius: 0px;
         border-bottom-left-radius: 0px;
       }

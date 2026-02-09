@@ -148,14 +148,35 @@ def _validate_request_size(method, url, headers, body):
         )
 
 
-def _validate_check_config(attrs, organization, user):
+def _validate_check_config(
+    attrs, uptime_subscription: UptimeSubscription | None, organization, user
+):
     assertions_enabled = features.has(
         "organizations:uptime-runtime-assertions", organization, actor=user
     )
 
+    validated_data = attrs
+    if uptime_subscription is not None:
+        validated_data = {}
+        validated_data["url"] = attrs.get("url", uptime_subscription.url)
+        validated_data["interval_seconds"] = attrs.get(
+            "interval_seconds", uptime_subscription.interval_seconds
+        )
+        validated_data["timeout_ms"] = attrs.get("timeout_ms", uptime_subscription.timeout_ms)
+        validated_data["trace_sampling"] = attrs.get(
+            "trace_sampling", uptime_subscription.trace_sampling
+        )
+        validated_data["method"] = attrs.get("method", uptime_subscription.method)
+        validated_data["headers"] = attrs.get("headers", uptime_subscription.headers)
+        validated_data["body"] = attrs.get("body", uptime_subscription.body)
+        validated_data["assertion"] = attrs.get("assertion", uptime_subscription.assertion)
+        validated_data["response_capture_enabled"] = attrs.get(
+            "response_capture_enabled", uptime_subscription.response_capture_enabled
+        )
+
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
-    check_config = checker_api.create_preview_check(attrs, region)
+    check_config = checker_api.create_preview_check(validated_data, region)
     result = checker_api.invoke_checker_validator(assertions_enabled, check_config, region)
     if result is not None and result.status_code >= 400:
         raise serializers.ValidationError({"assertion": result.json()})
@@ -205,7 +226,7 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
 
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, None, self.context["organization"], user)
         return attrs
 
     def validate_url(self, url):
@@ -287,6 +308,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         method = "GET"
         body = None
         url = ""
+        uptime_subscription = None
         if self.instance:
             uptime_subscription = get_uptime_subscription(self.instance)
             headers = uptime_subscription.headers
@@ -305,7 +327,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
 
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, uptime_subscription, self.context["organization"], user)
 
         return attrs
 
@@ -543,7 +565,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         user = None
         if "request" in self.context and self.context["request"]:
             user = self.context["request"].user
-        _validate_check_config(attrs, self.context["organization"], user)
+        _validate_check_config(attrs, self.instance, self.context["organization"], user)
 
         return attrs
 

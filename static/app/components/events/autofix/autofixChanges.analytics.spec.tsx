@@ -17,7 +17,7 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 
-jest.mock('sentry/components/core/button', () => ({
+jest.mock('@sentry/scraps/button', () => ({
   Button: jest.fn(props => {
     // Forward the click handler while allowing us to inspect props
     return <button onClick={props.onClick}>{props.children}</button>;

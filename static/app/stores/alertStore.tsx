@@ -23,8 +23,7 @@ interface InternalAlertStoreDefinition {
   count: number;
 }
 interface AlertStoreDefinition
-  extends StrictStoreDefinition<Alert[]>,
-    InternalAlertStoreDefinition {
+  extends StrictStoreDefinition<Alert[]>, InternalAlertStoreDefinition {
   addAlert(alert: Alert): void;
   closeAlert(alert: Alert, duration?: number): void;
 }

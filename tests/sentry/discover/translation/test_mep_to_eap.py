@@ -86,6 +86,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "platform.name:python",
             "(platform:python) AND is_transaction:1",
         ),
+        pytest.param(
+            "span.module:db",
+            "(span.category:db) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
@@ -174,6 +178,11 @@ def test_mep_to_eap_simple_query(input: str, expected: str) -> None:
         pytest.param(
             ["platform.name", "count()"],
             ["platform", "count(span.duration)"],
+            [],
+        ),
+        pytest.param(
+            ["span.module"],
+            ["span.category"],
             [],
         ),
     ],

@@ -24,10 +24,13 @@ const disallowedOps = [
 
 const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
   [
@@ -111,6 +114,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       id: 'jobs-chart',
       title: 'Jobs',
       description: '',
+      legendType: 'breakdown',
       displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
@@ -138,6 +142,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     {
       id: 'queries-by-time-spent-chart',
       title: t('Queries by Time Spent'),
+      legendType: 'breakdown',
       description: '',
       displayType: DisplayType.LINE,
       interval: '5m',
@@ -152,7 +157,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-p75(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -169,6 +174,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       id: 'cache-miss-rates-chart',
       title: 'Cache Miss Rates',
       description: '',
+      legendType: 'breakdown',
       displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
@@ -192,7 +198,8 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
   ],
-  2
+  2,
+  {h: 3, minH: 3}
 );
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -267,7 +274,7 @@ const TRANSACTIONS_TABLE: Widget = {
     w: 6,
     h: 6,
     minH: 2,
-    y: 6,
+    y: 7,
   },
 };
 

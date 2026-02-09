@@ -20,6 +20,7 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
@@ -33,38 +34,82 @@ const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function renderTextMessages(content: any) {
-  if (!Array.isArray(content)) {
-    return content;
-  }
-  return content
-    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) =>
-      FILE_CONTENT_PARTS.includes(part.type)
-        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
-        : part.text.trim()
-    )
+function extractTextFromContentParts(parts: any[]): string {
+  return parts
+    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) => {
+      if (FILE_CONTENT_PARTS.includes(part.type)) {
+        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
+      }
+      // Handle both part.text and part.content (some SDKs use content instead of text)
+      const text = part.text ?? part.content;
+      return typeof text === 'string' ? text.trim() : text;
+    })
     .join('\n');
+}
+
+function renderTextMessages(content: any): any {
+  if (Array.isArray(content)) {
+    return extractTextFromContentParts(content);
+  }
+  return content;
 }
 
 function renderToolMessage(content: any) {
   return content;
 }
 
+/**
+ * Extracts the messages array from potentially nested structures.
+ *
+ * This is a temporary solution. OpenRouter should send the data in the correct
+ * format (direct array). We plan to contact them or contribute a fix upstream.
+ *
+ * Currently handles formats like:
+ * - Direct array: [{role, content}, ...]
+ * - Wrapped object: {messages: [{role, content}, ...]}
+ * - Stringified wrapper: {messages: "[{role, content}, ...]"}
+ */
+function extractMessagesArray(value: any): any[] | null {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && value.messages) {
+    const inner = value.messages;
+    if (Array.isArray(inner)) {
+      return inner;
+    }
+    if (typeof inner === 'string') {
+      const parsed = JSON.parse(inner);
+      return extractMessagesArray(parsed);
+    }
+  }
+
+  return null;
+}
+
 function parseAIMessages(messages: string): AIMessage[] | string {
   try {
-    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
-    return array
+    const parsed = Array.isArray(messages) ? messages : JSON.parse(messages);
+    const messagesArray = extractMessagesArray(parsed);
+
+    if (!messagesArray) {
+      return messages;
+    }
+
+    return messagesArray
       .map((message: any) => {
         if (!message.role || !message.content) {
           return null;
         }
+        const parsedContent = tryParseJson(message.content);
         return {
           role: message.role,
           content:
             message.role === 'tool'
-              ? renderToolMessage(message.content)
-              : renderTextMessages(message.content),
+              ? renderToolMessage(parsedContent)
+              : renderTextMessages(parsedContent),
         };
       })
       .filter(
