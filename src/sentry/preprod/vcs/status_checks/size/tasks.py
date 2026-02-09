@@ -25,6 +25,7 @@ from sentry.integrations.source_code_management.status_check import (
     StatusCheckStatus,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.locks import locks
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -45,7 +46,6 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     IntegrationConfigurationError,
 )
-from sentry.locks import locks
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -261,8 +261,9 @@ def create_preprod_status_check_task(
         try:
             with lock.blocking_acquire(initial_delay=0.1, timeout=5):
                 fresh_extras = dict(
-                    PreprodArtifact.objects.filter(id__in=[a.id for a in all_artifacts])
-                    .values_list("id", "extras")
+                    PreprodArtifact.objects.filter(
+                        id__in=[a.id for a in all_artifacts]
+                    ).values_list("id", "extras")
                 )
                 if _should_skip_status_check(
                     all_artifacts, fresh_extras, size_metrics_map, status, caller
