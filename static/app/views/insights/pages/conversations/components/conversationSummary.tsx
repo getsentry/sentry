@@ -197,6 +197,7 @@ function AggregateItem({
 
 const Divider = styled('div')`
   width: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   align-self: stretch;
 `;
