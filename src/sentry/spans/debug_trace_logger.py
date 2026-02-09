@@ -22,7 +22,7 @@ class DebugTraceLogger:
         self._client = client
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
-        return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
+        return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
 
     def log_subsegment_info(
         self,
