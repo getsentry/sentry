@@ -1982,7 +1982,7 @@ class OAuthTokenCORSTest(TestCase):
             owner=self.user,
             redirect_uris="https://example.com",
             allowed_origins="https://myapp.example.com\nhttps://other.example.com",
-            requires_secret=False,  # Public client
+            client_secret=None,  # Public client
         )
         # Create a device code for testing device_code grant type
         self.device_code = ApiDeviceCode.objects.create(
