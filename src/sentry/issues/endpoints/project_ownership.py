@@ -69,10 +69,10 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         """
         Validate that the user has permission to assign ownership to the teams
         referenced in the rules.
-        
+
         Validation is skipped if:
         - Open Team Membership is enabled for the organization (users can join any team)
-        
+
         Otherwise, users must either have team:admin scope or be
         a member of each team they're assigning ownership to.
         """
