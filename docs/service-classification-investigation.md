@@ -1340,3 +1340,41 @@ TRUNCATE, read-back frequently fails. Rather than adding files one by one, we no
 - `FORCE_SERIAL_FILES`: 24 entries (added span counts, release health tasks, suspect flags)
 - `FORCE_SERIAL_DIRS`: `tests/relay_integration/` (entire directory)
 - `_force_serial()` now checks both file set and directory prefix
+
+### Iteration 9: Test Bugs Uncovered by xdist
+
+Our xdist parallelization work uncovered pre-existing test bugs that were silently passing
+in single-threaded mode by relying on implicit global state.
+
+#### Bug: `test_sdk.py::CheckScopeTransactionTest::test_custom_transaction_name`
+
+**Symptom**: Under xdist, the test fails with:
+```
+AssertionError: assert {'request_transaction': '/dogs/{name}/',
+                        'scope_transaction': 'github.webhook.issue_comment'} is None
+```
+
+**Root cause**: The test patched the wrong Sentry SDK scope object. The production code
+`check_current_scope_transaction()` calls `sentry_sdk.get_current_scope()` (the *current*
+scope), but the test used `patch_isolation_scope()` which patches `Scope.get_isolation_scope`
+(the *isolation* scope) — a completely different object in Sentry SDK v2.
+
+In single-threaded mode, the real current scope happens to be empty (`_transaction = None`),
+so the function short-circuits at `if scope._transaction is not None` and returns `None`.
+The test passes by accident.
+
+Under xdist, another worker's test (e.g. a GitHub webhook handler) sets `_transaction` on
+the real shared current scope. Now the function sees a non-None transaction, the check
+doesn't short-circuit, and the assertion fails.
+
+The other two tests in the same class (`test_scope_has_correct_transaction`,
+`test_scope_has_wrong_transaction`) correctly patch `sentry_sdk.get_current_scope`. This
+one simply used the wrong mock target.
+
+**Fix**: Changed the test to patch `sentry_sdk.get_current_scope` (matching the other two
+tests in the class) instead of `Scope.get_isolation_scope`. One-line fix, no behavioral
+change to what's being tested.
+
+**Takeaway**: xdist doesn't just speed up tests — it exposes hidden shared-state assumptions.
+Tests that "work" single-threaded may be relying on a clean global environment rather than
+properly isolating their inputs. This is a valuable side-effect of parallelization.
