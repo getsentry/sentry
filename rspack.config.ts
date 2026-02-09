@@ -308,10 +308,8 @@ const appConfig: Configuration = {
         test: /\.(js|jsx|ts|tsx)$/,
         // Avoids recompiling core-js based on usage imports
         exclude: /node_modules[\\/]core-js/,
-        use: [
-          {loader: 'builtin:swc-loader', options: swcReactLoaderConfig},
-          // {loader: 'babel-loader'},
-        ],
+        loader: 'builtin:swc-loader',
+        options: swcReactLoaderConfig,
       },
       {
         test: /\.mdx?$/,
