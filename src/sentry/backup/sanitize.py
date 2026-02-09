@@ -330,7 +330,9 @@ class Sanitizer:
         """
 
         name = self.map_name(old_name)
-        slug = None if old_slug is None else slugify(old_name)
+        # Django's slugify() doesn't replace underscores with hyphens, so we need to do it manually
+        # to ensure the slug matches ORG_SLUG_PATTERN which doesn't allow underscores
+        slug = None if old_slug is None else slugify(name.lower().replace("_", "-")).strip("-")
         return (name, slug)
 
     def map_string(
@@ -569,9 +571,9 @@ class Sanitizer:
             raise TypeError("Existing slug value must be a string")
 
         (name, slug) = self.map_name_and_slug_pair(old_name, old_slug)
-        _set_field_value(json, name_field, self.map_name(old_name))
+        _set_field_value(json, name_field, name)
         if slug is not None:
-            _set_field_value(json, slug_field, slugify(name))
+            _set_field_value(json, slug_field, slug)
 
         return (name, slug)
 
