@@ -142,6 +142,20 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["refresh_token"] == refresh_token != self.refresh_token
         assert identity.data["expires"] == expires
 
+    def test_identity_property_raises_when_identity_id_is_none(self) -> None:
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+        assert installation.org_integration is not None
+
+        client = VstsApiClient(
+            base_url=self.vsts_base_url,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=installation.org_integration.id,
+            identity_id=None,
+        )
+        with pytest.raises(ValueError, match="identity_id is not set"):
+            client.identity
+
     def test_project_pagination(self) -> None:
         def request_callback(request):
             query = parse_qs(request.url.split("?")[1])
