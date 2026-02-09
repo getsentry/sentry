@@ -12,6 +12,7 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
 )
 from sentry.notifications.notification_action.grouptype import SendTestNotification
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
@@ -110,6 +111,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
 
+    @override_options({"workflow_engine.notifications.metric_issue_to_metric_alert_registry": True})
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
     def test_metric_issue_routes_to_metric_alert_handler_regardless_of_detector_type(
         self, mock_execute_metric_alert_handler

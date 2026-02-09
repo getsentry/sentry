@@ -1,5 +1,6 @@
 import logging
 
+from sentry import options
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -48,7 +49,9 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
 
     # Route all metric issues to metric alert handler regardless of detector type.
     # This ensures that metric issue notifications will always display metric alert charts.
-    if invocation.event_data.group.type == MetricIssue.type_id:
+    if invocation.event_data.group.type == MetricIssue.type_id and options.get(
+        "workflow_engine.notifications.metric_issue_to_metric_alert_registry"
+    ):
         return execute_via_metric_alert_handler(invocation)
 
     try:

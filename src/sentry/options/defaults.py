@@ -3470,6 +3470,13 @@ register(
 )
 
 register(
+    "workflow_engine.notifications.metric_issue_to_metric_alert_registry",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
