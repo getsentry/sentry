@@ -9,6 +9,8 @@ import {ImageAvatar} from './imageAvatar/imageAvatar';
 import {LetterAvatar} from './letterAvatar/letterAvatar';
 import type {BaseAvatarStyleProps} from './avatarComponentStyles';
 
+const DEFAULT_REMOTE_SIZE = 120;
+
 export interface AvatarProps extends BaseAvatarStyleProps {
   className?: string;
   'data-test-id'?: string;
@@ -62,7 +64,7 @@ export function Avatar({
         {...props}
       >
         {props.type === 'upload' ? (
-          <ImageAvatar src={props.uploadUrl} {...props} />
+          <ImageAvatar src={buildUploadUrl(props.uploadUrl)} {...props} />
         ) : props.type === 'gravatar' ? (
           <Gravatar {...props} />
         ) : props.type === 'letter_avatar' ? (
@@ -71,6 +73,18 @@ export function Avatar({
       </AvatarContainer>
     </Tooltip>
   );
+}
+
+/**
+ * Appends size parameter to uploaded avatar URLs for optimization.
+ * Skips data URLs which are already base64 encoded.
+ */
+function buildUploadUrl(url: string): string {
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}s=${DEFAULT_REMOTE_SIZE}`;
 }
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a

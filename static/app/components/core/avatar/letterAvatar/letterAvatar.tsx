@@ -103,6 +103,11 @@ function getInitials(name: string | undefined) {
     return '?';
   }
 
+  // Special case for data-scrubbed names
+  if (sanitizedName === '[Filtered]') {
+    return '?';
+  }
+
   const words = sanitizedName.split(' ');
 
   // Use Array.from as slicing and substring() work on ucs2 segments which

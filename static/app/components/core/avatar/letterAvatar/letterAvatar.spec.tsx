@@ -30,6 +30,11 @@ describe('LetterAvatar', () => {
         expect(screen.getByText('?')).toBeInTheDocument();
       }
     );
+
+    it('renders question mark for data-scrubbed [Filtered] name', () => {
+      render(<LetterAvatar identifier="user@example.com" name="[Filtered]" />);
+      expect(screen.getByText('?')).toBeInTheDocument();
+    });
   });
 
   describe('identifier vs name separation', () => {

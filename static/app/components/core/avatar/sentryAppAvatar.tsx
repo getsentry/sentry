@@ -28,7 +28,7 @@ export function SentryAppAvatar({
     return <FallbackAvatar {...props} />;
   }
 
-  const avatarProps = getSentryAppAvatarProps(sentryApp);
+  const avatarProps = getSentryAppAvatarProps(sentryApp, isColor);
 
   if (!avatarProps) {
     return <FallbackAvatar {...props} />;
@@ -48,13 +48,14 @@ function FallbackAvatar(props: Pick<AvatarProps, 'size' | 'className'>) {
 }
 
 function getSentryAppAvatarProps(
-  sentryApp: AvatarSentryApp
+  sentryApp: AvatarSentryApp,
+  isColor: boolean
 ): UploadBaseAvatarProps | LetterBaseAvatarProps | GravatarBaseAvatarProps | null {
   const identifier = sentryApp.slug;
   const name = sentryApp.name;
 
   const uploadUrl = sentryApp.avatars?.find(
-    ({avatarType}) => avatarType === 'upload'
+    ({avatarType, color}) => avatarType === 'upload' && color === isColor
   )?.avatarUrl;
 
   // If there is no upload URL, return null and fall
