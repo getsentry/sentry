@@ -3,6 +3,7 @@
 ## Background
 
 From Slack #discuss-integrations (2/9/2026):
+
 > Canva (enterprise customer) wrote in asking about github integration and commits associated with releases. They're finding that some authors are missing in the author list of those releases. It doesn't seem to be tied to single user or commit. Username and email between github and sentry is consistent. What could be the issue here? Can only 250 commits be associated to a release and if that's the case any commit authors after the 250 cut off will be left out?
 
 ## Investigation Summary

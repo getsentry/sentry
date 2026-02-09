@@ -72,7 +72,9 @@ class ReleaseCommitAuthorLimitTest(TestCase):
         # Verify authors at key positions are correctly associated
         # Particularly checking around the suspected 250 limit
         for i in [0, 100, 200, 249, 250, 251, 299]:
-            author = CommitAuthor.objects.get(organization_id=org.id, email=f"author{i}@example.com")
+            author = CommitAuthor.objects.get(
+                organization_id=org.id, email=f"author{i}@example.com"
+            )
             assert str(author.id) in release.authors, (
                 f"Author {i} (email: author{i}@example.com, id: {author.id}) "
                 f"not found in release.authors. This suggests authors after position {i} may be missing."
@@ -119,7 +121,7 @@ class ReleaseCommitAuthorLimitTest(TestCase):
     def test_release_authors_query_efficiency(self) -> None:
         """
         Verify that the query to populate release.authors doesn't have implicit limits.
-        
+
         This test checks that the .distinct() query in set_commits.py properly
         retrieves all unique author IDs without truncation.
         """
