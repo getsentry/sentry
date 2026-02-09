@@ -60,7 +60,11 @@ RULES_OPTION_KEY = "sentry:preprod_size_status_checks_rules"
 
 class StatusCheckPostPolicy(StrEnum):
     TRY_TO_DEDUPLICATE = "try_to_deduplicate"
+    """Best-effort deduplication: skip posting if a sibling already posted the same status.
+    May still post if the lock times out or extras can't be read."""
+
     ALWAYS_POST = "always_post"
+    """Bypass dedup and always post. Used by the rerun endpoint."""
 
 
 # Action identifier for the "Approve" button on GitHub check runs.
